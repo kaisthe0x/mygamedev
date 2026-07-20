@@ -66,11 +66,13 @@ var health: float = 100.0:
 @export var fall_tilt_at_speed: float = 600.0
 
 @export_group("Attack")
-## How long a single combo frame is held before dropping back to idle.
-@export var attack_frame_time: float = 0.14
-## Grace period after a hit in which another press continues the combo
-## instead of restarting it.
-@export var combo_reset_time: float = 0.6
+## How long the sprite holds on a hit frame before returning to idle, if the
+## combo isn't continued. Short -- just enough to read the hit.
+@export var attack_recovery: float = 0.12
+## Grace period after a hit lands in which another press continues the combo
+## instead of restarting it. Ticks on through idle, so you can chain after
+## control returns; keep it >= attack_recovery.
+@export var combo_reset_time: float = 0.45
 
 enum State { IDLE, RUN, JUMP, DASH, ATTACK, HEAVY_ATTACK }
 
@@ -78,10 +80,16 @@ var _state: State = State.IDLE
 var _facing: int = 1
 var _dash_left: float = 0.0
 var _dash_cd: float = 0.0
-## Index of the attack frame currently being shown; 0 means "not combo-ing".
+## Which combo segment we're on (index into the attack's hit-frame list).
 var _combo_step: int = 0
-var _attack_left: float = 0.0
+## Emitted frame the current segment ends on (the hit).
+var _seg_end: int = 0
+## True while a segment is animating; false while holding on its hit frame.
+var _combo_playing: bool = false
+## Time left to chain into the next segment (ticks through the hold and idle).
 var _combo_window: float = 0.0
+## Time left holding the current hit frame before control returns to idle.
+var _recovery_left: float = 0.0
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
 
@@ -122,6 +130,7 @@ func _apply_character() -> void:
 	# point at a frame the new character may not have.
 	_combo_step = 0
 	_combo_window = 0.0
+	_combo_playing = false
 	sprite.speed_scale = 1.0
 	sprite.play(_animation_for(_state))
 	_equip_ability()
@@ -232,6 +241,7 @@ func _process_normal(delta: float) -> void:
 		# A heavy swing supersedes any light chain in progress.
 		_combo_step = 0
 		_combo_window = 0.0
+		_combo_playing = false
 		_enter(State.HEAVY_ATTACK)
 		return
 	if Input.is_action_just_pressed("attack"):
@@ -257,14 +267,26 @@ func _process_attack(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
-	# Pressing again mid-swing chains straight into the next hit.
+	if _combo_playing:
+		# Animate through the segment; freeze on the hit frame once reached.
+		# Pin in case playback overshot the hit between physics ticks.
+		if _sprite.frame >= _seg_end:
+			_sprite.set_frame_and_progress(_seg_end, 0.0)
+			_sprite.pause()
+			_combo_playing = false
+			_recovery_left = attack_recovery
+			_combo_window = combo_reset_time
+		return
+
+	# Briefly hold the hit frame, then hand control back to idle. The chain
+	# window keeps ticking there (see _physics_process), so you can still combo
+	# after recovering -- the freeze doesn't have to outlast the whole window.
 	if Input.is_action_just_pressed("attack"):
 		_advance_combo()
 		return
-
-	_attack_left -= delta
-	if _attack_left <= 0.0:
-		_combo_window = combo_reset_time
+	_combo_window = maxf(_combo_window - delta, 0.0)
+	_recovery_left -= delta
+	if _recovery_left <= 0.0:
 		_enter(State.IDLE)
 
 
@@ -276,28 +298,38 @@ func _process_heavy_attack(delta: float) -> void:
 		velocity.y += gravity * delta
 
 
-## One press = one attack frame. Consecutive presses walk through the frames;
-## letting `combo_reset_time` lapse drops you back to the first hit.
+## One press = one combo segment: play the frames up to the next hit, then hold
+## there. Each hit frame is a segment boundary (see the generator's HIT_FRAMES).
+## Letting `combo_reset_time` lapse drops you back to the first segment; pressing
+## past the finisher wraps to the start.
 func _advance_combo() -> void:
-	var total := _sprite.sprite_frames.get_frame_count(&"attack")
-	# Frame 0 is the neutral pose shared with idle (it would read as "nothing
-	# happened"), so the actual hits are frames 1..total-1.
-	var last_step := maxi(total - 1, 1)
+	var hits := _attack_hits()
+	if hits.is_empty():
+		return
 
-	if _combo_window <= 0.0 or _combo_step >= last_step:
-		_combo_step = 1  # cold start, or wrap after the finisher
-	else:
-		_combo_step += 1
+	if _combo_window <= 0.0 or _combo_step >= hits.size():
+		_combo_step = 0  # cold start, or wrap after the finisher
+	var seg_start := 0 if _combo_step == 0 else int(hits[_combo_step - 1]) + 1
+	_seg_end = int(hits[_combo_step])
+	_combo_step += 1
 
-	_attack_left = attack_frame_time
 	_combo_window = combo_reset_time
+	_combo_playing = true
 	_enter(State.ATTACK)
-
-	# Hold a single frame rather than letting the animation run.
 	_sprite.speed_scale = 1.0
 	_sprite.play(&"attack")
-	_sprite.set_frame_and_progress(_combo_step, 0.0)
-	_sprite.pause()
+	_sprite.set_frame_and_progress(seg_start, 0.0)
+
+
+## Emitted frame indices that end each combo segment. From the SpriteFrames
+## `hit_frames` metadata (written by the generator); falls back to every frame.
+func _attack_hits() -> Array:
+	var frames := _sprite.sprite_frames
+	if frames.has_meta("hit_frames"):
+		var by_anim: Dictionary = frames.get_meta("hit_frames")
+		if by_anim.has("attack"):
+			return by_anim["attack"]
+	return range(frames.get_frame_count(&"attack"))
 
 
 func _enter(state: State) -> void:

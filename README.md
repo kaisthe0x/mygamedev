@@ -60,15 +60,31 @@ time the animation changes.
 ### The fix
 
 `tools/gen_spriteframes.py` analyses each sheet and normalises every frame onto
-one shared canvas (**currently 164x80**):
+one shared canvas (**currently 130x80**):
 
 - **Vertically** — the frame bottom becomes the canvas bottom. The sheets are
   foot-anchored, so this puts feet on a fixed line.
-- **Horizontally** — anchored on **frame 0**, which is the neutral pre-action
-  pose in every action sheet (its bounding box matches idle frame 0 exactly).
+- **Horizontally** — anchored on **frame 0**, the static idle-reference pose
+  present at the start of every sheet (see "Frame 0" below). Its bounding box
+  matches the idle pose, so anchoring on it aligns every animation to idle.
   Anchoring on the average instead would let wayna's dash fire trail or an
   attack's swing arc drag the body off-centre. Later frames keep their own
   offsets, so lunges still lunge.
+
+### Frame 0 is the idle reference
+
+The **first frame of every sheet is a static idle pose**, included so the art
+lines up with idle and giving the generator its alignment anchor. It is *not*
+part of the action: for every animation except `idle`, the generator **drops
+frame 0** and playback starts on the real first frame. `idle` keeps all its
+frames (frame 0 belongs to it).
+
+Consequences worth knowing:
+- Frame indices in `OVERRIDES` / `HIT_FRAMES` are **sheet-relative** (they count
+  frame 0); the generator subtracts 1 to get the emitted index the player sees.
+- An action sheet needs at least 2 frames (idle-ref + one real frame).
+- Anything tied to a specific played frame — e.g. katalyst's stomp `WIND_UP` —
+  is expressed in emitted indices and must be retimed if the layout changes.
 
 Normalisation is stored as `AtlasTexture.margin`, so **no images are rewritten
 and no extra VRAM is used** — the atlases still point at the original PNGs.
@@ -76,25 +92,21 @@ and no extra VRAM is used** — the atlases still point at the original PNGs.
 Because every character lands on the same canvas, swapping is a one-line
 `sprite_frames` swap. No per-character offsets or colliders.
 
-**The canvas size is derived, not fixed** — it grows to fit the largest frame,
-so adding art can change it (156x71 -> 156x80 -> 164x80 so far). `player.gd`
-reads the frame size on load and sets the sprite offset from it (origin at the
-feet), so nothing has to be updated by hand when it moves.
+**The canvas size is derived, not fixed** — it grows to fit the widest padded
+frame, so art changes can move it (156x71 -> 164x80 -> 130x80 so far).
+`player.gd` reads the frame size on load and sets the sprite offset from it
+(origin at the feet), so nothing has to be updated by hand when it moves.
 
 ### Target frame size: 128x80
 
-New and re-exported art uses **128x80 frames**. The generator doesn't require it
-— it still handles the older mixed sizes — but standardising means every sheet
-shares a grid and the canvas stops moving.
+All 30 sheets are now **128x80**. The generator doesn't require uniformity (it
+still handles mixed sizes), but standardising means every sheet shares a grid.
 
-Converted so far: **khalid** and **wayna** in full, plus **all heavy attacks**.
-feyke, katalyst and lenbondosen are still on the original irregular sizes.
-
-**Frame size alone doesn't shrink the canvas — centring does.** The canvas has to
-be wide enough to hold every animation once frame 0's character is aligned, so a
-sheet whose character sits off-centre in its frame forces padding on *every*
-character. Today the canvas is 164 wide rather than 128 purely because of this:
-lenbondosen's dash is 24px off-centre and wayna's is 18px.
+**Frame size alone doesn't shrink the canvas — centring does.** The canvas must
+be wide enough to hold every animation once frame 0 is aligned, so a sheet whose
+character sits off-centre in frame 0 forces padding on *every* character. After
+re-centring wayna and khalid the canvas is down to **130** — the last 2px is
+lenbondosen's frame 0 sitting 1px left, which is negligible.
 
 So the rule for new art is both halves:
 
@@ -141,20 +153,30 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
 - **`fps`** — retime that one animation
 - **`hold_last`** — multiply the final frame's duration, letting a pose land
   before the character retracts
-- **`loop_from`** — for a looping animation, the frame the cycle restarts at.
-  Frames before it play once as an intro; the tail repeats forever.
+- **`loop_from`** — for a looping animation, the sheet frame the cycle restarts
+  at. Frames before it play once as an intro; the tail repeats forever.
 
 `loop_from` exists because Godot's `loop` flag is all-or-nothing. The generator
-writes the frame index as resource metadata and `player.gd` jumps back to it on
-each wrap (`_on_animation_looped`). Wayna's run uses it: frames 0-3 are her
-launch (upright, lean, ignite) and 4-6 are sustained flight, so she ignites once
-and then cycles the flight loop for as long as you hold the input.
+writes the (emitted) frame index as resource metadata and `player.gd` jumps back
+to it on each wrap (`_on_animation_looped`). Wayna's run uses it: after the
+idle-ref frame, the lean/ignite frames play once and the flight tail cycles for
+as long as you hold the input.
 
-Heavy attacks are tuned into a 0.50-0.60s band: khalid `hold_last` 2.5 (4 frames
-read as a snap, so the last pose sits rather than the whole swing slowing),
-lenbondosen 13 fps and wayna 16 fps (7 and 9 frames were too slow at 10). Wayna's
-run uses `loop_from` 4. The generator prints resulting durations, marks
-overridden entries with `*`, and notes loop points as `[loop@N]`.
+Heavy attacks are tuned toward a ~0.5s feel: khalid `hold_last` 2.5 (few frames,
+so the last pose sits rather than the whole swing slowing), lenbondosen 13 fps
+and wayna 16 fps (too slow at 10). The generator prints resulting durations,
+marks overridden entries with `*`, notes loop points as `[loop@N]` and hit
+frames as `[hits...]`.
+
+### Attack hit frames — `HIT_FRAMES`
+
+A separate config next to `OVERRIDES` maps `(character, "attack")` to the
+**sheet-relative** frames that are combo hits. An attack plays one *segment* per
+click, each segment ending on a hit frame, with the frames between hits animating
+for smoothness (see **Player → Attack combo**). Any attack not listed defaults to
+"every frame is a hit" — one frame per click, the older snap feel. Emitted as
+`metadata/hit_frames`, read by `player.gd`. Feyke's attack is the worked example:
+`[2, 3, 7]` → three hits with wind-up and in-between frames around them.
 
 ---
 
@@ -175,9 +197,10 @@ overridden entries with `*`, and notes loop points as `[loop@N]`.
 The generator adapts to any frame count (1-12), size, and padding. These four
 things it assumes — and they **fail silently as misalignment, not as an error**:
 
-1. **Frame 0 is the neutral standing pose, no VFX.** This is the horizontal
-   anchor. If a dash's frame 0 already has the fire lit, that whole animation
-   sits off-centre.
+1. **Frame 0 is the static idle-reference pose, no VFX.** It is the horizontal
+   anchor *and* is dropped from action playback. If a dash's frame 0 already has
+   the fire lit, that whole animation sits off-centre and the drop eats a real
+   frame.
 2. **Feet touch the bottom edge.** Trailing transparent rows make the character
    float.
 3. **Single row.** Frame detection only divides horizontally.
@@ -199,14 +222,28 @@ the inspector.
 | Health | `max_health` 100 |
 | Movement | `run_speed` 160, `jump_velocity` -330, `gravity` 900, `fall_gravity_scale` 1.35 |
 | Dash | `dash_speed` 420, `dash_time` 0.18, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
-| Attack | `attack_frame_time` 0.14, `combo_reset_time` 0.6 |
+| Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 | Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600 |
 
-**Attack combo.** One press shows one attack frame; consecutive presses walk
-through them and wrap at the end. Letting `combo_reset_time` lapse restarts at
-the first hit. Pressing again mid-swing chains immediately. The combo starts at
-frame **1**, not 0, because frame 0 is the neutral pose and would read as
-"nothing happened" — so a 4-frame attack sheet gives 3 hits.
+**Attack combo (LMB).** One press plays one *segment* — the frames up to the
+next hit animate, then the sprite holds the hit frame for a short
+`attack_recovery` and hands control back to idle. Hit frames come from the
+`HIT_FRAMES` config via SpriteFrames metadata (`_attack_hits()`); an attack with
+no entry treats every frame as a hit, so each click advances one frame. Feyke's
+`[2,3,7]` gives three hits with smooth wind-up/in-between frames; the other
+characters currently step one frame per click.
+
+Two separate timers, which matters — coupling them once made the hit frame
+freeze for the whole chain window:
+- **`attack_recovery`** — how long the hit frame holds before idle resumes. Keep
+  it short; it's just enough to read the hit.
+- **`combo_reset_time`** — how long a follow-up press still *continues* the combo
+  rather than restarting it. It keeps ticking after control returns to idle, so
+  you can chain even once you're moving again. Lapsing it (or pressing past the
+  finisher) restarts at segment one.
+
+Clicks mid-segment are dropped (keeps the rhythm) — change `_process_attack` if
+you want input buffering.
 
 **Heavy attack (RMB).** Deliberately *not* a combo — one press plays the entire
 animation, roots the player, and ignores all input until it finishes. It also
@@ -272,16 +309,17 @@ existing abilities keep working because the base class no-ops every hook.
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Hangtime** | A heavy attack started mid-air suspends him until it finishes, so the full 7-frame swing plays instead of being cut short by the fall. Falls resume normally afterwards. |
+| Lenbondosen ("Lenny") | **Hangtime** | A heavy attack started mid-air suspends him until it finishes, so the full swing plays instead of being cut short by the fall. Falls resume normally afterwards. |
 | Katalyst | **Stomp** | A heavy attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
 
 Both latch on the frame the heavy *starts* and only if the character was
 airborne then — checking the state alone would also fire for a grounded heavy
 that walks off a ledge mid-swing.
 
-Katalyst's `WIND_UP` (0.2s) is timed to his animation: 5 frames at 10 fps means
-the downward strike is frame 2, so the drop begins exactly as he swings rather
-than before. **Retime `WIND_UP` if his heavy_attack fps or frame count changes.**
+Katalyst's `WIND_UP` (0.1s) is timed to his animation: after the idle-ref frame
+is dropped the downward strike is emitted frame 1, which at 10 fps begins at
+0.1s, so the drop starts exactly as he swings. **Retime `WIND_UP` if his
+heavy_attack fps or frame layout changes.**
 
 Known edge: the slam lasts only as long as the heavy animation, so it covers
 about 330px of fall (0.30s at 1100px/s after the wind-up). From higher than that

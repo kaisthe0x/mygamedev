@@ -44,12 +44,20 @@ ANIMS = {
     "heavy_attack": (10.0, False),
 }
 
+# Frame 0 of every sheet is a static idle-reference pose the artist includes so
+# the animation lines up with idle. It is the alignment anchor (see Sheet.bias),
+# and for every animation EXCEPT idle it is dropped from playback -- action
+# animations start on their real first frame. All frame indices in OVERRIDES and
+# HIT_FRAMES below are SHEET-relative (they count the idle frame as 0); the
+# generator converts them to the emitted indices the player sees.
+IDLE_REF_ANIMS = {"run", "jump", "dash", "attack", "heavy_attack"}
+
 # Per-character timing tweaks, layered over ANIMS. Frame counts differ a lot
 # between characters, so a single fps makes some swings drag and others snap.
 #   fps       -- override playback speed for that one animation
 #   hold_last -- multiply the final frame's duration, to let a pose land before
 #                the character retracts
-#   loop_from -- for a looping animation, the frame to restart from. Frames
+#   loop_from -- for a looping animation, the sheet frame to restart from. Frames
 #                before it play once as an intro; the tail cycles forever.
 #                Emitted as resource metadata; player.gd honours it.
 # Anything not listed here uses the ANIMS default.
@@ -59,9 +67,17 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 7 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "heavy_attack"): {"fps": 13.0},
     ("wayna", "heavy_attack"): {"fps": 16.0},
-    # Frames 0-3 are the launch (upright, lean, ignite); 4-6 are sustained
-    # flight, so only the tail should cycle while she keeps running.
+    # Sheet frames 1-3 are the launch (lean, ignite); 4-6 are sustained flight,
+    # so only the tail should cycle while she keeps running.
     ("wayna", "run"): {"loop_from": 4},
+}
+
+# Attack hit frames (sheet-relative). An attack combo plays one segment per
+# click, each segment ending on a hit frame; the frames between hits animate for
+# smoothness. Any attack not listed treats every frame as its own hit (so each
+# click advances one frame -- the old snap feel). Emitted as resource metadata.
+HIT_FRAMES: dict[tuple[str, str], list[int]] = {
+    ("feyke", "attack"): [2, 3, 7],
 }
 
 
@@ -153,16 +169,18 @@ def main() -> int:
     # the other animations, widening the canvas for every character. Call out
     # the worst offenders so they can be re-centred at the source.
     widest = max(s.fw for s in all_sheets)
-    if canvas_w > widest:
-        culprits = sorted(
-            (s for s in all_sheets if abs(s.bias) > 2),
-            key=lambda s: -abs(s.bias),
-        )[:5]
+    culprits = sorted(
+        (s for s in all_sheets if abs(s.bias) >= 1),
+        key=lambda s: -abs(s.bias),
+    )
+    if canvas_w > widest and culprits:
+        excess = canvas_w - widest
+        scale = "off-centre" if excess > 2 else "a hair off-centre"
         print(
-            f"  note: canvas is {canvas_w - widest}px wider than the widest frame "
-            f"({widest}px) because frame 0 is off-centre in:"
+            f"  note: canvas is {excess}px wider than the widest frame "
+            f"({widest}px) because frame 0 is {scale} in:"
         )
-        for s in culprits:
+        for s in culprits[:5]:
             print(f"        {s.png.parent.name}/{s.png.stem.replace('_frames', '')}"
                   f"  {s.bias:+d}px")
 
@@ -173,12 +191,24 @@ def main() -> int:
 
         ext, sub, anim_entries, timings = [], [], [], []
         loop_points: dict[str, int] = {}
+        hit_points: dict[str, list[int]] = {}
         for idx, (anim, sheet) in enumerate(per_char.items(), start=1):
             fps, loop = ANIMS[anim]
             tweak = OVERRIDES.get((char, anim), {})
             fps = tweak.get("fps", fps)
             hold_last = tweak.get("hold_last", 1.0)
             res_id = f"{idx}_{anim}"
+
+            # Drop the idle-reference frame 0 from action animations, so they
+            # start on their real first frame. `start` maps sheet index -> emitted
+            # index (emitted = sheet - start).
+            start = 1 if anim in IDLE_REF_ANIMS else 0
+            if sheet.n - start < 1:
+                raise SystemExit(
+                    f"{char}/{anim}: only {sheet.n} frame(s); need at least "
+                    f"{start + 1} (frame 0 is the idle reference)"
+                )
+            n_emitted = sheet.n - start
             rel = sheet.png.relative_to(PROJECT).as_posix()
             ext.append(
                 f'[ext_resource type="Texture2D" uid="{uid_for(sheet.png)}" '
@@ -192,7 +222,7 @@ def main() -> int:
             assert 0 <= pad_x <= canvas_w - sheet.fw, (char, anim, pad_x)
 
             frames = []
-            for i in range(sheet.n):
+            for i in range(start, sheet.n):
                 sid = f"{anim}_{i}"
                 sub.append(
                     f'[sub_resource type="AtlasTexture" id="{sid}"]\n'
@@ -213,17 +243,40 @@ def main() -> int:
                         f"{char}/{anim}: loop_from needs a looping animation; "
                         f"set loop=True for '{anim}' in ANIMS"
                     )
-                if loop_from >= sheet.n:
+                if not start <= loop_from < sheet.n:
                     raise SystemExit(
-                        f"{char}/{anim}: loop_from={loop_from} but the sheet only "
-                        f"has {sheet.n} frames (0-{sheet.n - 1})"
+                        f"{char}/{anim}: loop_from={loop_from} out of range; sheet "
+                        f"frames are {start}-{sheet.n - 1} (0 is the idle reference)"
                     )
-                loop_points[anim] = loop_from
+                loop_points[anim] = loop_from - start  # emitted index
+
+            # Hit frames -> emitted indices. Default: every emitted frame is a hit
+            # (one frame per click). Player reads these to drive the combo.
+            raw_hits = HIT_FRAMES.get((char, anim))
+            if raw_hits is not None:
+                hits = sorted({h - start for h in raw_hits})
+                if hits and not (0 <= hits[0] and hits[-1] < n_emitted):
+                    raise SystemExit(
+                        f"{char}/{anim}: hit frames {raw_hits} out of range; sheet "
+                        f"frames are {start}-{sheet.n - 1}"
+                    )
+                if hits and hits[-1] != n_emitted - 1:
+                    print(f"  note: {char}/{anim} last hit is frame "
+                          f"{hits[-1] + start}, not the final frame "
+                          f"{sheet.n - 1}; trailing frames won't play")
+            else:
+                hits = list(range(n_emitted))
+            if anim == "attack":
+                hit_points[anim] = hits
 
             # Total frames counts the held last frame as `hold_last` frames.
-            seconds = (sheet.n - 1 + hold_last) / fps
-            note = f"[loop@{loop_from}]" if loop_from else ""
-            timings.append(f"{anim}:{sheet.n}f/{seconds:.2f}s" + ("*" if tweak else "") + note)
+            seconds = (n_emitted - 1 + hold_last) / fps
+            note = f"[loop@{loop_from - start}]" if loop_from else ""
+            if raw_hits is not None:
+                note += f"[hits{hits}]"
+            timings.append(
+                f"{anim}:{n_emitted}f/{seconds:.2f}s" + ("*" if tweak else "") + note
+            )
 
             anim_entries.append(
                 "{\n"
@@ -235,11 +288,15 @@ def main() -> int:
             )
 
         load_steps = len(ext) + len(sub) + 1
-        # Read back by player.gd to restart looping animations partway in.
+        # Read back by player.gd: loop_from restarts looping animations partway
+        # in; hit_frames drives the segmented attack combo.
         meta = ""
         if loop_points:
             pairs = ", ".join(f'"{a}": {i}' for a, i in loop_points.items())
-            meta = f"metadata/loop_from = {{{pairs}}}\n"
+            meta += f"metadata/loop_from = {{{pairs}}}\n"
+        if hit_points:
+            pairs = ", ".join(f'"{a}": {i}' for a, i in hit_points.items())
+            meta += f"metadata/hit_frames = {{{pairs}}}\n"
         body = (
             f'[gd_resource type="SpriteFrames" load_steps={load_steps} format=3]\n\n'
             + "\n".join(ext)
