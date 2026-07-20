@@ -20,6 +20,8 @@ const CHARACTERS: PackedStringArray = [
 const FRAMES_PATH := "res://resources/characters/%s.tres"
 ## Portrait files are capitalised while character ids are lower case.
 const PORTRAIT_PATH := "res://assets/portraits/%s.png"
+## Optional per-character ability script; missing file means no ability.
+const ABILITY_PATH := "res://scripts/abilities/%s.gd"
 
 @export_enum("feyke", "katalyst", "khalid", "lenbondosen", "wayna")
 var character: String = "khalid":
@@ -80,6 +82,8 @@ var _dash_cd: float = 0.0
 var _combo_step: int = 0
 var _attack_left: float = 0.0
 var _combo_window: float = 0.0
+## The current character's unique ability, or null if they have none.
+var _ability: CharacterAbility
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -119,7 +123,29 @@ func _apply_character() -> void:
 	_combo_window = 0.0
 	sprite.speed_scale = 1.0
 	sprite.play(_animation_for(_state))
+	_equip_ability()
 	character_changed.emit(character)
+
+
+## Swap in the ability script named after this character, if one exists.
+func _equip_ability() -> void:
+	_ability = null
+	if Engine.is_editor_hint():
+		return
+	var path := ABILITY_PATH % character
+	if not ResourceLoader.exists(path):
+		return
+	var script: GDScript = load(path)
+	_ability = script.new() as CharacterAbility
+	if _ability == null:
+		push_warning("%s must extend CharacterAbility" % path)
+		return
+	_ability.setup(self)
+
+
+## Read-only access to the state machine, for abilities and other systems.
+func get_state() -> State:
+	return _state
 
 
 ## Path to the current character's portrait, for HUD / character-select art.
@@ -165,6 +191,11 @@ func _physics_process(delta: float) -> void:
 		# The combo only decays while you're not mid-swing.
 		_combo_window = maxf(_combo_window - delta, 0.0)
 		_process_normal(delta)
+
+	# Runs after the state machine has set this frame's velocity but before it is
+	# applied, so an ability can override any of it.
+	if _ability != null:
+		_ability.physics(self, delta)
 
 	move_and_slide()
 	_update_animation(delta)

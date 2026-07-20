@@ -15,6 +15,7 @@ assets/portraits/     Painted 1080x1080 character portraits (HUD art)
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
 scripts/              player, hud, character_switcher
+scripts/abilities/    Per-character abilities, named <character_id>.gd
 sprites/characters/   Source pixel-art sheets, one folder per character
 tools/                Generator + verification scripts (not shipped)
 ```
@@ -129,6 +130,7 @@ durations and marks overridden entries with `*`.
    `scripts/player.gd`.
 4. Import in Godot (`godot --headless --import`) so the PNGs get UIDs, then run
    the generator and the verifier.
+5. Optionally add `scripts/abilities/<name>.gd` — see **Character abilities**.
 
 ### Rules the art must follow
 
@@ -191,6 +193,63 @@ to 0 to disable. Rotation pivots on the node origin, which sits at the feet.
 
 > Health is deliberately bare — no damage sources, i-frames, or death handling
 > yet, because nothing can hurt you.
+
+---
+
+## Character abilities
+
+Each character can have a unique ability. **This is the place to add
+character-specific behaviour** — the Player itself stays generic, with no
+per-character branching.
+
+Drop a script at `scripts/abilities/<character_id>.gd` extending
+`CharacterAbility`. The Player finds it by filename when that character is
+equipped — no registration, no scene edits. A character with no file simply has
+no ability.
+
+```gdscript
+extends CharacterAbility
+
+func physics(player: Player, _delta: float) -> void:
+    if player.get_state() == Player.State.HEAVY_ATTACK and not player.is_on_floor():
+        player.velocity.y = 0.0
+```
+
+Two hooks, both optional:
+
+| Hook | When | Use for |
+|---|---|---|
+| `setup(player)` | Once, on equip | One-off changes (`player.run_speed = 200`), resetting state |
+| `physics(player, delta)` | Every physics frame, **after** the state machine sets velocity and **before** `move_and_slide()` | Movement overrides — whatever you set here wins |
+
+`physics` runs last on purpose, so an ability can override anything the state
+machine decided. `player.get_state()` exposes the current state
+(`Player.State.HEAVY_ATTACK`, etc.), and the whole Player API — `take_damage()`,
+`velocity`, `is_on_floor()`, every exported tunable — is available.
+
+Add event hooks (on-hit, on-land) to `character_ability.gd` as they're needed;
+existing abilities keep working because the base class no-ops every hook.
+
+### Current abilities
+
+| Character | Ability | Effect |
+|---|---|---|
+| Lenbondosen ("Lenny") | **Hangtime** | A heavy attack started mid-air suspends him until it finishes, so the full 7-frame swing plays instead of being cut short by the fall. Falls resume normally afterwards. |
+| Katalyst | **Stomp** | A heavy attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
+
+Both latch on the frame the heavy *starts* and only if the character was
+airborne then — checking the state alone would also fire for a grounded heavy
+that walks off a ledge mid-swing.
+
+Katalyst's `WIND_UP` (0.2s) is timed to his animation: 5 frames at 10 fps means
+the downward strike is frame 2, so the drop begins exactly as he swings rather
+than before. **Retime `WIND_UP` if his heavy_attack fps or frame count changes.**
+
+Known edge: the slam lasts only as long as the heavy animation, so it covers
+about 330px of fall (0.30s at 1100px/s after the wind-up). From higher than that
+the swing ends mid-air and he finishes the drop as a normal fall. Fine for
+typical platform heights; if it ever matters, have the ability keep driving
+`velocity.y` until `is_on_floor()` instead of stopping when the state ends.
 
 ---
 
