@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://by7wokt6d2jug"]
+
+[ext_resource type="PackedScene" uid="uid://cgaiawi5xtuy5" path="res://scenes/player.tscn" id="1_2q6dc"]
+[ext_resource type="Script" uid="uid://dqvjluqnhww1w" path="res://scripts/character_switcher.gd" id="2_switch"]
+
+[sub_resource type="RectangleShape2D" id="floor_shape"]
+size = Vector2(1200, 40)
+
+[node name="Level" type="Node2D" unique_id=1143969346]
+script = ExtResource("2_switch")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=2095628982]
+position = Vector2(0, -60)
+zoom = Vector2(3, 3)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=240657501]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=615602854]
+position = Vector2(0, 20)
+shape = SubResource("floor_shape")
+
+[node name="ColorRect" type="ColorRect" parent="Floor" unique_id=150748860]
+offset_left = -600.0
+offset_right = 600.0
+offset_bottom = 40.0
+color = Color(0.16, 0.17, 0.22, 1)
+
+[node name="Player" parent="." unique_id=1329512334 instance=ExtResource("1_2q6dc")]
+dash_gravity_scale = null
+fall_tilt_degrees = null
+fall_tilt_at_speed = null
+
+[node name="Hint" type="Label" parent="." unique_id=1069755282]
+offset_left = -140.0
+offset_top = -160.0
+offset_right = 140.0
+offset_bottom = -140.0
+text = "swap with Q/E"
+horizontal_alignment = 1

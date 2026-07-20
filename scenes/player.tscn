@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://cgaiawi5xtuy5"]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+
+[sub_resource type="RectangleShape2D" id="body_shape"]
+size = Vector2(16, 30)
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_player")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+centered = false
+offset = Vector2(-78, -71)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -15)
+shape = SubResource("body_shape")
