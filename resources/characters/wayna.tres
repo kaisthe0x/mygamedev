@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=35 format=3]
+[gd_resource type="SpriteFrames" load_steps=42 format=3]
 
 [ext_resource type="Texture2D" uid="uid://bjfw5m0gbmffy" path="res://sprites/characters/wayna/wayna_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://kj61gbuxq3yb" path="res://sprites/characters/wayna/wayna_run_frames.png" id="2_run"]
@@ -52,6 +52,21 @@ atlas = ExtResource("2_run")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
+[sub_resource type="AtlasTexture" id="run_7"]
+atlas = ExtResource("2_run")
+region = Rect2(896, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_8"]
+atlas = ExtResource("2_run")
+region = Rect2(1024, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_9"]
+atlas = ExtResource("2_run")
+region = Rect2(1152, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
 [sub_resource type="AtlasTexture" id="jump_1"]
 atlas = ExtResource("3_jump")
 region = Rect2(128, 0, 128, 80)
@@ -90,6 +105,26 @@ margin = Rect2(2, 0, 2, 0)
 [sub_resource type="AtlasTexture" id="dash_3"]
 atlas = ExtResource("4_dash")
 region = Rect2(384, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_4"]
+atlas = ExtResource("4_dash")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_5"]
+atlas = ExtResource("4_dash")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_6"]
+atlas = ExtResource("4_dash")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_7"]
+atlas = ExtResource("4_dash")
+region = Rect2(896, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_1"]
@@ -148,7 +183,7 @@ region = Rect2(1024, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [resource]
-metadata/loop_from = {"run": 3}
+metadata/loop_from = {"run": 4}
 metadata/hit_frames = {"attack": [0, 1, 2]}
 animations = [{
 "frames": [{
@@ -183,6 +218,15 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("run_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_9")
 }],
 "loop": true,
 "name": &"run",
@@ -217,6 +261,18 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("dash_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("dash_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("dash_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("dash_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("dash_7")
 }],
 "loop": false,
 "name": &"dash",

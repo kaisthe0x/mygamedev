@@ -67,9 +67,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 7 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "heavy_attack"): {"fps": 13.0},
     ("wayna", "heavy_attack"): {"fps": 16.0},
-    # Sheet frames 1-3 are the launch (lean, ignite); 4-6 are sustained flight,
+    # Sheet frames 1-4 are the launch (lean, ignite); 5-9 are sustained flight,
     # so only the tail should cycle while she keeps running.
-    ("wayna", "run"): {"loop_from": 4},
+    ("wayna", "run"): {"loop_from": 5},
 }
 
 # Attack hit frames (sheet-relative). An attack combo plays one segment per
