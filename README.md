@@ -60,7 +60,7 @@ time the animation changes.
 ### The fix
 
 `tools/gen_spriteframes.py` analyses each sheet and normalises every frame onto
-one shared canvas (**currently 156x80**):
+one shared canvas (**currently 164x80**):
 
 - **Vertically** — the frame bottom becomes the canvas bottom. The sheets are
   foot-anchored, so this puts feet on a fixed line.
@@ -77,11 +77,41 @@ Because every character lands on the same canvas, swapping is a one-line
 `sprite_frames` swap. No per-character offsets or colliders.
 
 **The canvas size is derived, not fixed** — it grows to fit the largest frame,
-so adding art can change it (heavy attacks took it from 156x71 to 156x80).
-`player.gd` reads the frame size on load and sets the sprite offset from it
-(origin at the feet), so nothing has to be updated by hand when it moves.
+so adding art can change it (156x71 -> 156x80 -> 164x80 so far). `player.gd`
+reads the frame size on load and sets the sprite offset from it (origin at the
+feet), so nothing has to be updated by hand when it moves.
+
+### Target frame size: 128x80
+
+New and re-exported art uses **128x80 frames**. The generator doesn't require it
+— it still handles the older mixed sizes — but standardising means every sheet
+shares a grid and the canvas stops moving.
+
+Converted so far: **khalid** and **wayna** in full, plus **all heavy attacks**.
+feyke, katalyst and lenbondosen are still on the original irregular sizes.
+
+**Frame size alone doesn't shrink the canvas — centring does.** The canvas has to
+be wide enough to hold every animation once frame 0's character is aligned, so a
+sheet whose character sits off-centre in its frame forces padding on *every*
+character. Today the canvas is 164 wide rather than 128 purely because of this:
+lenbondosen's dash is 24px off-centre and wayna's is 18px.
+
+So the rule for new art is both halves:
+
+1. 128x80 frames
+2. **In frame 0, the character horizontally centred in the frame.** Later frames
+   can lunge or trail VFX freely — only frame 0 is the anchor.
+
+The generator prints the worst offenders whenever the canvas exceeds the widest
+frame, so it's obvious which sheets still need re-centring.
 
 ### Regenerating
+
+> **Replacing a PNG is not enough — you must regenerate.** The `.tres` files
+> store hardcoded `region` rectangles (`Rect2(0, 0, 32, 32)` and so on). Swap in
+> a sheet with different frame sizes and those rectangles now slice the wrong
+> part of the image, so frames render blank or clipped. **Symptom: frames
+> "disappear" on some actions after an art update.** Fix: re-run the generator.
 
 ```bash
 python3 tools/gen_spriteframes.py                    # rewrites resources/characters/*.tres
@@ -111,12 +141,20 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
 - **`fps`** — retime that one animation
 - **`hold_last`** — multiply the final frame's duration, letting a pose land
   before the character retracts
+- **`loop_from`** — for a looping animation, the frame the cycle restarts at.
+  Frames before it play once as an intro; the tail repeats forever.
 
-Current tweaks are all on `heavy_attack`, bringing every character into the
-0.50-0.60s band: khalid `hold_last` 2.5 (4 frames read as a snap, so the last
-pose sits rather than the whole swing slowing), lenbondosen 13 fps and wayna
-16 fps (7 and 9 frames were too slow at 10). The generator prints resulting
-durations and marks overridden entries with `*`.
+`loop_from` exists because Godot's `loop` flag is all-or-nothing. The generator
+writes the frame index as resource metadata and `player.gd` jumps back to it on
+each wrap (`_on_animation_looped`). Wayna's run uses it: frames 0-3 are her
+launch (upright, lean, ignite) and 4-6 are sustained flight, so she ignites once
+and then cycles the flight loop for as long as you hold the input.
+
+Heavy attacks are tuned into a 0.50-0.60s band: khalid `hold_last` 2.5 (4 frames
+read as a snap, so the last pose sits rather than the whole swing slowing),
+lenbondosen 13 fps and wayna 16 fps (7 and 9 frames were too slow at 10). Wayna's
+run uses `loop_from` 4. The generator prints resulting durations, marks
+overridden entries with `*`, and notes loop points as `[loop@N]`.
 
 ---
 

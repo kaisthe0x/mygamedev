@@ -94,6 +94,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	_sprite.animation_finished.connect(_on_animation_finished)
+	_sprite.animation_looped.connect(_on_animation_looped)
 	# Seed listeners that connected before _ready (the setters stay silent when
 	# the value doesn't actually change, so the HUD would otherwise start blank).
 	health_changed.emit(health, max_health)
@@ -341,6 +342,18 @@ func _update_animation(delta: float) -> void:
 		var amount := minf(velocity.y / fall_tilt_at_speed, 1.0)
 		tilt = deg_to_rad(fall_tilt_degrees) * amount * _facing
 	_sprite.rotation = move_toward(_sprite.rotation, tilt, TAU * delta)
+
+
+## A looping animation can have an intro: `loop_from` metadata (written by the
+## generator) marks the frame the cycle restarts at, so the lead-in plays once
+## and only the tail repeats. Wayna's run ignites over frames 0-3 then cycles 4-6.
+func _on_animation_looped() -> void:
+	var frames := _sprite.sprite_frames
+	if frames == null or not frames.has_meta("loop_from"):
+		return
+	var start: int = frames.get_meta("loop_from").get(String(_sprite.animation), 0)
+	if start > 0:
+		_sprite.set_frame_and_progress(start, 0.0)
 
 
 func _on_animation_finished() -> void:

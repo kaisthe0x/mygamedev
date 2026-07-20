@@ -49,6 +49,9 @@ ANIMS = {
 #   fps       -- override playback speed for that one animation
 #   hold_last -- multiply the final frame's duration, to let a pose land before
 #                the character retracts
+#   loop_from -- for a looping animation, the frame to restart from. Frames
+#                before it play once as an intro; the tail cycles forever.
+#                Emitted as resource metadata; player.gd honours it.
 # Anything not listed here uses the ANIMS default.
 OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 4 frames read as a snap; let the final pose sit instead of speeding up.
@@ -56,6 +59,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 7 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "heavy_attack"): {"fps": 13.0},
     ("wayna", "heavy_attack"): {"fps": 16.0},
+    # Frames 0-3 are the launch (upright, lean, ignite); 4-6 are sustained
+    # flight, so only the tail should cycle while she keeps running.
+    ("wayna", "run"): {"loop_from": 4},
 }
 
 
@@ -142,12 +148,31 @@ def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     print(f"canvas: {canvas_w}x{canvas_h} (feet on the bottom edge)")
 
+    # The canvas only collapses to the frame size when frame 0's character is
+    # centred in its frame. Anything off-centre has to be padded to line up with
+    # the other animations, widening the canvas for every character. Call out
+    # the worst offenders so they can be re-centred at the source.
+    widest = max(s.fw for s in all_sheets)
+    if canvas_w > widest:
+        culprits = sorted(
+            (s for s in all_sheets if abs(s.bias) > 2),
+            key=lambda s: -abs(s.bias),
+        )[:5]
+        print(
+            f"  note: canvas is {canvas_w - widest}px wider than the widest frame "
+            f"({widest}px) because frame 0 is off-centre in:"
+        )
+        for s in culprits:
+            print(f"        {s.png.parent.name}/{s.png.stem.replace('_frames', '')}"
+                  f"  {s.bias:+d}px")
+
     for char in characters:
         per_char = sheets[char]
         if not per_char:
             continue
 
         ext, sub, anim_entries, timings = [], [], [], []
+        loop_points: dict[str, int] = {}
         for idx, (anim, sheet) in enumerate(per_char.items(), start=1):
             fps, loop = ANIMS[anim]
             tweak = OVERRIDES.get((char, anim), {})
@@ -181,9 +206,24 @@ def main() -> int:
                     f'{{\n"duration": {duration},\n"texture": SubResource("{sid}")\n}}'
                 )
 
+            loop_from = int(tweak.get("loop_from", 0))
+            if loop_from:
+                if not loop:
+                    raise SystemExit(
+                        f"{char}/{anim}: loop_from needs a looping animation; "
+                        f"set loop=True for '{anim}' in ANIMS"
+                    )
+                if loop_from >= sheet.n:
+                    raise SystemExit(
+                        f"{char}/{anim}: loop_from={loop_from} but the sheet only "
+                        f"has {sheet.n} frames (0-{sheet.n - 1})"
+                    )
+                loop_points[anim] = loop_from
+
             # Total frames counts the held last frame as `hold_last` frames.
             seconds = (sheet.n - 1 + hold_last) / fps
-            timings.append(f"{anim}:{sheet.n}f/{seconds:.2f}s" + ("*" if tweak else ""))
+            note = f"[loop@{loop_from}]" if loop_from else ""
+            timings.append(f"{anim}:{sheet.n}f/{seconds:.2f}s" + ("*" if tweak else "") + note)
 
             anim_entries.append(
                 "{\n"
@@ -195,12 +235,18 @@ def main() -> int:
             )
 
         load_steps = len(ext) + len(sub) + 1
+        # Read back by player.gd to restart looping animations partway in.
+        meta = ""
+        if loop_points:
+            pairs = ", ".join(f'"{a}": {i}' for a, i in loop_points.items())
+            meta = f"metadata/loop_from = {{{pairs}}}\n"
         body = (
             f'[gd_resource type="SpriteFrames" load_steps={load_steps} format=3]\n\n'
             + "\n".join(ext)
             + "\n\n"
             + "\n\n".join(sub)
             + "\n\n[resource]\n"
+            + meta
             + "animations = ["
             + ", ".join(anim_entries)
             + "]\n"
