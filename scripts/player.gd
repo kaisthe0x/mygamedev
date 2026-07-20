@@ -70,7 +70,7 @@ var health: float = 100.0:
 ## instead of restarting it.
 @export var combo_reset_time: float = 0.6
 
-enum State { IDLE, RUN, JUMP, DASH, ATTACK }
+enum State { IDLE, RUN, JUMP, DASH, ATTACK, HEAVY_ATTACK }
 
 var _state: State = State.IDLE
 var _facing: int = 1
@@ -106,6 +106,13 @@ func _apply_character() -> void:
 		push_warning("No SpriteFrames for character '%s' at %s" % [character, path])
 		return
 	sprite.sprite_frames = load(path)
+	# The generator's canvas size changes whenever the art does, so derive the
+	# offset from the frames rather than baking it into the scene: origin at the
+	# feet, horizontally centred.
+	var frame := sprite.sprite_frames.get_frame_texture(&"idle", 0)
+	if frame != null:
+		sprite.centered = false
+		sprite.offset = Vector2(-frame.get_width() / 2.0, -frame.get_height())
 	# Attack frame counts differ per character, so a half-finished combo would
 	# point at a frame the new character may not have.
 	_combo_step = 0
@@ -152,6 +159,8 @@ func _physics_process(delta: float) -> void:
 		_process_dash(delta)
 	elif _state == State.ATTACK:
 		_process_attack(delta)
+	elif _state == State.HEAVY_ATTACK:
+		_process_heavy_attack(delta)
 	else:
 		# The combo only decays while you're not mid-swing.
 		_combo_window = maxf(_combo_window - delta, 0.0)
@@ -187,6 +196,12 @@ func _process_normal(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
+	if Input.is_action_just_pressed("heavy_attack"):
+		# A heavy swing supersedes any light chain in progress.
+		_combo_step = 0
+		_combo_window = 0.0
+		_enter(State.HEAVY_ATTACK)
+		return
 	if Input.is_action_just_pressed("attack"):
 		_advance_combo()
 		return
@@ -219,6 +234,14 @@ func _process_attack(delta: float) -> void:
 	if _attack_left <= 0.0:
 		_combo_window = combo_reset_time
 		_enter(State.IDLE)
+
+
+## Unlike the light combo, a heavy swing is committed: it plays the whole
+## animation, ignores input, and ends via _on_animation_finished().
+func _process_heavy_attack(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+	if not is_on_floor():
+		velocity.y += gravity * delta
 
 
 ## One press = one attack frame. Consecutive presses walk through the frames;
@@ -270,6 +293,7 @@ func _animation_for(state: State) -> StringName:
 		State.JUMP: return &"jump"
 		State.DASH: return &"dash"
 		State.ATTACK: return &"attack"
+		State.HEAVY_ATTACK: return &"heavy_attack"
 		_: return &"idle"
 
 
@@ -289,7 +313,7 @@ func _update_animation(delta: float) -> void:
 
 
 func _on_animation_finished() -> void:
-	# Attack is a paused single frame and jump holds its last frame, so dash is
-	# the only state that ends on playback finishing.
-	if _state == State.DASH:
+	# Light attack is a paused single frame and jump holds its last frame, so
+	# only dash and the heavy swing end on playback finishing.
+	if _state == State.DASH or _state == State.HEAVY_ATTACK:
 		_enter(State.IDLE)

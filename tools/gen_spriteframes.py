@@ -41,15 +41,36 @@ ANIMS = {
     "jump": (10.0, False),
     "dash": (12.0, False),
     "attack": (12.0, False),
+    "heavy_attack": (10.0, False),
+}
+
+# Per-character timing tweaks, layered over ANIMS. Frame counts differ a lot
+# between characters, so a single fps makes some swings drag and others snap.
+#   fps       -- override playback speed for that one animation
+#   hold_last -- multiply the final frame's duration, to let a pose land before
+#                the character retracts
+# Anything not listed here uses the ANIMS default.
+OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
+    # 4 frames read as a snap; let the final pose sit instead of speeding up.
+    ("khalid", "heavy_attack"): {"hold_last": 2.5},
+    # 7 and 9 frames respectively -- too slow at 10 fps.
+    ("lenbondosen", "heavy_attack"): {"fps": 13.0},
+    ("wayna", "heavy_attack"): {"fps": 16.0},
 }
 
 
 def uid_for(png: Path) -> str:
     """Read the Godot-assigned uid out of the sibling .import file."""
     imp = png.with_suffix(png.suffix + ".import")
+    if not imp.exists():
+        raise SystemExit(
+            f"{png.name} has not been imported by Godot yet.\n"
+            f"Run:  godot --headless --import\n"
+            f"(or just open the project in the editor once), then re-run this."
+        )
     m = re.search(r'^uid="(uid://[^"]+)"', imp.read_text(), re.M)
     if not m:
-        raise SystemExit(f"no uid in {imp} -- open the project in Godot once to import")
+        raise SystemExit(f"no uid in {imp} -- try deleting it and re-importing")
     return m.group(1)
 
 
@@ -126,9 +147,12 @@ def main() -> int:
         if not per_char:
             continue
 
-        ext, sub, anim_entries = [], [], []
+        ext, sub, anim_entries, timings = [], [], [], []
         for idx, (anim, sheet) in enumerate(per_char.items(), start=1):
             fps, loop = ANIMS[anim]
+            tweak = OVERRIDES.get((char, anim), {})
+            fps = tweak.get("fps", fps)
+            hold_last = tweak.get("hold_last", 1.0)
             res_id = f"{idx}_{anim}"
             rel = sheet.png.relative_to(PROJECT).as_posix()
             ext.append(
@@ -152,7 +176,14 @@ def main() -> int:
                     f"margin = Rect2({pad_x}, {pad_y}, "
                     f"{canvas_w - sheet.fw}, {canvas_h - sheet.h})"
                 )
-                frames.append(f'{{\n"duration": 1.0,\n"texture": SubResource("{sid}")\n}}')
+                duration = hold_last if i == sheet.n - 1 else 1.0
+                frames.append(
+                    f'{{\n"duration": {duration},\n"texture": SubResource("{sid}")\n}}'
+                )
+
+            # Total frames counts the held last frame as `hold_last` frames.
+            seconds = (sheet.n - 1 + hold_last) / fps
+            timings.append(f"{anim}:{sheet.n}f/{seconds:.2f}s" + ("*" if tweak else ""))
 
             anim_entries.append(
                 "{\n"
@@ -176,8 +207,8 @@ def main() -> int:
         )
         out = OUT_DIR / f"{char}.tres"
         out.write_text(body)
-        summary = ", ".join(f"{a}:{s.n}f" for a, s in per_char.items())
-        print(f"  {out.relative_to(PROJECT)}  ({summary})")
+        print(f"  {out.relative_to(PROJECT)}")
+        print(f"      {'  '.join(timings)}")
 
     return 0
 

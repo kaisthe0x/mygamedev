@@ -4,7 +4,7 @@ extends SceneTree
 ## full animation set, and normalises to one shared canvas.
 ##   godot --headless --script tools/verify_frames.gd
 
-const EXPECTED := ["idle", "run", "jump", "dash", "attack"]
+const EXPECTED := ["idle", "run", "jump", "dash", "attack", "heavy_attack"]
 
 
 func _init() -> void:

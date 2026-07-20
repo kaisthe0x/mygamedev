@@ -26,7 +26,8 @@ tools/                Generator + verification scripts (not shipped)
 | A / D | `move_left` / `move_right` | |
 | Space | `jump` | |
 | Shift | `dash` | Has a cooldown |
-| Left mouse | `attack` | Each press advances the combo |
+| Left mouse | `attack` | Light — each press advances the combo |
+| Right mouse | `heavy_attack` | Committed full-animation swing |
 | Q / E | `prev_character` / `next_character` | Dev only |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 
@@ -44,10 +45,10 @@ This is the part worth understanding, because the source sheets are irregular.
 
 ### The problem
 
-Each character has five sheets (`idle`, `run`, `jump`, `dash`, `attack`). They
-are single-row grids, but nothing else is consistent:
+Each character has six sheets (`idle`, `run`, `jump`, `dash`, `attack`,
+`heavy_attack`). They are single-row grids, but nothing else is consistent:
 
-- Frame counts vary (3-6) between animations *and* between characters
+- Frame counts vary (3-9) between animations *and* between characters
 - Frame sizes vary wildly — khalid's idle is 32x32, his attack is 143x48
 - Some sheets have a constant horizontal padding bias (lenbondosen's dash sits
   ~24px left of centre)
@@ -58,7 +59,7 @@ time the animation changes.
 ### The fix
 
 `tools/gen_spriteframes.py` analyses each sheet and normalises every frame onto
-one shared **156x71 canvas**:
+one shared canvas (**currently 156x80**):
 
 - **Vertically** — the frame bottom becomes the canvas bottom. The sheets are
   foot-anchored, so this puts feet on a fixed line.
@@ -73,6 +74,11 @@ and no extra VRAM is used** — the atlases still point at the original PNGs.
 
 Because every character lands on the same canvas, swapping is a one-line
 `sprite_frames` swap. No per-character offsets or colliders.
+
+**The canvas size is derived, not fixed** — it grows to fit the largest frame,
+so adding art can change it (heavy attacks took it from 156x71 to 156x80).
+`player.gd` reads the frame size on load and sets the sprite offset from it
+(origin at the feet), so nothing has to be updated by hand when it moves.
 
 ### Regenerating
 
@@ -94,18 +100,35 @@ generator:
 | jump | 10 | no |
 | dash | 12 | no |
 | attack | 12 | no |
+| heavy_attack | 10 | no |
+
+### Per-character timing
+
+Frame counts vary enough that one fps makes some swings drag and others snap, so
+`OVERRIDES` (just below `ANIMS`) layers per-character tweaks on top:
+
+- **`fps`** — retime that one animation
+- **`hold_last`** — multiply the final frame's duration, letting a pose land
+  before the character retracts
+
+Current tweaks are all on `heavy_attack`, bringing every character into the
+0.50-0.60s band: khalid `hold_last` 2.5 (4 frames read as a snap, so the last
+pose sits rather than the whole swing slowing), lenbondosen 13 fps and wayna
+16 fps (7 and 9 frames were too slow at 10). The generator prints resulting
+durations and marks overridden entries with `*`.
 
 ---
 
 ## Adding a character
 
-1. Drop the five sheets in `sprites/characters/<name>/` named
+1. Drop the six sheets in `sprites/characters/<name>/` named
    `<name>_<anim>_frames.png` (lower case).
 2. Add a 1080x1080 portrait at `assets/portraits/<Name>.png`
    (**capitalised** — the lookup expects it).
 3. Add the name to `CHARACTERS` and the `@export_enum` list in
    `scripts/player.gd`.
-4. Run the generator, then the verifier.
+4. Import in Godot (`godot --headless --import`) so the PNGs get UIDs, then run
+   the generator and the verifier.
 
 ### Rules the art must follow
 
@@ -128,7 +151,8 @@ and a matching case in `_animation_for()` in `player.gd`.
 ## Player
 
 `scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / DASH / ATTACK`). Everything is tunable in the inspector.
+(`IDLE / RUN / JUMP / DASH / ATTACK / HEAVY_ATTACK`). Everything is tunable in
+the inspector.
 
 | Group | Key values |
 |---|---|
@@ -143,6 +167,12 @@ through them and wrap at the end. Letting `combo_reset_time` lapse restarts at
 the first hit. Pressing again mid-swing chains immediately. The combo starts at
 frame **1**, not 0, because frame 0 is the neutral pose and would read as
 "nothing happened" — so a 4-frame attack sheet gives 3 hits.
+
+**Heavy attack (RMB).** Deliberately *not* a combo — one press plays the entire
+animation, roots the player, and ignores all input until it finishes. It also
+clears any light combo in progress. Durations are hand-tuned per character to
+land around 0.50-0.60s despite frame counts ranging 4-9 — see **Per-character
+timing** above.
 
 **Dash.** Frame counts differ per character (4-6), so a fixed `dash_time` would
 clip the longer ones. Playback is stretched to fit instead (`speed_scale`
@@ -201,8 +231,14 @@ Related: adding a new `@export` to a script while a scene is open makes the
 editor serialise the unknown property as `null` on the instance
 (`max_health = null`), which overrides the script default.
 
-**If you edit scenes outside the editor, close the tab first**, or use
-`Project > Reload Current Project` afterwards. This is why the HUD is an
+**This applies to generated `.tres` files too.** If a character resource is open
+in the editor's inspector when `gen_spriteframes.py` runs, the editor writes its
+stale copy back and that one character silently keeps the old animation set.
+`verify_frames.gd` catches it — a mismatched canvas size in its output means
+exactly this.
+
+**If you edit scenes or resources outside the editor, close the tab first**, or
+use `Project > Reload Current Project` afterwards. This is why the HUD is an
 autoload rather than a node in `level.tscn`.
 
 ### GDScript LSP warnings in VS Code

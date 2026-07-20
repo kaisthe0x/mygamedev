@@ -1,125 +1,156 @@
-[gd_resource type="SpriteFrames" load_steps=29 format=3]
+[gd_resource type="SpriteFrames" load_steps=36 format=3]
 
 [ext_resource type="Texture2D" uid="uid://bjis611ggmfsg" path="res://sprites/characters/feyke/feyke_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://cisbf240kbavi" path="res://sprites/characters/feyke/feyke_run_frames.png" id="2_run"]
 [ext_resource type="Texture2D" uid="uid://cyas7agq3awoi" path="res://sprites/characters/feyke/feyke_jump_frames.png" id="3_jump"]
 [ext_resource type="Texture2D" uid="uid://bnnrleijtik1v" path="res://sprites/characters/feyke/feyke_dash_frames.png" id="4_dash"]
 [ext_resource type="Texture2D" uid="uid://d0frapsllbtl7" path="res://sprites/characters/feyke/feyke_attack_frames.png" id="5_attack"]
+[ext_resource type="Texture2D" uid="uid://pg1neklkdaj1" path="res://sprites/characters/feyke/feyke_heavy_attack_frames.png" id="6_heavy_attack"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
 region = Rect2(0, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="idle_1"]
 atlas = ExtResource("1_idle")
 region = Rect2(32, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="idle_2"]
 atlas = ExtResource("1_idle")
 region = Rect2(64, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="idle_3"]
 atlas = ExtResource("1_idle")
 region = Rect2(96, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="run_0"]
 atlas = ExtResource("2_run")
 region = Rect2(0, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="run_1"]
 atlas = ExtResource("2_run")
 region = Rect2(32, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="run_2"]
 atlas = ExtResource("2_run")
 region = Rect2(64, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="run_3"]
 atlas = ExtResource("2_run")
 region = Rect2(96, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="jump_0"]
 atlas = ExtResource("3_jump")
 region = Rect2(0, 0, 64, 37)
-margin = Rect2(44, 34, 92, 34)
+margin = Rect2(44, 43, 92, 43)
 
 [sub_resource type="AtlasTexture" id="jump_1"]
 atlas = ExtResource("3_jump")
 region = Rect2(64, 0, 64, 37)
-margin = Rect2(44, 34, 92, 34)
+margin = Rect2(44, 43, 92, 43)
 
 [sub_resource type="AtlasTexture" id="jump_2"]
 atlas = ExtResource("3_jump")
 region = Rect2(128, 0, 64, 37)
-margin = Rect2(44, 34, 92, 34)
+margin = Rect2(44, 43, 92, 43)
 
 [sub_resource type="AtlasTexture" id="jump_3"]
 atlas = ExtResource("3_jump")
 region = Rect2(192, 0, 64, 37)
-margin = Rect2(44, 34, 92, 34)
+margin = Rect2(44, 43, 92, 43)
 
 [sub_resource type="AtlasTexture" id="jump_4"]
 atlas = ExtResource("3_jump")
 region = Rect2(256, 0, 64, 37)
-margin = Rect2(44, 34, 92, 34)
+margin = Rect2(44, 43, 92, 43)
 
 [sub_resource type="AtlasTexture" id="dash_0"]
 atlas = ExtResource("4_dash")
 region = Rect2(0, 0, 111, 32)
-margin = Rect2(22, 39, 45, 39)
+margin = Rect2(22, 48, 45, 48)
 
 [sub_resource type="AtlasTexture" id="dash_1"]
 atlas = ExtResource("4_dash")
 region = Rect2(111, 0, 111, 32)
-margin = Rect2(22, 39, 45, 39)
+margin = Rect2(22, 48, 45, 48)
 
 [sub_resource type="AtlasTexture" id="dash_2"]
 atlas = ExtResource("4_dash")
 region = Rect2(222, 0, 111, 32)
-margin = Rect2(22, 39, 45, 39)
+margin = Rect2(22, 48, 45, 48)
 
 [sub_resource type="AtlasTexture" id="dash_3"]
 atlas = ExtResource("4_dash")
 region = Rect2(333, 0, 111, 32)
-margin = Rect2(22, 39, 45, 39)
+margin = Rect2(22, 48, 45, 48)
 
 [sub_resource type="AtlasTexture" id="dash_4"]
 atlas = ExtResource("4_dash")
 region = Rect2(444, 0, 111, 32)
-margin = Rect2(22, 39, 45, 39)
+margin = Rect2(22, 48, 45, 48)
 
 [sub_resource type="AtlasTexture" id="dash_5"]
 atlas = ExtResource("4_dash")
 region = Rect2(555, 0, 111, 32)
-margin = Rect2(22, 39, 45, 39)
+margin = Rect2(22, 48, 45, 48)
 
 [sub_resource type="AtlasTexture" id="attack_0"]
 atlas = ExtResource("5_attack")
 region = Rect2(0, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="attack_1"]
 atlas = ExtResource("5_attack")
 region = Rect2(32, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="attack_2"]
 atlas = ExtResource("5_attack")
 region = Rect2(64, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
 
 [sub_resource type="AtlasTexture" id="attack_3"]
 atlas = ExtResource("5_attack")
 region = Rect2(96, 0, 32, 32)
-margin = Rect2(62, 39, 124, 39)
+margin = Rect2(62, 48, 124, 48)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_0"]
+atlas = ExtResource("6_heavy_attack")
+region = Rect2(0, 0, 128, 80)
+margin = Rect2(14, 0, 28, 0)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_1"]
+atlas = ExtResource("6_heavy_attack")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(14, 0, 28, 0)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_2"]
+atlas = ExtResource("6_heavy_attack")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(14, 0, 28, 0)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_3"]
+atlas = ExtResource("6_heavy_attack")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(14, 0, 28, 0)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_4"]
+atlas = ExtResource("6_heavy_attack")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(14, 0, 28, 0)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_5"]
+atlas = ExtResource("6_heavy_attack")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(14, 0, 28, 0)
 
 [resource]
 animations = [{
@@ -216,4 +247,27 @@ animations = [{
 "loop": false,
 "name": &"attack",
 "speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("heavy_attack_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_5")
+}],
+"loop": false,
+"name": &"heavy_attack",
+"speed": 10.0
 }]
