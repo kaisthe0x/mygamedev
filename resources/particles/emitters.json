@@ -1,0 +1,8 @@
+{
+  "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene name under particles/), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left).",
+  "wayna": {
+    "run": [
+      { "type": "fire_spark", "mode": "sustained", "frames": [5, 6, 7, 8, 9], "pos": [-1, -14] }
+    ]
+  }
+}

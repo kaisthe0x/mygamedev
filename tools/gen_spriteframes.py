@@ -192,6 +192,10 @@ def main() -> int:
         ext, sub, anim_entries, timings = [], [], [], []
         loop_points: dict[str, int] = {}
         hit_points: dict[str, list[int]] = {}
+        # Per-anim sheet->emitted frame offset (1 where frame 0 was dropped),
+        # so hand-authored configs (e.g. particle emitters) can use the same
+        # sheet-frame numbers the artist sees and the player converts.
+        sheet_starts: dict[str, int] = {}
         for idx, (anim, sheet) in enumerate(per_char.items(), start=1):
             fps, loop = ANIMS[anim]
             tweak = OVERRIDES.get((char, anim), {})
@@ -209,6 +213,7 @@ def main() -> int:
                     f"{start + 1} (frame 0 is the idle reference)"
                 )
             n_emitted = sheet.n - start
+            sheet_starts[anim] = start
             rel = sheet.png.relative_to(PROJECT).as_posix()
             ext.append(
                 f'[ext_resource type="Texture2D" uid="{uid_for(sheet.png)}" '
@@ -289,7 +294,8 @@ def main() -> int:
 
         load_steps = len(ext) + len(sub) + 1
         # Read back by player.gd: loop_from restarts looping animations partway
-        # in; hit_frames drives the segmented attack combo.
+        # in; hit_frames drives the segmented attack combo; sheet_start lets
+        # hand-authored configs use sheet-frame numbers.
         meta = ""
         if loop_points:
             pairs = ", ".join(f'"{a}": {i}' for a, i in loop_points.items())
@@ -297,6 +303,9 @@ def main() -> int:
         if hit_points:
             pairs = ", ".join(f'"{a}": {i}' for a, i in hit_points.items())
             meta += f"metadata/hit_frames = {{{pairs}}}\n"
+        if sheet_starts:
+            pairs = ", ".join(f'"{a}": {i}' for a, i in sheet_starts.items())
+            meta += f"metadata/sheet_start = {{{pairs}}}\n"
         body = (
             f'[gd_resource type="SpriteFrames" load_steps={load_steps} format=3]\n\n'
             + "\n".join(ext)

@@ -12,9 +12,11 @@ Main scene: `scenes/level.tscn`. Press F5 to run.
 
 ```
 assets/portraits/     Painted 1080x1080 character portraits (HUD art)
+particles/            Particle-type scenes (fire_spark.tscn, ...) + textures
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
+resources/particles/  emitters.json -- frame-indexed VFX config (hand-edited)
 scenes/               player, level, hud
-scripts/              player, hud, character_switcher
+scripts/              player, hud, character_switcher, particle_director
 scripts/abilities/    Per-character abilities, named <character_id>.gd
 sprites/characters/   Source pixel-art sheets, one folder per character
 tools/                Generator + verification scripts (not shipped)
@@ -329,6 +331,48 @@ typical platform heights; if it ever matters, have the ability keep driving
 
 ---
 
+## Particles (frame-indexed VFX)
+
+Extra 2D particles layered over the drawn sprites — e.g. soft embers on top of
+Wayna's flame — driven entirely by data. `scripts/particle_director.gd` is a
+child of the player; it watches the sprite and emits at authored positions
+during authored frames. Adding an effect is a texture/scene + a JSON line, no
+code.
+
+**Three pieces:**
+
+1. **Particle types** — `particles/<type>.tscn`, each a `CPUParticles2D`
+   referenced by name. Built by `tools/build_particles.gd` (run it after editing
+   that tool) so the many properties stay valid; then tweak in the editor.
+   `fire_spark` is a chunky pixel ember. Its textures (`pixel_ember.png`, plus
+   `soft_dot.png` for any future soft effect) come from
+   `tools/gen_particle_textures.py`.
+2. **Config** — `resources/particles/emitters.json`, keyed
+   `character -> animation -> [ { type, mode, frames, pos } ]`:
+   - `mode` — **sustained** (emit while any listed frame is on screen; the fire
+     trail) or **burst** (one-shot each time a listed frame is entered; impacts,
+     footfall dust).
+   - `frames` — **sheet-relative** indices (same numbering as `loop_from` /
+     `hit_frames`; the idle-reference frame counts). Converted to emitted indices
+     via the `sheet_start` SpriteFrames metadata.
+   - `pos` — `[x, y]` pixel offset from the sprite origin (the feet), for facing
+     right; auto-mirrored when facing left.
+3. **Director** — instantiated by `player.gd` at runtime (not in the editor).
+   Rebuilds its emitters on character swap, so switching away from Wayna removes
+   her fire cleanly.
+
+Emitter scenes use `local_coords = false`, so particles stay in world space and
+trail behind as the player moves. Wayna's fire is the worked example: sustained
+`fire_spark` on run frames 5-9 (the flight loop) at `[-1, -14]`.
+
+> Soft glowy particles clash with crisp pixel art (we tried — it read as an
+> engine effect bolted on). `fire_spark` instead uses a hard-edged texture,
+> **nearest** filtering, **normal** blend, and colours sampled from the drawn
+> flame, so it reads as pixel art. Keep new types in that style unless a soft
+> glow is genuinely wanted.
+
+---
+
 ## HUD
 
 `scenes/hud.tscn` + `scripts/hud.gd` — portrait, name, and health bar.
@@ -392,6 +436,8 @@ fine. **Trust the actual run over the squiggles.**
 | `python3 tools/gen_spriteframes.py` | Regenerate SpriteFrames from the sheets |
 | `godot --headless --script tools/verify_frames.gd` | Assert all animations load on a uniform canvas |
 | `godot --script tools/capture_shots.gd` | Render every character/animation to PNGs for eyeballing alignment |
+| `python3 tools/gen_particle_textures.py` | Regenerate particle textures (particles/*.png) |
+| `godot --headless --script tools/build_particles.gd` | Rebuild particle-type scenes (particles/*.tscn) |
 
 ---
 

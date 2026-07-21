@@ -134,6 +134,7 @@ margin = Rect2(2, 0, 2, 0)
 
 [resource]
 metadata/hit_frames = {"attack": [0, 1]}
+metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "dash": 1, "attack": 1, "heavy_attack": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,

@@ -92,6 +92,8 @@ var _combo_window: float = 0.0
 var _recovery_left: float = 0.0
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
+## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
+var _particles: ParticleDirector
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -103,6 +105,12 @@ func _ready() -> void:
 		return
 	_sprite.animation_finished.connect(_on_animation_finished)
 	_sprite.animation_looped.connect(_on_animation_looped)
+
+	_particles = ParticleDirector.new()
+	add_child(_particles)
+	_particles.setup(_sprite)
+	_particles.set_character(character)
+
 	# Seed listeners that connected before _ready (the setters stay silent when
 	# the value doesn't actually change, so the HUD would otherwise start blank).
 	health_changed.emit(health, max_health)
@@ -134,6 +142,8 @@ func _apply_character() -> void:
 	sprite.speed_scale = 1.0
 	sprite.play(_animation_for(_state))
 	_equip_ability()
+	if _particles != null:  # null during the initial _ready pass; set up just after
+		_particles.set_character(character)
 	character_changed.emit(character)
 
 

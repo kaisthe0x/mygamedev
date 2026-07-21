@@ -26,7 +26,6 @@ offset_bottom = 40.0
 color = Color(0.16, 0.17, 0.22, 1)
 
 [node name="Player" parent="." unique_id=1329512334 instance=ExtResource("1_2q6dc")]
-attack_recovery = null
 combo_reset_time = 0.6
 
 [node name="Hint" type="Label" parent="." unique_id=1069755282]
