@@ -1,0 +1,159 @@
+[gd_resource type="SpriteFrames" load_steps=21 format=3]
+
+[ext_resource type="Texture2D" uid="uid://r2ywqpigque7" path="res://sprites/enemies/kebus/kebus_idle_frames.png" id="1_idle"]
+[ext_resource type="Texture2D" uid="uid://8soocit3pi83" path="res://sprites/enemies/kebus/kebus_stroll_frames.png" id="2_stroll"]
+[ext_resource type="Texture2D" uid="uid://t2ag168cgpu0" path="res://sprites/enemies/kebus/kebus_melee_attack_frames.png" id="3_melee_attack"]
+[ext_resource type="Texture2D" uid="uid://b3j1tgeahl4u0" path="res://sprites/enemies/kebus/kebus_range_attack_frames.png" id="4_range_attack"]
+
+[sub_resource type="AtlasTexture" id="idle_0"]
+atlas = ExtResource("1_idle")
+region = Rect2(0, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="idle_1"]
+atlas = ExtResource("1_idle")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="idle_2"]
+atlas = ExtResource("1_idle")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="idle_3"]
+atlas = ExtResource("1_idle")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="stroll_1"]
+atlas = ExtResource("2_stroll")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(1, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="stroll_2"]
+atlas = ExtResource("2_stroll")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(1, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="stroll_3"]
+atlas = ExtResource("2_stroll")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(1, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="melee_attack_1"]
+atlas = ExtResource("3_melee_attack")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="melee_attack_2"]
+atlas = ExtResource("3_melee_attack")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="melee_attack_3"]
+atlas = ExtResource("3_melee_attack")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="melee_attack_4"]
+atlas = ExtResource("3_melee_attack")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="melee_attack_5"]
+atlas = ExtResource("3_melee_attack")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="range_attack_1"]
+atlas = ExtResource("4_range_attack")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="range_attack_2"]
+atlas = ExtResource("4_range_attack")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="range_attack_3"]
+atlas = ExtResource("4_range_attack")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="range_attack_4"]
+atlas = ExtResource("4_range_attack")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[resource]
+metadata/hit_frames = {"melee_attack": [2]}
+metadata/sheet_start = {"idle": 0, "stroll": 1, "melee_attack": 1, "range_attack": 1}
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_3")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("stroll_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("stroll_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("stroll_3")
+}],
+"loop": true,
+"name": &"stroll",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("melee_attack_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("melee_attack_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("melee_attack_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("melee_attack_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("melee_attack_5")
+}],
+"loop": false,
+"name": &"melee_attack",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("range_attack_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("range_attack_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("range_attack_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("range_attack_4")
+}],
+"loop": false,
+"name": &"range_attack",
+"speed": 10.0
+}]

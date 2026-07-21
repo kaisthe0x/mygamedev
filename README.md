@@ -14,11 +14,15 @@ Main scene: `scenes/level.tscn`. Press F5 to run.
 assets/portraits/     Painted 1080x1080 character portraits (HUD art)
 particles/            Particle-type scenes, organised (see Particles section)
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
+resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 resources/particles/  emitters.json -- frame-indexed VFX config (hand-edited)
 scenes/               player, level, hud
 scripts/              player, hud, character_switcher, particle_director
 scripts/abilities/    Per-character abilities, named <character_id>.gd
+scripts/combat/       Combat layers, hurtbox, hitbox, floating health bar
+scripts/enemies/      Enemy base + projectile
 sprites/characters/   Source pixel-art sheets, one folder per character
+sprites/enemies/      Source enemy sheets, one folder per enemy
 tools/                Generator + verification scripts (not shipped)
 ```
 
@@ -33,6 +37,7 @@ tools/                Generator + verification scripts (not shipped)
 | Right mouse | `heavy_attack` | Committed full-animation swing |
 | Q / E | `prev_character` / `next_character` | Dev only |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
+| 0 | `debug_respawn` | Dev only — clear + respawn all enemies |
 
 Bound to **physical** keycodes, so they stay in the same place on AZERTY/Dvorak.
 Rebind under `Project > Project Settings > Input Map`.
@@ -454,6 +459,123 @@ gravity is then the only force acting.
 > **nearest** filtering, **normal** blend, and colours sampled from the drawn
 > flame, so it reads as pixel art. Keep new types in that style unless a soft
 > glow is genuinely wanted.
+
+---
+
+## Enemies & combat
+
+### Enemy sprites
+
+Enemies use the **same pipeline** as characters, just a different group and
+animation set (`idle`, `stroll`, `melee_attack`, `range_attack`). Source sheets
+live in `sprites/enemies/<id>/`; `gen_spriteframes.py` processes both groups (see
+`GROUPS` at the top) and writes `resources/enemies/<id>.tres`. Enemies share their
+own normalised canvas, independent of the character canvas. Same 128x80 + frame-0
+idle-reference rules apply.
+
+### The `Enemy` node (`scripts/enemies/enemy.gd`, `scenes/enemy.tscn`)
+
+One reusable ground enemy. `enemy.tscn` is a thin wrapper (root + script) so it
+can be dropped into a level and tuned in the inspector; the sprite, hurtbox,
+hitboxes and health bar are still built in code, so the scene has nothing fragile
+to hand-wire. Key traits:
+
+- **Capabilities are inferred from the art.** `melee_attack` / `range_attack`
+  animations present → that attack is enabled. An enemy with only one attack
+  just works; missing animations are simply never used.
+- **Behaviour:** patrols between its spawn point and `spawn + patrol_distance`,
+  pausing `idle_time_min..max` seconds at each end. If the player enters
+  `ranged_range` it engages — **melee** within `melee_range`, else **ranged**.
+- **`aggro`** (default **off**): when on, it *chases* the player up to
+  `aggro_range` instead of only fighting whoever wanders into range. It's an
+  export, so it's **per instance** — one enemy can be aggressive while another of
+  the same type isn't (set it in the inspector on a placed `enemy.tscn`, or per
+  entry in the spawner roster).
+- **`contact_damage`** (default **0 = off**): when set, touching the player
+  deals it on `contact_interval`. Also per-instance.
+- **Ranged** fires a `projectile.gd` from the staff (`muzzle_offset`) aimed at
+  the player's torso. Swap it for a lunge or anything else per enemy — not baked
+  into the base.
+- **Melee** enables a hitbox in front on the animation's hit frame (from the
+  `hit_frames` metadata — Kebus: sheet frame 3).
+- Carries its own **hurtbox**, **floating health bar + name**, and a **red
+  hit-flash**. Attacks carry `*_knockback` / `*_stun` (see below).
+- Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
+  stun, hitbox sizes/offsets, aggro, contact damage. Tune per enemy.
+
+> **Bosses are not Enemies.** They get their own scene/script so their move-sets
+> aren't constrained to melee/ranged. `Enemy` is for regular mobs.
+
+### Combat model (`scripts/combat/`)
+
+Damage flows **Hitbox → Hurtbox**, with teams enforced by physics layers (see
+`[layer_names]` in project.godot and `combat.gd`), so there's no friendly fire
+and no group checks:
+
+- **`Hurtbox`** (Area2D) receives hits and relays them via a `hurt` signal; the
+  owner (player/enemy) turns that into `take_damage`.
+- **`Hitbox`** (Area2D) deals damage while active, once per activation, and
+  carries optional **`knockback`** (px/s shove away from the source) and
+  **`stun`** (seconds frozen). Melee boxes toggle on for their active frames;
+  projectiles stay on for their life.
+- The **player's** hurtbox + attack hitbox are built in code (`_build_combat`),
+  like the particle director, to avoid touching `player.tscn`. Light-attack
+  hits fire on each combo hit frame; the heavy lands on its middle frame. Whoever
+  is hit applies the knockback/stun and takes a brief stagger.
+
+### On-hit effects — the `Hit` object
+
+An attack delivers a `Hit` (`scripts/combat/hit.gd`) — `amount`, `knockback`,
+`stun`, `source`, and an optional status overlay (`status_color` / `status_time`).
+A `Hitbox`/`Projectile` fills one in; the victim's `_on_hurt(hit)` applies it. Add
+a new effect field here and nothing else's signature changes.
+
+- **Enemy attacks** set their fields via exports: `melee_knockback/stun`,
+  `ranged_knockback/stun`.
+- A knockback always carries a short stagger, or the AI/input would overwrite the
+  shove velocity the next frame and nothing would move.
+- **Freeze + overlay:** a `stun` of several seconds *is* a freeze; pair it with a
+  `status_color` and the victim is engulfed in that colour (`StatusOverlay`, an
+  additive tinted copy synced to the sprite) and its pose is paused for the
+  duration.
+
+### Player attack effects — `ATTACK_EFFECTS` (`player.gd`)
+
+Per character, per attack. Each effect is a **dict** (`damage`, `knockback`,
+`stun`, `color`, `color_time` — unset = 0/none):
+
+```gdscript
+"lenbondosen": {
+    "light": [                                  # ARRAY = per combo segment
+        {"damage": 8, "stun": 5.0, "color": STATUS_GREEN},  # 1st hit freezes 5s, green
+        {"damage": 8},                          # 2nd hit: plain
+        {"damage": 8},                          # 3rd hit: plain
+    ],
+    "heavy": {"damage": 22, "knockback": 300},  # launches farther than Feyke's 150
+}
+```
+
+- `heavy` is one effect. `light` is **either** one effect (all combo hits share
+  it) **or an array**, one entry per combo segment — that's how a *specific* hit
+  frame gets a special (Lenny's first jab freezes; the rest don't).
+- The array indexes by combo segment (`_strike("light", seg)`); a shorter array
+  reuses its last entry.
+- Unlisted characters/attacks fall back to the exported `attack_damage` /
+  `heavy_damage` with no effects.
+
+### Dash i-frames
+
+Dashing is **invulnerable** — the player's hurtbox stops being detectable for the
+dash's duration (`_hurtbox.monitorable` is off while in `DASH`), so you can dash
+through projectiles and attacks unharmed.
+
+### Spawning
+
+Kebus is spawned from `character_switcher.gd` (the level script) by instancing
+`enemy.tscn` in code, to avoid clobbering `level.tscn` while the editor holds it
+open. **Dev key `0`** clears and respawns the roster, so you can keep fighting
+after a kill. Move enemies into the level scene proper (drag `enemy.tscn` in)
+when convenient.
 
 ---
 

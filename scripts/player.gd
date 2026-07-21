@@ -73,6 +73,12 @@ var health: float = 100.0:
 ## instead of restarting it. Ticks on through idle, so you can chain after
 ## control returns; keep it >= attack_recovery.
 @export var combo_reset_time: float = 0.45
+## Damage a single light-attack hit deals; the heavy swing deals heavy_damage.
+@export var attack_damage: float = 9.0
+@export var heavy_damage: float = 22.0
+## How far in front of the feet the attack reaches, and its half-size.
+@export var attack_hitbox_x: float = 18.0
+@export var attack_hitbox_extents := Vector2(15, 18)
 
 enum State { IDLE, RUN, JUMP, DASH, ATTACK, HEAVY_ATTACK }
 
@@ -90,10 +96,16 @@ var _combo_playing: bool = false
 var _combo_window: float = 0.0
 ## Time left holding the current hit frame before control returns to idle.
 var _recovery_left: float = 0.0
+## Time left frozen from a stun-carrying hit (input ignored).
+var _stun_left: float = 0.0
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
 var _particles: ParticleDirector
+## Combat boxes, built in code (like the particle director) to avoid a scene edit.
+var _hurtbox: Hurtbox
+var _attack_hitbox: Hitbox
+var _status: StatusOverlay
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -110,6 +122,9 @@ func _ready() -> void:
 	add_child(_particles)
 	_particles.setup(_sprite)
 	_particles.set_character(character)
+
+	_build_combat()
+	_sprite.frame_changed.connect(_on_frame_changed)
 
 	# Seed listeners that connected before _ready (the setters stay silent when
 	# the value doesn't actually change, so the HUD would otherwise start blank).
@@ -175,6 +190,133 @@ func portrait_path() -> String:
 
 func take_damage(amount: float) -> void:
 	health -= amount
+	_flash()
+
+
+## Build the combat boxes and register on the "player" group so enemies find us.
+func _build_combat() -> void:
+	add_to_group("player")
+	collision_layer = Combat.L_PLAYER_BODY
+	collision_mask = Combat.L_WORLD
+
+	_hurtbox = Hurtbox.new()
+	_hurtbox.collision_layer = Combat.L_PLAYER_HURT
+	_hurtbox.collision_mask = 0
+	_hurtbox.add_child(_box_shape(Vector2(16, 30), Vector2(0, -15)))
+	add_child(_hurtbox)
+	_hurtbox.hurt.connect(_on_hurt)
+
+	_attack_hitbox = Hitbox.new()
+	_attack_hitbox.collision_layer = Combat.L_PLAYER_HIT
+	_attack_hitbox.collision_mask = Combat.L_ENEMY_HURT
+	_attack_hitbox.source = self  # so knockback pushes enemies away from the player
+	_attack_hitbox.add_child(_box_shape(attack_hitbox_extents * 2.0,
+		Vector2(0, -attack_hitbox_extents.y)))
+	add_child(_attack_hitbox)
+
+	_status = StatusOverlay.new()
+	add_child(_status)
+	_status.setup(_sprite)
+
+
+func _box_shape(size: Vector2, pos: Vector2) -> CollisionShape2D:
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = size
+	shape.shape = rect
+	shape.position = pos
+	return shape
+
+
+const STATUS_GREEN := Color(0.2, 1.0, 0.35, 1.0)
+
+## Per-character on-hit effects. Each effect is a dict; unset keys default to 0:
+##   damage, knockback (px/s), stun (s), color (engulfing overlay), color_time (s)
+## `heavy` is one effect. `light` is EITHER one effect (all combo hits share it)
+## OR an ARRAY of effects, one per combo segment -- so a specific hit can be
+## special. Characters/attacks not listed fall back to the exported damage.
+##
+## Tune everything here: e.g. Lenny's heavy launches further than Feyke's, and
+## Lenny's FIRST light hit freezes the enemy for 5s with a green overlay.
+const ATTACK_EFFECTS := {
+	"khalid": {"light": {"damage": 9}, "heavy": {"damage": 26, "knockback": 220}},
+	"katalyst": {"light": {"damage": 9}, "heavy": {"damage": 24, "knockback": 160, "stun": 0.18}},
+	"wayna": {"light": {"damage": 7, "stun": 0.1}, "heavy": {"damage": 18, "knockback": 90}},
+	"feyke": {"light": {"damage": 8, "knockback": 45}, "heavy": {"damage": 20, "knockback": 150}},
+	"lenbondosen": {
+		"light": [
+			{"damage": 8, "stun": 5.0, "color": STATUS_GREEN},  # 1st hit: 5s freeze + green
+			{"damage": 8},
+			{"damage": 8},
+		],
+		"heavy": {"damage": 22, "knockback": 300},  # launches much further than Feyke's 150
+	},
+}
+
+
+## Effect dict for an attack. `seg` picks the combo segment for a per-segment
+## `light` list; ignored otherwise.
+func _attack_effect(kind: String, seg: int) -> Dictionary:
+	var entry: Variant = ATTACK_EFFECTS.get(character, {}).get(kind, null)
+	if entry is Array:
+		if entry.is_empty():
+			entry = {}
+		else:
+			entry = entry[mini(seg, entry.size() - 1)]
+	if entry == null:
+		entry = {"damage": attack_damage if kind == "light" else heavy_damage}
+	return entry
+
+
+## Enable the attack hitbox in front for one strike, carrying its effects.
+func _strike(kind: String, seg: int = 0) -> void:
+	if _attack_hitbox == null:
+		return
+	var e := _attack_effect(kind, seg)
+	_attack_hitbox.damage = e.get("damage", attack_damage if kind == "light" else heavy_damage)
+	_attack_hitbox.knockback = e.get("knockback", 0.0)
+	_attack_hitbox.stun = e.get("stun", 0.0)
+	_attack_hitbox.status_color = e.get("color", Color(0, 0, 0, 0))
+	_attack_hitbox.status_time = e.get("color_time", e.get("stun", 0.0))
+	_attack_hitbox.position.x = attack_hitbox_x * _facing
+	_attack_hitbox.activate(0.12)
+
+
+## Take a hit: damage, optional shove, optional freeze/overlay.
+## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
+func _on_hurt(hit: Hit) -> void:
+	take_damage(hit.amount)
+	if hit.knockback > 0.0 and hit.source != null:
+		var dir := signi(int(sign(global_position.x - (hit.source as Node2D).global_position.x)))
+		if dir == 0:
+			dir = -_facing
+		velocity.x = dir * hit.knockback
+		velocity.y = -hit.knockback * 0.25
+	# Knockback carries a brief stagger so the shove reads before control returns.
+	var stagger := hit.stun
+	if hit.knockback > 0.0:
+		stagger = maxf(stagger, 0.18)
+	if stagger > 0.0:
+		_stun_left = stagger
+		_combo_playing = false
+		_state = State.IDLE
+	if hit.status_color.a > 0.0:
+		_status.show_for(hit.status_color, hit.status_time)
+
+
+func _flash() -> void:
+	_sprite.modulate = Color(1.0, 0.5, 0.5)
+	var tw := create_tween()
+	tw.tween_property(_sprite, "modulate", Color.WHITE, 0.15)
+
+
+# The heavy swing has no per-frame combo data, so land it on its middle frame.
+func _on_frame_changed() -> void:
+	if _state != State.HEAVY_ATTACK:
+		return
+	var mid := _sprite.sprite_frames.get_frame_count(&"heavy_attack") / 2
+	if _sprite.frame == mid:
+		_strike("heavy")
 
 
 func heal(amount: float) -> void:
@@ -201,7 +343,9 @@ func _physics_process(delta: float) -> void:
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 
-	if _state == State.DASH:
+	if _stun_left > 0.0:
+		_process_stun(delta)
+	elif _state == State.DASH:
 		_process_dash(delta)
 	elif _state == State.ATTACK:
 		_process_attack(delta)
@@ -217,8 +361,21 @@ func _physics_process(delta: float) -> void:
 	if _ability != null:
 		_ability.physics(self, delta)
 
+	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
+	if _hurtbox != null:
+		_hurtbox.monitorable = _state != State.DASH
+
 	move_and_slide()
 	_update_animation(delta)
+
+
+## Stunned: no input, just ride out gravity and knockback momentum.
+func _process_stun(delta: float) -> void:
+	_stun_left -= delta
+	if not is_on_floor():
+		velocity.y += gravity * delta
+	velocity.x = move_toward(velocity.x, 0.0, friction * 0.5 * delta)
+	_state = State.IDLE
 
 
 func _process_dash(delta: float) -> void:
@@ -286,6 +443,7 @@ func _process_attack(delta: float) -> void:
 			_combo_playing = false
 			_recovery_left = attack_recovery
 			_combo_window = combo_reset_time
+			_strike("light", _combo_step - 1)  # this segment connects (0-based)
 		return
 
 	# Briefly hold the hit frame, then hand control back to idle. The chain

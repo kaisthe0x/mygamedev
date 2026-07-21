@@ -31,11 +31,11 @@ from pathlib import Path
 from PIL import Image
 
 PROJECT = Path(__file__).resolve().parent.parent
-CHARS_DIR = PROJECT / "sprites" / "characters"
-OUT_DIR = PROJECT / "resources" / "characters"
 
-# name -> (fps, loop). Ordered; "idle" first so it is the default animation.
-ANIMS = {
+# Each group is a folder of items (characters, enemies, ...) that share one
+# animation set and one normalised canvas, generated into its own resources dir.
+# name -> (fps, loop) per anim; "idle" first so it is the default animation.
+CHARACTER_ANIMS = {
     "idle": (6.0, True),
     "run": (10.0, True),
     "jump": (10.0, False),
@@ -43,14 +43,23 @@ ANIMS = {
     "attack": (12.0, False),
     "heavy_attack": (10.0, False),
 }
+ENEMY_ANIMS = {
+    "idle": (6.0, True),
+    "stroll": (8.0, True),
+    "melee_attack": (12.0, False),
+    "range_attack": (10.0, False),
+}
+GROUPS = {
+    "characters": CHARACTER_ANIMS,
+    "enemies": ENEMY_ANIMS,
+}
 
 # Frame 0 of every sheet is a static idle-reference pose the artist includes so
 # the animation lines up with idle. It is the alignment anchor (see Sheet.bias),
 # and for every animation EXCEPT idle it is dropped from playback -- action
 # animations start on their real first frame. All frame indices in OVERRIDES and
 # HIT_FRAMES below are SHEET-relative (they count the idle frame as 0); the
-# generator converts them to the emitted indices the player sees.
-IDLE_REF_ANIMS = {"run", "jump", "dash", "attack", "heavy_attack"}
+# generator converts them to the emitted indices the player/enemy sees.
 
 # Per-character timing tweaks, layered over ANIMS. Frame counts differ a lot
 # between characters, so a single fps makes some swings drag and others snap.
@@ -83,6 +92,8 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("feyke", "attack"): [2, 3, 7],
     # Two quick energy jabs, then a wind-up into the beam finisher.
     ("lenbondosen", "attack"): [1, 2, 6],
+    # Kebus swings connect on sheet frame 3 (the 4th frame).
+    ("kebus", "melee_attack"): [3],
 }
 
 
@@ -143,30 +154,38 @@ class Sheet:
         return self.fw / 2 - self.bias
 
 
-def main() -> int:
-    if not CHARS_DIR.is_dir():
-        raise SystemExit(f"missing {CHARS_DIR}")
+def process_group(group: str, anims: dict) -> None:
+    src_dir = PROJECT / "sprites" / group
+    out_dir = PROJECT / "resources" / group
+    if not src_dir.is_dir():
+        print(f"== {group}: no {src_dir.relative_to(PROJECT)}, skipping")
+        return
 
-    characters = sorted(p.name for p in CHARS_DIR.iterdir() if p.is_dir())
+    print(f"== {group} ==")
+    characters = sorted(p.name for p in src_dir.iterdir() if p.is_dir())
     sheets: dict[str, dict[str, Sheet]] = {}
 
     for char in characters:
         sheets[char] = {}
-        for anim in ANIMS:
-            png = CHARS_DIR / char / f"{char}_{anim}_frames.png"
+        for anim in anims:
+            png = src_dir / char / f"{char}_{anim}_frames.png"
             if not png.exists():
                 print(f"  ! {char}: missing {anim} sheet, skipping", file=sys.stderr)
                 continue
             sheets[char][anim] = Sheet(png)
 
-    # One canvas shared by every character and animation, so the player scene
-    # can swap SpriteFrames without touching the sprite offset or collider.
     all_sheets = [s for per_char in sheets.values() for s in per_char.values()]
+    if not all_sheets:
+        print(f"  (no sheets found)")
+        return
+
+    # One canvas shared by every item and animation in the group, so a scene can
+    # swap SpriteFrames without touching the sprite offset or collider.
     half = max(max(s.half_left(), s.half_right()) for s in all_sheets)
     canvas_w = 2 * math.ceil(half)
     canvas_h = max(s.h for s in all_sheets)
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
     print(f"canvas: {canvas_w}x{canvas_h} (feet on the bottom edge)")
 
     # The canvas only collapses to the frame size when frame 0's character is
@@ -202,7 +221,7 @@ def main() -> int:
         # sheet-frame numbers the artist sees and the player converts.
         sheet_starts: dict[str, int] = {}
         for idx, (anim, sheet) in enumerate(per_char.items(), start=1):
-            fps, loop = ANIMS[anim]
+            fps, loop = anims[anim]
             tweak = OVERRIDES.get((char, anim), {})
             fps = tweak.get("fps", fps)
             hold_last = tweak.get("hold_last", 1.0)
@@ -210,8 +229,8 @@ def main() -> int:
 
             # Drop the idle-reference frame 0 from action animations, so they
             # start on their real first frame. `start` maps sheet index -> emitted
-            # index (emitted = sheet - start).
-            start = 1 if anim in IDLE_REF_ANIMS else 0
+            # index (emitted = sheet - start). Only "idle" keeps its frame 0.
+            start = 0 if anim == "idle" else 1
             if sheet.n - start < 1:
                 raise SystemExit(
                     f"{char}/{anim}: only {sheet.n} frame(s); need at least "
@@ -276,7 +295,9 @@ def main() -> int:
                           f"{sheet.n - 1}; trailing frames won't play")
             else:
                 hits = list(range(n_emitted))
-            if anim == "attack":
+            # Emit hit_frames for the player's light attack (always) and for any
+            # anim with an explicit entry (e.g. an enemy's melee_attack).
+            if anim == "attack" or (char, anim) in HIT_FRAMES:
                 hit_points[anim] = hits
 
             # Total frames counts the held last frame as `hold_last` frames.
@@ -322,11 +343,15 @@ def main() -> int:
             + ", ".join(anim_entries)
             + "]\n"
         )
-        out = OUT_DIR / f"{char}.tres"
+        out = out_dir / f"{char}.tres"
         out.write_text(body)
         print(f"  {out.relative_to(PROJECT)}")
         print(f"      {'  '.join(timings)}")
 
+
+def main() -> int:
+    for group, anims in GROUPS.items():
+        process_group(group, anims)
     return 0
 
 
