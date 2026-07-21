@@ -70,6 +70,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # Sheet frames 1-4 are the launch (lean, ignite); 5-9 are sustained flight,
     # so only the tail should cycle while she keeps running.
     ("wayna", "run"): {"loop_from": 5},
+    # He builds up speed over frames 1-8; the last 3 are the sustained
+    # energised run, so cycle those.
+    ("lenbondosen", "run"): {"loop_from": 9},
 }
 
 # Attack hit frames (sheet-relative). An attack combo plays one segment per
@@ -78,6 +81,8 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
 # click advances one frame -- the old snap feel). Emitted as resource metadata.
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("feyke", "attack"): [2, 3, 7],
+    # Two quick energy jabs, then a wind-up into the beam finisher.
+    ("lenbondosen", "attack"): [1, 2, 6],
 }
 
 

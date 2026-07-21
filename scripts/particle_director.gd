@@ -73,6 +73,7 @@ func set_character(id: String) -> void:
 					node.emitting = false
 					_sustained.append({
 						"node": node, "anim": anim, "frames": frames, "pos": pos,
+						"base": _capture(node),
 					})
 			else:
 				_bursts.append({
@@ -88,17 +89,47 @@ func _sheet_start(anim: String) -> int:
 	return 0
 
 
-func _spawn(type: String) -> CPUParticles2D:
+## Accepts either particle node type -- both expose emitting / one_shot /
+## finished, which is all the director drives.
+func _spawn(type: String) -> Node2D:
 	var path := PARTICLE_PATH % type
 	if not ResourceLoader.exists(path):
 		push_warning("ParticleDirector: no particle scene at %s" % path)
 		return null
-	return (load(path) as PackedScene).instantiate() as CPUParticles2D
+	var node := (load(path) as PackedScene).instantiate()
+	if not (node is CPUParticles2D or node is GPUParticles2D):
+		push_warning("ParticleDirector: %s must have a CPUParticles2D or " % path
+			+ "GPUParticles2D root, got %s" % node.get_class())
+		node.queue_free()
+		return null
+	return node
 
 
 # Facing right -> +1, left -> -1. flip_h is set from facing in the player.
 func _mirror() -> float:
 	return -1.0 if _sprite.flip_h else 1.0
+
+
+## Remember the authored direction/gravity so facing can mirror them without
+## drifting (mirroring in place would accumulate).
+func _capture(node: Node2D) -> Dictionary:
+	if node is CPUParticles2D:
+		return {"dir": node.direction, "grav": node.gravity}
+	return {}
+
+
+## Mirror the whole effect horizontally, not just its position: emission
+## direction and gravity are authored pointing one way and would otherwise keep
+## pointing that way when the character turns around.
+func _face(node: Node2D, base: Dictionary, pos: Vector2, m: float) -> void:
+	node.position = Vector2(pos.x * m, pos.y)
+	if node is CPUParticles2D:
+		node.direction = Vector2(base.dir.x * m, base.dir.y)
+		node.gravity = Vector2(base.grav.x * m, base.grav.y)
+	else:
+		# GPUParticles2D keeps these on a shared ParticleProcessMaterial, which we
+		# must not mutate; flipping the node is the safe approximation.
+		node.scale.x = m
 
 
 func _refresh() -> void:
@@ -108,7 +139,7 @@ func _refresh() -> void:
 
 	for entry in _sustained:
 		var on: bool = entry.anim == anim and entry.frames.has(frame)
-		entry.node.position = Vector2(entry.pos.x * m, entry.pos.y)
+		_face(entry.node, entry.base, entry.pos, m)
 		entry.node.emitting = on
 
 	# A frame_changed into a burst frame fires one shot; a looping burst frame
@@ -122,7 +153,7 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 	var node := _spawn(b.type)
 	if node == null:
 		return
-	node.position = Vector2(b.pos.x * m, b.pos.y)
+	_face(node, _capture(node), b.pos, m)
 	node.one_shot = true
 	node.emitting = true
 	add_child(node)
@@ -131,9 +162,9 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 
 
 func _process(_delta: float) -> void:
-	# Keep sustained emitters on the correct side as facing flips mid-animation.
+	# Keep sustained emitters mirrored as facing flips mid-animation.
 	if _sustained.is_empty():
 		return
 	var m := _mirror()
 	for entry in _sustained:
-		entry.node.position = Vector2(entry.pos.x * m, entry.pos.y)
+		_face(entry.node, entry.base, entry.pos, m)

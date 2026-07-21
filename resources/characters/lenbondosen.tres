@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=32 format=3]
+[gd_resource type="SpriteFrames" load_steps=43 format=3]
 
 [ext_resource type="Texture2D" uid="uid://dly53ppuw7ob5" path="res://sprites/characters/lenbondosen/lenbondosen_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://bevhsyglqv4pc" path="res://sprites/characters/lenbondosen/lenbondosen_run_frames.png" id="2_run"]
@@ -45,6 +45,41 @@ margin = Rect2(2, 0, 2, 0)
 [sub_resource type="AtlasTexture" id="run_4"]
 atlas = ExtResource("2_run")
 region = Rect2(512, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_5"]
+atlas = ExtResource("2_run")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_6"]
+atlas = ExtResource("2_run")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_7"]
+atlas = ExtResource("2_run")
+region = Rect2(896, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_8"]
+atlas = ExtResource("2_run")
+region = Rect2(1024, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_9"]
+atlas = ExtResource("2_run")
+region = Rect2(1152, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_10"]
+atlas = ExtResource("2_run")
+region = Rect2(1280, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_11"]
+atlas = ExtResource("2_run")
+region = Rect2(1408, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="jump_1"]
@@ -102,6 +137,26 @@ atlas = ExtResource("5_attack")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
+[sub_resource type="AtlasTexture" id="attack_3"]
+atlas = ExtResource("5_attack")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_4"]
+atlas = ExtResource("5_attack")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_5"]
+atlas = ExtResource("5_attack")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_6"]
+atlas = ExtResource("5_attack")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
 [sub_resource type="AtlasTexture" id="heavy_attack_1"]
 atlas = ExtResource("6_heavy_attack")
 region = Rect2(128, 0, 128, 80)
@@ -133,7 +188,8 @@ region = Rect2(768, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [resource]
-metadata/hit_frames = {"attack": [0, 1]}
+metadata/loop_from = {"run": 8}
+metadata/hit_frames = {"attack": [0, 1, 5]}
 metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "dash": 1, "attack": 1, "heavy_attack": 1}
 animations = [{
 "frames": [{
@@ -165,6 +221,27 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("run_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_11")
 }],
 "loop": true,
 "name": &"run",
@@ -213,6 +290,18 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("attack_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_6")
 }],
 "loop": false,
 "name": &"attack",

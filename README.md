@@ -177,8 +177,19 @@ A separate config next to `OVERRIDES` maps `(character, "attack")` to the
 click, each segment ending on a hit frame, with the frames between hits animating
 for smoothness (see **Player → Attack combo**). Any attack not listed defaults to
 "every frame is a hit" — one frame per click, the older snap feel. Emitted as
-`metadata/hit_frames`, read by `player.gd`. Feyke's attack is the worked example:
-`[2, 3, 7]` → three hits with wind-up and in-between frames around them.
+`metadata/hit_frames`, read by `player.gd`.
+
+Configured so far — both give three hits with wind-up / in-between frames:
+
+| Character | `HIT_FRAMES` (sheet indices) |
+|---|---|
+| feyke | `[2, 3, 7]` |
+| lenbondosen | `[1, 2, 6]` — two energy jabs, then the beam finisher |
+
+> **Indices, not frame numbers.** These are 0-based sheet indices, where index 0
+> is the idle-reference frame. If you're counting frames 1-N in an image editor,
+> subtract one (Lenny's "frames 2, 3, 7" → `[1, 2, 6]`). The generator errors if
+> an index is out of range, which usually means the numbering slipped.
 
 ---
 
@@ -231,9 +242,9 @@ the inspector.
 next hit animate, then the sprite holds the hit frame for a short
 `attack_recovery` and hands control back to idle. Hit frames come from the
 `HIT_FRAMES` config via SpriteFrames metadata (`_attack_hits()`); an attack with
-no entry treats every frame as a hit, so each click advances one frame. Feyke's
-`[2,3,7]` gives three hits with smooth wind-up/in-between frames; the other
-characters currently step one frame per click.
+no entry treats every frame as a hit, so each click advances one frame. Feyke and
+lenbondosen have authored hit frames (three hits with smooth wind-up/in-between
+frames); katalyst, khalid and wayna still step one frame per click.
 
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:
@@ -357,13 +368,39 @@ code.
      via the `sheet_start` SpriteFrames metadata.
    - `pos` — `[x, y]` pixel offset from the sprite origin (the feet), for facing
      right; auto-mirrored when facing left.
+
+   **Author every effect facing right.** The director mirrors the whole thing
+   when the character turns: `pos.x`, and for `CPUParticles2D` also
+   `direction.x` and `gravity.x`. Without that, a jet authored pointing right
+   keeps pointing right when the character runs left. (`GPUParticles2D` keeps
+   those on a shared `ParticleProcessMaterial` which must not be mutated, so it
+   falls back to flipping the node's `scale.x`.)
 3. **Director** — instantiated by `player.gd` at runtime (not in the editor).
    Rebuilds its emitters on character swap, so switching away from Wayna removes
    her fire cleanly.
 
-Emitter scenes use `local_coords = false`, so particles stay in world space and
-trail behind as the player moves. Wayna's fire is the worked example: sustained
-`fire_spark` on run frames 5-9 (the flight loop) at `[-1, -14]`.
+Wayna's fire is the worked example: sustained `fire_spark` on run frames 5-9
+(the flight loop) at `[-1, -14]`.
+
+### `Local Coords` — the one setting that surprises people
+
+Per particle scene, and it decides whether the effect **trails** or stays
+**attached**:
+
+- **Off** (world space) — particles are released into the world and left behind.
+  Good for embers/smoke trails. But the emitter is moving with the player, so a
+  low-velocity plume gets smeared backwards into a diagonal: the faster the
+  player, the more angled it looks. This does *not* show in the editor preview,
+  where the emitter is stationary.
+- **On** (local space) — particles keep the shape you authored and move with the
+  player. Matches the editor preview exactly. Good for attached jets/auras.
+
+If an effect looks right in the editor but angled in game, this is why. To get a
+trail *and* a straight plume, keep it off and give the particles enough
+`initial_velocity` that their own motion dominates the player's ~160 px/s.
+
+Related: `direction` and `spread` do nothing while `initial_velocity` is 0 —
+gravity is then the only force acting.
 
 > Soft glowy particles clash with crisp pixel art (we tried — it read as an
 > engine effect bolted on). `fire_spark` instead uses a hard-edged texture,
