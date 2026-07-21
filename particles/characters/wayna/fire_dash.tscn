@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[sub_resource type="Gradient" id="Gradient_g2wuj"]
+offsets = PackedFloat32Array(0, 0.25, 0.6, 1)
+colors = PackedColorArray(1, 1, 0.92156863, 1, 1, 0.85490197, 0.27450982, 1, 0.9411765, 0.4392157, 0.078431375, 1, 0.5882353, 0.11764706, 0.03137255, 0)
+
+[node name="FireDash" type="CPUParticles2D" unique_id=1361820577]
+texture_filter = 1
+emitting = false
+amount = 55
+lifetime = 0.18
+lifetime_randomness = 0.25
+emission_shape = 1
+emission_sphere_radius = 3.0
+direction = Vector2(-1, 0.35)
+spread = 32.0
+gravity = Vector2(0, 520)
+initial_velocity_min = 180.0
+initial_velocity_max = 320.0
+angle_min = -45.0
+angle_max = 45.0
+scale_amount_min = 5.0
+scale_amount_max = 8.0
+color_ramp = SubResource("Gradient_g2wuj")

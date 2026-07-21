@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bkmtmlmnro5v0"
-path="res://.godot/imported/pixel_ember.png-41b13397db6dc955b06d4b3b0203ca96.ctex"
+uid="uid://b0wjegws77s0x"
+path="res://.godot/imported/pixel_ember.png-da9a39ca5bb4cad3b5b0fbec9d38299c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://particles/pixel_ember.png"
-dest_files=["res://.godot/imported/pixel_ember.png-41b13397db6dc955b06d4b3b0203ca96.ctex"]
+source_file="res://particles/textures/pixel_ember.png"
+dest_files=["res://.godot/imported/pixel_ember.png-da9a39ca5bb4cad3b5b0fbec9d38299c.ctex"]
 
 [params]
 

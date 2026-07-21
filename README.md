@@ -12,7 +12,7 @@ Main scene: `scenes/level.tscn`. Press F5 to run.
 
 ```
 assets/portraits/     Painted 1080x1080 character portraits (HUD art)
-particles/            Particle-type scenes (fire_spark.tscn, ...) + textures
+particles/            Particle-type scenes, organised (see Particles section)
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 resources/particles/  emitters.json -- frame-indexed VFX config (hand-edited)
 scenes/               player, level, hud
@@ -352,11 +352,30 @@ code.
 
 **Three pieces:**
 
-1. **Particle types** — `particles/<type>.tscn`, each a `CPUParticles2D`
-   referenced by name. Built by `tools/build_particles.gd` (run it after editing
-   that tool) so the many properties stay valid; then tweak in the editor.
-   `fire_spark` is a chunky pixel ember. Its textures (`pixel_ember.png`, plus
-   `soft_dot.png` for any future soft effect) come from
+1. **Particle types** — scenes with a `CPUParticles2D` or `GPUParticles2D` root,
+   referenced by name. Laid out to scale as characters and effects are added:
+
+   ```
+   particles/
+     characters/<id>/   Per-character effects (wayna/fire_spark.tscn)
+     shared/            Reusable across characters (explosions, hits, dust)
+     environment/       Ambient / background (water, drifting motes)
+     textures/          Particle textures (pixel_ember.png, soft_dot.png)
+   ```
+
+   A `type` in the JSON resolves **most specific first**:
+
+   | `type` | Resolves to |
+   |---|---|
+   | `fire_spark` | `characters/<current character>/fire_spark.tscn`, else `shared/fire_spark.tscn` |
+   | `environment/water` | `particles/environment/water.tscn` (any `type` containing `/` is an explicit path) |
+
+   So character effects stay short in the JSON and can't collide between
+   characters, while shared and environment effects are addressed directly. A
+   bare `particles/<type>.tscn` still works as a legacy fallback.
+
+   `tools/build_particles.gd` scaffolds a starter scene (it **skips files that
+   already exist**, so it never clobbers editor tweaks); textures come from
    `tools/gen_particle_textures.py`.
 2. **Config** — `resources/particles/emitters.json`, keyed
    `character -> animation -> [ { type, mode, frames, pos } ]`:
@@ -369,6 +388,23 @@ code.
    - `pos` — `[x, y]` pixel offset from the sprite origin (the feet), for facing
      right; auto-mirrored when facing left.
 
+   - `boost` — *optional* intensity, so one type can be reused at different
+     power levels instead of duplicating the scene:
+
+     | Key | Meaning |
+     |---|---|
+     | `amount` | particle count **multiplier** |
+     | `speed` | initial-velocity **multiplier** |
+     | `scale` | particle-size **multiplier** |
+     | `lifetime` | lifetime **multiplier** |
+     | `explosiveness` | absolute `0..1` (multiplying the usual 0 would do nothing) |
+
+     They're multipliers *on the scene's own values*, so they keep tracking the
+     base as you tune it — the dash stays proportionally fiercer no matter how
+     the base fire changes. That's the point: one scene owns the *look*, the JSON
+     owns *how hard it hits*. Fork a separate scene only when an effect needs a
+     genuinely different look, not just more power.
+
    **Author every effect facing right.** The director mirrors the whole thing
    when the character turns: `pos.x`, and for `CPUParticles2D` also
    `direction.x` and `gravity.x`. Without that, a jet authored pointing right
@@ -379,8 +415,19 @@ code.
    Rebuilds its emitters on character swap, so switching away from Wayna removes
    her fire cleanly.
 
-Wayna's fire is the worked example: sustained `fire_spark` on run frames 5-9
-(the flight loop) at `[-1, -14]`.
+Wayna is the worked example, with one scene per effect:
+
+| Animation | Type | Frames | `pos` | Character |
+|---|---|---|---|---|
+| run | `fire_spark` | 5-9 (flight loop) | `[-1, -10]` | Short downward jet under her feet |
+| dash | `fire_dash` | 3-6 (horizontal burst) | `[-1, -9]` | Rearward blast: hotter core, wider size/speed variance, tumbling debris |
+
+**Reuse vs. fork.** Start by reusing a type with a `boost` — that's cheapest and
+keeps one source for the look. Fork a separate scene once the effect needs a
+different *character*, not just more power: `boost` can only scale quantity
+(amount/speed/size/lifetime), so direction, spread, colour, gravity and rotation
+all require their own scene. The dash needed exactly that — it blasts backward
+rather than down, which no multiplier can express.
 
 ### `Local Coords` — the one setting that surprises people
 

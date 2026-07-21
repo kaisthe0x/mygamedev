@@ -13,7 +13,7 @@ from pathlib import Path
 
 from PIL import Image
 
-OUT = Path(__file__).resolve().parent.parent / "particles"
+OUT = Path(__file__).resolve().parent.parent / "particles" / "textures"
 
 
 def soft_dot(size: int = 32, falloff: float = 2.2) -> Image.Image:
@@ -51,7 +51,7 @@ def main() -> int:
     for name, img in [("soft_dot", soft_dot()), ("pixel_ember", pixel_ember())]:
         p = OUT / f"{name}.png"
         img.save(p)
-        print(f"  wrote {p.relative_to(OUT.parent)}")
+        print(f"  wrote {p.relative_to(OUT.parent.parent)}")
     return 0
 
 

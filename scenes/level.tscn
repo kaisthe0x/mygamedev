@@ -11,7 +11,7 @@ script = ExtResource("2_switch")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2095628982]
 position = Vector2(0, -60)
-zoom = Vector2(3, 3)
+zoom = Vector2(2, 2)
 
 [node name="Floor" type="StaticBody2D" parent="." unique_id=240657501]
 

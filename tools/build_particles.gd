@@ -9,7 +9,7 @@ extends SceneTree
 ## Add a new type by adding a builder function here and listing it in _run().
 
 const OUT := "res://particles/%s.tscn"
-const PIXEL_EMBER := "res://particles/pixel_ember.png"
+const PIXEL_EMBER := "res://particles/textures/pixel_ember.png"
 
 
 func _step_curve() -> Curve:
@@ -60,14 +60,60 @@ func fire_spark() -> CPUParticles2D:
 	return p
 
 
-func _save(node: CPUParticles2D, name: String) -> void:
+## Scaffold only: never clobbers an existing scene, because these get hand-tuned
+## in the editor afterwards. Delete the file first if you want it regenerated.
+# Wayna's dash exhaust. Deliberately NOT a scaled-up run flame: the run fire is
+# a short downward jet under her feet, while the dash is a horizontal burst, so
+# this blasts REARWARD (negative x = behind her; the director mirrors it when she
+# turns), with wider velocity/size variance and a hotter core to read as violent.
+func fire_dash() -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.name = "FireDash"
+	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	p.emitting = false
+	p.amount = 55
+	p.lifetime = 0.18
+	p.lifetime_randomness = 0.25
+	p.local_coords = false          # exhaust is left behind as she tears away
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 3.0
+	p.direction = Vector2(-1.0, 0.35)   # backward + slightly down
+	p.spread = 32.0
+	p.gravity = Vector2(0, 520)     # lighter than the run: thrust dominates
+	p.initial_velocity_min = 180.0
+	p.initial_velocity_max = 320.0  # variance = ragged, not a uniform stream
+	p.scale_amount_min = 5.0
+	p.scale_amount_max = 8.0
+	p.angle_min = -45.0             # tumbling squares read as debris/sparks
+	p.angle_max = 45.0
+
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.25, 0.6, 1.0])
+	ramp.colors = PackedColorArray([
+		Color8(255, 255, 235, 255),  # white-hot core
+		Color8(255, 218, 70, 255),   # yellow
+		Color8(240, 112, 20, 255),   # orange
+		Color8(150, 30, 8, 0),       # deep red, snaps out
+	])
+	p.color_ramp = ramp
+	return p
+
+
+func _save(node: CPUParticles2D, path_in_particles: String) -> void:
+	var path := OUT % path_in_particles
+	if ResourceLoader.exists(path):
+		print("  skip (exists, keeping your edits) -> %s" % path)
+		node.queue_free()
+		return
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var scene := PackedScene.new()
 	scene.pack(node)
-	var path := OUT % name
 	var err := ResourceSaver.save(scene, path)
-	print("  %s -> %s" % ["ok" if err == OK else "ERR %d" % err, path])
+	print("  %s -> %s" % ["created" if err == OK else "ERR %d" % err, path])
 
 
 func _init() -> void:
-	_save(fire_spark(), "fire_spark")
+	# Path is relative to particles/ -- see the layout in the README.
+	_save(fire_spark(), "characters/wayna/fire_spark")
+	_save(fire_dash(), "characters/wayna/fire_dash")
 	quit()

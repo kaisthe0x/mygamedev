@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://30xka66f8gqh"
-path="res://.godot/imported/soft_dot.png-2847cc5cdba3f71751e1f2d145b54d07.ctex"
+uid="uid://rtgeuar2enk"
+path="res://.godot/imported/soft_dot.png-5adf0fd837d7878c6abcbd082fcb29f3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://particles/soft_dot.png"
-dest_files=["res://.godot/imported/soft_dot.png-2847cc5cdba3f71751e1f2d145b54d07.ctex"]
+source_file="res://particles/textures/soft_dot.png"
+dest_files=["res://.godot/imported/soft_dot.png-5adf0fd837d7878c6abcbd082fcb29f3.ctex"]
 
 [params]
 
