@@ -13,21 +13,37 @@ var knockback: float = 0.0
 var stun: float = 0.0
 var velocity: Vector2 = Vector2.ZERO
 var life: float = 3.0
-@export var color := Color(0.55, 1.0, 0.45)  # Kebus' green staff energy
+@export var color := Color(0.55, 1.0, 0.45)  # tints the built-in orb trail
+## The look. If set (e.g. Baghel's ground_wave.tscn), it is instanced as the
+## visual -- edit/preview it as a normal particle scene. If null, a simple orb
+## trail is built in code (Kebus' bolt).
+var visual: PackedScene = null
+## Collider half-size + offset from the projectile's spawn point. A small box for
+## a bolt; a tall slab (rising from the ground) for a wave.
+var hitbox_extents := Vector2(5, 5)
+var hitbox_offset := Vector2.ZERO
 
 
 func _ready() -> void:
+	add_to_group("projectiles")  # so a respawn can clear in-flight shots
 	collision_layer = Combat.L_ENEMY_HIT
 	collision_mask = Combat.L_PLAYER_HURT
 	monitoring = true
 
 	var shape := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
-	circle.radius = 5.0
-	shape.shape = circle
+	var rect := RectangleShape2D.new()
+	rect.size = hitbox_extents * 2.0
+	shape.shape = rect
+	shape.position = hitbox_offset
 	add_child(shape)
 
-	add_child(_make_trail())
+	if visual != null:
+		var v := visual.instantiate() as Node2D
+		if velocity.x < 0.0:
+			v.scale.x = -1.0  # authored blasting +x; mirror for a left-facing shot
+		add_child(v)
+	else:
+		add_child(_make_trail())
 	area_entered.connect(_on_area_entered)
 
 
@@ -52,6 +68,7 @@ func _make_trail() -> CPUParticles2D:
 	return p
 
 
+## Ground shockwave: chunks burst up from the base with varied speed (so the
 func _physics_process(delta: float) -> void:
 	global_position += velocity * delta
 	life -= delta
@@ -73,6 +90,8 @@ func _on_area_entered(area: Area2D) -> void:
 
 
 func _draw() -> void:
-	# Bright pixel core under the trail.
+	# Only the built-in orb needs a drawn core; a `visual` scene draws itself.
+	if visual != null:
+		return
 	draw_circle(Vector2.ZERO, 4.0, color)
 	draw_circle(Vector2.ZERO, 2.0, Color(1, 1, 1))

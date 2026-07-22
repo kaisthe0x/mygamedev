@@ -10,23 +10,110 @@ const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 @export var player_path: NodePath = ^"Player"
 @export var spawn_enemies := true
 
+## Player start. Kept well left of every enemy (nearest is ~400px away, beyond
+## ranged_range) so you spawn in the clear, watch them stroll, then approach.
+## Also the respawn point when you fall or die.
+const SPAWN := Vector2(-450, 0)
+## Fall below this (far under the ground) and you respawn instead of dropping
+## forever.
+const DEATH_Y := 300.0
+
+## Jump-up platforms [center_x, top_y, width]. A rising staircase where each step
+## is within one jump of the one below (jump peak ~60px), so you can hop up:
+## ground -> P1 -> P2 -> P3. One-way, so you jump up through and land on top.
+var _platforms := [
+	[-40.0, -44.0, 160.0],   # P1
+	[130.0, -80.0, 160.0],   # P2 (overlaps P1 -> forgiving hop up)
+	[300.0, -114.0, 150.0],  # P3 (overlaps P2)
+]
+
 ## Each entry: { id, name, pos, and any Enemy export to override }. Overrides are
 ## per-instance, so aggro / contact_damage / stats differ per enemy. (In a real
 ## level you'd instead drop enemy.tscn in and set these in the inspector.)
+## Spread out and far from spawn: enemies stroll until you come to them.
 var _roster := [
-	{"id": "kebus", "name": "Kebus", "pos": Vector2(140, 0)},
-	# Example of a second, aggressive enemy -- uncomment to try:
-	# {"id": "kebus", "name": "Hunter", "pos": Vector2(360, 0), "aggro": true, "contact_damage": 6.0},
+	{"id": "kebus", "name": "Kebus", "pos": Vector2(150, 0)},      # ground stroller
+	{"id": "kebus", "name": "Kebus", "pos": Vector2(-40, -44)},    # on P1
+	{"id": "kebus", "name": "Kebus", "pos": Vector2(130, -80)},    # on P2
+	{"id": "kebus", "name": "Kebus", "pos": Vector2(300, -114)},   # on P3
+	# Baghel: ranged-only, short-range ground surge, scratches his back at rest.
+	{
+		"id": "baghel", "name": "Baghel", "pos": Vector2(470, 0),
+		"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0,
+		"projectile_speed": 200.0,
+		"ranged_particle": "res://particles/enemies/baghel/ground_wave.tscn",
+		"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9),
+		"muzzle_offset": Vector2(18, -6), "ranged_damage": 7.0,
+		"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0,
+		"idle_time_min": 5.0, "idle_time_max": 7.0,  # long rests so he lingers, scratching
+	},
 ]
 
 @onready var _player: Player = get_node_or_null(player_path) as Player
+@onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
 
 func _ready() -> void:
+	_build_platforms()
 	if _player != null:
-		_player.global_position = Vector2(-120, 0)
+		_player.global_position = SPAWN
+		if _camera != null:
+			_camera.global_position = SPAWN + Vector2(0, -30)  # start framed on spawn
 	if spawn_enemies:
 		_spawn_all()
+
+
+func _process(delta: float) -> void:
+	if _player == null:
+		return
+	# Fell into the void or was killed -> respawn at the safe start.
+	if _player.global_position.y > DEATH_Y or _player.health <= 0.0:
+		_respawn_player()
+		return
+	# Follow the player so you can traverse across the platforms.
+	if _camera != null:
+		var target := Vector2(_player.global_position.x, _player.global_position.y - 30.0)
+		_camera.global_position = _camera.global_position.lerp(target, 1.0 - pow(0.002, delta))
+
+
+## Reset the player to the safe start, full health, and clear any bolts still in
+## the air so you aren't hit the instant you reappear.
+func _respawn_player() -> void:
+	_player.global_position = SPAWN
+	_player.velocity = Vector2.ZERO
+	_player.health = _player.max_health
+	for proj in get_tree().get_nodes_in_group("projectiles"):
+		proj.queue_free()
+	if _camera != null:
+		_camera.global_position = SPAWN + Vector2(0, -30)
+
+
+func _build_platforms() -> void:
+	for p in _platforms:
+		_build_platform(p[0], p[1], p[2], 14.0)
+
+
+func _build_platform(center_x: float, top_y: float, width: float, height: float) -> void:
+	var body := StaticBody2D.new()
+	body.collision_layer = Combat.L_WORLD
+	body.collision_mask = 0
+	body.position = Vector2(center_x, top_y)
+
+	var col := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(width, height)
+	col.shape = rect
+	col.position = Vector2(0, height / 2.0)  # rectangle top sits at top_y
+	col.one_way_collision = true  # jump up through it, land on top
+	body.add_child(col)
+
+	var vis := ColorRect.new()
+	vis.color = Color(0.22, 0.23, 0.30)
+	vis.position = Vector2(-width / 2.0, 0)
+	vis.size = Vector2(width, height)
+	body.add_child(vis)
+
+	add_child(body)
 
 
 func _spawn_all() -> void:
@@ -45,8 +132,10 @@ func _spawn_enemy(entry: Dictionary) -> void:
 		else:
 			enemy.set(key, entry[key])
 	enemy.display_name = entry.get("name", entry["id"])
+	# Position BEFORE add_child so Enemy._ready() anchors its patrol on the real
+	# spawn point (the level sits at the origin, so local == global here).
+	enemy.position = entry.get("pos", Vector2.ZERO)
 	add_child(enemy)
-	enemy.global_position = entry.get("pos", Vector2.ZERO)
 
 
 func _unhandled_input(event: InputEvent) -> void:

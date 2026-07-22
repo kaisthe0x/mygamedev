@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=21 format=3]
+[gd_resource type="SpriteFrames" load_steps=22 format=3]
 
 [ext_resource type="Texture2D" uid="uid://r2ywqpigque7" path="res://sprites/enemies/kebus/kebus_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://8soocit3pi83" path="res://sprites/enemies/kebus/kebus_stroll_frames.png" id="2_stroll"]
@@ -28,17 +28,22 @@ margin = Rect2(0, 0, 4, 0)
 [sub_resource type="AtlasTexture" id="stroll_1"]
 atlas = ExtResource("2_stroll")
 region = Rect2(128, 0, 128, 80)
-margin = Rect2(1, 0, 4, 0)
+margin = Rect2(0, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="stroll_2"]
 atlas = ExtResource("2_stroll")
 region = Rect2(256, 0, 128, 80)
-margin = Rect2(1, 0, 4, 0)
+margin = Rect2(0, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="stroll_3"]
 atlas = ExtResource("2_stroll")
 region = Rect2(384, 0, 128, 80)
-margin = Rect2(1, 0, 4, 0)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="stroll_4"]
+atlas = ExtResource("2_stroll")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="melee_attack_1"]
 atlas = ExtResource("3_melee_attack")
@@ -115,6 +120,9 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("stroll_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("stroll_4")
 }],
 "loop": true,
 "name": &"stroll",

@@ -94,6 +94,9 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("lenbondosen", "attack"): [1, 2, 6],
     # Kebus swings connect on sheet frame 3 (the 4th frame).
     ("kebus", "melee_attack"): [3],
+    # Baghel emits his ground surge on the last frame (sheet index 6 = "frame 7",
+    # emitted index 5).
+    ("baghel", "range_attack"): [6],
 }
 
 

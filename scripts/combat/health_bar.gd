@@ -26,9 +26,10 @@ func setup(display_name: String) -> void:
 	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_label.add_theme_constant_override("outline_size", 3)
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	# Centre the label over the bar; sits just above it.
+	# Bottom-align the text and sit the box just over the bar, so the name hugs it.
+	_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_label.size = Vector2(80, name_size + 4)
-	_label.position = Vector2(-40, -bar_height - name_size - 6)
+	_label.position = Vector2(-40, -bar_height - name_size - 5)
 	add_child(_label)
 
 

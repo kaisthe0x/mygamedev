@@ -183,6 +183,18 @@ func get_state() -> State:
 	return _state
 
 
+## True once the run animation has reached its looping tail (the sustained-run
+## frames past `loop_from`). Abilities use this to react to that phase.
+func run_loop_reached() -> bool:
+	if _sprite.animation != &"run":
+		return false
+	var sf := _sprite.sprite_frames
+	if sf == null or not sf.has_meta("loop_from"):
+		return false
+	var start: int = sf.get_meta("loop_from").get("run", -1)
+	return start >= 0 and _sprite.frame >= start
+
+
 ## Path to the current character's portrait, for HUD / character-select art.
 func portrait_path() -> String:
 	return PORTRAIT_PATH % (character.substr(0, 1).to_upper() + character.substr(1))

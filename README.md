@@ -327,7 +327,7 @@ existing abilities keep working because the base class no-ops every hook.
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Hangtime** | A heavy attack started mid-air suspends him until it finishes, so the full swing plays instead of being cut short by the fall. Falls resume normally afterwards. |
+| Lenbondosen ("Lenny") | **Hangtime** + **Sprint** | Hangtime: a heavy attack started mid-air suspends him until it finishes. Sprint: once his run reaches its sustained loop (past `loop_from`), his speed surges to `run_speed × 1.8` — reward for keeping the run going. Uses `player.run_loop_reached()`. |
 | Katalyst | **Stomp** | A heavy attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
 
 Both latch on the frame the heavy *starts* and only if the character was
@@ -363,6 +363,7 @@ code.
    ```
    particles/
      characters/<id>/   Per-character effects (wayna/fire_spark.tscn)
+     enemies/<id>/      Per-enemy effects (baghel/ground_wave.tscn)
      shared/            Reusable across characters (explosions, hits, dust)
      environment/       Ambient / background (water, drifting motes)
      textures/          Particle textures (pixel_ember.png, soft_dot.png)
@@ -486,6 +487,9 @@ to hand-wire. Key traits:
 - **Behaviour:** patrols between its spawn point and `spawn + patrol_distance`,
   pausing `idle_time_min..max` seconds at each end. If the player enters
   `ranged_range` it engages — **melee** within `melee_range`, else **ranged**.
+- **Edge-aware:** a downward probe `edge_check_x` ahead of each foot stops it
+  walking off ledges — it turns around on patrol and won't chase off a platform.
+  So enemies can stroll on platforms safely.
 - **`aggro`** (default **off**): when on, it *chases* the player up to
   `aggro_range` instead of only fighting whoever wanders into range. It's an
   export, so it's **per instance** — one enemy can be aggressive while another of
@@ -493,11 +497,23 @@ to hand-wire. Key traits:
   entry in the spawner roster).
 - **`contact_damage`** (default **0 = off**): when set, touching the player
   deals it on `contact_interval`. Also per-instance.
-- **Ranged** fires a `projectile.gd` from the staff (`muzzle_offset`) aimed at
-  the player's torso. Swap it for a lunge or anything else per enemy — not baked
-  into the base.
+- **Ranged** fires a `projectile.gd` from `muzzle_offset` on the animation's
+  hit frame (`hit_frames` metadata). Two `ranged_mode`s:
+  - `"aimed"` — flies toward the player's torso (Kebus' staff bolt).
+  - `"forward"` — surges straight ahead along the ground for `ranged_travel` px
+    then fizzles, hitting whatever it passes (Baghel's red energy). Tint via
+    `ranged_color`.
+  - **Look** — `ranged_particle` points at a particle scene (e.g.
+    `particles/enemies/baghel/ground_wave.tscn`) that the projectile instances as
+    its visual, so you edit/preview it in the editor like any particle scene
+    (they're built `emitting = true`). Empty = a simple orb trail built in code
+    (Kebus). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
+    (a small box for a bolt, a tall slab rising from the ground for a wave).
 - **Melee** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
+- **`idle_loop_from..idle_loop_to`** (optional): a resting-idle flourish — loops
+  those emitted frames for `idle_loop_time` seconds, then plays one full idle
+  cycle, and repeats (Baghel scratches his back). Disabled when `to <= from`.
 - Carries its own **hurtbox**, **floating health bar + name**, and a **red
   hit-flash**. Attacks carry `*_knockback` / `*_stun` (see below).
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
@@ -569,13 +585,31 @@ Dashing is **invulnerable** — the player's hurtbox stops being detectable for 
 dash's duration (`_hurtbox.monitorable` is off while in `DASH`), so you can dash
 through projectiles and attacks unharmed.
 
-### Spawning
+### Spawning & the test level
 
-Kebus is spawned from `character_switcher.gd` (the level script) by instancing
-`enemy.tscn` in code, to avoid clobbering `level.tscn` while the editor holds it
-open. **Dev key `0`** clears and respawns the roster, so you can keep fighting
-after a kill. Move enemies into the level scene proper (drag `enemy.tscn` in)
-when convenient.
+`character_switcher.gd` (the level script) builds everything in code, to avoid
+clobbering `level.tscn` while the editor holds it open:
+
+- **Platforms** — `_platforms` `[center_x, top_y, width]`, one-way `StaticBody2D`s
+  on the world layer, arranged as a rising staircase within one jump of each
+  other (jump peak ~60px). One-way means you jump up *through* them and land on
+  top. Overlapping steps make the hops forgiving.
+- **Enemies** — `_roster`, each a `{id, name, pos, ...overrides}` instanced from
+  `enemy.tscn`; any extra key sets an Enemy export (so one can be `aggro`, another
+  `ranged_mode: "forward"`, etc). Kebus (melee + aimed ranged) strolls each
+  platform and the ground; Baghel (ranged-only, forward ground surge, scratches
+  his back at rest) waits on the far-right ground. They're
+  placed **far from `SPAWN`** (nearest ~400px, beyond `ranged_range`) so you
+  start in the clear and can watch them stroll before approaching — not swarmed.
+- **Camera** follows the player (`_process`) so you can traverse across.
+- **Respawn** — falling below `DEATH_Y` (into the void) or dropping to 0 health
+  puts the player back at `SPAWN` with full health, and clears in-flight
+  projectiles so you're not hit on reappear. No more force-restarting after a
+  fall.
+- **Dev key `0`** clears and respawns the enemy roster to keep fighting.
+
+Move platforms/enemies into the level scene proper (drag `enemy.tscn` in) when
+convenient — this is scaffolding to test jump + attack + traversal.
 
 ---
 

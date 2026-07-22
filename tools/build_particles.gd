@@ -60,6 +60,43 @@ func fire_spark() -> CPUParticles2D:
 	return p
 
 
+# Baghel's ground shockwave: a fast horizontal streak that fans out at the
+# leading edge. Authored blasting +x (forward); the projectile mirrors scale.x
+# for facing. `emitting = true` so it plays the moment it spawns AND previews in
+# the editor. Recolour/tune it freely -- it's a normal scene.
+func ground_wave() -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.name = "GroundWave"
+	p.texture = load(PIXEL_EMBER)
+	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	p.emitting = true
+	p.amount = 80
+	p.lifetime = 0.32
+	p.lifetime_randomness = 0.35
+	p.local_coords = false          # stays in world -> streaks as the wave surges
+	p.explosiveness = 0.1
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 2.0
+	p.direction = Vector2(1, 0)     # forward; projectile flips for facing
+	p.spread = 34.0                 # the fan
+	p.gravity = Vector2(0, 60)      # a touch of settle
+	p.initial_velocity_min = 30.0
+	p.initial_velocity_max = 260.0  # wide range: fast tips streak, slow ones fan
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.6
+	p.scale_amount_curve = _step_curve()
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.35, 0.7, 1.0])
+	ramp.colors = PackedColorArray([
+		Color8(255, 255, 255, 255),  # hot white core
+		Color8(255, 115, 64, 255),   # bright red-orange
+		Color8(199, 41, 26, 200),    # deep red
+		Color8(115, 20, 13, 0),      # fades out
+	])
+	p.color_ramp = ramp
+	return p
+
+
 ## Scaffold only: never clobbers an existing scene, because these get hand-tuned
 ## in the editor afterwards. Delete the file first if you want it regenerated.
 # Wayna's dash exhaust. Deliberately NOT a scaled-up run flame: the run fire is
@@ -116,4 +153,5 @@ func _init() -> void:
 	# Path is relative to particles/ -- see the layout in the README.
 	_save(fire_spark(), "characters/wayna/fire_spark")
 	_save(fire_dash(), "characters/wayna/fire_dash")
+	_save(ground_wave(), "enemies/baghel/ground_wave")
 	quit()

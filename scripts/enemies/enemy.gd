@@ -31,6 +31,14 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 @export var patrol_distance: float = 90.0
 @export var idle_time_min: float = 2.0
 @export var idle_time_max: float = 3.0
+## Won't step past an edge: how far ahead of the feet ground is probed for.
+@export var edge_check_x: float = 14.0
+## Optional resting-idle flourish: while idling, loop emitted frames
+## [idle_loop_from..idle_loop_to] (e.g. a back-scratch) for idle_loop_time
+## seconds, then play one full idle cycle, and repeat. Disabled when to <= from.
+@export var idle_loop_from := 0
+@export var idle_loop_to := 0
+@export var idle_loop_time := 2.5
 
 @export_group("Combat ranges")
 ## Player within this horizontal distance -> melee. Small = must be adjacent.
@@ -48,9 +56,21 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## Melee hitbox placement in front of the body, and its half-size.
 @export var melee_hitbox_x: float = 20.0
 @export var melee_hitbox_extents := Vector2(16, 16)
-## Where a projectile leaves the staff (forward, up), before facing mirror.
+## Where a projectile leaves the enemy (forward, up), before facing mirror.
 @export var muzzle_offset := Vector2(20, -46)
 @export var projectile_speed: float = 260.0
+## "aimed": projectile flies toward the player (Kebus' staff bolt).
+## "forward": it surges straight ahead along the ground for `ranged_travel` px
+## then fizzles, hitting whatever it passes (Baghel's ground energy).
+@export_enum("aimed", "forward") var ranged_mode := "aimed"
+@export var ranged_travel: float = 100.0
+@export var ranged_color := Color(0.55, 1.0, 0.45)  # tints the built-in orb
+## Optional particle scene for the projectile's look (e.g. Baghel's ground wave).
+## Empty = the built-in orb. Edit these in the editor like any particle scene.
+@export_file("*.tscn") var ranged_particle := ""
+## Projectile collider half-size + offset from its spawn point.
+@export var ranged_hitbox_extents := Vector2(5, 5)
+@export var ranged_hitbox_offset := Vector2.ZERO
 
 @export_group("Behaviour")
 ## When true, chases the player (up to aggro_range) instead of only attacking
@@ -78,12 +98,16 @@ var _idle_timer := 0.0
 var _stun_left := 0.0
 var _contact_cd := 0.0
 var _contact_hitbox: Hitbox
+var _scratch_timer := 0.0
+var _scratch_full_cycle := false
 
 var _sprite: AnimatedSprite2D
 var _hurtbox: Hurtbox
 var _melee_hitbox: Hitbox
 var _bar: FloatingHealthBar
 var _status: StatusOverlay
+var _edge_ray_left: RayCast2D
+var _edge_ray_right: RayCast2D
 
 
 func _ready() -> void:
@@ -97,6 +121,7 @@ func _ready() -> void:
 	_build_melee_hitbox()
 	_build_contact_hitbox()
 	_build_health_bar()
+	_build_edge_rays()
 
 	_status = StatusOverlay.new()
 	add_child(_status)
@@ -114,6 +139,7 @@ func _ready() -> void:
 
 	_sprite.frame_changed.connect(_on_frame_changed)
 	_sprite.animation_finished.connect(_on_anim_finished)
+	_sprite.animation_looped.connect(_on_anim_looped)
 	_face(_facing)
 	_play(&"stroll")
 
@@ -192,6 +218,29 @@ func _build_contact_hitbox() -> void:
 	add_child(_contact_hitbox)
 
 
+func _build_edge_rays() -> void:
+	# A downward probe just ahead of each foot; if it finds no ground, that side
+	# is an edge and we won't step off it.
+	_edge_ray_left = _make_edge_ray(-edge_check_x)
+	_edge_ray_right = _make_edge_ray(edge_check_x)
+
+
+func _make_edge_ray(x: float) -> RayCast2D:
+	var ray := RayCast2D.new()
+	ray.position = Vector2(x, -4)
+	ray.target_position = Vector2(0, 16)
+	ray.collision_mask = Combat.L_WORLD
+	add_child(ray)
+	return ray
+
+
+## Is there ground just ahead in movement direction `dir` (-1/+1)?
+func _floor_ahead(dir: int) -> bool:
+	var ray := _edge_ray_left if dir < 0 else _edge_ray_right
+	ray.force_raycast_update()
+	return ray.is_colliding()
+
+
 func _build_health_bar() -> void:
 	_bar = FloatingHealthBar.new()
 	add_child(_bar)
@@ -222,8 +271,37 @@ func _physics_process(delta: float) -> void:
 	else:
 		_act(delta)
 
+	if _state == State.IDLE:
+		_idle_scratch(delta)
 	_tick_contact(delta)
 	move_and_slide()
+
+
+## Resting-idle flourish: hold the sub-loop for a while, then a full cycle.
+func _idle_scratch(delta: float) -> void:
+	if idle_loop_to <= idle_loop_from or _scratch_full_cycle:
+		return  # not configured, or letting a full idle play (_on_anim_looped ends it)
+	_scratch_timer -= delta
+	if _scratch_timer <= 0.0:
+		_scratch_full_cycle = true
+		_sprite.set_frame_and_progress(0, 0.0)  # play one full idle from the top
+
+
+## The sub-range loop is clamped here (on the render frame it changes) rather
+## than in physics, so the past-the-range frame never flashes.
+func _clamp_scratch() -> void:
+	if _state != State.IDLE or _scratch_full_cycle or _sprite.animation != &"idle":
+		return
+	if idle_loop_to <= idle_loop_from:
+		return
+	if _sprite.frame > idle_loop_to or _sprite.frame < idle_loop_from:
+		_sprite.set_frame_and_progress(idle_loop_from, 0.0)
+
+
+func _on_anim_looped() -> void:
+	if _sprite.animation == &"idle" and _scratch_full_cycle:
+		_scratch_full_cycle = false
+		_scratch_timer = idle_loop_time
 
 
 func _tick_contact(delta: float) -> void:
@@ -249,11 +327,11 @@ func _act(delta: float) -> void:
 			if _has_ranged and dist <= ranged_range:
 				_start_attack(State.RANGE, &"range_attack", player)
 				return
-		# Aggro: pursue until close enough to attack. Otherwise just hold ground
-		# and face the player when they're already in reach.
+		# Aggro: pursue until close enough to attack -- but never off an edge.
+		# Otherwise just hold ground and face the player when they're in reach.
 		if aggro and dist <= aggro_range:
-			if dist > melee_range + 4.0:
-				var dir := int(sign(to_player))
+			var dir := int(sign(to_player))
+			if dist > melee_range + 4.0 and _floor_ahead(dir):
 				velocity.x = dir * move_speed
 				_face(dir)
 				_set_state(State.STROLL)
@@ -273,21 +351,22 @@ func _act(delta: float) -> void:
 
 func _patrol(delta: float) -> void:
 	if _idle_timer > 0.0:
+		# Pausing at the end of a leg; the target was already flipped on arrival.
 		_idle_timer -= delta
 		velocity.x = 0.0
-		_set_state(State.IDLE)
-		if _idle_timer <= 0.0:
-			# Turn around: aim for the other end of the patrol.
-			_patrol_target = _point_a if is_equal_approx(_patrol_target, _point_b) else _point_b
-		return
-
-	if absf(_patrol_target - global_position.x) <= 2.0:
-		velocity.x = 0.0
-		_idle_timer = randf_range(idle_time_min, idle_time_max)
 		_set_state(State.IDLE)
 		return
 
 	var dir := int(sign(_patrol_target - global_position.x))
+	var arrived := dir == 0 or absf(_patrol_target - global_position.x) <= 2.0
+	# Turn around at the patrol end OR at a real ledge, whichever comes first.
+	if arrived or not _floor_ahead(dir):
+		velocity.x = 0.0
+		_idle_timer = randf_range(idle_time_min, idle_time_max)
+		_patrol_target = _point_a if is_equal_approx(_patrol_target, _point_b) else _point_b
+		_set_state(State.IDLE)
+		return
+
 	velocity.x = dir * move_speed
 	_face(dir)
 	_set_state(State.STROLL)
@@ -310,6 +389,8 @@ func _on_frame_changed() -> void:
 	elif _state == State.RANGE and not _attack_fired and _sprite.frame >= _fire_frame():
 		_attack_fired = true
 		_fire_projectile()
+	elif _state == State.IDLE:
+		_clamp_scratch()
 
 
 func _on_anim_finished() -> void:
@@ -325,24 +406,39 @@ func _position_melee_hitbox() -> void:
 
 func _fire_projectile() -> void:
 	var muzzle := global_position + Vector2(muzzle_offset.x * _facing, muzzle_offset.y)
-	# Aim at the player's torso so a high staff still connects with a short body;
-	# fall back to straight ahead if the player vanished mid-cast.
-	var player := _player()
-	var target := (player.global_position + Vector2(0, -15)) if player != null \
-		else muzzle + Vector2(_facing, 0)
 	var proj := Area2D.new()
 	proj.set_script(PROJECTILE)
 	proj.damage = ranged_damage
 	proj.knockback = ranged_knockback
 	proj.stun = ranged_stun
-	proj.velocity = (target - muzzle).normalized() * projectile_speed
-	# Live in the level, not under the enemy, so it keeps flying if the enemy dies.
+	proj.color = ranged_color  # set before add_child so _ready tints the orb
+	proj.hitbox_extents = ranged_hitbox_extents
+	proj.hitbox_offset = ranged_hitbox_offset
+	if not ranged_particle.is_empty():
+		proj.visual = load(ranged_particle)
+
+	if ranged_mode == "forward":
+		# Surge straight ahead along the ground; capped distance via lifetime.
+		proj.velocity = Vector2(projectile_speed * _facing, 0.0)
+		proj.life = ranged_travel / maxf(projectile_speed, 1.0)
+	else:
+		# Aim at the player's torso so a high muzzle still connects with a short
+		# body; fall back to straight ahead if the player vanished mid-cast.
+		var player := _player()
+		var target := (player.global_position + Vector2(0, -15)) if player != null \
+			else muzzle + Vector2(_facing, 0)
+		proj.velocity = (target - muzzle).normalized() * projectile_speed
+
+	# Live in the level, not under the enemy, so it keeps going if the enemy dies.
 	get_parent().add_child(proj)
 	proj.global_position = muzzle
 
 
 func _fire_frame() -> int:
-	# Fire near the middle of the ranged animation (staff thrust).
+	# Fire on the authored hit frame (hit_frames metadata), else mid-animation.
+	var hits := _hit_frames(&"range_attack")
+	if not hits.is_empty():
+		return int(hits[0])
 	return maxi(1, _sprite.sprite_frames.get_frame_count(&"range_attack") / 2)
 
 
@@ -421,7 +517,11 @@ func _set_state(state: State) -> void:
 		return
 	_state = state
 	match state:
-		State.IDLE, State.STUN: _play(&"idle")
+		State.IDLE:
+			_play(&"idle")
+			_scratch_timer = idle_loop_time  # fresh scratch loop each time he rests
+			_scratch_full_cycle = false
+		State.STUN: _play(&"idle")
 		State.STROLL: _play(&"stroll")
 
 
