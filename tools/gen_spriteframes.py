@@ -39,6 +39,7 @@ CHARACTER_ANIMS = {
     "idle": (6.0, True),
     "run": (10.0, True),
     "jump": (10.0, False),
+    "land": (12.0, False),   # brief touchdown squash; plays once, then idle/run
     "dash": (12.0, False),
     "attack": (12.0, False),
     "heavy_attack": (10.0, False),
@@ -69,7 +70,12 @@ GROUPS = {
 #   loop_from -- for a looping animation, the sheet frame to restart from. Frames
 #                before it play once as an intro; the tail cycles forever.
 #                Emitted as resource metadata; player.gd honours it.
-# Anything not listed here uses the ANIMS default.
+#   loop_to   -- optional end of the loop (sheet frame, inclusive). Without it the
+#                loop runs to the last frame; with it the cycle is loop_from..loop_to
+#                and any frames past loop_to only ever show in the intro pass. Lets
+#                a character loop a mid-sheet range (e.g. a 3-8 idle flourish).
+# loop_from / loop_to are sheet-relative (they count the idle-reference frame 0),
+# same numbering as HIT_FRAMES. Anything not listed here uses the ANIMS default.
 OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 4 frames read as a snap; let the final pose sit instead of speeding up.
     ("khalid", "heavy_attack"): {"hold_last": 2.5},
@@ -82,6 +88,8 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # He builds up speed over frames 1-8; the last 3 are the sustained
     # energised run, so cycle those.
     ("lenbondosen", "run"): {"loop_from": 9},
+    # Idle: frames 0-1 settle in; 2-8 is the raise-a-flame flourish that loops.
+    ("katalyst", "idle"): {"loop_from": 2, "loop_to": 8},
 }
 
 # Attack hit frames (sheet-relative). An attack combo plays one segment per
@@ -90,6 +98,11 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
 # click advances one frame -- the old snap feel). Emitted as resource metadata.
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("feyke", "attack"): [2, 3, 7],
+    # Katalyst's 11-frame swing is a 3-hit combo: a forward whip-reach (2), the
+    # spinning energy AoE at its peak (6), and the extended finishing strike (10).
+    ("katalyst", "attack"): [2, 6, 10],
+    # Heavy: wind-up, lunge, then the long ground-energy blast lands on frame 3.
+    ("katalyst", "heavy_attack"): [3],
     # Two quick energy jabs, then a wind-up into the beam finisher.
     ("lenbondosen", "attack"): [1, 2, 6],
     # Kebus swings connect on sheet frame 3 (the 4th frame).
@@ -121,9 +134,11 @@ def content_columns(alpha, w: int, h: int) -> list[bool]:
 
 def frame_count(cols: list[bool], w: int) -> int:
     """Largest N dividing w such that every slice has content and no content
-    run straddles a slice boundary."""
+    run straddles a slice boundary. The cap is generous (long combo/dash sheets
+    run well past a dozen frames); the content + straddle tests keep it from
+    over-slicing a shorter sheet."""
     best = 1
-    for n in range(1, 13):
+    for n in range(1, 33):
         if w % n:
             continue
         fw = w // n
@@ -218,6 +233,7 @@ def process_group(group: str, anims: dict) -> None:
 
         ext, sub, anim_entries, timings = [], [], [], []
         loop_points: dict[str, int] = {}
+        loop_ends: dict[str, int] = {}
         hit_points: dict[str, list[int]] = {}
         # Per-anim sheet->emitted frame offset (1 where frame 0 was dropped),
         # so hand-authored configs (e.g. particle emitters) can use the same
@@ -282,6 +298,20 @@ def process_group(group: str, anims: dict) -> None:
                     )
                 loop_points[anim] = loop_from - start  # emitted index
 
+            loop_to = int(tweak.get("loop_to", 0))
+            if loop_to:
+                if not loop:
+                    raise SystemExit(
+                        f"{char}/{anim}: loop_to needs a looping animation; "
+                        f"set loop=True for '{anim}' in ANIMS"
+                    )
+                if not loop_from <= loop_to < sheet.n:
+                    raise SystemExit(
+                        f"{char}/{anim}: loop_to={loop_to} out of range; must be "
+                        f"loop_from ({loop_from})..{sheet.n - 1}"
+                    )
+                loop_ends[anim] = loop_to - start  # emitted index
+
             # Hit frames -> emitted indices. Default: every emitted frame is a hit
             # (one frame per click). Player reads these to drive the combo.
             raw_hits = HIT_FRAMES.get((char, anim))
@@ -305,7 +335,11 @@ def process_group(group: str, anims: dict) -> None:
 
             # Total frames counts the held last frame as `hold_last` frames.
             seconds = (n_emitted - 1 + hold_last) / fps
-            note = f"[loop@{loop_from - start}]" if loop_from else ""
+            note = ""
+            if loop_from or loop_to:
+                lo = loop_from - start if loop_from else 0
+                hi = loop_to - start if loop_to else n_emitted - 1
+                note += f"[loop {lo}-{hi}]"
             if raw_hits is not None:
                 note += f"[hits{hits}]"
             timings.append(
@@ -322,13 +356,16 @@ def process_group(group: str, anims: dict) -> None:
             )
 
         load_steps = len(ext) + len(sub) + 1
-        # Read back by player.gd: loop_from restarts looping animations partway
-        # in; hit_frames drives the segmented attack combo; sheet_start lets
+        # Read back by player.gd: loop_from/loop_to bound a looping animation's
+        # cycle; hit_frames drives the segmented attack combo; sheet_start lets
         # hand-authored configs use sheet-frame numbers.
         meta = ""
         if loop_points:
             pairs = ", ".join(f'"{a}": {i}' for a, i in loop_points.items())
             meta += f"metadata/loop_from = {{{pairs}}}\n"
+        if loop_ends:
+            pairs = ", ".join(f'"{a}": {i}' for a, i in loop_ends.items())
+            meta += f"metadata/loop_to = {{{pairs}}}\n"
         if hit_points:
             pairs = ", ".join(f'"{a}": {i}' for a, i in hit_points.items())
             meta += f"metadata/hit_frames = {{{pairs}}}\n"

@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" format=3 uid="uid://ctr6n2okjnbrf"]
+[gd_resource type="SpriteFrames" format=3 uid="uid://br1if1l4sv0gh"]
 
 [ext_resource type="Texture2D" uid="uid://curdanl1g5wne" path="res://sprites/characters/khalid/khalid_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://ca6lk1lk3ilhv" path="res://sprites/characters/khalid/khalid_run_frames.png" id="2_run"]

@@ -1,5 +1,5 @@
 class_name Enemy
-extends CharacterBody2D
+extends Combatant
 
 ## Reusable ground enemy. Shares the character sprite pipeline (idle / stroll /
 ## melee_attack / range_attack) but each enemy only needs the animations it has:
@@ -24,6 +24,11 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 @export_group("Stats")
 @export var max_health: float = 60.0
 @export var gravity: float = 900.0
+## Collider full-sizes, so differently-proportioned enemies fit their sprite. The
+## body is what stands on the floor; the hurtbox is what attacks land on (also
+## used for the contact-damage box). Each sits centred, resting on the feet.
+@export var body_size := Vector2(18, 30)
+@export var hurtbox_size := Vector2(20, 34)
 
 @export_group("Patrol")
 @export var move_speed: float = 40.0
@@ -82,6 +87,13 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 @export var contact_knockback: float = 120.0
 @export var contact_interval: float = 0.6
 
+@export_group("Attack feel")
+## Freeze the attack on its impact frame for this long, then let it finish -- a
+## hit-stop that gives the blow weight. 0 = off.
+@export var attack_hitstop: float = 0.18
+## Peak jitter (px) of the shake during the hit-stop; decays to 0 over it.
+@export var attack_shake: float = 2.5
+
 enum State { IDLE, STROLL, MELEE, RANGE, STUN, DEAD }
 
 var health: float
@@ -100,6 +112,12 @@ var _contact_cd := 0.0
 var _contact_hitbox: Hitbox
 var _scratch_timer := 0.0
 var _scratch_full_cycle := false
+## Player is in reach (attacking distance) -> we're in combat, so the idle
+## between attacks holds a tense ready-stance instead of the patrol flourish.
+var _engaged := false
+var _hitstop_left := 0.0
+var _hitstop_dur := 0.0
+var _impacted := false  # this attack already fired its hit-stop
 
 var _sprite: AnimatedSprite2D
 var _hurtbox: Hurtbox
@@ -153,32 +171,19 @@ func _build_sprite() -> void:
 		push_error("Enemy '%s': no SpriteFrames at %s" % [enemy_id, path])
 		return
 	_sprite.sprite_frames = load(path)
-	var frame := _sprite.sprite_frames.get_frame_texture(&"idle", 0)
-	if frame != null:
-		_sprite.centered = false
-		_sprite.offset = Vector2(-frame.get_width() / 2.0, -frame.get_height())
+	anchor_to_feet(_sprite)
 	add_child(_sprite)
 
 
 func _build_body() -> void:
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(18, 30)
-	shape.shape = rect
-	shape.position = Vector2(0, -15)
-	add_child(shape)
+	add_child(make_box(body_size, Vector2(0, -body_size.y / 2.0)))
 
 
 func _build_hurtbox() -> void:
 	_hurtbox = Hurtbox.new()
 	_hurtbox.collision_layer = Combat.L_ENEMY_HURT
 	_hurtbox.collision_mask = 0
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(20, 34)
-	shape.shape = rect
-	shape.position = Vector2(0, -17)
-	_hurtbox.add_child(shape)
+	_hurtbox.add_child(make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
 	add_child(_hurtbox)
 	_hurtbox.hurt.connect(_on_hurt)
 
@@ -189,14 +194,10 @@ func _build_melee_hitbox() -> void:
 	_melee_hitbox.collision_mask = Combat.L_PLAYER_HURT
 	_melee_hitbox.damage = melee_damage
 	_melee_hitbox.source = self
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = melee_hitbox_extents * 2.0
-	shape.shape = rect
-	shape.position = Vector2(0, -melee_hitbox_extents.y)
 	_melee_hitbox.knockback = melee_knockback
 	_melee_hitbox.stun = melee_stun
-	_melee_hitbox.add_child(shape)
+	_melee_hitbox.add_child(make_box(melee_hitbox_extents * 2.0,
+		Vector2(0, -melee_hitbox_extents.y)))
 	add_child(_melee_hitbox)
 
 
@@ -209,12 +210,7 @@ func _build_contact_hitbox() -> void:
 	_contact_hitbox.damage = contact_damage
 	_contact_hitbox.knockback = contact_knockback
 	_contact_hitbox.source = self
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(22, 34)
-	shape.shape = rect
-	shape.position = Vector2(0, -17)
-	_contact_hitbox.add_child(shape)
+	_contact_hitbox.add_child(make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
 	add_child(_contact_hitbox)
 
 
@@ -260,6 +256,17 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
+	# Hit-stop: frozen on the impact frame, shaking, dealing no new actions. Still
+	# settle vertically so it doesn't hang in the air, but no horizontal drift.
+	if _hitstop_left > 0.0:
+		_hitstop_left -= delta
+		velocity.x = 0.0
+		_apply_shake()
+		if _hitstop_left <= 0.0:
+			_end_hitstop()
+		move_and_slide()
+		return
+
 	if _state == State.STUN:
 		# Frozen: keep sliding on knockback momentum, but take no actions.
 		_stun_left -= delta
@@ -279,6 +286,15 @@ func _physics_process(delta: float) -> void:
 
 ## Resting-idle flourish: hold the sub-loop for a while, then a full cycle.
 func _idle_scratch(delta: float) -> void:
+	# In combat, don't loaf: hold the first idle frame as a tense ready-stance.
+	# Reverts automatically once the player leaves reach (_engaged clears).
+	if _engaged:
+		if _sprite.animation != &"idle":
+			_sprite.play(&"idle")
+		if _sprite.frame != 0 or _sprite.is_playing():
+			_sprite.set_frame_and_progress(0, 0.0)
+			_sprite.pause()
+		return
 	if idle_loop_to <= idle_loop_from or _scratch_full_cycle:
 		return  # not configured, or letting a full idle play (_on_anim_looped ends it)
 	_scratch_timer -= delta
@@ -330,6 +346,7 @@ func _act(delta: float) -> void:
 		# Aggro: pursue until close enough to attack -- but never off an edge.
 		# Otherwise just hold ground and face the player when they're in reach.
 		if aggro and dist <= aggro_range:
+			_engaged = true
 			var dir := int(sign(to_player))
 			if dist > melee_range + 4.0 and _floor_ahead(dir):
 				velocity.x = dir * move_speed
@@ -341,11 +358,13 @@ func _act(delta: float) -> void:
 				_set_state(State.IDLE)
 			return
 		if dist <= ranged_range:
+			_engaged = true
 			velocity.x = 0.0
 			_face(int(sign(to_player)))
 			_set_state(State.IDLE)
 			return
 
+	_engaged = false  # nobody in reach -> back to normal patrol/idle
 	_patrol(delta)
 
 
@@ -378,6 +397,8 @@ func _start_attack(state: State, anim: StringName, player: Node2D) -> void:
 	_set_state(state)
 	velocity.x = 0.0
 	_attack_fired = false
+	_impacted = false
+	_engaged = true  # attacking means we're in combat, so the idle stays a stance
 	_face(int(sign(player.global_position.x - global_position.x)))
 	_play(anim)
 
@@ -386,11 +407,40 @@ func _on_frame_changed() -> void:
 	if _state == State.MELEE and _sprite.frame in _hit_frames(&"melee_attack"):
 		_position_melee_hitbox()
 		_melee_hitbox.activate()
+		_begin_hitstop()
 	elif _state == State.RANGE and not _attack_fired and _sprite.frame >= _fire_frame():
 		_attack_fired = true
 		_fire_projectile()
+		_begin_hitstop()
 	elif _state == State.IDLE:
 		_clamp_scratch()
+
+
+## Freeze the attack on this impact frame for a beat and shake the sprite, so the
+## blow lands with weight. Once per attack; the physics loop resumes it.
+func _begin_hitstop() -> void:
+	if _impacted or attack_hitstop <= 0.0:
+		return
+	_impacted = true
+	_hitstop_dur = attack_hitstop
+	_hitstop_left = attack_hitstop
+	_sprite.pause()  # hold the impact frame; resumes in _end_hitstop
+
+
+func _end_hitstop() -> void:
+	_hitstop_left = 0.0
+	_sprite.position = Vector2.ZERO  # undo the shake
+	if _state == State.MELEE or _state == State.RANGE:
+		_sprite.play()  # let the swing follow through to its finish
+
+
+## Decaying jitter over the hit-stop: strongest on impact, settling to nothing.
+func _apply_shake() -> void:
+	if attack_shake <= 0.0 or _hitstop_dur <= 0.0:
+		_sprite.position = Vector2.ZERO
+		return
+	var amp := attack_shake * (_hitstop_left / _hitstop_dur)
+	_sprite.position = Vector2(randf_range(-amp, amp), randf_range(-amp, amp))
 
 
 func _on_anim_finished() -> void:
@@ -421,6 +471,7 @@ func _fire_projectile() -> void:
 		# Surge straight ahead along the ground; capped distance via lifetime.
 		proj.velocity = Vector2(projectile_speed * _facing, 0.0)
 		proj.life = ranged_travel / maxf(projectile_speed, 1.0)
+		proj.ground_trail = true  # scorch the floor red as it rolls past
 	else:
 		# Aim at the player's torso so a high muzzle still connects with a short
 		# body; fall back to straight ahead if the player vanished mid-cast.
@@ -458,21 +509,13 @@ func _on_hurt(hit: Hit) -> void:
 		return
 	health = maxf(health - hit.amount, 0.0)
 	_bar.set_ratio(health / max_health)
-	_flash()
+	flash(_sprite)
 	if health <= 0.0:
 		_die()
 		return
-	if hit.knockback > 0.0 and hit.source != null:
-		var dir := signi(int(sign(global_position.x - (hit.source as Node2D).global_position.x)))
-		if dir == 0:
-			dir = -_facing
-		velocity.x = dir * hit.knockback
-		velocity.y = -hit.knockback * 0.25  # a small pop so it reads
-	# A knockback needs a brief stagger, or the AI overwrites the shove velocity
-	# next frame and nothing moves. Pure stun freezes for longer.
-	var stagger := hit.stun
-	if hit.knockback > 0.0:
-		stagger = maxf(stagger, 0.2)
+	# Knockback needs a brief stagger, or the AI overwrites the shove velocity next
+	# frame and nothing moves; a pure stun freezes for longer.
+	var stagger := apply_knockback(hit, _facing)
 	if stagger > 0.0:
 		_melee_hitbox.deactivate()
 		_stun_left = stagger
@@ -481,12 +524,6 @@ func _on_hurt(hit: Hit) -> void:
 		if hit.status_color.a > 0.0:
 			_sprite.pause()
 			_status.show_for(hit.status_color, hit.status_time)
-
-
-func _flash() -> void:
-	_sprite.modulate = Color(1.0, 0.35, 0.35)
-	var tw := create_tween()
-	tw.tween_property(_sprite, "modulate", Color.WHITE, 0.18)
 
 
 func _die() -> void:
@@ -521,6 +558,9 @@ func _set_state(state: State) -> void:
 			_play(&"idle")
 			_scratch_timer = idle_loop_time  # fresh scratch loop each time he rests
 			_scratch_full_cycle = false
+			if _engaged:  # combat: snap straight to the held ready-stance, no flicker
+				_sprite.set_frame_and_progress(0, 0.0)
+				_sprite.pause()
 		State.STUN: _play(&"idle")
 		State.STROLL: _play(&"stroll")
 

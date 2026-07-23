@@ -1,33 +1,30 @@
 [gd_scene format=3 uid="uid://3o6ownrcatun"]
 
+[ext_resource type="Texture2D" uid="uid://b0wjegws77s0x" path="res://particles/textures/pixel_ember.png" id="1_t43o7"]
+
 [sub_resource type="Curve" id="Curve_filc8"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.6, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.5), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(0.4, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.1685394), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="Gradient" id="Gradient_4w36n"]
-offsets = PackedFloat32Array(0, 0.35, 0.7, 1)
-colors = PackedColorArray(0, 0, 0, 1, 1, 0.011764706, 0.2509804, 1, 0, 0, 0, 0.78431374, 0.45, 0.08, 0.05, 0)
+offsets = PackedFloat32Array(0, 0, 0, 0, 0.3, 0.65, 1)
+colors = PackedColorArray(0.95686275, 0.023529412, 0, 1, 0, 0, 0, 1, 0.8745098, 0.07450981, 0.07450981, 1, 0.99607843, 0.17254902, 0.101960786, 1, 0, 0, 0, 0.43137255, 0, 0, 0, 0.83137256, 0.43137255, 0.078431375, 0.05490196, 0)
 
-[node name="GroundWave" type="CPUParticles2D" unique_id=1231872316]
+[node name="GroundWave" type="CPUParticles2D" unique_id=793401725]
 texture_filter = 1
-amount = 150
-lifetime = 0.2
-speed_scale = 0.5
-lifetime_randomness = 0.35
-emission_shape = 1
-emission_sphere_radius = 2.0
-direction = Vector2(800, 0)
-spread = 0.0
-gravity = Vector2(1, -100)
-initial_velocity_min = 30.0
-initial_velocity_max = 495.35
-linear_accel_min = 100.0
-linear_accel_max = 100.0
-tangential_accel_min = 36.34
-tangential_accel_max = 93.77
-angle_min = 59.5
-angle_max = 59.5
-scale_amount_min = 0.0
-scale_amount_max = 10.0
+amount = 200
+texture = ExtResource("1_t43o7")
+lifetime = 0.38
+explosiveness = 0.05
+lifetime_randomness = 0.25
+emission_shape = 3
+emission_rect_extents = Vector2(5, 2)
+direction = Vector2(0.45, -1)
+spread = 24.0
+gravity = Vector2(0, 560)
+initial_velocity_min = 120.0
+initial_velocity_max = 205.0
+scale_amount_min = 0.7
+scale_amount_max = 1.7
 scale_amount_curve = SubResource("Curve_filc8")
 color_ramp = SubResource("Gradient_4w36n")

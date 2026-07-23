@@ -1,5 +1,5 @@
 @tool
-extends CharacterBody2D
+extends Combatant
 class_name Player
 
 ## A character-agnostic player.
@@ -64,6 +64,10 @@ var health: float = 100.0:
 @export var fall_tilt_degrees: float = 8.0
 ## Falling speed at which the lean reaches its maximum.
 @export var fall_tilt_at_speed: float = 600.0
+## Minimum falling speed on touchdown to play the landing squash (characters
+## that have a `land` animation). Below it -- little hops, walking off a lip --
+## you snap straight to idle/run with no squash.
+@export var land_min_fall_speed: float = 140.0
 
 @export_group("Attack")
 ## How long the sprite holds on a hit frame before returning to idle, if the
@@ -74,18 +78,23 @@ var health: float = 100.0:
 ## control returns; keep it >= attack_recovery.
 @export var combo_reset_time: float = 0.45
 ## Damage a single light-attack hit deals; the heavy swing deals heavy_damage.
-@export var attack_damage: float = 9.0
-@export var heavy_damage: float = 22.0
+## Fallback for characters/fields not specified in ATTACKS.
+@export var attack_damage: float = 16.0
+@export var heavy_damage: float = 40.0
 ## How far in front of the feet the attack reaches, and its half-size.
 @export var attack_hitbox_x: float = 18.0
 @export var attack_hitbox_extents := Vector2(15, 18)
 
-enum State { IDLE, RUN, JUMP, DASH, ATTACK, HEAVY_ATTACK }
+enum State { IDLE, RUN, JUMP, DASH, ATTACK, HEAVY_ATTACK, LAND }
 
 var _state: State = State.IDLE
 var _facing: int = 1
 var _dash_left: float = 0.0
 var _dash_cd: float = 0.0
+## Airborne tracking, so a touchdown can trigger the landing squash.
+var _was_on_floor: bool = true
+var _fall_peak: float = 0.0  # fastest downward speed reached this airborne stretch
+var _just_landed: bool = false
 ## Which combo segment we're on (index into the attack's hit-frame list).
 var _combo_step: int = 0
 ## Emitted frame the current segment ends on (the hit).
@@ -96,6 +105,9 @@ var _combo_playing: bool = false
 var _combo_window: float = 0.0
 ## Time left holding the current hit frame before control returns to idle.
 var _recovery_left: float = 0.0
+## A heavy press during a light swing, held until the current hit lands so a fast
+## light->heavy cancels into the heavy instead of being swallowed by recovery.
+var _buffered_heavy: bool = false
 ## Time left frozen from a stun-carrying hit (input ignored).
 var _stun_left: float = 0.0
 ## The current character's unique ability, or null if they have none.
@@ -105,6 +117,9 @@ var _particles: ParticleDirector
 ## Combat boxes, built in code (like the particle director) to avoid a scene edit.
 var _hurtbox: Hurtbox
 var _attack_hitbox: Hitbox
+## The attack box's shape, resized/repositioned per strike for per-character reach.
+var _attack_shape: CollisionShape2D
+var _attack_rect: RectangleShape2D
 var _status: StatusOverlay
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -143,17 +158,14 @@ func _apply_character() -> void:
 		return
 	sprite.sprite_frames = load(path)
 	# The generator's canvas size changes whenever the art does, so derive the
-	# offset from the frames rather than baking it into the scene: origin at the
-	# feet, horizontally centred.
-	var frame := sprite.sprite_frames.get_frame_texture(&"idle", 0)
-	if frame != null:
-		sprite.centered = false
-		sprite.offset = Vector2(-frame.get_width() / 2.0, -frame.get_height())
+	# offset from the frames rather than baking it into the scene.
+	anchor_to_feet(sprite)
 	# Attack frame counts differ per character, so a half-finished combo would
 	# point at a frame the new character may not have.
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
+	_buffered_heavy = false
 	sprite.speed_scale = 1.0
 	sprite.play(_animation_for(_state))
 	_equip_ability()
@@ -188,10 +200,7 @@ func get_state() -> State:
 func run_loop_reached() -> bool:
 	if _sprite.animation != &"run":
 		return false
-	var sf := _sprite.sprite_frames
-	if sf == null or not sf.has_meta("loop_from"):
-		return false
-	var start: int = sf.get_meta("loop_from").get("run", -1)
+	var start := _loop_meta(&"loop_from")
 	return start >= 0 and _sprite.frame >= start
 
 
@@ -202,7 +211,7 @@ func portrait_path() -> String:
 
 func take_damage(amount: float) -> void:
 	health -= amount
-	_flash()
+	flash(_sprite)
 
 
 ## Build the combat boxes and register on the "player" group so enemies find us.
@@ -214,7 +223,7 @@ func _build_combat() -> void:
 	_hurtbox = Hurtbox.new()
 	_hurtbox.collision_layer = Combat.L_PLAYER_HURT
 	_hurtbox.collision_mask = 0
-	_hurtbox.add_child(_box_shape(Vector2(16, 30), Vector2(0, -15)))
+	_hurtbox.add_child(make_box(Vector2(16, 30), Vector2(0, -15)))
 	add_child(_hurtbox)
 	_hurtbox.hurt.connect(_on_hurt)
 
@@ -222,8 +231,10 @@ func _build_combat() -> void:
 	_attack_hitbox.collision_layer = Combat.L_PLAYER_HIT
 	_attack_hitbox.collision_mask = Combat.L_ENEMY_HURT
 	_attack_hitbox.source = self  # so knockback pushes enemies away from the player
-	_attack_hitbox.add_child(_box_shape(attack_hitbox_extents * 2.0,
-		Vector2(0, -attack_hitbox_extents.y)))
+	_attack_shape = make_box(attack_hitbox_extents * 2.0,
+		Vector2(0, -attack_hitbox_extents.y))
+	_attack_rect = _attack_shape.shape
+	_attack_hitbox.add_child(_attack_shape)
 	add_child(_attack_hitbox)
 
 	_status = StatusOverlay.new()
@@ -231,83 +242,77 @@ func _build_combat() -> void:
 	_status.setup(_sprite)
 
 
-func _box_shape(size: Vector2, pos: Vector2) -> CollisionShape2D:
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = size
-	shape.shape = rect
-	shape.position = pos
-	return shape
-
-
 const STATUS_GREEN := Color(0.2, 1.0, 0.35, 1.0)
 
-## Per-character on-hit effects. Each effect is a dict; unset keys default to 0:
-##   damage, knockback (px/s), stun (s), color (engulfing overlay), color_time (s)
-## `heavy` is one effect. `light` is EITHER one effect (all combo hits share it)
-## OR an ARRAY of effects, one per combo segment -- so a specific hit can be
-## special. Characters/attacks not listed fall back to the exported damage.
-##
-## Tune everything here: e.g. Lenny's heavy launches further than Feyke's, and
-## Lenny's FIRST light hit freezes the enemy for 5s with a green overlay.
-const ATTACK_EFFECTS := {
-	"khalid": {"light": {"damage": 9}, "heavy": {"damage": 26, "knockback": 220}},
-	"katalyst": {"light": {"damage": 9}, "heavy": {"damage": 24, "knockback": 160, "stun": 0.18}},
-	"wayna": {"light": {"damage": 7, "stun": 0.1}, "heavy": {"damage": 18, "knockback": 90}},
-	"feyke": {"light": {"damage": 8, "knockback": 45}, "heavy": {"damage": 20, "knockback": 150}},
+## Per-character attack data, one place per (character, attack). Each entry is a
+## dict of unset-defaults-to-0/exported fields:
+##   damage, knockback (px/s), stun (s), color (engulfing overlay), color_time (s),
+##   x (hitbox forward offset from the feet), extents (hitbox half-size)
+## `heavy` is one entry. `light` is EITHER one entry (all combo hits share it) OR
+## an ARRAY, one per combo segment -- so a specific hit differs (Lenny's first jab
+## freezes; Katalyst's spin is a wide x=0 AoE). Unset fields fall back to the
+## exported attack_damage/heavy_damage and attack_hitbox_x/_extents, so an entry
+## only lists what's special.
+const ATTACKS := {
+	"khalid": {"light": {"damage": 16}, "heavy": {"damage": 46, "knockback": 220}},
+	"katalyst": {
+		"light": [
+			{"damage": 16, "x": 24.0, "extents": Vector2(22, 18)},  # whip-reach thrust
+			{"damage": 16, "x": 0.0, "extents": Vector2(32, 20)},   # spin: AoE around the body
+			{"damage": 16, "x": 28.0, "extents": Vector2(24, 18)},  # finishing lunge
+		],
+		"heavy": {"damage": 44, "knockback": 160, "stun": 0.18,
+			"x": 30.0, "extents": Vector2(34, 16)},  # long ground blast
+	},
+	"wayna": {"light": {"damage": 13, "stun": 0.1}, "heavy": {"damage": 32, "knockback": 90}},
+	"feyke": {"light": {"damage": 15, "knockback": 45}, "heavy": {"damage": 38, "knockback": 150}},
 	"lenbondosen": {
 		"light": [
-			{"damage": 8, "stun": 5.0, "color": STATUS_GREEN},  # 1st hit: 5s freeze + green
-			{"damage": 8},
-			{"damage": 8},
+			{"damage": 14, "stun": 5.0, "color": STATUS_GREEN},  # 1st hit: 5s freeze + green
+			{"damage": 14},
+			{"damage": 14},
 		],
-		"heavy": {"damage": 22, "knockback": 300},  # launches much further than Feyke's 150
+		"heavy": {"damage": 40, "knockback": 300},  # launches much further than Feyke's 150
 	},
 }
 
 
-## Effect dict for an attack. `seg` picks the combo segment for a per-segment
-## `light` list; ignored otherwise.
-func _attack_effect(kind: String, seg: int) -> Dictionary:
-	var entry: Variant = ATTACK_EFFECTS.get(character, {}).get(kind, null)
+## The (character, kind, segment) entry from ATTACKS, or {} if unlisted. A `light`
+## array indexes by combo segment (a shorter array reuses its last entry); a
+## single dict is shared by all hits.
+func _attack(kind: String, seg: int) -> Dictionary:
+	var entry: Variant = ATTACKS.get(character, {}).get(kind, null)
 	if entry is Array:
-		if entry.is_empty():
-			entry = {}
-		else:
-			entry = entry[mini(seg, entry.size() - 1)]
+		entry = {} if entry.is_empty() else entry[mini(seg, entry.size() - 1)]
 	if entry == null:
-		entry = {"damage": attack_damage if kind == "light" else heavy_damage}
+		return {}
 	return entry
 
 
-## Enable the attack hitbox in front for one strike, carrying its effects.
+## Enable the attack hitbox for one strike: effects + this character's reach/size
+## for that (kind, segment), each field falling back to the exported defaults.
 func _strike(kind: String, seg: int = 0) -> void:
 	if _attack_hitbox == null:
 		return
-	var e := _attack_effect(kind, seg)
-	_attack_hitbox.damage = e.get("damage", attack_damage if kind == "light" else heavy_damage)
-	_attack_hitbox.knockback = e.get("knockback", 0.0)
-	_attack_hitbox.stun = e.get("stun", 0.0)
-	_attack_hitbox.status_color = e.get("color", Color(0, 0, 0, 0))
-	_attack_hitbox.status_time = e.get("color_time", e.get("stun", 0.0))
-	_attack_hitbox.position.x = attack_hitbox_x * _facing
-	_attack_hitbox.activate(0.12)
+	var a := _attack(kind, seg)
+	_attack_hitbox.damage = a.get("damage", attack_damage if kind == "light" else heavy_damage)
+	_attack_hitbox.knockback = a.get("knockback", 0.0)
+	_attack_hitbox.stun = a.get("stun", 0.0)
+	_attack_hitbox.status_color = a.get("color", Color(0, 0, 0, 0))
+	_attack_hitbox.status_time = a.get("color_time", a.get("stun", 0.0))
+
+	var ext: Vector2 = a.get("extents", attack_hitbox_extents)
+	var bx: float = a.get("x", attack_hitbox_x)
+	_attack_rect.size = ext * 2.0
+	_attack_shape.position = Vector2(bx * _facing, -ext.y)  # box sits on the ground, reaching forward
+	_attack_hitbox.activate(Combat.STRIKE_ACTIVE)
 
 
 ## Take a hit: damage, optional shove, optional freeze/overlay.
 ## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
 func _on_hurt(hit: Hit) -> void:
 	take_damage(hit.amount)
-	if hit.knockback > 0.0 and hit.source != null:
-		var dir := signi(int(sign(global_position.x - (hit.source as Node2D).global_position.x)))
-		if dir == 0:
-			dir = -_facing
-		velocity.x = dir * hit.knockback
-		velocity.y = -hit.knockback * 0.25
-	# Knockback carries a brief stagger so the shove reads before control returns.
-	var stagger := hit.stun
-	if hit.knockback > 0.0:
-		stagger = maxf(stagger, 0.18)
+	var stagger := apply_knockback(hit, _facing)  # shove + how long to stagger
 	if stagger > 0.0:
 		_stun_left = stagger
 		_combo_playing = false
@@ -316,27 +321,35 @@ func _on_hurt(hit: Hit) -> void:
 		_status.show_for(hit.status_color, hit.status_time)
 
 
-func _flash() -> void:
-	_sprite.modulate = Color(1.0, 0.5, 0.5)
-	var tw := create_tween()
-	tw.tween_property(_sprite, "modulate", Color.WHITE, 0.15)
-
-
-# The heavy swing has no per-frame combo data, so land it on its middle frame.
+# Land the heavy on its authored strike frame (hit_frames metadata), or, if the
+# character didn't author one, on the middle frame as a sensible default.
 func _on_frame_changed() -> void:
-	if _state != State.HEAVY_ATTACK:
+	if _state == State.HEAVY_ATTACK:
+		if _sprite.frame == _heavy_strike_frame():
+			_strike("heavy")
 		return
-	var mid := _sprite.sprite_frames.get_frame_count(&"heavy_attack") / 2
-	if _sprite.frame == mid:
-		_strike("heavy")
+	# Bounded loop: when a looping animation has a `loop_to`, snap back to
+	# `loop_from` the moment playback steps past it, so the cycle stays inside the
+	# range (e.g. Katalyst's idle loops 2-8). Done here on the render frame it
+	# changes -- not in physics -- so the past-the-range frame never flashes.
+	var loop_to := _loop_meta(&"loop_to")
+	if loop_to >= 0 and _sprite.frame > loop_to:
+		_sprite.set_frame_and_progress(maxi(_loop_meta(&"loop_from"), 0), 0.0)
+
+
+func _heavy_strike_frame() -> int:
+	var frames := _sprite.sprite_frames
+	if frames.has_meta("hit_frames"):
+		var by_anim: Dictionary = frames.get_meta("hit_frames")
+		var hits: Array = by_anim.get("heavy_attack", [])
+		if not hits.is_empty():
+			return int(hits[0])
+	@warning_ignore("integer_division")
+	return frames.get_frame_count(&"heavy_attack") / 2
 
 
 func heal(amount: float) -> void:
 	health += amount
-
-
-func is_alive() -> bool:
-	return health > 0.0
 
 
 func set_character(id: String) -> void:
@@ -355,6 +368,15 @@ func _physics_process(delta: float) -> void:
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 
+	# Track the fall so a touchdown from a real drop (not a tiny hop) can squash.
+	var on_floor := is_on_floor()
+	if not on_floor:
+		_fall_peak = maxf(_fall_peak, velocity.y)  # +y is downward
+	_just_landed = on_floor and not _was_on_floor and _fall_peak >= land_min_fall_speed
+	if on_floor:
+		_fall_peak = 0.0
+	_was_on_floor = on_floor
+
 	if _stun_left > 0.0:
 		_process_stun(delta)
 	elif _state == State.DASH:
@@ -363,6 +385,8 @@ func _physics_process(delta: float) -> void:
 		_process_attack(delta)
 	elif _state == State.HEAVY_ATTACK:
 		_process_heavy_attack(delta)
+	elif _state == State.LAND:
+		_process_land(delta)
 	else:
 		# The combo only decays while you're not mid-swing.
 		_combo_window = maxf(_combo_window - delta, 0.0)
@@ -417,11 +441,7 @@ func _process_normal(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
 	if Input.is_action_just_pressed("heavy_attack"):
-		# A heavy swing supersedes any light chain in progress.
-		_combo_step = 0
-		_combo_window = 0.0
-		_combo_playing = false
-		_enter(State.HEAVY_ATTACK)
+		_start_heavy()  # supersedes any light chain in progress
 		return
 	if Input.is_action_just_pressed("attack"):
 		_advance_combo()
@@ -434,10 +454,47 @@ func _process_normal(delta: float) -> void:
 
 	if not is_on_floor():
 		_state = State.JUMP
+	elif _just_landed and _has_land():
+		_enter(State.LAND)
 	elif absf(velocity.x) > 5.0:
 		_state = State.RUN
 	else:
 		_state = State.IDLE
+
+
+## A brief touchdown squash. Fully cancelable -- any action or a movement input
+## breaks out of it instantly, so it never eats inputs; left alone it plays out
+## and hands back to idle (see _on_animation_finished).
+func _process_land(delta: float) -> void:
+	if not is_on_floor():  # walked off the lip mid-squash
+		_state = State.JUMP
+		return
+
+	if Input.is_action_just_pressed("heavy_attack"):
+		_start_heavy()
+		return
+	if Input.is_action_just_pressed("attack"):
+		_advance_combo()
+		return
+	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
+		_enter(State.DASH)
+		return
+	if Input.is_action_just_pressed("jump"):
+		velocity.y = jump_velocity
+		_state = State.JUMP
+		return
+
+	var input := Input.get_axis("move_left", "move_right")
+	if input != 0.0:  # walk straight out of the landing
+		_facing = 1 if input > 0.0 else -1
+		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
+		_state = State.RUN
+		return
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+
+
+func _has_land() -> bool:
+	return _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(&"land")
 
 
 func _process_attack(delta: float) -> void:
@@ -445,6 +502,12 @@ func _process_attack(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 	if not is_on_floor():
 		velocity.y += gravity * delta
+
+	# A heavy pressed any time during the swing is remembered and fires the moment
+	# the current hit lands -- so a fast light->heavy always cancels into the heavy
+	# instead of the press being swallowed by the recovery frames.
+	if Input.is_action_just_pressed("heavy_attack"):
+		_buffered_heavy = true
 
 	if _combo_playing:
 		# Animate through the segment; freeze on the hit frame once reached.
@@ -456,11 +519,16 @@ func _process_attack(delta: float) -> void:
 			_recovery_left = attack_recovery
 			_combo_window = combo_reset_time
 			_strike("light", _combo_step - 1)  # this segment connects (0-based)
+			if _buffered_heavy:  # cancel straight into the buffered heavy
+				_start_heavy()
 		return
 
 	# Briefly hold the hit frame, then hand control back to idle. The chain
 	# window keeps ticking there (see _physics_process), so you can still combo
 	# after recovering -- the freeze doesn't have to outlast the whole window.
+	if _buffered_heavy:
+		_start_heavy()
+		return
 	if Input.is_action_just_pressed("attack"):
 		_advance_combo()
 		return
@@ -468,6 +536,16 @@ func _process_attack(delta: float) -> void:
 	_recovery_left -= delta
 	if _recovery_left <= 0.0:
 		_enter(State.IDLE)
+
+
+## Commit to a heavy swing, clearing any light combo in progress. Shared by the
+## normal/land states and by a light-attack cancel (see _process_attack).
+func _start_heavy() -> void:
+	_combo_step = 0
+	_combo_window = 0.0
+	_combo_playing = false
+	_buffered_heavy = false
+	_enter(State.HEAVY_ATTACK)
 
 
 ## Unlike the light combo, a heavy swing is committed: it plays the whole
@@ -486,6 +564,7 @@ func _advance_combo() -> void:
 	var hits := _attack_hits()
 	if hits.is_empty():
 		return
+	_buffered_heavy = false  # each swing starts with a clean buffer
 
 	if _combo_window <= 0.0 or _combo_step >= hits.size():
 		_combo_step = 0  # cold start, or wrap after the finisher
@@ -538,6 +617,7 @@ func _animation_for(state: State) -> StringName:
 		State.DASH: return &"dash"
 		State.ATTACK: return &"attack"
 		State.HEAVY_ATTACK: return &"heavy_attack"
+		State.LAND: return &"land"
 		_: return &"idle"
 
 
@@ -546,6 +626,13 @@ func _update_animation(delta: float) -> void:
 	var next := _animation_for(_state)
 	if _sprite.animation != next:
 		_sprite.play(next)
+
+	# Keep the sprite crisp while moving. The physics body sits at sub-pixel
+	# positions, which smears nearest-filtered pixel art across screen pixels as it
+	# runs; pin the drawn sprite to whole world pixels instead. Paired with the
+	# pixel-snapped camera, the character then lands on exact screen pixels. The
+	# body/colliders keep their true sub-pixel position -- only the visual snaps.
+	_sprite.global_position = global_position.round()
 
 	# Lean into the fall, scaled by how fast you're dropping. Rotation is around
 	# the node origin, which sits at the feet.
@@ -559,17 +646,25 @@ func _update_animation(delta: float) -> void:
 ## A looping animation can have an intro: `loop_from` metadata (written by the
 ## generator) marks the frame the cycle restarts at, so the lead-in plays once
 ## and only the tail repeats. Wayna's run ignites over frames 0-3 then cycles 4-6.
+## (A bounded `loop_to` is enforced in _on_frame_changed; this catches the case
+## where the loop runs all the way to the last frame and wraps naturally.)
 func _on_animation_looped() -> void:
-	var frames := _sprite.sprite_frames
-	if frames == null or not frames.has_meta("loop_from"):
-		return
-	var start: int = frames.get_meta("loop_from").get(String(_sprite.animation), 0)
+	var start := _loop_meta(&"loop_from")
 	if start > 0:
 		_sprite.set_frame_and_progress(start, 0.0)
 
 
+## Emitted-frame value from a loop metadata dict (`loop_from` / `loop_to`) for the
+## animation currently playing, or -1 if unset.
+func _loop_meta(key: StringName) -> int:
+	var frames := _sprite.sprite_frames
+	if frames == null or not frames.has_meta(key):
+		return -1
+	return int(frames.get_meta(key).get(String(_sprite.animation), -1))
+
+
 func _on_animation_finished() -> void:
 	# Light attack is a paused single frame and jump holds its last frame, so
-	# only dash and the heavy swing end on playback finishing.
-	if _state == State.DASH or _state == State.HEAVY_ATTACK:
+	# only dash, the heavy swing, and the landing squash end on playback finishing.
+	if _state == State.DASH or _state == State.HEAVY_ATTACK or _state == State.LAND:
 		_enter(State.IDLE)

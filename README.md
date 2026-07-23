@@ -53,10 +53,13 @@ This is the part worth understanding, because the source sheets are irregular.
 
 ### The problem
 
-Each character has six sheets (`idle`, `run`, `jump`, `dash`, `attack`,
-`heavy_attack`). They are single-row grids, but nothing else is consistent:
+Each character has up to seven sheets (`idle`, `run`, `jump`, `land`, `dash`,
+`attack`, `heavy_attack`) — `land` is newer, so a character without one is just
+skipped (see below). They are single-row grids, but nothing else is consistent:
 
-- Frame counts vary (3-9) between animations *and* between characters
+- Frame counts vary (2-13+) between animations *and* between characters — the
+  slicer (`frame_count`) auto-detects the count, up to a generous cap, so long
+  combo/dash sheets (Katalyst's 13-frame dash) work without configuration
 - Frame sizes vary wildly — khalid's idle is 32x32, his attack is 143x48
 - Some sheets have a constant horizontal padding bias (lenbondosen's dash sits
   ~24px left of centre)
@@ -162,17 +165,24 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
   before the character retracts
 - **`loop_from`** — for a looping animation, the sheet frame the cycle restarts
   at. Frames before it play once as an intro; the tail repeats forever.
+- **`loop_to`** — optional end of that loop (sheet frame, inclusive). Without it
+  the cycle runs to the last frame; with it the loop is `loop_from..loop_to` and
+  any frames past `loop_to` show only in the one-time intro pass. Lets a character
+  loop a **mid-sheet range** — e.g. Katalyst's idle plays 0-1 to settle in, then
+  loops his 2-8 raise-a-flame flourish forever until you press something.
 
-`loop_from` exists because Godot's `loop` flag is all-or-nothing. The generator
-writes the (emitted) frame index as resource metadata and `player.gd` jumps back
-to it on each wrap (`_on_animation_looped`). Wayna's run uses it: after the
-idle-ref frame, the lean/ignite frames play once and the flight tail cycles for
-as long as you hold the input.
+`loop_from` / `loop_to` exist because Godot's `loop` flag is all-or-nothing. The
+generator writes the (emitted) indices as resource metadata; `player.gd` jumps
+back to `loop_from` when the anim wraps (`_on_animation_looped`) or when it steps
+past `loop_to` (`_on_frame_changed`, on the render frame so nothing flashes).
+Wayna's run uses `loop_from`; Katalyst's idle uses both. They're sheet-relative
+(count the idle-ref frame 0), same numbering as `HIT_FRAMES`. Each character's
+idle can loop a different range — just author `loop_from`/`loop_to` per sheet.
 
 Heavy attacks are tuned toward a ~0.5s feel: khalid `hold_last` 2.5 (few frames,
 so the last pose sits rather than the whole swing slowing), lenbondosen 13 fps
 and wayna 16 fps (too slow at 10). The generator prints resulting durations,
-marks overridden entries with `*`, notes loop points as `[loop@N]` and hit
+marks overridden entries with `*`, notes loop ranges as `[loop N-M]` and hit
 frames as `[hits...]`.
 
 ### Attack hit frames — `HIT_FRAMES`
@@ -232,8 +242,8 @@ and a matching case in `_animation_for()` in `player.gd`.
 ## Player
 
 `scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / DASH / ATTACK / HEAVY_ATTACK`). Everything is tunable in
-the inspector.
+(`IDLE / RUN / JUMP / DASH / ATTACK / HEAVY_ATTACK / LAND`). Everything is tunable
+in the inspector.
 
 | Group | Key values |
 |---|---|
@@ -241,15 +251,24 @@ the inspector.
 | Movement | `run_speed` 160, `jump_velocity` -330, `gravity` 900, `fall_gravity_scale` 1.35 |
 | Dash | `dash_speed` 420, `dash_time` 0.18, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
-| Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600 |
+| Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600, `land_min_fall_speed` 140 |
+
+**Landing squash (`LAND`).** On touchdown from a real fall (peak downward speed
+≥ `land_min_fall_speed`, so little hops and walking off a lip don't trigger it),
+a character that *has* a `land` animation plays a brief squash. It's **fully
+cancelable** — any action (attack / heavy / dash / jump) or a movement input
+breaks out instantly, so it never eats inputs; left alone it plays once and hands
+back to idle. Characters without a `land` sheet skip straight to idle/run as
+before. Only Katalyst has one so far.
 
 **Attack combo (LMB).** One press plays one *segment* — the frames up to the
 next hit animate, then the sprite holds the hit frame for a short
 `attack_recovery` and hands control back to idle. Hit frames come from the
 `HIT_FRAMES` config via SpriteFrames metadata (`_attack_hits()`); an attack with
-no entry treats every frame as a hit, so each click advances one frame. Feyke and
-lenbondosen have authored hit frames (three hits with smooth wind-up/in-between
-frames); katalyst, khalid and wayna still step one frame per click.
+no entry treats every frame as a hit, so each click advances one frame. Feyke,
+lenbondosen and katalyst have authored hit frames (three hits with smooth
+wind-up/in-between frames — katalyst's are whip-reach / spin-AoE / finisher);
+khalid and wayna still step one frame per click.
 
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:
@@ -261,18 +280,25 @@ freeze for the whole chain window:
   finisher) restarts at segment one.
 
 Clicks mid-segment are dropped (keeps the rhythm) — change `_process_attack` if
-you want input buffering.
+you want light-attack input buffering. A **heavy** press *is* buffered, though:
+pressing RMB any time during a light swing is remembered and fires the instant
+that hit lands (`_buffered_heavy`), so a fast light→heavy always cancels into the
+heavy instead of the press being swallowed by the recovery frames.
 
 **Heavy attack (RMB).** Deliberately *not* a combo — one press plays the entire
 animation, roots the player, and ignores all input until it finishes. It also
-clears any light combo in progress. Durations are hand-tuned per character to
-land around 0.50-0.60s despite frame counts ranging 4-9 — see **Per-character
-timing** above.
+clears any light combo in progress (all three entry points go through
+`_start_heavy()`). The strike lands on the frame given by the
+`heavy_attack` entry in `hit_frames` metadata (`_heavy_strike_frame()`) — e.g.
+Katalyst's lands on his blast frame — or, if a character didn't author one, on
+the middle frame as a default. Durations are hand-tuned per character — see
+**Per-character timing** above.
 
-**Dash.** Frame counts differ per character (4-6), so a fixed `dash_time` would
+**Dash.** Frame counts differ per character (3-13+), so a fixed `dash_time` would
 clip the longer ones. Playback is stretched to fit instead (`speed_scale`
-1.85-2.78), which keeps dash *distance* identical for every character while
-always playing the full animation. Grounded dashes stay level; air dashes keep
+derived from the anim length ÷ `dash_time`), which keeps dash *distance*
+identical for every character while always playing the full animation — so even
+Katalyst's 13-frame transform-dash plays fully inside the 0.18s window. Grounded dashes stay level; air dashes keep
 falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
 
@@ -509,15 +535,44 @@ to hand-wire. Key traits:
     (they're built `emitting = true`). Empty = a simple orb trail built in code
     (Kebus). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
     (a small box for a bolt, a tall slab rising from the ground for a wave).
+    Baghel's wave is a **crest**: chunks kick up-and-forward out of a
+    ground-hugging emission strip and arc back down under gravity while the
+    projectile outruns them (`local_coords = off`), so they trail into a rolling
+    swell. Keep his `muzzle_offset.y` near 0 so the emission base sits on the
+    ground — a negative y lifts the whole wave off it.
+  - **Ground trail** — a `"forward"` shot sets `proj.ground_trail`, so
+    `projectile.gd` adds a second, code-built emitter that lays longer-lived red
+    embers along the floor (`local_coords = off`, so they stay put as the shot
+    rolls on) that linger and fade behind it. Its colour is **sampled from the
+    wave's gradient** (`_sample_visual_color`), so it always matches whatever red
+    you tint `ground_wave.tscn` to in the editor — no second gradient to keep in
+    sync.
+  - **Graceful fade** — on impact or when `life` runs out, a projectile doesn't
+    `queue_free` instantly (which would vaporise every live particle). It
+    `_expire()`s: stops damaging/moving, sets `emitting = false` on all its
+    emitters, and frees only after the longest particle lifetime, so the wave and
+    its trail fade out instead of popping.
 - **Melee** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
 - **`idle_loop_from..idle_loop_to`** (optional): a resting-idle flourish — loops
   those emitted frames for `idle_loop_time` seconds, then plays one full idle
   cycle, and repeats (Baghel scratches his back). Disabled when `to <= from`.
+- **Combat vs resting idle.** An `_engaged` flag tracks whether the player is in
+  reach (attacking distance). While engaged, the between-attacks idle **holds the
+  first idle frame** as a tense ready-stance — no strolling or scratch flourish.
+  The moment the player leaves reach `_engaged` clears and normal patrol/idle
+  (and the flourish) resume on their own.
+- **Attack feel — hit-stop + shake.** On the impact frame (melee contact / the
+  ranged smash), `_begin_hitstop()` freezes the sprite on that pose for
+  `attack_hitstop` s and jitters it by up to `attack_shake` px (decaying to 0),
+  giving the blow weight; the physics loop resumes the swing afterward. Both
+  default on (0.18 s / 2.5 px); set either to 0 to disable.
 - Carries its own **hurtbox**, **floating health bar + name**, and a **red
   hit-flash**. Attacks carry `*_knockback` / `*_stun` (see below).
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
-  stun, hitbox sizes/offsets, aggro, contact damage. Tune per enemy.
+  stun, hitbox sizes/offsets, aggro, contact damage, and **`body_size` /
+  `hurtbox_size`** (per-enemy colliders, so a bigger or smaller enemy fits its
+  own sprite instead of a shared hardcoded box). Tune per enemy.
 
 > **Bosses are not Enemies.** They get their own scene/script so their move-sets
 > aren't constrained to melee/ranged. `Enemy` is for regular mobs.
@@ -536,8 +591,16 @@ and no group checks:
   projectiles stay on for their life.
 - The **player's** hurtbox + attack hitbox are built in code (`_build_combat`),
   like the particle director, to avoid touching `player.tscn`. Light-attack
-  hits fire on each combo hit frame; the heavy lands on its middle frame. Whoever
-  is hit applies the knockback/stun and takes a brief stagger.
+  hits fire on each combo hit frame; the heavy lands on its authored
+  `heavy_attack` hit frame (or the middle frame if none). Whoever is hit applies
+  the knockback/stun and takes a brief stagger.
+- **`Combatant`** (`scripts/combat/combatant.gd`) is the shared base for `Player`
+  and `Enemy` (both `extends Combatant`, itself a `CharacterBody2D`). It holds the
+  pieces they'd otherwise each reimplement: `anchor_to_feet` (sprite offset),
+  `make_box` (rect collider), `flash` (the red hit-tell), and `apply_knockback`
+  (turns a `Hit`'s knockback into a shove + returns the stagger time; the caller
+  applies its own stun state). Feel constants live on `Combat`: `KNOCKBACK_POP`,
+  `MIN_STAGGER`, `STRIKE_ACTIVE`.
 
 ### On-hit effects — the `Hit` object
 
@@ -555,29 +618,40 @@ a new effect field here and nothing else's signature changes.
   additive tinted copy synced to the sprite) and its pose is paused for the
   duration.
 
-### Player attack effects — `ATTACK_EFFECTS` (`player.gd`)
+### Player attacks — `ATTACKS` (`player.gd`)
 
-Per character, per attack. Each effect is a **dict** (`damage`, `knockback`,
-`stun`, `color`, `color_time` — unset = 0/none):
+One table per `(character, attack)`, holding both the on-hit effects **and** the
+hitbox geometry so they can't drift apart. Each entry is a **dict** where unset
+fields fall back to the exported defaults:
+
+| field | meaning | fallback |
+|---|---|---|
+| `damage` | hit damage | `attack_damage` / `heavy_damage` |
+| `knockback` | px/s shove away from the player | 0 |
+| `stun` | seconds frozen | 0 |
+| `color` / `color_time` | engulfing status overlay + duration | none |
+| `x` | hitbox forward offset from the feet | `attack_hitbox_x` |
+| `extents` | hitbox half-size | `attack_hitbox_extents` |
 
 ```gdscript
-"lenbondosen": {
-    "light": [                                  # ARRAY = per combo segment
-        {"damage": 8, "stun": 5.0, "color": STATUS_GREEN},  # 1st hit freezes 5s, green
-        {"damage": 8},                          # 2nd hit: plain
-        {"damage": 8},                          # 3rd hit: plain
+"katalyst": {
+    "light": [                                                  # ARRAY = per combo segment
+        {"damage": 16, "x": 24, "extents": Vector2(22, 18)},    # whip-reach thrust
+        {"damage": 16, "x": 0,  "extents": Vector2(32, 20)},    # spin: AoE around the body (x=0)
+        {"damage": 16, "x": 28, "extents": Vector2(24, 18)},    # finishing lunge
     ],
-    "heavy": {"damage": 22, "knockback": 300},  # launches farther than Feyke's 150
+    "heavy": {"damage": 44, "knockback": 160, "stun": 0.18, "x": 30, "extents": Vector2(34, 16)},
 }
 ```
 
-- `heavy` is one effect. `light` is **either** one effect (all combo hits share
-  it) **or an array**, one entry per combo segment — that's how a *specific* hit
-  frame gets a special (Lenny's first jab freezes; the rest don't).
-- The array indexes by combo segment (`_strike("light", seg)`); a shorter array
-  reuses its last entry.
-- Unlisted characters/attacks fall back to the exported `attack_damage` /
-  `heavy_damage` with no effects.
+- `heavy` is one entry. `light` is **either** one entry (all combo hits share it)
+  **or an array**, one per combo segment — that's how a *specific* hit differs
+  (Lenny's first jab freezes 5s + green; Katalyst's middle hit is a wide `x = 0`
+  around-the-body AoE). A shorter array reuses its last entry.
+- `_strike(kind, seg)` reads the entry, sets the effects, and resizes/repositions
+  the **one** hitbox shape (`_attack_shape` / `_attack_rect`) — no extra nodes. A
+  box at **`x` = 0 with wide extents** hits both sides; `x` flips with facing.
+- Unlisted characters/attacks fall back entirely to the exported damage + box.
 
 ### Dash i-frames
 
@@ -601,7 +675,25 @@ clobbering `level.tscn` while the editor holds it open:
   his back at rest) waits on the far-right ground. They're
   placed **far from `SPAWN`** (nearest ~400px, beyond `ranged_range`) so you
   start in the clear and can watch them stroll before approaching — not swarmed.
-- **Camera** follows the player (`_process`) so you can traverse across.
+- **Camera** follows the player (`_process`) with a smoothed `lerp`, so you can
+  traverse across.
+
+#### Pixel-crisp motion (why running isn't blurry)
+
+Two separate things smear nearest-filtered pixel art once anything moves, and
+both are handled:
+- **The camera** lerps to fractional positions; at `zoom = 3` a fractional
+  camera shifts the whole scene by sub-pixels. `character_switcher` keeps the
+  smooth target internally but hands the `Camera2D` a **pixel-snapped** copy
+  (`_snap_to_pixel`, snapping `pos * zoom` to whole screen pixels).
+- **The player sprite** — its physics body sits at sub-pixel positions, so the
+  drawn `AnimatedSprite2D` is pinned to whole world pixels every frame
+  (`_sprite.global_position = global_position.round()` in `_update_animation`).
+  Only the visual snaps; the body/colliders keep their true position.
+
+The project also sets `rendering/2d/snap/snap_2d_transforms_to_pixel`, but that
+alone didn't catch the moving sprite — the explicit snap above is what keeps the
+character crisp while running.
 - **Respawn** — falling below `DEATH_Y` (into the void) or dropping to 0 health
   puts the player back at `SPAWN` with full health, and clears in-flight
   projectiles so you're not hit on reappear. No more force-restarting after a

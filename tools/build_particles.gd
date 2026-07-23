@@ -60,38 +60,49 @@ func fire_spark() -> CPUParticles2D:
 	return p
 
 
-# Baghel's ground shockwave: a fast horizontal streak that fans out at the
-# leading edge. Authored blasting +x (forward); the projectile mirrors scale.x
-# for facing. `emitting = true` so it plays the moment it spawns AND previews in
-# the editor. Recolour/tune it freely -- it's a normal scene.
+# Grow-to-a-crest then shrink, so mid-arc chunks are biggest -> reads as a swell.
+func _crest_curve() -> Curve:
+	var c := Curve.new()
+	c.add_point(Vector2(0.0, 0.45))
+	c.add_point(Vector2(0.4, 1.0))
+	c.add_point(Vector2(1.0, 0.15))
+	return c
+
+
+# Baghel's ground shockwave. A crest: chunks kick UP and slightly FORWARD out of
+# the ground and arc back down under gravity, and because the projectile outruns
+# them (and local_coords is off) they trail into a curling wave that rolls the
+# way it travels. Authored leaning +x; the projectile mirrors scale.x for facing.
+# `emitting = true` so it plays on spawn AND previews in the editor. Tune freely.
 func ground_wave() -> CPUParticles2D:
 	var p := CPUParticles2D.new()
 	p.name = "GroundWave"
 	p.texture = load(PIXEL_EMBER)
 	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	p.emitting = true
-	p.amount = 80
-	p.lifetime = 0.32
-	p.lifetime_randomness = 0.35
-	p.local_coords = false          # stays in world -> streaks as the wave surges
-	p.explosiveness = 0.1
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	p.emission_sphere_radius = 2.0
-	p.direction = Vector2(1, 0)     # forward; projectile flips for facing
-	p.spread = 34.0                 # the fan
-	p.gravity = Vector2(0, 60)      # a touch of settle
-	p.initial_velocity_min = 30.0
-	p.initial_velocity_max = 260.0  # wide range: fast tips streak, slow ones fan
-	p.scale_amount_min = 0.6
-	p.scale_amount_max = 1.6
-	p.scale_amount_curve = _step_curve()
+	p.amount = 64
+	p.lifetime = 0.4
+	p.lifetime_randomness = 0.25
+	p.local_coords = false          # stays in world -> trails into a rolling wave
+	p.explosiveness = 0.05
+	# Emit from a short line hugging the ground so the crest has a base, not a point.
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(5, 2)
+	p.direction = Vector2(0.45, -1)  # up + forward -> the crest leans as it rolls
+	p.spread = 24.0
+	p.gravity = Vector2(0, 560)      # yanked back down -> the arc/curl
+	p.initial_velocity_min = 120.0
+	p.initial_velocity_max = 205.0   # varied crest height
+	p.scale_amount_min = 0.7
+	p.scale_amount_max = 1.7
+	p.scale_amount_curve = _crest_curve()
 	var ramp := Gradient.new()
-	ramp.offsets = PackedFloat32Array([0.0, 0.35, 0.7, 1.0])
+	ramp.offsets = PackedFloat32Array([0.0, 0.3, 0.65, 1.0])
 	ramp.colors = PackedColorArray([
 		Color8(255, 255, 255, 255),  # hot white core
-		Color8(255, 115, 64, 255),   # bright red-orange
-		Color8(199, 41, 26, 200),    # deep red
-		Color8(115, 20, 13, 0),      # fades out
+		Color8(255, 130, 55, 255),   # orange
+		Color8(214, 44, 26, 255),    # red
+		Color8(110, 20, 14, 0),      # fades out
 	])
 	p.color_ramp = ramp
 	return p

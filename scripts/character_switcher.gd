@@ -43,7 +43,7 @@ var _roster := [
 		"projectile_speed": 200.0,
 		"ranged_particle": "res://particles/enemies/baghel/ground_wave.tscn",
 		"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9),
-		"muzzle_offset": Vector2(18, -6), "ranged_damage": 7.0,
+		"muzzle_offset": Vector2(16, 1), "ranged_damage": 7.0,  # y~ground so the wave touches it
 		"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0,
 		"idle_time_min": 5.0, "idle_time_max": 7.0,  # long rests so he lingers, scratching
 	},
@@ -52,13 +52,24 @@ var _roster := [
 @onready var _player: Player = get_node_or_null(player_path) as Player
 @onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
+## Smooth (sub-pixel) camera target. The Camera2D node itself is assigned a
+## pixel-snapped copy each frame -- a fractional camera at 3x zoom shifts the whole
+## (already snap_2d_transforms_to_pixel'd) scene by sub-pixels, which is what makes
+## the art blur while it's moving. Snapping the camera to the screen-pixel grid
+## keeps the follow smooth but the render crisp.
+var _cam_pos: Vector2
+
 
 func _ready() -> void:
 	_build_platforms()
 	if _player != null:
+		# Katalyst is the newest redesign -- start on him for testing. Q/E still
+		# cycle to the others (older art) if you want to compare.
+		_player.set_character("katalyst")
 		_player.global_position = SPAWN
 		if _camera != null:
-			_camera.global_position = SPAWN + Vector2(0, -30)  # start framed on spawn
+			_cam_pos = SPAWN + Vector2(0, -30)  # start framed on spawn
+			_camera.global_position = _cam_pos
 	if spawn_enemies:
 		_spawn_all()
 
@@ -70,10 +81,12 @@ func _process(delta: float) -> void:
 	if _player.global_position.y > DEATH_Y or _player.health <= 0.0:
 		_respawn_player()
 		return
-	# Follow the player so you can traverse across the platforms.
+	# Follow the player so you can traverse across the platforms. Smooth internally,
+	# but hand the camera a pixel-snapped position so the art stays crisp in motion.
 	if _camera != null:
 		var target := Vector2(_player.global_position.x, _player.global_position.y - 30.0)
-		_camera.global_position = _camera.global_position.lerp(target, 1.0 - pow(0.002, delta))
+		_cam_pos = _cam_pos.lerp(target, 1.0 - pow(0.002, delta))
+		_camera.global_position = _snap_to_pixel(_cam_pos)
 
 
 ## Reset the player to the safe start, full health, and clear any bolts still in
@@ -85,7 +98,16 @@ func _respawn_player() -> void:
 	for proj in get_tree().get_nodes_in_group("projectiles"):
 		proj.queue_free()
 	if _camera != null:
-		_camera.global_position = SPAWN + Vector2(0, -30)
+		_cam_pos = SPAWN + Vector2(0, -30)
+		_camera.global_position = _cam_pos
+
+
+## Snap to the screen-pixel grid: at zoom Z a world unit is Z screen pixels, so
+## rounding position*Z (then dividing back) lands the camera on a whole screen
+## pixel -- fine enough to still read as smooth, but no sub-pixel smear.
+func _snap_to_pixel(p: Vector2) -> Vector2:
+	var z := _camera.zoom
+	return Vector2(roundf(p.x * z.x) / z.x, roundf(p.y * z.y) / z.y)
 
 
 func _build_platforms() -> void:

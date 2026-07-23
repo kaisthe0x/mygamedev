@@ -22,6 +22,13 @@ var visual: PackedScene = null
 ## a bolt; a tall slab (rising from the ground) for a wave.
 var hitbox_extents := Vector2(5, 5)
 var hitbox_offset := Vector2.ZERO
+## When set (ground-surge shots), lay down red embers along the floor that stay
+## put in world space as the shot rolls on, so it scorches a trail behind it. The
+## colour is sampled from the `visual`, so it always matches whatever red you tint
+## the wave in the editor.
+var ground_trail := false
+
+var _expiring := false
 
 
 func _ready() -> void:
@@ -42,9 +49,53 @@ func _ready() -> void:
 		if velocity.x < 0.0:
 			v.scale.x = -1.0  # authored blasting +x; mirror for a left-facing shot
 		add_child(v)
+		if ground_trail:
+			add_child(_make_ground_trail(_sample_visual_color(v)))
 	else:
 		add_child(_make_trail())
 	area_entered.connect(_on_area_entered)
+
+
+## Pull the wave's headline colour out of its gradient so the trail matches it,
+## whatever red it's been tinted to in the editor. Falls back to `color`.
+func _sample_visual_color(v: Node) -> Color:
+	var p := v as CPUParticles2D
+	if p == null:
+		p = v.find_children("*", "CPUParticles2D", true, false).front()
+	if p != null and p.color_ramp != null:
+		return p.color_ramp.sample(0.0)
+	return color
+
+
+## Red embers laid along the floor. `local_coords = false` pins them in world
+## space, so as the shot rolls forward they're left behind as a scorched trail
+## that lingers and fades (longer life than the crest) rather than following it.
+func _make_ground_trail(tint: Color) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.texture = load("res://particles/textures/pixel_ember.png")
+	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	p.local_coords = false
+	p.amount = 40
+	p.lifetime = 0.75          # outlives the crest -> the trail lingers behind
+	p.lifetime_randomness = 0.3
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(4, 1)  # a thin strip hugging the ground
+	p.direction = Vector2(0, -1)
+	p.spread = 40.0
+	p.gravity = Vector2(0, 90)  # small settle so they hold to the floor
+	p.initial_velocity_min = 4.0
+	p.initial_velocity_max = 26.0
+	p.scale_amount_min = 0.5
+	p.scale_amount_max = 1.1
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.6, 1.0])
+	ramp.colors = PackedColorArray([
+		Color(tint.r, tint.g, tint.b, 1.0),
+		Color(tint.r * 0.7, tint.g * 0.6, tint.b * 0.6, 0.6),
+		Color(tint.r * 0.5, tint.g * 0.4, tint.b * 0.4, 0.0),  # fades to nothing
+	])
+	p.color_ramp = ramp
+	return p
 
 
 func _make_trail() -> CPUParticles2D:
@@ -68,15 +119,18 @@ func _make_trail() -> CPUParticles2D:
 	return p
 
 
-## Ground shockwave: chunks burst up from the base with varied speed (so the
 func _physics_process(delta: float) -> void:
+	if _expiring:
+		return  # done dealing damage; just letting the last particles fade out
 	global_position += velocity * delta
 	life -= delta
 	if life <= 0.0:
-		queue_free()
+		_expire()
 
 
 func _on_area_entered(area: Area2D) -> void:
+	if _expiring:
+		return
 	var box := area as Hurtbox
 	if box == null:
 		return
@@ -86,7 +140,27 @@ func _on_area_entered(area: Area2D) -> void:
 	hit.stun = stun
 	hit.source = self
 	box.take_hit(hit)
-	queue_free()
+	_expire()
+
+
+## Stop dealing damage and moving, cut off emission, and free once the last
+## particles have lived out their lifetime -- so the wave fades away instead of
+## popping out of existence the instant its life or a hit ends it.
+func _expire() -> void:
+	if _expiring:
+		return
+	_expiring = true
+	monitoring = false
+	collision_layer = 0
+	velocity = Vector2.ZERO  # world-space particles stay where they were emitted
+	var linger := 0.0
+	for p in find_children("*", "CPUParticles2D", true, false):
+		p.emitting = false
+		linger = maxf(linger, p.lifetime * (1.0 + p.lifetime_randomness))
+	if linger <= 0.0:
+		queue_free()
+		return
+	get_tree().create_timer(linger).timeout.connect(queue_free)
 
 
 func _draw() -> void:

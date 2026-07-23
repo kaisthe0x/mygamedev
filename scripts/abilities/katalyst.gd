@@ -5,13 +5,14 @@ extends CharacterAbility
 ## A heavy attack started in mid-air turns into a ground slam. He hangs for the
 ## wind-up, then drives straight down until he lands.
 ##
-## His heavy sheet is wind-up, downward strike with impact particles,
-## follow-through, recover (the idle-reference frame 0 is dropped in playback).
-## So the strike is emitted frame 1, and WIND_UP is timed so the drop begins
-## exactly on it rather than before he has swung.
+## His heavy sheet (after the idle-reference frame 0 is dropped) is: wind-up,
+## lunge, ground-energy blast -- emitted frames 0, 1, 2. He hangs for the wind-up
+## frame, then the drop begins on the lunge; the blast (emitted 2) is his authored
+## hit frame, so the hitbox lands as he connects.
 
-## Seconds suspended before dropping. At 10 fps the strike (emitted frame 1)
-## begins at 0.1s -- retune if the heavy's fps or frame layout changes.
+## Seconds suspended before dropping. At 10 fps the lunge (emitted frame 1) begins
+## at 0.1s, so the drop starts exactly then -- retune if the heavy's fps or frame
+## layout changes.
 const WIND_UP := 0.1
 ## Downward speed of the slam. Well above normal fall speed so it reads as a
 ## deliberate slam and not just gravity.
