@@ -52,13 +52,6 @@ var _roster := [
 @onready var _player: Player = get_node_or_null(player_path) as Player
 @onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
-## Smooth (sub-pixel) camera target. The Camera2D node itself is assigned a
-## pixel-snapped copy each frame -- a fractional camera at 3x zoom shifts the whole
-## (already snap_2d_transforms_to_pixel'd) scene by sub-pixels, which is what makes
-## the art blur while it's moving. Snapping the camera to the screen-pixel grid
-## keeps the follow smooth but the render crisp.
-var _cam_pos: Vector2
-
 
 func _ready() -> void:
 	_build_platforms()
@@ -66,48 +59,46 @@ func _ready() -> void:
 		# Katalyst is the newest redesign -- start on him for testing. Q/E still
 		# cycle to the others (older art) if you want to compare.
 		_player.set_character("katalyst")
-		_player.global_position = SPAWN
+		_place(_player, SPAWN)
 		if _camera != null:
-			_cam_pos = SPAWN + Vector2(0, -30)  # start framed on spawn
-			_camera.global_position = _cam_pos
+			_place(_camera, SPAWN + Vector2(0, -30))  # start framed on spawn
 	if spawn_enemies:
 		_spawn_all()
 
 
-func _process(delta: float) -> void:
+## Follow + respawn run in physics so, with physics interpolation on, the camera
+## tracks at the same rhythm as the player and both render smoothly between the
+## 60Hz physics ticks (the fix for stutter/blur on high-refresh monitors).
+func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
 	# Fell into the void or was killed -> respawn at the safe start.
 	if _player.global_position.y > DEATH_Y or _player.health <= 0.0:
 		_respawn_player()
 		return
-	# Follow the player so you can traverse across the platforms. Smooth internally,
-	# but hand the camera a pixel-snapped position so the art stays crisp in motion.
+	# Follow the player so you can traverse across the platforms.
 	if _camera != null:
 		var target := Vector2(_player.global_position.x, _player.global_position.y - 30.0)
-		_cam_pos = _cam_pos.lerp(target, 1.0 - pow(0.002, delta))
-		_camera.global_position = _snap_to_pixel(_cam_pos)
+		_camera.global_position = _camera.global_position.lerp(target, 1.0 - pow(0.002, delta))
 
 
 ## Reset the player to the safe start, full health, and clear any bolts still in
 ## the air so you aren't hit the instant you reappear.
 func _respawn_player() -> void:
-	_player.global_position = SPAWN
 	_player.velocity = Vector2.ZERO
 	_player.health = _player.max_health
+	_place(_player, SPAWN)
 	for proj in get_tree().get_nodes_in_group("projectiles"):
 		proj.queue_free()
 	if _camera != null:
-		_cam_pos = SPAWN + Vector2(0, -30)
-		_camera.global_position = _cam_pos
+		_place(_camera, SPAWN + Vector2(0, -30))
 
 
-## Snap to the screen-pixel grid: at zoom Z a world unit is Z screen pixels, so
-## rounding position*Z (then dividing back) lands the camera on a whole screen
-## pixel -- fine enough to still read as smooth, but no sub-pixel smear.
-func _snap_to_pixel(p: Vector2) -> Vector2:
-	var z := _camera.zoom
-	return Vector2(roundf(p.x * z.x) / z.x, roundf(p.y * z.y) / z.y)
+## Teleport a node and clear its interpolation, so it snaps to the new spot
+## instead of smearing there from wherever it was (physics interpolation is on).
+func _place(node: Node2D, pos: Vector2) -> void:
+	node.global_position = pos
+	node.reset_physics_interpolation()
 
 
 func _build_platforms() -> void:
@@ -120,6 +111,7 @@ func _build_platform(center_x: float, top_y: float, width: float, height: float)
 	body.collision_layer = Combat.L_WORLD
 	body.collision_mask = 0
 	body.position = Vector2(center_x, top_y)
+	body.add_to_group("oneway_platform")  # so the player can drop through it (down+jump)
 
 	var col := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()

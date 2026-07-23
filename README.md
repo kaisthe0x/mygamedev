@@ -31,6 +31,7 @@ tools/                Generator + verification scripts (not shipped)
 | Input | Action | Notes |
 |---|---|---|
 | A / D | `move_left` / `move_right` | |
+| S / ↓ | `move_down` | Hold + jump to drop through a one-way platform |
 | Space | `jump` | |
 | Shift | `dash` | Has a cooldown |
 | Left mouse | `attack` | Light — each press advances the combo |
@@ -248,7 +249,7 @@ in the inspector.
 | Group | Key values |
 |---|---|
 | Health | `max_health` 100 |
-| Movement | `run_speed` 160, `jump_velocity` -330, `gravity` 900, `fall_gravity_scale` 1.35 |
+| Movement | `run_speed` 160, `jump_velocity` -330, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
 | Dash | `dash_speed` 420, `dash_time` 0.18, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 | Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600, `land_min_fall_speed` 140 |
@@ -675,25 +676,47 @@ clobbering `level.tscn` while the editor holds it open:
   his back at rest) waits on the far-right ground. They're
   placed **far from `SPAWN`** (nearest ~400px, beyond `ranged_range`) so you
   start in the clear and can watch them stroll before approaching — not swarmed.
-- **Camera** follows the player (`_process`) with a smoothed `lerp`, so you can
-  traverse across.
+- **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
+  so it tracks at the same rhythm as the player (see below) — you can traverse
+  across.
+- **Drop through a platform** — hold **`move_down` (S / ↓) + jump** while standing
+  on a one-way platform to fall through it instead of jumping; on the solid floor
+  it just jumps. `_drop_through_platform()` finds the platform under the feet via
+  the slide collisions (only bodies in the `oneway_platform` group qualify, so you
+  can't fall through the ground), adds a brief collision exception, and removes it
+  after `DROP_THROUGH_TIME`.
 
 #### Pixel-crisp motion (why running isn't blurry)
 
-Two separate things smear nearest-filtered pixel art once anything moves, and
-both are handled:
-- **The camera** lerps to fractional positions; at `zoom = 3` a fractional
-  camera shifts the whole scene by sub-pixels. `character_switcher` keeps the
-  smooth target internally but hands the `Camera2D` a **pixel-snapped** copy
-  (`_snap_to_pixel`, snapping `pos * zoom` to whole screen pixels).
-- **The player sprite** — its physics body sits at sub-pixel positions, so the
-  drawn `AnimatedSprite2D` is pinned to whole world pixels every frame
-  (`_sprite.global_position = global_position.round()` in `_update_animation`).
-  Only the visual snaps; the body/colliders keep their true position.
+The real culprit on a high-refresh monitor (144/240Hz) is the **physics tick
+(60Hz) vs refresh-rate mismatch**: without interpolation the character's position
+only updates 60×/sec, so it judders/smears no matter how crisp each frame is.
+Fixes, all in `project.godot`:
+- **`physics/common/physics_interpolation`** — renders nodes smoothly *between*
+  physics ticks. This is the main fix. Camera + follow run in `_physics_process`
+  so both interpolate together; teleports (spawn, respawn) call
+  `reset_physics_interpolation()` (`_place()`) so they snap instead of smearing.
+- **`snap_2d_transforms_to_pixel` + `snap_2d_vertices_to_pixel`** — render on
+  whole pixels so the interpolated positions stay crisp pixel art.
+- **`default_texture_filter = Nearest`** — no linear blur when scaled.
 
-The project also sets `rendering/2d/snap/snap_2d_transforms_to_pixel`, but that
-alone didn't catch the moving sprite — the explicit snap above is what keeps the
-character crisp while running.
+Separate from rendering: a run can still *read* as smeary if the character glides
+faster than its legs cycle (**foot-sliding**). `_update_animation` ties the run's
+playback to ground speed (`speed / run_speed × run_anim_speed`, clamped), so the
+legs keep pace — busier sprinting, slower starting. `run_anim_speed` (default
+1.5) is the knob.
+
+> If it *still* looks smeared while moving but each single frame is sharp when you
+> pause a screen recording, that's **sample-and-hold display blur** (LCD + eye
+> tracking), not a game bug — only higher framerate or lower background contrast
+> reduces it.
+
+Separately from rendering sharpness, a run can *read* as smeary if the character
+glides faster than its legs cycle (**foot-sliding**). `_update_animation` ties the
+run's playback speed to actual ground speed (`speed / run_speed × run_anim_speed`,
+clamped), so the legs keep pace — busier when sprinting, slower when starting —
+instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
+(default 1.5) is the tuning knob.
 - **Respawn** — falling below `DEATH_Y` (into the void) or dropping to 0 health
   puts the player back at `SPAWN` with full health, and clears in-flight
   projectiles so you're not hit on reappear. No more force-restarting after a

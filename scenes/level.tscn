@@ -10,8 +10,10 @@ size = Vector2(1200, 40)
 script = ExtResource("2_switch")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2095628982]
+physics_interpolation_mode = 1
 position = Vector2(0, -60)
-zoom = Vector2(3, 3)
+zoom = Vector2(2, 2)
+process_callback = 0
 
 [node name="Floor" type="StaticBody2D" parent="." unique_id=240657501]
 
@@ -26,6 +28,7 @@ offset_bottom = 40.0
 color = Color(0.16, 0.17, 0.22, 1)
 
 [node name="Player" parent="." unique_id=1329512334 instance=ExtResource("1_2q6dc")]
+run_anim_speed = null
 combo_reset_time = 0.6
 
 [node name="Hint" type="Label" parent="." unique_id=1069755282]

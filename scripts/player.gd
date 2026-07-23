@@ -47,6 +47,11 @@ var health: float = 100.0:
 @export var run_speed: float = 160.0
 @export var acceleration: float = 1200.0
 @export var friction: float = 1400.0
+## Run-cycle cadence relative to ground speed. Playback = speed/run_speed ×
+## run_anim_speed, so the legs keep pace with actual movement (busier when
+## sprinting, slower when starting) instead of foot-sliding -- a slide reads as a
+## smeary "blurry" run. >1 = busier legs. Purely visual; tune to taste.
+@export var run_anim_speed: float = 1.5
 @export var jump_velocity: float = -330.0
 @export var gravity: float = 900.0
 ## Falling faster than rising makes the arc feel less floaty.
@@ -450,7 +455,9 @@ func _process_normal(delta: float) -> void:
 		_enter(State.DASH)
 		return
 	if Input.is_action_just_pressed("jump") and is_on_floor():
-		velocity.y = jump_velocity
+		# Down + jump on a one-way platform drops through it instead of jumping.
+		if not (Input.is_action_pressed("move_down") and _drop_through_platform()):
+			velocity.y = jump_velocity
 
 	if not is_on_floor():
 		_state = State.JUMP
@@ -460,6 +467,27 @@ func _process_normal(delta: float) -> void:
 		_state = State.RUN
 	else:
 		_state = State.IDLE
+
+
+## Drop through the one-way platform we're standing on: briefly ignore collisions
+## with it so gravity pulls us down onto whatever's below. Only fires on an actual
+## one-way platform (not the solid floor), so returns false there and a normal
+## jump happens instead.
+const DROP_THROUGH_TIME := 0.3
+
+func _drop_through_platform() -> bool:
+	for i in get_slide_collision_count():
+		var collider := get_slide_collision(i).get_collider()
+		if collider is Node and (collider as Node).is_in_group("oneway_platform"):
+			add_collision_exception_with(collider)
+			velocity.y = maxf(velocity.y, 60.0)  # a nudge so we start dropping at once
+			var body := collider
+			get_tree().create_timer(DROP_THROUGH_TIME).timeout.connect(
+				func() -> void:
+					if is_instance_valid(body):
+						remove_collision_exception_with(body))
+			return true
+	return false
 
 
 ## A brief touchdown squash. Fully cancelable -- any action or a movement input
@@ -627,12 +655,15 @@ func _update_animation(delta: float) -> void:
 	if _sprite.animation != next:
 		_sprite.play(next)
 
-	# Keep the sprite crisp while moving. The physics body sits at sub-pixel
-	# positions, which smears nearest-filtered pixel art across screen pixels as it
-	# runs; pin the drawn sprite to whole world pixels instead. Paired with the
-	# pixel-snapped camera, the character then lands on exact screen pixels. The
-	# body/colliders keep their true sub-pixel position -- only the visual snaps.
-	_sprite.global_position = global_position.round()
+	# Keep the run cadence matched to actual ground speed so the legs don't
+	# foot-slide (which reads as a smeary run). Other states keep their own rate:
+	# dash sets a stretch in _enter, attacks stay 1x, so only touch these.
+	match _state:
+		State.RUN:
+			_sprite.speed_scale = clampf(
+				absf(velocity.x) / maxf(run_speed, 1.0) * run_anim_speed, 0.4, 3.0)
+		State.IDLE, State.JUMP, State.LAND:
+			_sprite.speed_scale = 1.0
 
 	# Lean into the fall, scaled by how fast you're dropping. Rotation is around
 	# the node origin, which sits at the feet.
