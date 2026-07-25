@@ -1,5 +1,5 @@
 {
-  "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene name under particles/), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left), boost (optional intensity MULTIPLIERS on the scene's own values so one type can be reused at different power levels: amount, speed, scale, lifetime; plus explosiveness which is absolute 0-1).",
+  "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene name under particles/), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left), boost (optional intensity MULTIPLIERS on the scene's own values so one type can be reused at different power levels: amount, speed, scale, lifetime; plus explosiveness which is absolute 0-1). clip_to_ground (optional bool on a burst: clamp its rectangular emission band and hitbox to the edges of the platform directly underfoot, so a ground blast doesn't spill past the ledge into open air).",
   "wayna": {
     "run": [
       {
@@ -21,24 +21,43 @@
   "lenbondosen": {
     "idle": [
       {
-        "type": "aura",
+        "type": "heavy_ready",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, -5]
+        "pos": [0, -1]
       }
     ],
     "attack": [
-      {
-        "type": "aura",
-        "mode": "sustained",
-        "frames": "all",
-        "pos": [0, 0]
-      },
       {
         "type": "mouth_blast",
         "mode": "sustained",
         "frames": [6, 7],
         "pos": [9, -26]
+      }
+    ],
+    "heavy_attack": [
+      {
+        "type": "heavy",
+        "mode": "burst",
+        "frames": [5],
+        "pos": [0, 0],
+        "clip_to_ground": true
+      }
+    ],
+    "run": [
+      {
+        "type": "run_aura",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, 0]
+      }
+    ],
+    "jump": [
+      {
+        "type": "jump_boost",
+        "mode": "sustained",
+        "frames": [0, 1, 2, 3],
+        "pos": [0, 0]
       }
     ]
   }

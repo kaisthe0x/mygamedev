@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://camhdg7pdiwdl"]
+
+[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_fwbju"]
+
+[sub_resource type="Curve" id="Curve_1lwrq"]
+_data = [Vector2(0, 0.07834101), 0.0, 0.0, 0, 0, Vector2(0.48948374, 0.12442392), 0.0, 0.0, 0, 0, Vector2(0.6558317, 0.06451607), 0.0, 0.0, 0, 0, Vector2(0.751434, 0.0046082735), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="RunAura" type="Node2D" unique_id=1959900955]
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=404252249]
+position = Vector2(0, -16)
+amount = 30
+texture = ExtResource("1_fwbju")
+lifetime = 0.7
+emission_shape = 1
+emission_sphere_radius = 16.36
+gravity = Vector2(300, 300)
+scale_amount_curve = SubResource("Curve_1lwrq")

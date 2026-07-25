@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://cuqr7cna356a3"]
+
+[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_jrha8"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
+
+[sub_resource type="Curve" id="Curve_uashs"]
+_data = [Vector2(0, 0.23502302), 0.0, 0.0, 0, 0, Vector2(0.16061184, 0.36607146), 0.0, 0.0, 0, 0, Vector2(0.3537285, 0.13824886), 0.0, 0.0, 0, 0, Vector2(0.4971319, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_heavy"]
+size = Vector2(240, 41)
+
+[node name="Heavy" type="Node2D" unique_id=377016795]
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=263019033]
+z_index = -1
+amount = 700
+texture = ExtResource("1_jrha8")
+lifetime = 0.5
+emission_shape = 3
+emission_rect_extents = Vector2(120, 1)
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 150.0
+initial_velocity_max = 250.75
+scale_amount_curve = SubResource("Curve_uashs")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1495896596]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hitbox")
+damage = 50.0
+knockback = 150.0
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=795428265]
+position = Vector2(-2, -20.5)
+shape = SubResource("RectangleShape2D_heavy")

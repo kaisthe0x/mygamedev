@@ -206,6 +206,18 @@ func get_facing() -> int:
 	return _facing
 
 
+## Turn to face the mouse cursor. Used when standing still and on every attack, so
+## you look and strike toward the pointer; a small dead zone around his own x stops
+## flip jitter when the cursor sits right on top of him. (Walking still faces the
+## movement direction -- that wins over the mouse.)
+const MOUSE_FACE_DEADZONE := 4.0
+
+func _face_mouse() -> void:
+	var dx := get_global_mouse_position().x - global_position.x
+	if absf(dx) > MOUSE_FACE_DEADZONE:
+		_facing = 1 if dx > 0.0 else -1
+
+
 ## Path to the current character's portrait, for HUD / character-select art.
 func portrait_path() -> String:
 	return PORTRAIT_PATH % (character.substr(0, 1).to_upper() + character.substr(1))
@@ -277,8 +289,9 @@ const ATTACKS := {
 			# Burst bloom -- bigger AoE finisher.
 			{"damage": 18, "x": 0.0, "extents": Vector2(42, 26)},
 		],
-		# Heavy's damage is carried by his energy beam (see lenbondosen.gd), so the
-		# melee box is a no-op -- 0 damage/knockback.
+		# Heavy's hit is carried by the heavy particle's OWN Hitbox now (authored in
+		# heavy.tscn, armed by the ParticleDirector on the burst). The melee box
+		# stands down -- 0 so it can't double-hit alongside the particle.
 		"heavy": {"damage": 0},
 	},
 }
@@ -447,6 +460,7 @@ func _process_normal(delta: float) -> void:
 		_facing = 1 if input > 0.0 else -1
 		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
 	else:
+		_face_mouse()  # standing still: turn to look toward the cursor
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
 	if Input.is_action_just_pressed("heavy_attack"):
@@ -522,6 +536,7 @@ func _process_land(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
 		_state = State.RUN
 		return
+	_face_mouse()  # standing after landing: look toward the cursor
 	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
 
@@ -573,6 +588,7 @@ func _process_attack(delta: float) -> void:
 ## Commit to a heavy swing, clearing any light combo in progress. Shared by the
 ## normal/land states and by a light-attack cancel (see _process_attack).
 func _start_heavy() -> void:
+	_face_mouse()  # aim the heavy toward the cursor
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
@@ -593,6 +609,7 @@ func _process_heavy_attack(delta: float) -> void:
 ## Letting `combo_reset_time` lapse drops you back to the first segment; pressing
 ## past the finisher wraps to the start.
 func _advance_combo() -> void:
+	_face_mouse()  # aim the swing toward the cursor, even mid-combo
 	var hits := _attack_hits()
 	if hits.is_empty():
 		return

@@ -42,6 +42,12 @@ tools/                Generator + verification scripts (not shipped)
 Bound to **physical** keycodes, so they stay in the same place on AZERTY/Dvorak.
 Rebind under `Project > Project Settings > Input Map`.
 
+**Facing follows the mouse.** Standing still, the character turns to look toward
+the cursor; every attack also snaps to face it, so clicks always strike toward the
+pointer. Walking (A/D) still faces the movement direction — that wins over the
+mouse while you move. Tuned by `_face_mouse()` / `MOUSE_FACE_DEADZONE` in
+`player.gd`.
+
 Q/E/Z/X live in `scripts/character_switcher.gd` — all the dev scaffolding is in
 that one file so it can be deleted in one go.
 
@@ -357,7 +363,7 @@ existing abilities keep working because the base class no-ops every hook.
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Energy Beam** | His heavy fires a short forward laser on the strike frame (`on_heavy_strike` → `LaserBeam`, see **Laser beams** below). The beam *carries the hit* (its Hitbox deals the damage/knockback), so his melee heavy is 0 damage. (He previously had *Hangtime* and *Sprint*, both removed.) |
+| Lenbondosen ("Lenny") | **Energy Burst** | His heavy is a close-range burst: melee damage from `ATTACKS` "heavy" + a `heavy` particle blast (`emitters.json`) on the strike frame. His **Energy Beam** (`on_heavy_strike` → `LaserBeam`) is kept but **disabled** (`USE_BEAM = false` in `lenbondosen.gd`); flip it on to restore the laser. (He previously had *Hangtime* and *Sprint*, both removed.) |
 | Katalyst | **Stomp** | A heavy attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
 
 Both latch on the frame the heavy *starts* and only if the character was

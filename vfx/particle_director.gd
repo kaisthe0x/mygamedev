@@ -82,14 +82,18 @@ func set_character(id: String) -> void:
 						_boost(em, boost)
 						em.emitting = false
 					add_child(node)
+					var hitboxes := _hitboxes_of(node)
+					for hb in hitboxes:
+						hb.source = _attacker()
 					_sustained.append({
 						"node": node, "emitters": emitters, "anim": anim,
 						"frames": frames, "pos": pos, "base": _capture(node),
+						"hitboxes": hitboxes, "active": false,
 					})
 			else:
 				_bursts.append({
 					"anim": anim, "frames": frames, "pos": pos, "type": type,
-					"boost": boost,
+					"boost": boost, "clip_to_ground": row.get("clip_to_ground", false),
 				})
 	_refresh()
 
@@ -166,6 +170,32 @@ func _emitters_of(root: Node) -> Array:
 	out.append_array(root.find_children("*", "CPUParticles2D", true, false))
 	out.append_array(root.find_children("*", "GPUParticles2D", true, false))
 	return out
+
+
+## Every damage Hitbox in a spawned effect (its root if it is one, plus any under
+## it). Lets an attack effect carry its own hand-authored hitbox -- shape and
+## damage are set in the editor; the director just arms it in sync with the emit.
+func _hitboxes_of(root: Node) -> Array:
+	var out: Array = []
+	if root is Hitbox:
+		out.append(root)
+	for a in root.find_children("*", "Area2D", true, false):
+		if a is Hitbox:
+			out.append(a)
+	return out
+
+
+## The node effects credit as the attacker (so knockback shoves away from it). The
+## director is a child of the player, so that's our parent.
+func _attacker() -> Node:
+	return get_parent()
+
+
+## Where world-anchored bursts are parented so they stay put instead of following
+## the player. The director is the player's child, so this is the level above him.
+func _world() -> Node:
+	var p := get_parent()
+	return p.get_parent() if p != null else null
 
 
 # Facing right -> +1, left -> -1. flip_h is set from facing in the player.
@@ -250,6 +280,15 @@ func _refresh() -> void:
 		_face(entry.node, entry.base, entry.pos, m)
 		for em in entry.emitters:
 			em.emitting = on
+		# Switch any damage hitbox on/off with the emit window -- once per entry so
+		# the box arms fresh each strike (a Hitbox dedupes hits per activation).
+		if on != entry.active:
+			for hb in entry.hitboxes:
+				if on:
+					hb.activate()
+				else:
+					hb.deactivate()
+			entry.active = on
 
 	# A frame_changed into a burst frame fires one shot; a looping burst frame
 	# re-fires each pass, which is the intent.
@@ -263,14 +302,101 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 	if node == null:
 		return
 	var emitters := _emitters_of(node)
-	_face(node, _capture(node), b.pos, m)
+	_face(node, _capture(node), b.pos, m)  # mirror direction/scale; world position set below
 	for em in emitters:
 		_boost(em, b.get("boost", {}))
 		em.one_shot = true
+	# A burst is a one-shot blast that belongs at the spot it fires -- NOT stuck to
+	# the player. Parented under him, the emitter and its hitbox would follow as he
+	# walks and hit enemies away from the blast. Anchor it in the world at the strike
+	# point instead (like the laser), so it stays put once fired.
+	var target := global_position + Vector2(b.pos.x * m, b.pos.y)
+	var world := _world()
+	if world != null:
+		world.add_child(node)
+	else:
+		add_child(node)
+	node.global_position = target
+	node.reset_physics_interpolation()  # else it smears in from the level origin
+	var hitboxes := _hitboxes_of(node)
+	# Keep a ground blast from spilling past the platform edge into open air: clip
+	# its emission band and hitbox to the surface underfoot before it fires.
+	if b.get("clip_to_ground", false):
+		_clip_to_ground(node, emitters, hitboxes)
+	# Emit + arm now that the geometry is final. Arming is after add_child so
+	# Hitbox._ready() (which starts it disabled) has already run.
+	for em in emitters:
 		em.emitting = true
-	add_child(node)
+	for hb in hitboxes:
+		hb.source = _attacker()
+		hb.activate()
 	# Free the effect once every emitter has finished (a composite has several).
 	_free_when_done(node, emitters)
+
+
+## The left/right world x of the surface directly under `world_pos` -- a ray down
+## through L_WORLD, then the collider's rectangle bounds. Returns a fully-open
+## range if there's no ground there, so a blast fired off a ledge just isn't clipped.
+func _ground_edges_at(world_pos: Vector2) -> Vector2:
+	if not is_inside_tree():
+		return Vector2(-INF, INF)
+	var space := get_world_2d().direct_space_state
+	if space == null:
+		return Vector2(-INF, INF)  # physics space not ready -> skip clipping
+	var q := PhysicsRayQueryParameters2D.create(
+		world_pos + Vector2(0, -30), world_pos + Vector2(0, 60), Combat.L_WORLD)
+	var hit := space.intersect_ray(q)
+	if hit.is_empty() or not (hit.collider is Node2D):
+		return Vector2(-INF, INF)
+	var left := INF
+	var right := -INF
+	for cs in (hit.collider as Node2D).find_children("*", "CollisionShape2D", true, false):
+		if cs.shape is RectangleShape2D:
+			var hw: float = (cs.shape as RectangleShape2D).size.x * 0.5 * absf(cs.global_scale.x)
+			left = minf(left, cs.global_position.x - hw)
+			right = maxf(right, cs.global_position.x + hw)
+	return Vector2(left, right) if left <= right else Vector2(-INF, INF)
+
+
+## Intersect a horizontal band (world `center` +/- `half`) with [left, right].
+## Returns [new_center, new_half], or [] if none of it is over the ground.
+func _clip_band(center: float, half: float, left: float, right: float) -> Array:
+	var cl := maxf(center - half, left)
+	var cr := minf(center + half, right)
+	if cl >= cr:
+		return []
+	return [(cl + cr) * 0.5, (cr - cl) * 0.5]
+
+
+## Clip a ground blast's rectangular emission bands and hitboxes to the platform
+## edges under it, so neither particles nor hits cross the ledge into open air. The
+## clip is asymmetric: only the side hanging over the edge is cut, the inner side
+## keeps its full reach.
+func _clip_to_ground(node: Node2D, emitters: Array, hitboxes: Array) -> void:
+	var edges := _ground_edges_at(node.global_position)
+	if edges.x == -INF:
+		return  # no ground underfoot -> leave the blast at full reach
+	for em in emitters:
+		if em is CPUParticles2D and em.emission_shape == CPUParticles2D.EMISSION_SHAPE_RECTANGLE:
+			var sx: float = maxf(absf(em.global_scale.x), 0.001)
+			var r := _clip_band(em.global_position.x, em.emission_rect_extents.x * sx, edges.x, edges.y)
+			if r.is_empty():
+				em.emitting = false
+				continue
+			em.global_position = Vector2(r[0], em.global_position.y)
+			em.emission_rect_extents = Vector2(r[1] / sx, em.emission_rect_extents.y)
+	for hb in hitboxes:
+		for cs in hb.find_children("*", "CollisionShape2D", true, false):
+			if cs.shape is RectangleShape2D:
+				var rect: RectangleShape2D = cs.shape.duplicate()  # per-instance, don't touch the shared resource
+				cs.shape = rect
+				var sx: float = maxf(absf(cs.global_scale.x), 0.001)
+				var r := _clip_band(cs.global_position.x, rect.size.x * 0.5 * sx, edges.x, edges.y)
+				if r.is_empty():
+					hb.deactivate()
+					continue
+				cs.global_position = Vector2(r[0], cs.global_position.y)
+				rect.size = Vector2(r[1] * 2.0 / sx, rect.size.y)
 
 
 ## Free `root` once all its one-shot emitters have emitted and their particles

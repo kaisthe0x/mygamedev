@@ -1,12 +1,17 @@
 extends CharacterAbility
 
-## Lenny: Energy Beam. His heavy fires a short forward laser on the strike frame
-## (scenes/effects/laser_beam.tscn). The beam carries the hit -- damage, knockback
-## and range are set here and its Hitbox damages everything along the beam -- so
-## his melee heavy box is left a no-op (ATTACKS "heavy" damage is 0).
+## Lenny: Energy Beam -- currently DISABLED. His heavy used to fire a short forward
+## laser on the strike frame; now his heavy is a close-range burst instead. Damage
+## comes from the melee box (ATTACKS "heavy" in player.gd) and the look from a
+## particle burst (emitters.json -> lenbondosen -> heavy_attack -> "heavy").
 ##
-## To give the beam its own drawn look, make an Inherited Scene of the base, drop
-## your beam sprite on the Core's texture, and point BEAM at that scene.
+## The beam is kept for later, not deleted: the LaserBeam component and his
+## vfx/laser/laser_beam_lenny.tscn scene still exist. Flip USE_BEAM to true to
+## bring it back (and re-zero his ATTACKS "heavy" so the melee box doesn't
+## double-hit alongside the beam).
+
+## Flip to true to restore the energy beam on Lenny's heavy.
+const USE_BEAM := false
 
 ## Lenny's own beam: an Inherited Scene of the base with his drawn sprite
 ## (vfx/particles/characters/lenbondosen/textures/lenbondosen_beam.png) on the Core.
@@ -18,6 +23,8 @@ const MUZZLE := Vector2(22, -20)
 
 
 func on_heavy_strike(player: Player) -> void:
+	if not USE_BEAM:
+		return  # beam disabled -- heavy is a melee burst now (see the header)
 	var facing := player.get_facing()
 	var beam: LaserBeam = BEAM.instantiate()
 	beam.damage = 30.0

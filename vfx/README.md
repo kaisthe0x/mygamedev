@@ -84,7 +84,11 @@ frames. Adding an effect is a texture/scene + a JSON line, no code.
      author facing right.
    - `mode` — **sustained** (emit while any listed frame is on screen; the fire
      trail) or **burst** (one-shot each time a listed frame is entered; impacts,
-     footfall dust).
+     footfall dust). A **sustained** effect stays parented to the player, so it
+     (and any hitbox) **follows** him — right for a body-attached aura/jet. A
+     **burst** is **anchored in the world** at the spot it fires and stays put as
+     he moves on — right for a blast/detonation, and it keeps the burst's hitbox
+     where you see the blast instead of dragging it along behind the player.
    - `frames` — **sheet-relative** indices (same numbering as `loop_from` /
      `hit_frames`; the idle-reference frame counts). Converted to emitted indices
      via the `sheet_start` SpriteFrames metadata. Or the string **`"all"`** —
@@ -137,6 +141,41 @@ different *character*, not just more power: `boost` can only scale quantity
 all require their own scene. The dash needed exactly that — it blasts backward
 rather than down, which no multiplier can express.
 
+### Making a particle attack deal damage — add a `Hitbox`
+
+A particle effect can carry its **own hand-authored hitbox**, so an attack's reach
+is whatever box you draw — no reach formula, no code per attack.
+
+1. In the effect scene, make the root a **`Node2D`** and add a **`Hitbox`** child
+   (`Area2D` + `scripts/combat/hitbox.gd`, `collision_layer = 32` → `mask = 16` for
+   a player attack) with a `CollisionShape2D` under it. `mouth_blast.tscn` and
+   `heavy.tscn` are the worked examples.
+2. In the inspector, set the **Shape** *and* the **Damage / Knockback / Stun**
+   right on the `Hitbox`. That's the whole authoring step — shape and numbers live
+   together on the node.
+3. The **`ParticleDirector` arms it for you**: on spawn it sets the box's `source`
+   to the player and switches it **on exactly while the effect is emitting** — the
+   listed frames for a `sustained` effect, the burst's life for a `burst`. One
+   activation = one hit per enemy (the `Hitbox` dedupes), and it re-arms fresh each
+   strike. Because the box lives under the composite it **auto-mirrors** with
+   facing.
+4. **Avoid double-hits:** zero the melee `ATTACKS` entry for that attack so the
+   particle's box is the only thing that hits (Lenny's `"heavy"` is `{"damage": 0}`
+   for exactly this reason — his `heavy.tscn` Hitbox carries the hit).
+
+An effect with no `Hitbox` (an aura, a run trail) is unaffected — the director only
+arms boxes it finds.
+
+**Keep a ground blast on its platform** — add `"clip_to_ground": true` to a `burst`
+entry and, at spawn, the director rays straight down through `L_WORLD`, finds the
+platform's edges, and clamps the blast's **rectangular emission band and its
+hitbox** to them. The clip is asymmetric — only the side hanging over the ledge is
+cut; the inner side keeps full reach — so a wide heavy fired at the lip looks like
+it slammed into the edge instead of spilling into open air. Rectangle emission +
+rectangle hitbox only (a radial blast can't be clipped to a rectangular platform by
+emission shape); off the edge of everything (no ground under the strike point) it
+just isn't clipped. Lenny's `heavy_attack` uses it.
+
 ### `Local Coords` — the one setting that surprises people
 
 Per particle scene, and it decides whether the effect **trails** or stays
@@ -153,6 +192,15 @@ Per particle scene, and it decides whether the effect **trails** or stays
 If an effect looks right in the editor but angled in game, this is why. To get a
 trail *and* a straight plume, keep it off and give the particles enough
 `initial_velocity` that their own motion dominates the player's ~160 px/s.
+
+> **`Local Coords` also gates texture mirroring.** The director mirrors a composite
+> by flipping the root's `scale.x` — but a world-space (`Local Coords` off) particle
+> renders decoupled from its node, so the flip never reaches it and an **angled
+> texture won't mirror** when the character turns. If a particle's texture must flip
+> with facing (drawn to fit one side of the body), turn **`Local Coords` on** so the
+> node's transform reaches it. A world-space particle can only ever mirror its
+> *motion* (a single root's `direction`/`gravity`), never its texture — so for a
+> directional world-space effect, use a texture that reads the same flipped.
 
 Related: `direction` and `spread` do nothing while `initial_velocity` is 0 —
 gravity is then the only force acting.
@@ -208,10 +256,12 @@ itself. Build the base scene with `godot --headless --script vfx/build/build_las
   delete `_add_glow()`; the halo+core still read without it.
 
 Firing is wired through the ability hook `CharacterAbility.on_heavy_strike()`,
-called the instant the heavy's strike frame lands. `lenbondosen.gd` fires a short
-(`RANGE = 150`) beam that carries the hit — so his `ATTACKS` heavy is set to
-0 damage (the melee box would otherwise double-hit). Any ability can hook the same
-moment for an on-strike special.
+called the instant the heavy's strike frame lands. `lenbondosen.gd` is the worked
+example — a short (`RANGE = 150`) beam that carries the hit — but it's **currently
+disabled** (`USE_BEAM = false`): Lenny's heavy is a melee burst now (damage from
+`ATTACKS` "heavy", look from the `heavy` particle in `emitters.json`). Flip
+`USE_BEAM` back on (and re-zero his `ATTACKS` heavy so the box doesn't double-hit)
+to restore the beam. Any ability can hook the same moment for an on-strike special.
 
 ### Adding a new attack effect — where things plug in
 

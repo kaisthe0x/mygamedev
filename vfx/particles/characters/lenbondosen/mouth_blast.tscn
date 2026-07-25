@@ -1,25 +1,63 @@
 [gd_scene format=3 uid="uid://b7sy6osd3k3gb"]
 
-[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_rqxn5"]
+[ext_resource type="Texture2D" uid="uid://r3f41426ufjs" path="res://vfx/particles/characters/lenbondosen/textures/mouth_blast_texture.png" id="1_n6npq"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
 
-[sub_resource type="Curve" id="Curve_ts4xt"]
-_data = [Vector2(0, 0.12442392), 0.0, 0.0, 0, 0, Vector2(0.15105163, 0.15207374), 0.0, 0.0, 0, 0, Vector2(0.416826, 0.31797236), 0.0, 0.0, 0, 0, Vector2(0.5564053, 0.3271889), 0.0, 0.0, 0, 0, Vector2(0.71892923, 0.35483867), 0.0, 0.0, 0, 0, Vector2(0.82409173, 0.1705069), 0.0, 0.0, 0, 0, Vector2(0.88336515, 0.059907794), 0.0, 0.0, 0, 0, Vector2(1, 0.032258034), 0.0, 0.0, 0, 0]
-point_count = 8
+[sub_resource type="Curve" id="Curve_n6npq"]
+_data = [Vector2(0, 0.18894005), 0.0, 0.0, 0, 0, Vector2(0.16826004, 0.47926265), 0.0, 0.0, 0, 0, Vector2(0.34799236, 0.48847926), 0.0, 0.0, 0, 0, Vector2(0.52390057, 0.48387092), 0.0, 0.0, 0, 0, Vector2(0.69598466, 0.47926265), 0.0, 0.0, 0, 0]
+point_count = 5
 
-[node name="MouthBlast" type="CPUParticles2D" unique_id=1922641520]
-amount = 400
-texture = ExtResource("1_rqxn5")
-spread = 0.0
-gravity = Vector2(0, -100)
+[sub_resource type="Curve" id="Curve_q6800"]
+_data = [Vector2(0, 0.32258064), 0.0, 0.0, 0, 0, Vector2(0.2332696, 0.31797236), 0.0, 0.0, 0, 0, Vector2(0.5334608, 0.29032254), 0.0, 0.0, 0, 0, Vector2(0.749522, 0.29493088), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_n7cfj"]
+size = Vector2(158.25, 40)
+
+[node name="MouthBlast" type="Node2D" unique_id=854757983]
+
+[node name="Attack" type="CPUParticles2D" parent="." unique_id=1922641520]
+position = Vector2(21, 0)
+scale = Vector2(0.9876455, 0.17189568)
+amount = 300
+texture = ExtResource("1_n6npq")
+lifetime = 0.2
+emission_shape = 3
+emission_rect_extents = Vector2(30, 5)
+spread = 22.16
+gravity = Vector2(0, 0)
 initial_velocity_min = 134.33
 initial_velocity_max = 621.95
 linear_accel_min = -100.0
 linear_accel_max = -76.87
-radial_accel_min = -100.0
-radial_accel_max = -66.42
 damping_min = 40.0
 damping_max = 40.0
-angle_min = -508.2
+angle_min = 90.0
+angle_max = 90.0
 scale_amount_min = 0.0
 scale_amount_max = 2.0
-scale_amount_curve = SubResource("Curve_ts4xt")
+scale_amount_curve = SubResource("Curve_n6npq")
+
+[node name="Spit" type="CPUParticles2D" parent="." unique_id=84811434]
+amount = 12
+texture = ExtResource("1_n6npq")
+lifetime = 0.3
+gravity = Vector2(100, 980)
+initial_velocity_min = 37.69
+initial_velocity_max = 108.58
+damping_max = 11.544
+angle_min = 45.0
+angle_max = 45.0
+scale_amount_curve = SubResource("Curve_q6800")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=915623792]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hitbox")
+damage = 25.0
+stun = 4.0
+status_color = Color(0.15170373, 0.8350781, 0.47079715, 0.711)
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1689985570]
+position = Vector2(78.875, 0)
+shape = SubResource("RectangleShape2D_n7cfj")
