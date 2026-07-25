@@ -5,23 +5,29 @@ extends Node2D
 ## frames, so VFX can be layered over the drawn sprites (e.g. embers on Wayna's
 ## flame) without baking them in.
 ##
-## Config: res://resources/particles/emitters.json, keyed
+## Config: res://vfx/emitters.json, keyed
 ##   character -> animation -> [ { type, mode, frames, pos } ]
-## - type   : a scene name under particles/<type>.tscn
+## - type   : a scene name under particles/<type>.tscn. Its root may be a single
+##            CPUParticles2D/GPUParticles2D, OR a Node2D bundling several of them
+##            as one attack (all are driven together). List several {…} to layer
+##            separate scenes instead.
 ## - mode   : "sustained" (emit while any listed frame is showing) or
 ##            "burst" (spawn a one-shot each time a listed frame is entered)
 ## - frames : SHEET-relative indices (same numbering as loop_from / hit_frames;
 ##            the idle-reference frame counts). Converted to emitted indices via
-##            the SpriteFrames `sheet_start` metadata.
+##            the SpriteFrames `sheet_start` metadata. Or the string "all" ->
+##            every frame of the animation.
 ## - pos    : [x, y] pixel offset from the sprite origin (the feet), for facing
-##            right; mirrored automatically when facing left.
+##            right; mirrored automatically when facing left. A composite (Node2D)
+##            root mirrors by flipping scale.x, so its child textures flip too;
+##            a single particle root mirrors direction/gravity, keeping its texture.
 ##
 ## The director is a child of the player; emitter scenes use local_coords=false
 ## so their particles trail in world space as the player moves. Add a new effect
 ## by dropping a scene in particles/ and an entry in the JSON -- no code changes.
 
-const CONFIG_PATH := "res://resources/particles/emitters.json"
-const PARTICLE_DIR := "res://particles"
+const CONFIG_PATH := "res://vfx/emitters.json"
+const PARTICLE_DIR := "res://vfx/particles"
 
 var _sprite: AnimatedSprite2D
 var _config: Dictionary = {}
@@ -64,21 +70,21 @@ func set_character(id: String) -> void:
 			continue
 		var start := _sheet_start(anim)
 		for row: Dictionary in by_anim[anim]:
-			var frames: Array[int] = []
-			for f in row.get("frames", []):
-				frames.append(int(f) - start)  # sheet -> emitted index
+			var frames := _frames_for(anim, row.get("frames", []), start)
 			var pos := Vector2(row["pos"][0], row["pos"][1])
 			var type: String = row["type"]
 			var boost: Dictionary = row.get("boost", {})
 			if row.get("mode", "burst") == "sustained":
 				var node := _spawn(type)
 				if node != null:
-					_boost(node, boost)
+					var emitters := _emitters_of(node)
+					for em in emitters:
+						_boost(em, boost)
+						em.emitting = false
 					add_child(node)
-					node.emitting = false
 					_sustained.append({
-						"node": node, "anim": anim, "frames": frames, "pos": pos,
-						"base": _capture(node),
+						"node": node, "emitters": emitters, "anim": anim,
+						"frames": frames, "pos": pos, "base": _capture(node),
 					})
 			else:
 				_bursts.append({
@@ -86,6 +92,24 @@ func set_character(id: String) -> void:
 					"boost": boost,
 				})
 	_refresh()
+
+
+## Emitted frame indices an emitter listens on. `raw` is either an array of
+## sheet-relative indices (converted to emitted by subtracting `start`), or the
+## string "all" -> every emitted frame of the animation, so you don't have to list
+## them or track the frame count.
+func _frames_for(anim: String, raw: Variant, start: int) -> Array[int]:
+	var out: Array[int] = []
+	if raw is String and String(raw) == "all":
+		var sf := _sprite.sprite_frames
+		var anim_name := StringName(anim)
+		if sf != null and sf.has_animation(anim_name):
+			for e in sf.get_frame_count(anim_name):
+				out.append(e)
+	else:
+		for f in raw:
+			out.append(int(f) - start)
+	return out
 
 
 func _sheet_start(anim: String) -> int:
@@ -109,8 +133,9 @@ func _candidates(type: String) -> Array[String]:
 	]
 
 
-## Accepts either particle node type -- both expose emitting / one_shot /
-## finished, which is all the director drives.
+## Spawn an effect scene. Its root may be a single CPUParticles2D/GPUParticles2D,
+## OR a Node2D grouping several of them (a composite attack). Rejected only if it
+## holds no particle emitters at all.
 func _spawn(type: String) -> Node2D:
 	var path := ""
 	var tried := _candidates(type)
@@ -123,12 +148,24 @@ func _spawn(type: String) -> Node2D:
 			% [type, ", ".join(tried)])
 		return null
 	var node := (load(path) as PackedScene).instantiate()
-	if not (node is CPUParticles2D or node is GPUParticles2D):
-		push_warning("ParticleDirector: %s must have a CPUParticles2D or " % path
-			+ "GPUParticles2D root, got %s" % node.get_class())
+	if _emitters_of(node).is_empty():
+		push_warning("ParticleDirector: %s has no CPUParticles2D/GPUParticles2D " % path
+			+ "(as its root or a child), got %s" % node.get_class())
 		node.queue_free()
 		return null
 	return node
+
+
+## Every particle emitter in a spawned effect: the node itself if it is one, plus
+## any under it -- so a Node2D can bundle several particles as one attack, and the
+## director drives them all together.
+func _emitters_of(root: Node) -> Array:
+	var out: Array = []
+	if root is CPUParticles2D or root is GPUParticles2D:
+		out.append(root)
+	out.append_array(root.find_children("*", "CPUParticles2D", true, false))
+	out.append_array(root.find_children("*", "GPUParticles2D", true, false))
+	return out
 
 
 # Facing right -> +1, left -> -1. flip_h is set from facing in the player.
@@ -211,7 +248,8 @@ func _refresh() -> void:
 	for entry in _sustained:
 		var on: bool = entry.anim == anim and entry.frames.has(frame)
 		_face(entry.node, entry.base, entry.pos, m)
-		entry.node.emitting = on
+		for em in entry.emitters:
+			em.emitting = on
 
 	# A frame_changed into a burst frame fires one shot; a looping burst frame
 	# re-fires each pass, which is the intent.
@@ -224,13 +262,29 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 	var node := _spawn(b.type)
 	if node == null:
 		return
-	_boost(node, b.get("boost", {}))
+	var emitters := _emitters_of(node)
 	_face(node, _capture(node), b.pos, m)
-	node.one_shot = true
-	node.emitting = true
+	for em in emitters:
+		_boost(em, b.get("boost", {}))
+		em.one_shot = true
+		em.emitting = true
 	add_child(node)
-	# Free once the burst has finished emitting and its particles have died.
-	node.finished.connect(node.queue_free)
+	# Free the effect once every emitter has finished (a composite has several).
+	_free_when_done(node, emitters)
+
+
+## Free `root` once all its one-shot emitters have emitted and their particles
+## have died.
+func _free_when_done(root: Node, emitters: Array) -> void:
+	var left := [emitters.size()]  # boxed so the bound handler can count down
+	for em in emitters:
+		em.finished.connect(_on_emitter_finished.bind(left, root))
+
+
+func _on_emitter_finished(left: Array, root: Node) -> void:
+	left[0] -= 1
+	if left[0] <= 0 and is_instance_valid(root):
+		root.queue_free()
 
 
 func _process(_delta: float) -> void:

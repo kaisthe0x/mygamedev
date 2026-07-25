@@ -17,5 +17,29 @@
         "pos": [-1, -9]
       }
     ]
+  },
+  "lenbondosen": {
+    "idle": [
+      {
+        "type": "aura",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, -5]
+      }
+    ],
+    "attack": [
+      {
+        "type": "aura",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, 0]
+      },
+      {
+        "type": "mouth_blast",
+        "mode": "sustained",
+        "frames": [6, 7],
+        "pos": [9, -26]
+      }
+    ]
   }
 }

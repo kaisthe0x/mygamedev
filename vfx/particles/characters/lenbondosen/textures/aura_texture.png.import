@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b0wjegws77s0x"
-path="res://.godot/imported/pixel_ember.png-da9a39ca5bb4cad3b5b0fbec9d38299c.ctex"
+uid="uid://dtv0skm0jsndu"
+path="res://.godot/imported/aura_texture.png-133ce243dc4e5fbdf76aad17695efc91.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://particles/textures/pixel_ember.png"
-dest_files=["res://.godot/imported/pixel_ember.png-da9a39ca5bb4cad3b5b0fbec9d38299c.ctex"]
+source_file="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png"
+dest_files=["res://.godot/imported/aura_texture.png-133ce243dc4e5fbdf76aad17695efc91.ctex"]
 
 [params]
 

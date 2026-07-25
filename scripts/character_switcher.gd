@@ -30,18 +30,15 @@ var _platforms := [
 ## Each entry: { id, name, pos, and any Enemy export to override }. Overrides are
 ## per-instance, so aggro / contact_damage / stats differ per enemy. (In a real
 ## level you'd instead drop enemy.tscn in and set these in the inspector.)
-## Spread out and far from spawn: enemies stroll until you come to them.
+## One of each for now, so you can fight and learn a matchup without being swarmed.
 var _roster := [
 	{"id": "kebus", "name": "Kebus", "pos": Vector2(150, 0)},      # ground stroller
-	{"id": "kebus", "name": "Kebus", "pos": Vector2(-40, -44)},    # on P1
-	{"id": "kebus", "name": "Kebus", "pos": Vector2(130, -80)},    # on P2
-	{"id": "kebus", "name": "Kebus", "pos": Vector2(300, -114)},   # on P3
 	# Baghel: ranged-only, short-range ground surge, scratches his back at rest.
 	{
 		"id": "baghel", "name": "Baghel", "pos": Vector2(470, 0),
 		"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0,
 		"projectile_speed": 200.0,
-		"ranged_particle": "res://particles/enemies/baghel/ground_wave.tscn",
+		"ranged_particle": "res://vfx/particles/enemies/baghel/ground_wave.tscn",
 		"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9),
 		"muzzle_offset": Vector2(16, 1), "ranged_damage": 7.0,  # y~ground so the wave touches it
 		"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0,
@@ -54,6 +51,7 @@ var _roster := [
 
 
 func _ready() -> void:
+	_add_glow()
 	_build_platforms()
 	if _player != null:
 		# Katalyst is the newest redesign -- start on him for testing. Q/E still
@@ -99,6 +97,22 @@ func _respawn_player() -> void:
 func _place(node: Node2D, pos: Vector2) -> void:
 	node.global_position = pos
 	node.reset_physics_interpolation()
+
+
+## A subtle additive glow so bright HDR effects (the laser) bloom, and little
+## else -- the threshold sits at 1.0, above where the LDR pixel-art sprites live.
+## Tune intensity/bloom/threshold here, or delete this to drop the bloom entirely.
+func _add_glow() -> void:
+	var env := Environment.new()
+	env.background_mode = Environment.BG_CANVAS
+	env.glow_enabled = true
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	env.glow_intensity = 0.9
+	env.glow_bloom = 0.15
+	env.glow_hdr_threshold = 1.0  # only pixels brighter than 1.0 (HDR) bloom
+	var we := WorldEnvironment.new()
+	we.environment = env
+	add_child(we)
 
 
 func _build_platforms() -> void:

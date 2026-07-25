@@ -12,7 +12,7 @@ script = ExtResource("1_player")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1197741924]
 sprite_frames = ExtResource("2_g2els")
 animation = &"idle"
-frame_progress = 0.8528651
+frame_progress = 0.7719652
 centered = false
 offset = Vector2(-65, -80)
 

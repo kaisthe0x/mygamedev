@@ -200,13 +200,10 @@ func get_state() -> State:
 	return _state
 
 
-## True once the run animation has reached its looping tail (the sustained-run
-## frames past `loop_from`). Abilities use this to react to that phase.
-func run_loop_reached() -> bool:
-	if _sprite.animation != &"run":
-		return false
-	var start := _loop_meta(&"loop_from")
-	return start >= 0 and _sprite.frame >= start
+## Which way the character faces (+1 right, -1 left) -- for abilities that spawn
+## directional effects.
+func get_facing() -> int:
+	return _facing
 
 
 ## Path to the current character's portrait, for HUD / character-select art.
@@ -273,11 +270,16 @@ const ATTACKS := {
 	"feyke": {"light": {"damage": 15, "knockback": 45}, "heavy": {"damage": 38, "knockback": 150}},
 	"lenbondosen": {
 		"light": [
-			{"damage": 14, "stun": 5.0, "color": STATUS_GREEN},  # 1st hit: 5s freeze + green
-			{"damage": 14},
-			{"damage": 14},
+			# Hammer thrust at full impact -- freezes the enemy 5s with a green cast.
+			{"damage": 14, "stun": 5.0, "color": STATUS_GREEN, "x": 30.0, "extents": Vector2(26, 18)},
+			# Energy burst forming -- AoE around the body (x=0, wide).
+			{"damage": 12, "x": 0.0, "extents": Vector2(34, 20)},
+			# Burst bloom -- bigger AoE finisher.
+			{"damage": 18, "x": 0.0, "extents": Vector2(42, 26)},
 		],
-		"heavy": {"damage": 40, "knockback": 300},  # launches much further than Feyke's 150
+		# Heavy's damage is carried by his energy beam (see lenbondosen.gd), so the
+		# melee box is a no-op -- 0 damage/knockback.
+		"heavy": {"damage": 0},
 	},
 }
 
@@ -332,6 +334,8 @@ func _on_frame_changed() -> void:
 	if _state == State.HEAVY_ATTACK:
 		if _sprite.frame == _heavy_strike_frame():
 			_strike("heavy")
+			if _ability != null:
+				_ability.on_heavy_strike(self)
 		return
 	# Bounded loop: when a looping animation has a `loop_to`, snap back to
 	# `loop_from` the moment playback steps past it, so the cycle stays inside the

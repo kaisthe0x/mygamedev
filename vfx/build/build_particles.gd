@@ -4,12 +4,12 @@ extends SceneTree
 ## CPUParticles2D properties are set correctly and the .tscn stays valid. Each
 ## saved scene is a normal CPUParticles2D you can then tweak in the editor.
 ##
-##   godot --headless --script tools/build_particles.gd
+##   godot --headless --script vfx/build/build_particles.gd
 ##
 ## Add a new type by adding a builder function here and listing it in _run().
 
-const OUT := "res://particles/%s.tscn"
-const PIXEL_EMBER := "res://particles/textures/pixel_ember.png"
+const OUT := "res://vfx/particles/%s.tscn"
+const PIXEL_EMBER := "res://vfx/particles/textures/pixel_ember.png"
 
 
 func _step_curve() -> Curve:

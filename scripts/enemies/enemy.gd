@@ -483,6 +483,9 @@ func _fire_projectile() -> void:
 	# Live in the level, not under the enemy, so it keeps going if the enemy dies.
 	get_parent().add_child(proj)
 	proj.global_position = muzzle
+	# Snap here instead of interpolating from the level origin (physics
+	# interpolation is on), which would smear the wave's particles across the level.
+	proj.reset_physics_interpolation()
 
 
 func _fire_frame() -> int:

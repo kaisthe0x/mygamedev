@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://rtgeuar2enk"
-path="res://.godot/imported/soft_dot.png-5adf0fd837d7878c6abcbd082fcb29f3.ctex"
+path="res://.godot/imported/soft_dot.png-a8f22e24015d0aceb41db562615d3cca.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://particles/textures/soft_dot.png"
-dest_files=["res://.godot/imported/soft_dot.png-5adf0fd837d7878c6abcbd082fcb29f3.ctex"]
+source_file="res://vfx/particles/textures/soft_dot.png"
+dest_files=["res://.godot/imported/soft_dot.png-a8f22e24015d0aceb41db562615d3cca.ctex"]
 
 [params]
 

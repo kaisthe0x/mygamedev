@@ -12,12 +12,11 @@ Main scene: `scenes/level.tscn`. Press F5 to run.
 
 ```
 assets/portraits/     Painted 1080x1080 character portraits (HUD art)
-particles/            Particle-type scenes, organised (see Particles section)
+vfx/                  All visual effects -- particles + laser beams (see vfx/README.md)
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
-resources/particles/  emitters.json -- frame-indexed VFX config (hand-edited)
 scenes/               player, level, hud
-scripts/              player, hud, character_switcher, particle_director
+scripts/              player, hud, character_switcher
 scripts/abilities/    Per-character abilities, named <character_id>.gd
 scripts/combat/       Combat layers, hurtbox, hitbox, floating health bar
 scripts/enemies/      Enemy base + projectile
@@ -195,17 +194,21 @@ for smoothness (see **Player → Attack combo**). Any attack not listed defaults
 "every frame is a hit" — one frame per click, the older snap feel. Emitted as
 `metadata/hit_frames`, read by `player.gd`.
 
-Configured so far — both give three hits with wind-up / in-between frames:
+Configured so far, with wind-up / in-between frames between the hits:
 
 | Character | `HIT_FRAMES` (sheet indices) |
 |---|---|
 | feyke | `[2, 3, 7]` |
-| lenbondosen | `[1, 2, 6]` — two energy jabs, then the beam finisher |
+| katalyst | `[2, 6, 10]` — whip-reach, spin-AoE, finisher |
+| lenbondosen | `[8, 12, 13]` — blue hammer thrust, then the energy burst forming and blooming |
+
+Heavy attacks can list a strike frame too (`("char","heavy_attack"): [...]`);
+without one the heavy lands on its middle frame.
 
 > **Indices, not frame numbers.** These are 0-based sheet indices, where index 0
 > is the idle-reference frame. If you're counting frames 1-N in an image editor,
-> subtract one (Lenny's "frames 2, 3, 7" → `[1, 2, 6]`). The generator errors if
-> an index is out of range, which usually means the numbering slipped.
+> subtract one. The generator errors if an index is out of range, which usually
+> means the numbering slipped (or the sheet's frame count changed).
 
 ---
 
@@ -233,7 +236,7 @@ things it assumes — and they **fail silently as misalignment, not as an error*
 2. **Feet touch the bottom edge.** Trailing transparent rows make the character
    float.
 3. **Single row.** Frame detection only divides horizontally.
-4. **12 frames max**, and the naming above.
+4. **Up to ~32 frames** (the `frame_count` cap), and the naming above.
 
 Adding a new *animation type* (`hurt`, `death`, ...) means one line in `ANIMS`
 and a matching case in `_animation_for()` in `player.gd`.
@@ -354,7 +357,7 @@ existing abilities keep working because the base class no-ops every hook.
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Hangtime** + **Sprint** | Hangtime: a heavy attack started mid-air suspends him until it finishes. Sprint: once his run reaches its sustained loop (past `loop_from`), his speed surges to `run_speed × 1.8` — reward for keeping the run going. Uses `player.run_loop_reached()`. |
+| Lenbondosen ("Lenny") | **Energy Beam** | His heavy fires a short forward laser on the strike frame (`on_heavy_strike` → `LaserBeam`, see **Laser beams** below). The beam *carries the hit* (its Hitbox deals the damage/knockback), so his melee heavy is 0 damage. (He previously had *Hangtime* and *Sprint*, both removed.) |
 | Katalyst | **Stomp** | A heavy attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
 
 Both latch on the frame the heavy *starts* and only if the character was
@@ -374,119 +377,22 @@ typical platform heights; if it ever matters, have the ability keep driving
 
 ---
 
-## Particles (frame-indexed VFX)
+## Visual effects (particles + lasers)
 
-Extra 2D particles layered over the drawn sprites — e.g. soft embers on top of
-Wayna's flame — driven entirely by data. `scripts/particle_director.gd` is a
-child of the player; it watches the sprite and emits at authored positions
-during authored frames. Adding an effect is a texture/scene + a JSON line, no
-code.
+All VFX — the frame-indexed particle system and the `LaserBeam` component — live
+in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 
-**Three pieces:**
-
-1. **Particle types** — scenes with a `CPUParticles2D` or `GPUParticles2D` root,
-   referenced by name. Laid out to scale as characters and effects are added:
-
-   ```
-   particles/
-     characters/<id>/   Per-character effects (wayna/fire_spark.tscn)
-     enemies/<id>/      Per-enemy effects (baghel/ground_wave.tscn)
-     shared/            Reusable across characters (explosions, hits, dust)
-     environment/       Ambient / background (water, drifting motes)
-     textures/          Particle textures (pixel_ember.png, soft_dot.png)
-   ```
-
-   A `type` in the JSON resolves **most specific first**:
-
-   | `type` | Resolves to |
-   |---|---|
-   | `fire_spark` | `characters/<current character>/fire_spark.tscn`, else `shared/fire_spark.tscn` |
-   | `environment/water` | `particles/environment/water.tscn` (any `type` containing `/` is an explicit path) |
-
-   So character effects stay short in the JSON and can't collide between
-   characters, while shared and environment effects are addressed directly. A
-   bare `particles/<type>.tscn` still works as a legacy fallback.
-
-   `tools/build_particles.gd` scaffolds a starter scene (it **skips files that
-   already exist**, so it never clobbers editor tweaks); textures come from
-   `tools/gen_particle_textures.py`.
-2. **Config** — `resources/particles/emitters.json`, keyed
-   `character -> animation -> [ { type, mode, frames, pos } ]`:
-   - `mode` — **sustained** (emit while any listed frame is on screen; the fire
-     trail) or **burst** (one-shot each time a listed frame is entered; impacts,
-     footfall dust).
-   - `frames` — **sheet-relative** indices (same numbering as `loop_from` /
-     `hit_frames`; the idle-reference frame counts). Converted to emitted indices
-     via the `sheet_start` SpriteFrames metadata.
-   - `pos` — `[x, y]` pixel offset from the sprite origin (the feet), for facing
-     right; auto-mirrored when facing left.
-
-   - `boost` — *optional* intensity, so one type can be reused at different
-     power levels instead of duplicating the scene:
-
-     | Key | Meaning |
-     |---|---|
-     | `amount` | particle count **multiplier** |
-     | `speed` | initial-velocity **multiplier** |
-     | `scale` | particle-size **multiplier** |
-     | `lifetime` | lifetime **multiplier** |
-     | `explosiveness` | absolute `0..1` (multiplying the usual 0 would do nothing) |
-
-     They're multipliers *on the scene's own values*, so they keep tracking the
-     base as you tune it — the dash stays proportionally fiercer no matter how
-     the base fire changes. That's the point: one scene owns the *look*, the JSON
-     owns *how hard it hits*. Fork a separate scene only when an effect needs a
-     genuinely different look, not just more power.
-
-   **Author every effect facing right.** The director mirrors the whole thing
-   when the character turns: `pos.x`, and for `CPUParticles2D` also
-   `direction.x` and `gravity.x`. Without that, a jet authored pointing right
-   keeps pointing right when the character runs left. (`GPUParticles2D` keeps
-   those on a shared `ParticleProcessMaterial` which must not be mutated, so it
-   falls back to flipping the node's `scale.x`.)
-3. **Director** — instantiated by `player.gd` at runtime (not in the editor).
-   Rebuilds its emitters on character swap, so switching away from Wayna removes
-   her fire cleanly.
-
-Wayna is the worked example, with one scene per effect:
-
-| Animation | Type | Frames | `pos` | Character |
-|---|---|---|---|---|
-| run | `fire_spark` | 5-9 (flight loop) | `[-1, -10]` | Short downward jet under her feet |
-| dash | `fire_dash` | 3-6 (horizontal burst) | `[-1, -9]` | Rearward blast: hotter core, wider size/speed variance, tumbling debris |
-
-**Reuse vs. fork.** Start by reusing a type with a `boost` — that's cheapest and
-keeps one source for the look. Fork a separate scene once the effect needs a
-different *character*, not just more power: `boost` can only scale quantity
-(amount/speed/size/lifetime), so direction, spread, colour, gravity and rotation
-all require their own scene. The dash needed exactly that — it blasts backward
-rather than down, which no multiplier can express.
-
-### `Local Coords` — the one setting that surprises people
-
-Per particle scene, and it decides whether the effect **trails** or stays
-**attached**:
-
-- **Off** (world space) — particles are released into the world and left behind.
-  Good for embers/smoke trails. But the emitter is moving with the player, so a
-  low-velocity plume gets smeared backwards into a diagonal: the faster the
-  player, the more angled it looks. This does *not* show in the editor preview,
-  where the emitter is stationary.
-- **On** (local space) — particles keep the shape you authored and move with the
-  player. Matches the editor preview exactly. Good for attached jets/auras.
-
-If an effect looks right in the editor but angled in game, this is why. To get a
-trail *and* a straight plume, keep it off and give the particles enough
-`initial_velocity` that their own motion dominates the player's ~160 px/s.
-
-Related: `direction` and `spread` do nothing while `initial_velocity` is 0 —
-gravity is then the only force acting.
-
-> Soft glowy particles clash with crisp pixel art (we tried — it read as an
-> engine effect bolted on). `fire_spark` instead uses a hard-edged texture,
-> **nearest** filtering, **normal** blend, and colours sampled from the drawn
-> flame, so it reads as pixel art. Keep new types in that style unless a soft
-> glow is genuinely wanted.
+- **Particles:** data-driven emitters layered on the sprites. A `ParticleDirector`
+  (`vfx/particle_director.gd`, a child of the player) watches the sprite and emits
+  authored types at authored frames. Adding one = a scene in `vfx/particles/` + a
+  line in `vfx/emitters.json`, no code.
+- **Laser beams:** a `RayCast2D` + `Line2D` scene (`vfx/laser/laser_beam.tscn`)
+  with `vfx/laser_beam.gd` for behaviour; per-character inherited scenes carry the
+  drawn look. Fired from a `CharacterAbility.on_heavy_strike()` hook.
+- **Where to add an attack effect:** a visual → `vfx/emitters.json`; a hit's
+  numbers → `ATTACKS` in `scripts/player.gd`; a spawned thing/behavior → a
+  `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
+  `Local Coords`, HDR glow, per-child positioning) in [vfx/README.md](vfx/README.md).
 
 ---
 
@@ -531,7 +437,7 @@ to hand-wire. Key traits:
     then fizzles, hitting whatever it passes (Baghel's red energy). Tint via
     `ranged_color`.
   - **Look** — `ranged_particle` points at a particle scene (e.g.
-    `particles/enemies/baghel/ground_wave.tscn`) that the projectile instances as
+    `vfx/particles/enemies/baghel/ground_wave.tscn`) that the projectile instances as
     its visual, so you edit/preview it in the editor like any particle scene
     (they're built `emitting = true`). Empty = a simple orb trail built in code
     (Kebus). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
@@ -671,11 +577,10 @@ clobbering `level.tscn` while the editor holds it open:
   top. Overlapping steps make the hops forgiving.
 - **Enemies** — `_roster`, each a `{id, name, pos, ...overrides}` instanced from
   `enemy.tscn`; any extra key sets an Enemy export (so one can be `aggro`, another
-  `ranged_mode: "forward"`, etc). Kebus (melee + aimed ranged) strolls each
-  platform and the ground; Baghel (ranged-only, forward ground surge, scratches
-  his back at rest) waits on the far-right ground. They're
-  placed **far from `SPAWN`** (nearest ~400px, beyond `ranged_range`) so you
-  start in the clear and can watch them stroll before approaching — not swarmed.
+  `ranged_mode: "forward"`, etc). Currently **one of each** so you can learn a
+  matchup without being swarmed: Kebus (melee + aimed ranged) strolls the ground,
+  and Baghel (ranged-only, forward ground surge, scratches his back at rest) waits
+  on the far-right ground. Add more rows to `_roster` to repopulate.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.
@@ -696,6 +601,11 @@ Fixes, all in `project.godot`:
   physics ticks. This is the main fix. Camera + follow run in `_physics_process`
   so both interpolate together; teleports (spawn, respawn) call
   `reset_physics_interpolation()` (`_place()`) so they snap instead of smearing.
+  > **Gotcha:** anything `add_child`'d and *then* moved to a spawn point (the
+  > laser beam, enemy projectiles/the ground wave) must call
+  > `reset_physics_interpolation()` after positioning — otherwise it interpolates
+  > from the level origin to the spawn spot on the first frame, flashing the
+  > effect (and its world-space particles) scattered across the level.
 - **`snap_2d_transforms_to_pixel` + `snap_2d_vertices_to_pixel`** — render on
   whole pixels so the interpolated positions stay crisp pixel art.
 - **`default_texture_filter = Nearest`** — no linear blur when scaled.
@@ -791,8 +701,7 @@ fine. **Trust the actual run over the squiggles.**
 | `python3 tools/gen_spriteframes.py` | Regenerate SpriteFrames from the sheets |
 | `godot --headless --script tools/verify_frames.gd` | Assert all animations load on a uniform canvas |
 | `godot --script tools/capture_shots.gd` | Render every character/animation to PNGs for eyeballing alignment |
-| `python3 tools/gen_particle_textures.py` | Regenerate particle textures (particles/*.png) |
-| `godot --headless --script tools/build_particles.gd` | Rebuild particle-type scenes (particles/*.tscn) |
+| VFX build tools (particle textures/scenes, base laser) | Moved under `vfx/build/` — see [vfx/README.md](vfx/README.md#build-tools) |
 
 ---
 

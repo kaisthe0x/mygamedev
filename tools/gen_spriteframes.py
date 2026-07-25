@@ -79,15 +79,12 @@ GROUPS = {
 OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 4 frames read as a snap; let the final pose sit instead of speeding up.
     ("khalid", "heavy_attack"): {"hold_last": 2.5},
-    # 7 and 9 frames respectively -- too slow at 10 fps.
+    # 8 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "heavy_attack"): {"fps": 13.0},
     ("wayna", "heavy_attack"): {"fps": 16.0},
     # Sheet frames 1-4 are the launch (lean, ignite); 5-9 are sustained flight,
     # so only the tail should cycle while she keeps running.
     ("wayna", "run"): {"loop_from": 5},
-    # He builds up speed over frames 1-8; the last 3 are the sustained
-    # energised run, so cycle those.
-    ("lenbondosen", "run"): {"loop_from": 9},
     # Idle: frames 0-1 settle in; 2-8 is the raise-a-flame flourish that loops.
     ("katalyst", "idle"): {"loop_from": 2, "loop_to": 8},
 }
@@ -103,8 +100,11 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("katalyst", "attack"): [2, 6, 10],
     # Heavy: wind-up, lunge, then the long ground-energy blast lands on frame 3.
     ("katalyst", "heavy_attack"): [3],
-    # Two quick energy jabs, then a wind-up into the beam finisher.
-    ("lenbondosen", "attack"): [1, 2, 6],
+    # Lenny's 14-frame swing is a 3-hit combo: the blue hammer thrust at full
+    # impact (8), then the energy burst as it forms (12) and blooms (13, last).
+    ("lenbondosen", "attack"): [8, 12, 13],
+    # Heavy: the energy barbell is swung out around frame 5.
+    ("lenbondosen", "heavy_attack"): [5],
     # Kebus swings connect on sheet frame 3 (the 4th frame).
     ("kebus", "melee_attack"): [3],
     # Baghel emits his ground surge on the last frame (sheet index 6 = "frame 7",

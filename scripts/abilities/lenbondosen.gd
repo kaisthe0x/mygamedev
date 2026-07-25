@@ -1,28 +1,33 @@
 extends CharacterAbility
 
-## Lenny: Hangtime + Sprint.
+## Lenny: Energy Beam. His heavy fires a short forward laser on the strike frame
+## (scenes/effects/laser_beam.tscn). The beam carries the hit -- damage, knockback
+## and range are set here and its Hitbox damages everything along the beam -- so
+## his melee heavy box is left a no-op (ATTACKS "heavy" damage is 0).
 ##
-## Hangtime: a heavy swing started in mid-air suspends him until it finishes, so
-## the whole animation plays instead of being cut short by the fall.
-##
-## Sprint: his run has a long wind-up (frames 1-8) then a sustained energised
-## loop (last 3). Once he reaches that loop his run surges to SPRINT_SPEED --
-## reward for keeping the run going, and a second specialty.
+## To give the beam its own drawn look, make an Inherited Scene of the base, drop
+## your beam sprite on the Core's texture, and point BEAM at that scene.
 
-## Multiplier on run_speed once the sustained run kicks in.
-const SPRINT_MULT := 1.8
+## Lenny's own beam: an Inherited Scene of the base with his drawn sprite
+## (vfx/particles/characters/lenbondosen/textures/lenbondosen_beam.png) on the Core.
+const BEAM := preload("res://vfx/laser/laser_beam_lenny.tscn")
+## Short reach (it stops sooner on a wall/enemy).
+const RANGE := 150.0
+## Where it leaves him (forward, up to the weapon), before the facing mirror.
+const MUZZLE := Vector2(22, -20)
 
 
-func physics(player: Player, _delta: float) -> void:
-	if player.get_state() == Player.State.HEAVY_ATTACK and not player.is_on_floor():
-		# Cancel the fall outright so he holds the pose instead of drifting.
-		player.velocity.y = 0.0
-	elif player.get_state() == Player.State.RUN and player.is_on_floor() \
-			and player.run_loop_reached():
-		# Surge only while actively running the way he's already moving. Basing
-		# this on INPUT (not velocity's own sign) is essential: otherwise it pins
-		# velocity to its current direction every frame, so you could never turn
-		# around or even stop -- it'd drag you the way you were going.
-		var input := Input.get_axis(&"move_left", &"move_right")
-		if input != 0.0 and signf(input) == signf(player.velocity.x):
-			player.velocity.x = signf(input) * player.run_speed * SPRINT_MULT
+func on_heavy_strike(player: Player) -> void:
+	var facing := player.get_facing()
+	var beam: LaserBeam = BEAM.instantiate()
+	beam.damage = 30.0
+	beam.knockback = 150.0
+	beam.beam_range = RANGE
+	beam.source = player
+	# Live in the level, not under the player, so it stays put as he moves on.
+	player.get_parent().add_child(beam)
+	beam.global_position = player.global_position + Vector2(MUZZLE.x * facing, MUZZLE.y)
+	# Snap to the spawn spot instead of interpolating there from the level origin
+	# (physics interpolation is on), which would smear it across the level.
+	beam.reset_physics_interpolation()
+	beam.fire(Vector2(facing, 0))

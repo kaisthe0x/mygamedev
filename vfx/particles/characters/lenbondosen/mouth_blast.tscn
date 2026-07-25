@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://b7sy6osd3k3gb"]
+
+[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_rqxn5"]
+
+[sub_resource type="Curve" id="Curve_ts4xt"]
+_data = [Vector2(0, 0.12442392), 0.0, 0.0, 0, 0, Vector2(0.15105163, 0.15207374), 0.0, 0.0, 0, 0, Vector2(0.416826, 0.31797236), 0.0, 0.0, 0, 0, Vector2(0.5564053, 0.3271889), 0.0, 0.0, 0, 0, Vector2(0.71892923, 0.35483867), 0.0, 0.0, 0, 0, Vector2(0.82409173, 0.1705069), 0.0, 0.0, 0, 0, Vector2(0.88336515, 0.059907794), 0.0, 0.0, 0, 0, Vector2(1, 0.032258034), 0.0, 0.0, 0, 0]
+point_count = 8
+
+[node name="MouthBlast" type="CPUParticles2D" unique_id=1922641520]
+amount = 400
+texture = ExtResource("1_rqxn5")
+spread = 0.0
+gravity = Vector2(0, -100)
+initial_velocity_min = 134.33
+initial_velocity_max = 621.95
+linear_accel_min = -100.0
+linear_accel_max = -76.87
+radial_accel_min = -100.0
+radial_accel_max = -66.42
+damping_min = 40.0
+damping_max = 40.0
+angle_min = -508.2
+scale_amount_min = 0.0
+scale_amount_max = 2.0
+scale_amount_curve = SubResource("Curve_ts4xt")
