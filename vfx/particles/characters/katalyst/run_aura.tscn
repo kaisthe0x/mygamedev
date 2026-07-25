@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://cgsnpxgwkl4gu"]
+[gd_scene format=3 uid="uid://camhdg7pdiwdl"]
 
-[ext_resource type="Texture2D" uid="uid://chvy3ov84tpg" path="res://vfx/particles/characters/lenbondosen/textures/texture2.png" id="1_fwbju"]
+[ext_resource type="Texture2D" uid="uid://bu2rwpipm6klk" path="res://vfx/particles/characters/katalyst/textures/basic-texture.png" id="1_ytmb2"]
 
 [sub_resource type="Curve" id="Curve_1lwrq"]
 _data = [Vector2(0, 0.3271889), 0.0, 0.0, 0, 0, Vector2(0.06309751, 0.2488479), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.19354838), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.04147458), 0.0, 0.0, 0, 0]
@@ -9,9 +9,9 @@ point_count = 4
 [node name="RunAura" type="Node2D" unique_id=1959900955]
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=404252249]
-position = Vector2(-1, -16)
+position = Vector2(-11, -15)
 amount = 45
-texture = ExtResource("1_fwbju")
+texture = ExtResource("1_ytmb2")
 lifetime = 0.3
 emission_shape = 1
 emission_sphere_radius = 16.36

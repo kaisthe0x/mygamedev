@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cxkfm14khq6yd"]
 
 [ext_resource type="Texture2D" uid="uid://chvy3ov84tpg" path="res://vfx/particles/characters/lenbondosen/textures/texture2.png" id="1_e8bv8"]
-[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_nwulw"]
+[ext_resource type="Texture2D" uid="uid://dky8fk73bhih1" path="res://vfx/particles/characters/lenbondosen/textures/boost_texture.png" id="2_e8bv8"]
 
 [sub_resource type="Curve" id="Curve_deyxt"]
 _data = [Vector2(0, 0.38709676), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.2580645), 0.0, 0.0, 0, 0, Vector2(0.24474189, 0.16589862), 0.0, 0.0, 0, 0, Vector2(0.38623327, 0.023041487), 0.0, 0.0, 0, 0]
@@ -20,9 +20,8 @@ scale_amount_curve = SubResource("Curve_deyxt")
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1018063784]
 amount = 20
-texture = ExtResource("1_nwulw")
+texture = ExtResource("2_e8bv8")
 lifetime = 0.4
 emission_shape = 1
 emission_sphere_radius = 9.75
-gravity = Vector2(-400, 980)
 scale_amount_curve = SubResource("Curve_deyxt")

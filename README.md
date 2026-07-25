@@ -259,9 +259,18 @@ in the inspector.
 |---|---|
 | Health | `max_health` 100 |
 | Movement | `run_speed` 160, `jump_velocity` -330, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
-| Dash | `dash_speed` 420, `dash_time` 0.18, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
+| Dash | `dash_speed` 420, `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 | Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600, `land_min_fall_speed` 140 |
+
+**Dash lunge vs. animation.** The lunge (`dash_speed` for `dash_time`) is decoupled
+from the dash *animation*, which plays over `dash_anim_time`. When that's longer
+than the lunge, the character keeps its full snappy dash then settles to a stop
+over the extra time while the remaining frames play out — so you see the dash
+instead of a fast-forward. The reach is unchanged (the settle decelerates to a stop
+within the window) and the i-frames still last only the lunge. Set
+`dash_anim_time <= dash_time` for the old squeezed-into-the-lunge look; raise it to
+see the frames more.
 
 **Landing squash (`LAND`).** On touchdown from a real fall (peak downward speed
 ≥ `land_min_fall_speed`, so little hops and walking off a lip don't trigger it),

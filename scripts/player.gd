@@ -61,6 +61,11 @@ var health: float = 100.0:
 @export var dash_speed: float = 420.0
 @export var dash_time: float = 0.18
 @export var dash_cooldown: float = 0.45
+## How long the dash ANIMATION plays, decoupled from the lunge. The lunge stays
+## fast (`dash_time`); when this is longer, the character settles to a stop over the
+## extra time while the remaining dash frames play out -- so you see the animation
+## instead of a fast-forward. Set it to <= `dash_time` for the old squeezed look.
+@export var dash_anim_time: float = 0.30
 ## Gravity kept during an air dash. 0 hangs in place, 1 falls normally.
 @export_range(0.0, 1.0) var dash_gravity_scale: float = 0.35
 
@@ -95,6 +100,9 @@ enum State { IDLE, RUN, JUMP, DASH, ATTACK, HEAVY_ATTACK, LAND }
 var _state: State = State.IDLE
 var _facing: int = 1
 var _dash_left: float = 0.0
+## Counts down the whole dash state (lunge + the animation's tail), so the frames
+## finish playing after the lunge is over.
+var _dash_anim_left: float = 0.0
 var _dash_cd: float = 0.0
 ## Airborne tracking, so a touchdown can trigger the landing squash.
 var _was_on_floor: bool = true
@@ -420,8 +428,10 @@ func _physics_process(delta: float) -> void:
 		_ability.physics(self, delta)
 
 	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
+	# Only during the lunge (dash_time), not the animation's tail recovery, so the
+	# i-frame window is unchanged by a longer dash_anim_time.
 	if _hurtbox != null:
-		_hurtbox.monitorable = _state != State.DASH
+		_hurtbox.monitorable = not (_state == State.DASH and _dash_left > 0.0)
 
 	move_and_slide()
 	_update_animation(delta)
@@ -437,15 +447,22 @@ func _process_stun(delta: float) -> void:
 
 
 func _process_dash(delta: float) -> void:
-	_dash_left -= delta
-	velocity.x = dash_speed * _facing
+	_dash_anim_left -= delta
+	if _dash_left > 0.0:
+		_dash_left -= delta
+		velocity.x = dash_speed * _facing  # the lunge -- unchanged, still snappy
+	else:
+		# Lunge done: settle to a stop over the rest of the window while the dash
+		# frames finish, so the animation plays out without the dash reaching farther.
+		var recovery := maxf(dash_anim_time - dash_time, 0.001)
+		velocity.x = move_toward(velocity.x, 0.0, (dash_speed / recovery) * delta)
 	if is_on_floor():
 		velocity.y = 0.0
 	else:
 		# Keep falling through an air dash, just lighter, so it arcs instead of
 		# hanging in place on an invisible floor.
 		velocity.y += gravity * dash_gravity_scale * delta
-	if _dash_left <= 0.0:
+	if _dash_anim_left <= 0.0:
 		_enter(State.IDLE)
 
 
@@ -646,15 +663,17 @@ func _enter(state: State) -> void:
 	match state:
 		State.DASH:
 			_dash_left = dash_time
+			_dash_anim_left = maxf(dash_anim_time, dash_time)
 			_dash_cd = dash_cooldown
-			# Frame counts differ per character (4-6), so a fixed dash_time
-			# would clip the longer ones. Stretch playback to fit instead, which
-			# keeps the dash distance identical for everyone.
+			# Play the dash animation over the (longer) visible window rather than
+			# squeezing it into the brief lunge, so the frames are seen, not
+			# fast-forwarded. Frame counts differ per character (4-6); stretching to
+			# fit keeps every dash the same length.
 			var frames := _sprite.sprite_frames
 			var fps := frames.get_animation_speed(&"dash")
-			if fps > 0.0 and dash_time > 0.0:
+			if fps > 0.0:
 				var anim_time := frames.get_frame_count(&"dash") / fps
-				_sprite.speed_scale = anim_time / dash_time
+				_sprite.speed_scale = anim_time / maxf(dash_anim_time, dash_time)
 		State.ATTACK:
 			velocity.x = 0.0
 

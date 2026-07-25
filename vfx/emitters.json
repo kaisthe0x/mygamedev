@@ -52,12 +52,61 @@
         "pos": [0, 0]
       }
     ],
+    "dash": [
+      {
+        "type": "dash_boost",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, -3]
+      }
+    ],
     "jump": [
       {
         "type": "jump_boost",
         "mode": "sustained",
         "frames": [0, 1, 2, 3],
         "pos": [0, 0]
+      }
+    ]
+  },
+  "katalyst": {
+    "idle": [
+      {
+        "type": "heavy_ready",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, 0]
+      }
+    ],
+    "run": [
+      {
+        "type": "run_aura",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, 0]
+      }
+    ],
+    "attack": [
+      {
+        "type": "stab_gold",
+        "mode": "sustained",
+        "frames": [2, 10],
+        "pos": [9, -22]
+      },
+      {
+        "type": "stab",
+        "mode": "sustained",
+        "frames": [10],
+        "pos": [12, -18]
+      }
+    ],
+    "heavy_attack": [
+      {
+        "type": "heavy",
+        "mode": "burst",
+        "frames": [3],
+        "pos": [0, 0],
+        "clip_to_ground": true
       }
     ]
   }

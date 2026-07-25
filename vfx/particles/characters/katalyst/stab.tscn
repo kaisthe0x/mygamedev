@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://dxpso8lws64d3"]
+
+[ext_resource type="Texture2D" uid="uid://cgs8l7a2eiamq" path="res://vfx/particles/characters/katalyst/textures/stab-texture.png" id="1_6ndll"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_atjcy"]
+
+[sub_resource type="Curve" id="Curve_atjcy"]
+_data = [Vector2(0.0057361387, 0.2488479), 0.0, 0.0, 0, 0, Vector2(0.33460802, 0.13364053), 0.0, 0.0, 0, 0, Vector2(0.6500956, 0.08294928), 0.0, 0.0, 0, 0, Vector2(0.8527724, 0.04147458), 0.0, 0.0, 0, 0, Vector2(0.9942638, 0.023041487), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_atjcy"]
+size = Vector2(45, 9)
+
+[node name="Stab" type="Node2D" unique_id=2126736604]
+
+[node name="Attack" type="CPUParticles2D" parent="." unique_id=1449214630]
+z_index = -1
+position = Vector2(19, -1)
+scale = Vector2(0.9876455, 0.17189568)
+amount = 40
+texture = ExtResource("1_6ndll")
+lifetime = 0.4
+spread = 84.63
+gravity = Vector2(0, 0)
+initial_velocity_min = 100.0
+initial_velocity_max = 100.0
+linear_accel_min = -100.0
+linear_accel_max = -76.87
+damping_min = 40.0
+damping_max = 40.0
+angle_min = -90.0
+angle_max = -90.0
+scale_amount_min = 0.0
+scale_amount_max = 2.0
+scale_amount_curve = SubResource("Curve_atjcy")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1032481032]
+position = Vector2(-2, 0)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_atjcy")
+damage = 25.0
+stun = 4.0
+status_color = Color(0.15170373, 0.8350781, 0.47079715, 0.711)
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1489736073]
+position = Vector2(24.5, -1.5)
+shape = SubResource("RectangleShape2D_atjcy")

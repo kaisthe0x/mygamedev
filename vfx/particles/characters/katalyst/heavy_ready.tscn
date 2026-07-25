@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://dv1jlh50yf3uy"]
+[gd_scene format=3 uid="uid://cajxefwxxqh0u"]
 
-[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_espfa"]
+[ext_resource type="Texture2D" uid="uid://bu2rwpipm6klk" path="res://vfx/particles/characters/katalyst/textures/basic-texture.png" id="1_61tmp"]
 
 [sub_resource type="Curve" id="Curve_uashs"]
 _data = [Vector2(0, 0.11235964), 0.0, 0.0, 0, 0, Vector2(0.250478, 0.078651786), 0.0, 0.0, 0, 0, Vector2(0.5277246, 0.0138248205), 0.0, 0.0, 0, 0, Vector2(0.751434, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -11,7 +11,7 @@ point_count = 5
 [node name="Energy" type="CPUParticles2D" parent="." unique_id=1890578058]
 position = Vector2(0, -1)
 amount = 20
-texture = ExtResource("1_espfa")
+texture = ExtResource("1_61tmp")
 lifetime = 0.3
 explosiveness = 0.5
 emission_shape = 3
