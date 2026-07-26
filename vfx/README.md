@@ -149,7 +149,7 @@ is whatever box you draw — no reach formula, no code per attack.
 1. In the effect scene, make the root a **`Node2D`** and add a **`Hitbox`** child
    (`Area2D` + `scripts/combat/hitbox.gd`, `collision_layer = 32` → `mask = 16` for
    a player attack) with a `CollisionShape2D` under it. `mouth_blast.tscn` and
-   `heavy.tscn` are the worked examples.
+   `poison_raiser.tscn` are the worked examples.
 2. In the inspector, set the **Shape** *and* the **Damage / Knockback / Stun**
    right on the `Hitbox`. That's the whole authoring step — shape and numbers live
    together on the node.
@@ -160,8 +160,8 @@ is whatever box you draw — no reach formula, no code per attack.
    strike. Because the box lives under the composite it **auto-mirrors** with
    facing.
 4. **Avoid double-hits:** zero the melee `ATTACKS` entry for that attack so the
-   particle's box is the only thing that hits (Lenny's `"heavy"` is `{"damage": 0}`
-   for exactly this reason — his `heavy.tscn` Hitbox carries the hit).
+   particle's box is the only thing that hits (Lenny's `"special"` is `{"damage": 0}`
+   for exactly this reason — his `poison_raiser.tscn` Hitbox carries the hit).
 
 An effect with no `Hitbox` (an aura, a run trail) is unaffected — the director only
 arms boxes it finds.
@@ -170,11 +170,11 @@ arms boxes it finds.
 entry and, at spawn, the director rays straight down through `L_WORLD`, finds the
 platform's edges, and clamps the blast's **rectangular emission band and its
 hitbox** to them. The clip is asymmetric — only the side hanging over the ledge is
-cut; the inner side keeps full reach — so a wide heavy fired at the lip looks like
+cut; the inner side keeps full reach — so a wide special fired at the lip looks like
 it slammed into the edge instead of spilling into open air. Rectangle emission +
 rectangle hitbox only (a radial blast can't be clipped to a rectangular platform by
 emission shape); off the edge of everything (no ground under the strike point) it
-just isn't clipped. Lenny's `heavy_attack` uses it.
+just isn't clipped. Lenny's `special` uses it.
 
 ### `Local Coords` — the one setting that surprises people
 
@@ -255,12 +255,12 @@ itself. Build the base scene with `godot --headless --script vfx/build/build_las
   `rendering/viewport/hdr_2d`) lights the beam and not the LDR sprites. Tune or
   delete `_add_glow()`; the halo+core still read without it.
 
-Firing is wired through the ability hook `CharacterAbility.on_heavy_strike()`,
-called the instant the heavy's strike frame lands. `lenbondosen.gd` is the worked
+Firing is wired through the ability hook `CharacterAbility.on_special_strike()`,
+called the instant the special's strike frame lands. `lenbondosen.gd` is the worked
 example — a short (`RANGE = 150`) beam that carries the hit — but it's **currently
-disabled** (`USE_BEAM = false`): Lenny's heavy is a melee burst now (damage from
-`ATTACKS` "heavy", look from the `heavy` particle in `emitters.json`). Flip
-`USE_BEAM` back on (and re-zero his `ATTACKS` heavy so the box doesn't double-hit)
+disabled** (`USE_BEAM = false`): Lenny's special is a melee burst now (damage from
+`ATTACKS` "special", look from the `special` particle in `emitters.json`). Flip
+`USE_BEAM` back on (and re-zero his `ATTACKS` special so the box doesn't double-hit)
 to restore the beam. Any ability can hook the same moment for an on-strike special.
 
 ### Adding a new attack effect — where things plug in
@@ -270,7 +270,7 @@ Pick the layer by *what the effect is*:
 | Goal | Add it to | Code? |
 |---|---|---|
 | A **visual** on chosen animation frames (spark, trail, drawn sprite) | `vfx/emitters.json` (+ a scene in `vfx/particles/`) | none |
-| A hit's **damage / knockback / reach** | `ATTACKS` in `scripts/player.gd` (per character/attack/segment) | none |
+| A hit's **damage / knockback / reach** | the move's `tuning` in `configs/moves.gd` (per character/move/segment) | none |
 | A **thing spawned** on a hit, or custom behavior | a `CharacterAbility` script (`scripts/abilities/`) | small |
 
 1. **Frame-indexed particle (no code).** Make/obtain a particle scene under
@@ -279,13 +279,13 @@ Pick the layer by *what the effect is*:
    `emitters.json`: `<id> → <animation> → [{type, mode ("sustained"|"burst"),
    frames (sheet-relative), pos ([x,y] from feet, auto-mirrored)}]`. Done — the
    `ParticleDirector` emits it.
-2. **Tune the hit (no code).** `ATTACKS[<id>][<"light"|"heavy">]` — `damage`,
-   `knockback`, `stun`, `color`, and hitbox `x`/`extents` (light may be an array,
-   one entry per combo segment).
+2. **Tune the hit (no code).** The move's `tuning` in `configs/moves.gd` — `damage`,
+   `knockback`, `stun`, `color`, and hitbox `x`/`extents` (an array = one entry per
+   combo segment). The effect keys off the move's `animation` name in `emitters.json`.
 3. **Spawn something / new behavior (a `CharacterAbility`).** Create
    `scripts/abilities/<id>.gd` extending `CharacterAbility` (auto-equipped, no
    registration) and override a hook:
-   - `on_heavy_strike(player)` — the moment the heavy connects; spawn a beam /
+   - `on_special_strike(player)` — the moment the special connects; spawn a beam /
      projectile / shockwave here (`add_child` → position → **`reset_physics_interpolation()`**
      → `fire()`).
    - `physics(player, delta)` — per-frame movement/state override (Katalyst's stomp).
@@ -293,7 +293,7 @@ Pick the layer by *what the effect is*:
    - **New laser:** inherit `vfx/laser/laser_beam.tscn` → `vfx/laser/laser_beam_<id>.tscn`,
      swap Core texture/colours/swirls, then `preload` + `fire(dir)` from the ability.
 
-> Only the **heavy** has an on-strike ability hook today; light-attack VFX go
+> Only the **special** has an on-strike ability hook today; light-attack VFX go
 > through `emitters.json` (frame-indexed). Want an `on_light_strike` (or a generic
 > `on_strike(kind, seg)`) hook for light-attack specials? It's a one-line add to
 > `player._on_frame_changed` / `_process_attack` — ask and I'll wire it.

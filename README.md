@@ -37,11 +37,11 @@ tools/                Generator + verification scripts (not shipped)
 | Input | Action | Notes |
 |---|---|---|
 | A / D | `move_left` / `move_right` | |
-| S / ↓ | `move_down` | Hold + jump to drop through a one-way platform |
+| S / ↓ | `drop` | Tap to fall through the one-way platform you're on (controller: D-pad down / left-stick down; remappable in the Input Map) |
 | Space | `jump` | |
 | Shift | `dash` | Has a cooldown |
-| Left mouse | `attack` | Light — each press advances the combo |
-| Right mouse | `heavy_attack` | Committed full-animation swing |
+| Left mouse | `attack` | The current *attack* — each press advances the combo |
+| Right mouse | `special` | The current *special* — committed full-animation move |
 | Q / E | `prev_character` / `next_character` | Dev only |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — clear + respawn all enemies |
@@ -67,7 +67,7 @@ This is the part worth understanding, because the source sheets are irregular.
 ### The problem
 
 Each character has up to seven sheets (`idle`, `run`, `jump`, `land`, `dash`,
-`attack`, `heavy_attack`) — `land` is newer, so a character without one is just
+`attack`, `special`) — `land` is newer, so a character without one is just
 skipped (see below). They are single-row grids, but nothing else is consistent:
 
 - Frame counts vary (2-13+) between animations *and* between characters — the
@@ -166,7 +166,7 @@ generator:
 | jump | 10 | no |
 | dash | 12 | no |
 | attack | 12 | no |
-| heavy_attack | 10 | no |
+| special | 10 | no |
 
 ### Per-character timing
 
@@ -201,7 +201,7 @@ Wayna's run uses `loop_from`; Katalyst's idle uses both. They're sheet-relative
 (count the idle-ref frame 0), same numbering as `HIT_FRAMES`. Each character's
 idle can loop a different range — just author `loop_from`/`loop_to` per sheet.
 
-Heavy attacks are tuned toward a ~0.5s feel: khalid `hold_last` 2.5 (few frames,
+Special attacks are tuned toward a ~0.5s feel: khalid `hold_last` 2.5 (few frames,
 so the last pose sits rather than the whole swing slowing), lenbondosen 13 fps
 and wayna 16 fps (too slow at 10). The generator prints resulting durations,
 marks overridden entries with `*`, notes loop ranges as `[loop N-M]` and hit
@@ -224,8 +224,8 @@ Configured so far, with wind-up / in-between frames between the hits:
 | katalyst | `[2, 6, 10]` — whip-reach, spin-AoE, finisher |
 | lenbondosen | `[8, 12, 13]` — blue hammer thrust, then the energy burst forming and blooming |
 
-Heavy attacks can list a strike frame too (`("char","heavy_attack"): [...]`);
-without one the heavy lands on its middle frame.
+Special attacks can list a strike frame too (`("char","special"): [...]`);
+without one the special lands on its middle frame.
 
 > **Indices, not frame numbers.** These are 0-based sheet indices, where index 0
 > is the idle-reference frame. If you're counting frames 1-N in an image editor,
@@ -268,7 +268,7 @@ and a matching case in `_animation_for()` in `player.gd`.
 ## Player
 
 `scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / DASH / ATTACK / HEAVY_ATTACK / LAND`). Everything is tunable
+(`IDLE / RUN / JUMP / DASH / ATTACK / SPECIAL / LAND`). Everything is tunable
 in the inspector.
 
 | Group | Key values |
@@ -291,7 +291,7 @@ see the frames more.
 **Landing squash (`LAND`).** On touchdown from a real fall (peak downward speed
 ≥ `land_min_fall_speed`, so little hops and walking off a lip don't trigger it),
 a character that *has* a `land` animation plays a brief squash. It's **fully
-cancelable** — any action (attack / heavy / dash / jump) or a movement input
+cancelable** — any action (attack / special / dash / jump) or a movement input
 breaks out instantly, so it never eats inputs; left alone it plays once and hands
 back to idle. Characters without a `land` sheet skip straight to idle/run as
 before. Only Katalyst has one so far.
@@ -315,16 +315,16 @@ freeze for the whole chain window:
   finisher) restarts at segment one.
 
 Clicks mid-segment are dropped (keeps the rhythm) — change `_process_attack` if
-you want light-attack input buffering. A **heavy** press *is* buffered, though:
+you want light-attack input buffering. A **special** press *is* buffered, though:
 pressing RMB any time during a light swing is remembered and fires the instant
-that hit lands (`_buffered_heavy`), so a fast light→heavy always cancels into the
-heavy instead of the press being swallowed by the recovery frames.
+that hit lands (`_buffered_special`), so a fast light→special always cancels into the
+special instead of the press being swallowed by the recovery frames.
 
-**Heavy attack (RMB).** Deliberately *not* a combo — one press plays the entire
+**Special attack (RMB).** Deliberately *not* a combo — one press plays the entire
 animation, roots the player, and ignores all input until it finishes. It also
 clears any light combo in progress (all three entry points go through
-`_start_heavy()`). The strike lands on the frame given by the
-`heavy_attack` entry in `hit_frames` metadata (`_heavy_strike_frame()`) — e.g.
+`_start_special()`). The strike lands on the frame given by the
+`special` entry in `hit_frames` metadata (`_special_strike_frame()`) — e.g.
 Katalyst's lands on his blast frame — or, if a character didn't author one, on
 the middle frame as a default. Durations are hand-tuned per character — see
 **Per-character timing** above.
@@ -365,7 +365,7 @@ no ability.
 extends CharacterAbility
 
 func physics(player: Player, _delta: float) -> void:
-    if player.get_state() == Player.State.HEAVY_ATTACK and not player.is_on_floor():
+    if player.get_state() == Player.State.SPECIAL and not player.is_on_floor():
         player.velocity.y = 0.0
 ```
 
@@ -378,7 +378,7 @@ Two hooks, both optional:
 
 `physics` runs last on purpose, so an ability can override anything the state
 machine decided. `player.get_state()` exposes the current state
-(`Player.State.HEAVY_ATTACK`, etc.), and the whole Player API — `take_damage()`,
+(`Player.State.SPECIAL`, etc.), and the whole Player API — `take_damage()`,
 `velocity`, `is_on_floor()`, every exported tunable — is available.
 
 Add event hooks (on-hit, on-land) to `character_ability.gd` as they're needed;
@@ -388,19 +388,19 @@ existing abilities keep working because the base class no-ops every hook.
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Energy Burst** | His heavy is a close-range burst: melee damage from `ATTACKS` "heavy" + a `heavy` particle blast (`emitters.json`) on the strike frame. His **Energy Beam** (`on_heavy_strike` → `LaserBeam`) is kept but **disabled** (`USE_BEAM = false` in `lenbondosen.gd`); flip it on to restore the laser. (He previously had *Hangtime* and *Sprint*, both removed.) |
-| Katalyst | **Stomp** | A heavy attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
+| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range burst: melee damage from `ATTACKS` "special" + a `special` particle blast (`emitters.json`) on the strike frame. His **Energy Beam** (`on_special_strike` → `LaserBeam`) is kept but **disabled** (`USE_BEAM = false` in `lenbondosen.gd`); flip it on to restore the laser. (He previously had *Hangtime* and *Sprint*, both removed.) |
+| Katalyst | **Stomp** | A special attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
 
-Both latch on the frame the heavy *starts* and only if the character was
-airborne then — checking the state alone would also fire for a grounded heavy
+Both latch on the frame the special *starts* and only if the character was
+airborne then — checking the state alone would also fire for a grounded special
 that walks off a ledge mid-swing.
 
 Katalyst's `WIND_UP` (0.1s) is timed to his animation: after the idle-ref frame
 is dropped the downward strike is emitted frame 1, which at 10 fps begins at
 0.1s, so the drop starts exactly as he swings. **Retime `WIND_UP` if his
-heavy_attack fps or frame layout changes.**
+special fps or frame layout changes.**
 
-Known edge: the slam lasts only as long as the heavy animation, so it covers
+Known edge: the slam lasts only as long as the special animation, so it covers
 about 330px of fall (0.30s at 1100px/s after the wind-up). From higher than that
 the swing ends mid-air and he finishes the drop as a normal fall. Fine for
 typical platform heights; if it ever matters, have the ability keep driving
@@ -419,7 +419,7 @@ in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
   line in `vfx/emitters.json`, no code.
 - **Laser beams:** a `RayCast2D` + `Line2D` scene (`vfx/laser/laser_beam.tscn`)
   with `vfx/laser_beam.gd` for behaviour; per-character inherited scenes carry the
-  drawn look. Fired from a `CharacterAbility.on_heavy_strike()` hook.
+  drawn look. Fired from a `CharacterAbility.on_special_strike()` hook.
 - **Where to add an attack effect:** a visual → `vfx/emitters.json`; a hit's
   numbers → `ATTACKS` in `scripts/player.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
@@ -529,8 +529,8 @@ and no group checks:
   projectiles stay on for their life.
 - The **player's** hurtbox + attack hitbox are built in code (`_build_combat`),
   like the particle director, to avoid touching `player.tscn`. Light-attack
-  hits fire on each combo hit frame; the heavy lands on its authored
-  `heavy_attack` hit frame (or the middle frame if none). Whoever is hit applies
+  hits fire on each combo hit frame; the special lands on its authored
+  `special` hit frame (or the middle frame if none). Whoever is hit applies
   the knockback/stun and takes a brief stagger.
 - **`Combatant`** (`scripts/combat/combatant.gd`) is the shared base for `Player`
   and `Enemy` (both `extends Combatant`, itself a `CharacterBody2D`). It holds the
@@ -564,7 +564,7 @@ fields fall back to the exported defaults:
 
 | field | meaning | fallback |
 |---|---|---|
-| `damage` | hit damage | `attack_damage` / `heavy_damage` |
+| `damage` | hit damage | `attack_damage` / `special_damage` |
 | `knockback` | px/s shove away from the player | 0 |
 | `stun` | seconds frozen | 0 |
 | `color` / `color_time` | engulfing status overlay + duration | none |
@@ -578,11 +578,11 @@ fields fall back to the exported defaults:
         {"damage": 16, "x": 0,  "extents": Vector2(32, 20)},    # spin: AoE around the body (x=0)
         {"damage": 16, "x": 28, "extents": Vector2(24, 18)},    # finishing lunge
     ],
-    "heavy": {"damage": 44, "knockback": 160, "stun": 0.18, "x": 30, "extents": Vector2(34, 16)},
+    "special": {"damage": 44, "knockback": 160, "stun": 0.18, "x": 30, "extents": Vector2(34, 16)},
 }
 ```
 
-- `heavy` is one entry. `light` is **either** one entry (all combo hits share it)
+- `special` is one entry. `light` is **either** one entry (all combo hits share it)
   **or an array**, one per combo segment — that's how a *specific* hit differs
   (Lenny's first jab freezes 5s + green; Katalyst's middle hit is a wide `x = 0`
   around-the-body AoE). A shorter array reuses its last entry.
@@ -615,9 +615,10 @@ clobbering `level.tscn` while the editor holds it open:
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.
-- **Drop through a platform** — hold **`move_down` (S / ↓) + jump** while standing
-  on a one-way platform to fall through it instead of jumping; on the solid floor
-  it just jumps. `_drop_through_platform()` finds the platform under the feet via
+- **Drop through a platform** — tap **`drop` (S / ↓ by default)** while standing on
+  a one-way platform to fall through it; on the solid floor it's a no-op. `drop` is
+  its own remappable action (controller: D-pad down / left-stick down), so jump is
+  now purely jump. `_drop_through_platform()` finds the platform under the feet via
   the slide collisions (only bodies in the `oneway_platform` group qualify, so you
   can't fall through the ground), adds a brief collision exception, and removes it
   after `DROP_THROUGH_TIME`.

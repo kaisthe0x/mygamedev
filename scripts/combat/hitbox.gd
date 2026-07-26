@@ -19,6 +19,9 @@ extends Area2D
 ## Who fired this, passed along so the victim knocks back away from them.
 var source: Node = null
 
+## Emitted when this box connects with a Hurtbox -- lets a projectile free on impact.
+signal struck(victim: Hurtbox)
+
 var _already_hit: Array[Hurtbox] = []
 
 
@@ -60,3 +63,4 @@ func _on_area_entered(area: Area2D) -> void:
 	hit.status_time = status_time if status_time > 0.0 else stun
 	hit.source = source if source != null else owner
 	box.take_hit(hit)
+	struck.emit(box)

@@ -308,8 +308,10 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 	for hb in hitboxes:
 		hb.source = _attacker()
 		hb.activate()
-	# Free the effect once every emitter has finished (a composite has several).
-	_free_when_done(node, emitters)
+	# A Shot flies off and manages its own life (frees on hit / at range); everything
+	# else is freed once its one-shot emitters finish and their particles die.
+	if not (node is Shot):
+		_free_when_done(node, emitters)
 
 
 ## The left/right world x of the surface directly under `world_pos` -- a ray down

@@ -135,30 +135,32 @@ func _on_area_entered(area: Area2D) -> void:
 	hit.stun = stun
 	hit.source = self
 	box.take_hit(hit)
-	_expire()
+	_expire(true)  # a hit -> vanish at once
 
 
-## Stop dealing damage and moving, cut off emission, and free once the last
-## particles have lived out their lifetime -- so the wave fades away instead of
-## popping out of existence the instant its life or a hit ends it.
-func _expire() -> void:
+## Stop the shot and remove it. On a hit (`instant`) it's freed at once, so it
+## disappears the moment it connects. On a natural expiry (reaching max range
+## without hitting anything) emission is cut and the trail fades out over its
+## lifetime before the node frees, so a spent shot dissipates rather than popping.
+func _expire(instant := false) -> void:
 	if _expiring:
 		return
 	_expiring = true
-	# When a hit calls us, we're inside area_entered's physics flush, where Godot
-	# blocks toggling monitoring/collision (it errors and the box stays live on the
-	# player). Defer them to just after the flush so the shot actually goes inert.
+	# We may be inside area_entered's physics flush, where Godot blocks toggling
+	# monitoring/collision (it errors and the box stays live). Defer them past it.
 	set_deferred("monitoring", false)
 	set_deferred("collision_layer", 0)
-	velocity = Vector2.ZERO  # world-space particles stay where they were emitted
+	velocity = Vector2.ZERO
+	if instant:
+		queue_free()
+		return
 	var linger := 0.0
 	for p in Nodes.find_all(self, "CPUParticles2D", false):
 		p.emitting = false
 		linger = maxf(linger, p.lifetime * (1.0 + p.lifetime_randomness))
-	if linger <= 0.0:
-		queue_free()
-		return
-	get_tree().create_timer(linger).timeout.connect(queue_free)
+	var tw := create_tween()
+	tw.tween_property(self, "modulate:a", 0.0, maxf(linger, 0.15))
+	tw.tween_callback(queue_free)
 
 
 func _draw() -> void:

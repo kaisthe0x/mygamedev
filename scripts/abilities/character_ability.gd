@@ -24,8 +24,8 @@ func physics(_player: Player, _delta: float) -> void:
 	pass
 
 
-## Called once when this character's heavy attack reaches its strike frame (right
+## Called once when this character's special reaches its strike frame (right
 ## as the melee hitbox fires). Use it for an on-strike special -- e.g. spawning an
 ## effect or projectile. Lenny fires his energy beam here.
-func on_heavy_strike(_player: Player) -> void:
+func on_special_strike(_player: Player) -> void:
 	pass

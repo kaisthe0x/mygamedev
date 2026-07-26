@@ -1,16 +1,16 @@
 extends CharacterAbility
 
-## Lenny: Energy Beam -- currently DISABLED. His heavy used to fire a short forward
-## laser on the strike frame; now his heavy is a close-range burst instead. Damage
-## comes from the melee box (ATTACKS "heavy" in player.gd) and the look from a
-## particle burst (emitters.json -> lenbondosen -> heavy_attack -> "heavy").
+## Lenny: Energy Beam -- currently DISABLED. His special used to fire a short forward
+## laser on the strike frame; now his special is a close-range burst instead. Damage
+## comes from the melee box (ATTACKS "special" in player.gd) and the look from a
+## particle burst (emitters.json -> lenbondosen -> special_poison_raiser).
 ##
 ## The beam is kept for later, not deleted: the LaserBeam component and his
 ## vfx/laser/laser_beam_lenny.tscn scene still exist. Flip USE_BEAM to true to
-## bring it back (and re-zero his ATTACKS "heavy" so the melee box doesn't
+## bring it back (and re-zero his ATTACKS "special" so the melee box doesn't
 ## double-hit alongside the beam).
 
-## Flip to true to restore the energy beam on Lenny's heavy.
+## Flip to true to restore the energy beam on Lenny's special.
 const USE_BEAM := false
 
 ## Lenny's own beam: an Inherited Scene of the base with his drawn sprite
@@ -22,9 +22,9 @@ const RANGE := 150.0
 const MUZZLE := Vector2(22, -20)
 
 
-func on_heavy_strike(player: Player) -> void:
+func on_special_strike(player: Player) -> void:
 	if not USE_BEAM:
-		return  # beam disabled -- heavy is a melee burst now (see the header)
+		return  # beam disabled -- special is a melee burst now (see the header)
 	var facing := player.get_facing()
 	var beam: LaserBeam = BEAM.instantiate()
 	beam.damage = 30.0

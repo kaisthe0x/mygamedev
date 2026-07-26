@@ -15,7 +15,7 @@ signal health_changed(current: float, maximum: float)
 signal character_changed(id: String)
 
 ## Character roster + resource-path templates live in CharacterConfig; per-character
-## attack tuning in Attacks (both under configs/).
+## moves + tuning in the Moves catalog (configs/moves.gd).
 
 @export_enum("feyke", "katalyst", "khalid", "lenbondosen", "wayna")
 var character: String = "khalid":
@@ -81,18 +81,23 @@ var health: float = 100.0:
 ## instead of restarting it. Ticks on through idle, so you can chain after
 ## control returns; keep it >= attack_recovery.
 @export var combo_reset_time: float = 0.45
-## Damage a single light-attack hit deals; the heavy swing deals heavy_damage.
-## Fallback for characters/fields not specified in Attacks.TABLE.
+## Damage a single light-attack hit deals; the special swing deals special_damage.
+## Fallback when a move's tuning omits damage (see configs/moves.gd).
 @export var attack_damage: float = 16.0
-@export var heavy_damage: float = 40.0
+@export var special_damage: float = 40.0
 ## How far in front of the feet the attack reaches, and its half-size.
 @export var attack_hitbox_x: float = 18.0
 @export var attack_hitbox_extents := Vector2(15, 18)
 
-enum State { IDLE, RUN, JUMP, DASH, ATTACK, HEAVY_ATTACK, LAND }
+enum State { IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND }
 
 var _state: State = State.IDLE
 var _facing: int = 1
+## The active attack + special for this character (from the Moves catalog). They
+## decide which animation plays and its hit tuning; swap them with set_move() (a
+## future UI hook). Seeded to the character's defaults on every character change.
+var _current_attack: Move
+var _current_special: Move
 var _dash_left: float = 0.0
 ## Counts down the whole dash state (lunge + the animation's tail), so the frames
 ## finish playing after the lunge is over.
@@ -112,9 +117,9 @@ var _combo_playing: bool = false
 var _combo_window: float = 0.0
 ## Time left holding the current hit frame before control returns to idle.
 var _recovery_left: float = 0.0
-## A heavy press during a light swing, held until the current hit lands so a fast
-## light->heavy cancels into the heavy instead of being swallowed by recovery.
-var _buffered_heavy: bool = false
+## A special press during a light swing, held until the current hit lands so a fast
+## light->special cancels into the special instead of being swallowed by recovery.
+var _buffered_special: bool = false
 ## Time left frozen from a stun-carrying hit (input ignored).
 var _stun_left: float = 0.0
 ## The current character's unique ability, or null if they have none.
@@ -164,6 +169,10 @@ func _apply_character() -> void:
 		push_warning("No SpriteFrames for character '%s' at %s" % [character, path])
 		return
 	sprite.sprite_frames = load(path)
+	# Seed this character's default attack + special from the Moves catalog (they
+	# drive which animation ATTACK/SPECIAL play and its hit tuning).
+	_current_attack = Moves.get_move(character, "attacks")
+	_current_special = Moves.get_move(character, "specials")
 	# The generator's canvas size changes whenever the art does, so derive the
 	# offset from the frames rather than baking it into the scene.
 	anchor_to_feet(sprite)
@@ -172,7 +181,7 @@ func _apply_character() -> void:
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
-	_buffered_heavy = false
+	_buffered_special = false
 	sprite.speed_scale = 1.0
 	sprite.play(_animation_for(_state))
 	_equip_ability()
@@ -200,6 +209,17 @@ func _equip_ability() -> void:
 ## Read-only access to the state machine, for abilities and other systems.
 func get_state() -> State:
 	return _state
+
+
+## Switch the active attack or special to `id` -- one of Moves.ids(character, kind).
+## `kind` is "attacks" or "specials". This is the hook a future move-select UI calls;
+## until then the character's catalog defaults are used. An unknown id falls back to
+## the default. (To change the *default*, edit configs/moves.gd.)
+func set_move(kind: String, id: String) -> void:
+	if kind == "attacks":
+		_current_attack = Moves.get_move(character, "attacks", id)
+	elif kind == "specials":
+		_current_special = Moves.get_move(character, "specials", id)
 
 
 ## Which way the character faces (+1 right, -1 left) -- for abilities that spawn
@@ -260,25 +280,14 @@ func _build_combat() -> void:
 	_status.setup(_sprite)
 
 
-## The (character, kind, segment) entry from Attacks.TABLE, or {} if unlisted. A `light`
-## array indexes by combo segment (a shorter array reuses its last entry); a
-## single dict is shared by all hits.
-func _attack(kind: String, seg: int) -> Dictionary:
-	var entry: Variant = Attacks.TABLE.get(character, {}).get(kind, null)
-	if entry is Array:
-		entry = {} if entry.is_empty() else entry[mini(seg, entry.size() - 1)]
-	if entry == null:
-		return {}
-	return entry
-
-
-## Enable the attack hitbox for one strike: effects + this character's reach/size
-## for that (kind, segment), each field falling back to the exported defaults.
-func _strike(kind: String, seg: int = 0) -> void:
+## Enable the attack hitbox for one strike of `move`'s combo segment `seg`: its
+## damage / reach / effects, each field falling back to the exported defaults. When
+## the move's effect carries the hit (tuning damage 0), the box just deals nothing.
+func _strike(move: Move, seg: int = 0) -> void:
 	if _attack_hitbox == null:
 		return
-	var a := _attack(kind, seg)
-	_attack_hitbox.damage = a.get("damage", attack_damage if kind == "light" else heavy_damage)
+	var a := move.segment(seg)
+	_attack_hitbox.damage = a.get("damage", attack_damage if move.kind == "attack" else special_damage)
 	_attack_hitbox.knockback = a.get("knockback", 0.0)
 	_attack_hitbox.stun = a.get("stun", 0.0)
 	_attack_hitbox.status_color = a.get("color", Color(0, 0, 0, 0))
@@ -304,14 +313,14 @@ func _on_hurt(hit: Hit) -> void:
 		_status.show_for(hit.status_color, hit.status_time)
 
 
-# Land the heavy on its authored strike frame (hit_frames metadata), or, if the
+# Land the special on its authored strike frame (hit_frames metadata), or, if the
 # character didn't author one, on the middle frame as a sensible default.
 func _on_frame_changed() -> void:
-	if _state == State.HEAVY_ATTACK:
-		if _sprite.frame == _heavy_strike_frame():
-			_strike("heavy")
+	if _state == State.SPECIAL:
+		if _sprite.frame == _special_strike_frame():
+			_strike(_current_special)
 			if _ability != null:
-				_ability.on_heavy_strike(self)
+				_ability.on_special_strike(self)
 		return
 	# Bounded loop: when a looping animation has a `loop_to`, snap back to
 	# `loop_from` the moment playback steps past it, so the cycle stays inside the
@@ -322,12 +331,12 @@ func _on_frame_changed() -> void:
 		_sprite.set_frame_and_progress(maxi(_loop_meta(&"loop_from"), 0), 0.0)
 
 
-func _heavy_strike_frame() -> int:
-	var hits := AnimMeta.hit_frames(_sprite.sprite_frames, &"heavy_attack")
+func _special_strike_frame() -> int:
+	var hits := AnimMeta.hit_frames(_sprite.sprite_frames, _current_special.animation)
 	if not hits.is_empty():
 		return int(hits[0])
 	@warning_ignore("integer_division")
-	return _sprite.sprite_frames.get_frame_count(&"heavy_attack") / 2
+	return _sprite.sprite_frames.get_frame_count(_current_special.animation) / 2
 
 
 ## Add `amount` to health (setter clamps to max_health).
@@ -368,8 +377,8 @@ func _physics_process(delta: float) -> void:
 		_process_dash(delta)
 	elif _state == State.ATTACK:
 		_process_attack(delta)
-	elif _state == State.HEAVY_ATTACK:
-		_process_heavy_attack(delta)
+	elif _state == State.SPECIAL:
+		_process_special(delta)
 	elif _state == State.LAND:
 		_process_land(delta)
 	else:
@@ -435,8 +444,8 @@ func _process_normal(delta: float) -> void:
 		_face_mouse()  # standing still: turn to look toward the cursor
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
-	if Input.is_action_just_pressed("heavy_attack"):
-		_start_heavy()  # supersedes any light chain in progress
+	if Input.is_action_just_pressed("special"):
+		_start_special()  # supersedes any light chain in progress
 		return
 	if Input.is_action_just_pressed("attack"):
 		_advance_combo()
@@ -444,10 +453,12 @@ func _process_normal(delta: float) -> void:
 	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
 		_enter(State.DASH)
 		return
+	# Tap `drop` (down by default) to fall through the one-way platform you're
+	# standing on (a no-op on the solid floor). Jump is just jump.
+	if Input.is_action_just_pressed("drop") and is_on_floor():
+		_drop_through_platform()
 	if Input.is_action_just_pressed("jump") and is_on_floor():
-		# Down + jump on a one-way platform drops through it instead of jumping.
-		if not (Input.is_action_pressed("move_down") and _drop_through_platform()):
-			velocity.y = jump_velocity
+		velocity.y = jump_velocity
 
 	if not is_on_floor():
 		_state = State.JUMP
@@ -488,8 +499,8 @@ func _process_land(delta: float) -> void:
 		_state = State.JUMP
 		return
 
-	if Input.is_action_just_pressed("heavy_attack"):
-		_start_heavy()
+	if Input.is_action_just_pressed("special"):
+		_start_special()
 		return
 	if Input.is_action_just_pressed("attack"):
 		_advance_combo()
@@ -522,11 +533,11 @@ func _process_attack(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
-	# A heavy pressed any time during the swing is remembered and fires the moment
-	# the current hit lands -- so a fast light->heavy always cancels into the heavy
+	# A special pressed any time during the swing is remembered and fires the moment
+	# the current hit lands -- so a fast light->special always cancels into the special
 	# instead of the press being swallowed by the recovery frames.
-	if Input.is_action_just_pressed("heavy_attack"):
-		_buffered_heavy = true
+	if Input.is_action_just_pressed("special"):
+		_buffered_special = true
 
 	if _combo_playing:
 		# Animate through the segment; freeze on the hit frame once reached.
@@ -537,16 +548,16 @@ func _process_attack(delta: float) -> void:
 			_combo_playing = false
 			_recovery_left = attack_recovery
 			_combo_window = combo_reset_time
-			_strike("light", _combo_step - 1)  # this segment connects (0-based)
-			if _buffered_heavy:  # cancel straight into the buffered heavy
-				_start_heavy()
+			_strike(_current_attack, _combo_step - 1)  # this segment connects (0-based)
+			if _buffered_special:  # cancel straight into the buffered special
+				_start_special()
 		return
 
 	# Briefly hold the hit frame, then hand control back to idle. The chain
 	# window keeps ticking there (see _physics_process), so you can still combo
 	# after recovering -- the freeze doesn't have to outlast the whole window.
-	if _buffered_heavy:
-		_start_heavy()
+	if _buffered_special:
+		_start_special()
 		return
 	if Input.is_action_just_pressed("attack"):
 		_advance_combo()
@@ -557,20 +568,20 @@ func _process_attack(delta: float) -> void:
 		_enter(State.IDLE)
 
 
-## Commit to a heavy swing, clearing any light combo in progress. Shared by the
+## Commit to a special swing, clearing any light combo in progress. Shared by the
 ## normal/land states and by a light-attack cancel (see _process_attack).
-func _start_heavy() -> void:
-	_face_mouse()  # aim the heavy toward the cursor
+func _start_special() -> void:
+	_face_mouse()  # aim the special toward the cursor
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
-	_buffered_heavy = false
-	_enter(State.HEAVY_ATTACK)
+	_buffered_special = false
+	_enter(State.SPECIAL)
 
 
-## Unlike the light combo, a heavy swing is committed: it plays the whole
+## Unlike the light combo, a special swing is committed: it plays the whole
 ## animation, ignores input, and ends via _on_animation_finished().
-func _process_heavy_attack(delta: float) -> void:
+func _process_special(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 	if not is_on_floor():
 		velocity.y += gravity * delta
@@ -585,7 +596,7 @@ func _advance_combo() -> void:
 	var hits := _attack_hits()
 	if hits.is_empty():
 		return
-	_buffered_heavy = false  # each swing starts with a clean buffer
+	_buffered_special = false  # each swing starts with a clean buffer
 
 	if _combo_window <= 0.0 or _combo_step >= hits.size():
 		_combo_step = 0  # cold start, or wrap after the finisher
@@ -604,10 +615,10 @@ func _advance_combo() -> void:
 ## Emitted frame indices that end each combo segment. From the SpriteFrames
 ## `hit_frames` metadata (written by the generator); falls back to every frame.
 func _attack_hits() -> Array:
-	var hits := AnimMeta.hit_frames(_sprite.sprite_frames, &"attack")
+	var hits := AnimMeta.hit_frames(_sprite.sprite_frames, _current_attack.animation)
 	if not hits.is_empty():
 		return hits
-	return range(_sprite.sprite_frames.get_frame_count(&"attack"))
+	return range(_sprite.sprite_frames.get_frame_count(_current_attack.animation))
 
 
 func _enter(state: State) -> void:
@@ -636,8 +647,8 @@ func _animation_for(state: State) -> StringName:
 		State.RUN: return &"run"
 		State.JUMP: return &"jump"
 		State.DASH: return &"dash"
-		State.ATTACK: return &"attack"
-		State.HEAVY_ATTACK: return &"heavy_attack"
+		State.ATTACK: return _current_attack.animation
+		State.SPECIAL: return _current_special.animation
 		State.LAND: return &"land"
 		_: return &"idle"
 
@@ -686,6 +697,6 @@ func _loop_meta(key: StringName) -> int:
 
 func _on_animation_finished() -> void:
 	# Light attack is a paused single frame and jump holds its last frame, so
-	# only dash, the heavy swing, and the landing squash end on playback finishing.
-	if _state == State.DASH or _state == State.HEAVY_ATTACK or _state == State.LAND:
+	# only dash, the special swing, and the landing squash end on playback finishing.
+	if _state == State.DASH or _state == State.SPECIAL or _state == State.LAND:
 		_enter(State.IDLE)

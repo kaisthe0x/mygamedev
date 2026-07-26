@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xo6yvg4fsyd1"
-path="res://.godot/imported/khalid_heavy_attack_frames.png-fee526b3f6a4a530953805b9a4413d0c.ctex"
+uid="uid://da0427pe7syxo"
+path="res://.godot/imported/lenbondosen_attack_finger_guns_frames.png-3215246ef0cf7a9ebc6d4caddbc2e7b3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/khalid/khalid_heavy_attack_frames.png"
-dest_files=["res://.godot/imported/khalid_heavy_attack_frames.png-fee526b3f6a4a530953805b9a4413d0c.ctex"]
+source_file="res://sprites/characters/lenbondosen/lenbondosen_attack_finger_guns_frames.png"
+dest_files=["res://.godot/imported/lenbondosen_attack_finger_guns_frames.png-3215246ef0cf7a9ebc6d4caddbc2e7b3.ctex"]
 
 [params]
 

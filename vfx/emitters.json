@@ -21,13 +21,21 @@
   "lenbondosen": {
     "idle": [
       {
-        "type": "heavy_ready",
+        "type": "special_ready",
         "mode": "sustained",
         "frames": "all",
         "pos": [0, -1]
       }
     ],
-    "attack": [
+    "attack_finger_guns": [
+      {
+        "type": "finger_guns",
+        "mode": "burst",
+        "frames": [2, 4, 7],
+        "pos": [16, -18]
+      }
+    ],
+    "attack_mouth_blast": [
       {
         "type": "mouth_blast",
         "mode": "sustained",
@@ -35,11 +43,11 @@
         "pos": [9, -26]
       }
     ],
-    "heavy_attack": [
+    "special_poison_raiser": [
       {
-        "type": "heavy",
+        "type": "poison_raiser",
         "mode": "burst",
-        "frames": [5],
+        "frames": [4],
         "pos": [0, 0],
         "clip_to_ground": true
       }
@@ -72,7 +80,7 @@
   "katalyst": {
     "idle": [
       {
-        "type": "heavy_ready",
+        "type": "special_ready",
         "mode": "sustained",
         "frames": "all",
         "pos": [0, 0]
@@ -100,9 +108,9 @@
         "pos": [12, -18]
       }
     ],
-    "heavy_attack": [
+    "special_stomp": [
       {
-        "type": "heavy",
+        "type": "special_stomp",
         "mode": "burst",
         "frames": [3],
         "pos": [0, 0],

@@ -4,7 +4,9 @@ extends SceneTree
 ## full animation set, and normalises to one shared canvas.
 ##   godot --headless --script tools/verify_frames.gd
 
-const EXPECTED := ["idle", "run", "jump", "dash", "attack", "heavy_attack"]
+# The base anims every character shares. Attacks/specials are named per character
+# now (see configs/moves.gd), so they aren't required here.
+const EXPECTED := ["idle", "run", "jump", "dash", "attack"]
 
 
 func _init() -> void:

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://sfvlrbuohejc"
-path="res://.godot/imported/lenbondosen_heavy_attack_frames.png-ddc16fb61e4955000c412dafc01c7999.ctex"
+uid="uid://i30dxfevap5n"
+path="res://.godot/imported/lenbondosen_special_poison_raiser_frames.png-3da42050d6497e01f2dcf9cca091201b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/lenbondosen/lenbondosen_heavy_attack_frames.png"
-dest_files=["res://.godot/imported/lenbondosen_heavy_attack_frames.png-ddc16fb61e4955000c412dafc01c7999.ctex"]
+source_file="res://sprites/characters/lenbondosen/lenbondosen_special_poison_raiser_frames.png"
+dest_files=["res://.godot/imported/lenbondosen_special_poison_raiser_frames.png-3da42050d6497e01f2dcf9cca091201b.ctex"]
 
 [params]
 

@@ -27,7 +27,7 @@ Each unified a pattern the codebase had copied several times:
 - **`Nodes.place_at`** ← `global_position = x; reset_physics_interpolation()` in 4
   places (respawn/camera, projectile spawn, burst spawn, beam spawn).
 - **`AnimMeta.hit_frames`** ← three near-identical `has_meta("hit_frames")` reads
-  (player combo + heavy strike, enemy attack timing).
+  (player combo + special strike, enemy attack timing).
 - **`MathUtil.clip_band` / `scale_min_max_pair`** ← moved out of the particle director
   so they're reusable and testable in isolation.
 

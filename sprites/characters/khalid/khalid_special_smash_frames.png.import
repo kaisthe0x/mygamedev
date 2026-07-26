@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpl75r38pmyjo"
-path="res://.godot/imported/katalyst_heavy_attack_frames.png-315276b830f213a235f8d4d51a848f25.ctex"
+uid="uid://xo6yvg4fsyd1"
+path="res://.godot/imported/khalid_special_smash_frames.png-8e0fa1e116a30613900a743122319be9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/katalyst/katalyst_heavy_attack_frames.png"
-dest_files=["res://.godot/imported/katalyst_heavy_attack_frames.png-315276b830f213a235f8d4d51a848f25.ctex"]
+source_file="res://sprites/characters/khalid/khalid_special_smash_frames.png"
+dest_files=["res://.godot/imported/khalid_special_smash_frames.png-8e0fa1e116a30613900a743122319be9.ctex"]
 
 [params]
 

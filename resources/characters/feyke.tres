@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://cyas7agq3awoi" path="res://sprites/characters/feyke/feyke_jump_frames.png" id="3_jump"]
 [ext_resource type="Texture2D" uid="uid://bnnrleijtik1v" path="res://sprites/characters/feyke/feyke_dash_frames.png" id="4_dash"]
 [ext_resource type="Texture2D" uid="uid://d0frapsllbtl7" path="res://sprites/characters/feyke/feyke_attack_frames.png" id="5_attack"]
-[ext_resource type="Texture2D" uid="uid://pg1neklkdaj1" path="res://sprites/characters/feyke/feyke_heavy_attack_frames.png" id="6_heavy_attack"]
+[ext_resource type="Texture2D" uid="uid://pg1neklkdaj1" path="res://sprites/characters/feyke/feyke_special_slam_frames.png" id="6_special_slam"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -142,34 +142,34 @@ atlas = ExtResource("5_attack")
 region = Rect2(896, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="heavy_attack_1"]
-atlas = ExtResource("6_heavy_attack")
+[sub_resource type="AtlasTexture" id="special_slam_1"]
+atlas = ExtResource("6_special_slam")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="heavy_attack_2"]
-atlas = ExtResource("6_heavy_attack")
+[sub_resource type="AtlasTexture" id="special_slam_2"]
+atlas = ExtResource("6_special_slam")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="heavy_attack_3"]
-atlas = ExtResource("6_heavy_attack")
+[sub_resource type="AtlasTexture" id="special_slam_3"]
+atlas = ExtResource("6_special_slam")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="heavy_attack_4"]
-atlas = ExtResource("6_heavy_attack")
+[sub_resource type="AtlasTexture" id="special_slam_4"]
+atlas = ExtResource("6_special_slam")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="heavy_attack_5"]
-atlas = ExtResource("6_heavy_attack")
+[sub_resource type="AtlasTexture" id="special_slam_5"]
+atlas = ExtResource("6_special_slam")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [resource]
 metadata/hit_frames = {"attack": [1, 2, 6]}
-metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "dash": 1, "attack": 1, "heavy_attack": 1}
+metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "dash": 1, "attack": 1, "special_slam": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -279,21 +279,21 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("heavy_attack_1")
+"texture": SubResource("special_slam_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("heavy_attack_2")
+"texture": SubResource("special_slam_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("heavy_attack_3")
+"texture": SubResource("special_slam_3")
 }, {
 "duration": 1.0,
-"texture": SubResource("heavy_attack_4")
+"texture": SubResource("special_slam_4")
 }, {
 "duration": 1.0,
-"texture": SubResource("heavy_attack_5")
+"texture": SubResource("special_slam_5")
 }],
 "loop": false,
-"name": &"heavy_attack",
+"name": &"special_slam",
 "speed": 10.0
 }]

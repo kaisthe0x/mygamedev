@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bb88kas0htnf"
-path="res://.godot/imported/wayna_heavy_attack_frames.png-9c13145ff79d197f9e36bdfb851d136f.ctex"
+uid="uid://5o4612mbj8nu"
+path="res://.godot/imported/lenbondosen_attack_mouth_blast_frames.png-4a5148500740e72483212f0d7d494d46.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/wayna/wayna_heavy_attack_frames.png"
-dest_files=["res://.godot/imported/wayna_heavy_attack_frames.png-9c13145ff79d197f9e36bdfb851d136f.ctex"]
+source_file="res://sprites/characters/lenbondosen/lenbondosen_attack_mouth_blast_frames.png"
+dest_files=["res://.godot/imported/lenbondosen_attack_mouth_blast_frames.png-4a5148500740e72483212f0d7d494d46.ctex"]
 
 [params]
 

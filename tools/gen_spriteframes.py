@@ -42,7 +42,7 @@ CHARACTER_ANIMS = {
     "land": (12.0, False),   # brief touchdown squash; plays once, then idle/run
     "dash": (12.0, False),
     "attack": (12.0, False),
-    "heavy_attack": (10.0, False),
+    "special": (10.0, False),
 }
 ENEMY_ANIMS = {
     "idle": (6.0, True),
@@ -54,6 +54,20 @@ GROUPS = {
     "characters": CHARACTER_ANIMS,
     "enemies": ENEMY_ANIMS,
 }
+
+
+def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
+    """(fps, loop) for `anim`. Base anims use their entry; named variants inherit
+    by prefix -- attack_* like `attack`, special_* like a special --
+    so a character can add attack_finger_guns / special_poison_raiser sheets with
+    no config and they play at the right speed."""
+    if anim in base:
+        return base[anim]
+    if anim.startswith("attack"):
+        return base.get("attack", (12.0, False))
+    if anim.startswith("special"):
+        return base.get("special", (10.0, False))
+    return (10.0, False)
 
 # Frame 0 of every sheet is a static idle-reference pose the artist includes so
 # the animation lines up with idle. It is the alignment anchor (see Sheet.bias),
@@ -78,10 +92,10 @@ GROUPS = {
 # same numbering as HIT_FRAMES. Anything not listed here uses the ANIMS default.
 OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 4 frames read as a snap; let the final pose sit instead of speeding up.
-    ("khalid", "heavy_attack"): {"hold_last": 2.5},
+    ("khalid", "special_smash"): {"hold_last": 2.5},
     # 8 and 9 frames respectively -- too slow at 10 fps.
-    ("lenbondosen", "heavy_attack"): {"fps": 13.0},
-    ("wayna", "heavy_attack"): {"fps": 16.0},
+    ("lenbondosen", "special_poison_raiser"): {"fps": 13.0},
+    ("wayna", "special_burst"): {"fps": 16.0},
     # Sheet frames 1-4 are the launch (lean, ignite); 5-9 are sustained flight,
     # so only the tail should cycle while she keeps running.
     ("wayna", "run"): {"loop_from": 5},
@@ -98,13 +112,20 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     # Katalyst's 11-frame swing is a 3-hit combo: a forward whip-reach (2), the
     # spinning energy AoE at its peak (6), and the extended finishing strike (10).
     ("katalyst", "attack"): [2, 6, 10],
-    # Heavy: wind-up, lunge, then the long ground-energy blast lands on frame 3.
-    ("katalyst", "heavy_attack"): [3],
+    # Special: wind-up, lunge, then the long ground-energy blast lands on frame 3.
+    ("katalyst", "special_stomp"): [3],
     # Lenny's 14-frame swing is a 3-hit combo: the blue hammer thrust at full
     # impact (8), then the energy burst as it forms (12) and blooms (13, last).
     ("lenbondosen", "attack"): [8, 12, 13],
-    # Heavy: the energy barbell is swung out around frame 5.
-    ("lenbondosen", "heavy_attack"): [5],
+    # --- Lenny's NEW named moves (tune these to the art) ---
+    # Finger guns: the hit frame is the LAST one so one press plays the whole
+    # animation; the shots themselves fire from emitters.json at frames 2/4/7 and
+    # carry the hits (the melee box is 0 damage). So this is really "play to the end".
+    ("lenbondosen", "attack_finger_guns"): [7],
+    # Mouth-blast combo: three hits across the swing.
+    ("lenbondosen", "attack_mouth_blast"): [3, 6, 9],
+    # Poison raiser (special): the blast lands on frame 4.
+    ("lenbondosen", "special_poison_raiser"): [4],
     # Kebus swings connect on sheet frame 3 (the 4th frame).
     ("kebus", "melee_attack"): [3],
     # Baghel emits his ground surge on the last frame (sheet index 6 = "frame 7",
@@ -204,12 +225,19 @@ def process_group(group: str, anims: dict) -> None:
 
     for char in characters:
         sheets[char] = {}
-        for anim in anims:
-            png = src_dir / char / f"{char}_{anim}_frames.png"
-            if not png.exists():
-                print(f"  ! {char}: missing {anim} sheet, skipping", file=sys.stderr)
-                continue
-            sheets[char][anim] = Sheet(png)
+        # Discover every <char>_<anim>_frames.png. Base anims come first in their
+        # canonical order (idle first = the default animation); named attack_* then
+        # special_* sheets follow. So a character can carry several attacks/specials.
+        globbed: dict[str, Path] = {}
+        for png in (src_dir / char).glob(f"{char}_*_frames.png"):
+            globbed[png.name[len(char) + 1:-len("_frames.png")]] = png
+        base_order = [a for a in anims if a in globbed]
+        extras = [a for a in globbed if a not in anims]
+        attacks = sorted(a for a in extras if a.startswith("attack"))
+        specials = sorted(a for a in extras if a.startswith("special"))
+        rest = sorted(a for a in extras if a not in attacks and a not in specials)
+        for anim in base_order + attacks + specials + rest:
+            sheets[char][anim] = Sheet(globbed[anim])
 
     all_sheets = [s for per_char in sheets.values() for s in per_char.values()]
     if not all_sheets:
@@ -259,7 +287,7 @@ def process_group(group: str, anims: dict) -> None:
         # sheet-frame numbers the artist sees and the player converts.
         sheet_starts: dict[str, int] = {}
         for idx, (anim, sheet) in enumerate(per_char.items(), start=1):
-            fps, loop = anims[anim]
+            fps, loop = anim_timing(anim, anims)
             tweak = OVERRIDES.get((char, anim), {})
             fps = tweak.get("fps", fps)
             hold_last = tweak.get("hold_last", 1.0)
