@@ -608,7 +608,7 @@ func _advance_combo() -> void:
 	_combo_playing = true
 	_enter(State.ATTACK)
 	_sprite.speed_scale = 1.0
-	_sprite.play(&"attack")
+	_sprite.play(_current_attack.animation)
 	_sprite.set_frame_and_progress(seg_start, 0.0)
 
 

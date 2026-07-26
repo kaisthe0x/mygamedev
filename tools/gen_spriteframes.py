@@ -111,19 +111,19 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("feyke", "attack"): [2, 3, 7],
     # Katalyst's 11-frame swing is a 3-hit combo: a forward whip-reach (2), the
     # spinning energy AoE at its peak (6), and the extended finishing strike (10).
-    ("katalyst", "attack"): [2, 6, 10],
+    ("katalyst", "attack_rope_dart_dance"): [2, 6, 10],
     # Special: wind-up, lunge, then the long ground-energy blast lands on frame 3.
-    ("katalyst", "special_stomp"): [3],
+    ("katalyst", "special_double_pierce"): [3],
     # Lenny's 14-frame swing is a 3-hit combo: the blue hammer thrust at full
     # impact (8), then the energy burst as it forms (12) and blooms (13, last).
     ("lenbondosen", "attack"): [8, 12, 13],
     # --- Lenny's NEW named moves (tune these to the art) ---
-    # Finger guns: the hit frame is the LAST one so one press plays the whole
-    # animation; the shots themselves fire from emitters.json at frames 2/4/7 and
-    # carry the hits (the melee box is 0 damage). So this is really "play to the end".
-    ("lenbondosen", "attack_finger_guns"): [7],
+    # Finger guns: a 3-shot combo -- one shot per click, each segment ending on a
+    # fire frame (2, 4, 7). The shots fire from emitters.json on those same frames
+    # and carry the hits (the melee box is 0 damage).
+    ("lenbondosen", "attack_finger_guns"): [2, 4, 7],
     # Mouth-blast combo: three hits across the swing.
-    ("lenbondosen", "attack_mouth_blast"): [3, 6, 9],
+    ("lenbondosen", "special_mouth_blast"): [3, 6, 9],
     # Poison raiser (special): the blast lands on frame 4.
     ("lenbondosen", "special_poison_raiser"): [4],
     # Kebus swings connect on sheet frame 3 (the 4th frame).
@@ -140,7 +140,7 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
 # HIT_FRAMES / loop_from. This is the general form of OVERRIDES' `hold_last` (which
 # is just "the last frame"); a value set here wins over hold_last for that frame.
 FRAME_DURATIONS: dict[tuple[str, str], dict[int, float]] = {
-    # e.g. ("katalyst", "attack"): {6: 2.0, 10: 1.5}  # linger on the AoE + finisher
+    # e.g. ("katalyst", "attack_rope_dart_dance"): {6: 2.0, 10: 1.5}  # linger on the AoE + finisher
 }
 
 

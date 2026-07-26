@@ -45,8 +45,8 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-## The nearest enemy roughly ahead of the shot (positive dot with the aim) within
-## acquire_range, or null -- then it just flies straight.
+## The aim node for the nearest enemy roughly ahead of the shot (positive dot with
+## the aim) within acquire_range, or null -- then it just flies straight.
 func _nearest_enemy_ahead() -> Node2D:
 	var best: Node2D
 	var best_d := acquire_range
@@ -61,4 +61,18 @@ func _nearest_enemy_ahead() -> Node2D:
 		if d < best_d:
 			best_d = d
 			best = n
-	return best
+	return _aim_point(best)
+
+
+## What the shot homes to for `enemy`: its hurtbox's centre (the torso) so shots
+## land on the body, not the node origin which sits at the enemy's feet. Falls back
+## to the enemy itself. Returns a live node so homing tracks it as the enemy moves.
+func _aim_point(enemy: Node2D) -> Node2D:
+	if enemy == null:
+		return null
+	for a in enemy.find_children("*", "Area2D", true, false):
+		if a is Hurtbox:
+			var shape := (a as Node).find_children("*", "CollisionShape2D", true, false)
+			if not shape.is_empty():
+				return shape[0]
+	return enemy

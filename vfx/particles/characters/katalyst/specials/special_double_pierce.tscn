@@ -12,9 +12,9 @@ point_count = 3
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_heavy"]
 size = Vector2(170, 22)
 
-[node name="Heavy" type="Node2D" unique_id=377016795]
+[node name="SpecialDoublePierce" type="Node2D" unique_id=377016795]
 
-[node name="Stab" type="CPUParticles2D" parent="." unique_id=489457670]
+[node name="PierceRight" type="CPUParticles2D" parent="." unique_id=489457670]
 position = Vector2(44, -15)
 amount = 200
 texture = ExtResource("1_fn1m8")
@@ -27,7 +27,7 @@ gravity = Vector2(0, 0)
 initial_velocity_max = 115.67
 scale_amount_curve = SubResource("Curve_1d3nn")
 
-[node name="Energy" type="CPUParticles2D" parent="Stab" unique_id=877637681]
+[node name="Energy" type="CPUParticles2D" parent="PierceRight" unique_id=877637681]
 position = Vector2(0, 1)
 amount = 200
 texture = ExtResource("2_q8s51")
@@ -42,7 +42,7 @@ angle_min = -90.0
 angle_max = -90.0
 scale_amount_curve = SubResource("Curve_1d3nn")
 
-[node name="Stab2" type="CPUParticles2D" parent="." unique_id=706632901]
+[node name="PierceLeft" type="CPUParticles2D" parent="." unique_id=706632901]
 position = Vector2(-44, -15)
 rotation = 3.1415927
 amount = 200
@@ -58,7 +58,7 @@ angle_min = -90.0
 angle_max = -90.0
 scale_amount_curve = SubResource("Curve_1d3nn")
 
-[node name="Energy" type="CPUParticles2D" parent="Stab2" unique_id=963551667]
+[node name="Energy" type="CPUParticles2D" parent="PierceLeft" unique_id=963551667]
 position = Vector2(0, 1)
 amount = 200
 texture = ExtResource("2_q8s51")

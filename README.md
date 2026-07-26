@@ -106,7 +106,7 @@ Consequences worth knowing:
 - Frame indices in `OVERRIDES` / `HIT_FRAMES` are **sheet-relative** (they count
   frame 0); the generator subtracts 1 to get the emitted index the player sees.
 - An action sheet needs at least 2 frames (idle-ref + one real frame).
-- Anything tied to a specific played frame — e.g. katalyst's stomp `WIND_UP` —
+- Anything tied to a specific played frame — e.g. katalyst's double_pierce `WIND_UP` —
   is expressed in emitted indices and must be retimed if the layout changes.
 
 Normalisation is stored as `AtlasTexture.margin`, so **no images are rewritten

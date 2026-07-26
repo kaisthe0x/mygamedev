@@ -288,12 +288,12 @@ Pick the layer by *what the effect is*:
    - `on_special_strike(player)` — the moment the special connects; spawn a beam /
      projectile / shockwave here (`add_child` → position → **`reset_physics_interpolation()`**
      → `fire()`).
-   - `physics(player, delta)` — per-frame movement/state override (Katalyst's stomp).
+   - `physics(player, delta)` — per-frame movement/state override (Katalyst's special).
    - `setup(player)` — one-time on equip.
    - **New laser:** inherit `vfx/laser/laser_beam.tscn` → `vfx/laser/laser_beam_<id>.tscn`,
      swap Core texture/colours/swirls, then `preload` + `fire(dir)` from the ability.
 
-> Only the **special** has an on-strike ability hook today; light-attack VFX go
+> Only the **special** has an on-stArike ability hook today; light-attack VFX go
 > through `emitters.json` (frame-indexed). Want an `on_light_strike` (or a generic
 > `on_strike(kind, seg)`) hook for light-attack specials? It's a one-line add to
 > `player._on_frame_changed` / `_process_attack` — ask and I'll wire it.

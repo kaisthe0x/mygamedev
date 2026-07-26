@@ -1,19 +1,27 @@
 [gd_scene format=3 uid="uid://camhdg7pdiwdl"]
 
-[ext_resource type="Texture2D" uid="uid://bu2rwpipm6klk" path="res://vfx/particles/characters/katalyst/textures/basic-texture.png" id="1_ytmb2"]
+[sub_resource type="Gradient" id="Gradient_w65oc"]
+offsets = PackedFloat32Array(0, 0.6027944)
+colors = PackedColorArray(0.7735731, 0.03876, 0.03876, 1, 0.13333334, 0.13333334, 0.13333334, 1)
 
-[sub_resource type="Curve" id="Curve_1lwrq"]
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_w65oc"]
+gradient = SubResource("Gradient_w65oc")
+
+[sub_resource type="Curve" id="Curve_ytmb2"]
 _data = [Vector2(0, 0.3271889), 0.0, 0.0, 0, 0, Vector2(0.06309751, 0.2488479), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.19354838), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.04147458), 0.0, 0.0, 0, 0]
 point_count = 4
 
 [node name="RunAura" type="Node2D" unique_id=1959900955]
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=404252249]
-position = Vector2(-11, -15)
-amount = 45
-texture = ExtResource("1_ytmb2")
-lifetime = 0.3
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=444618323]
+position = Vector2(-31, -19)
+amount = 40
+texture = SubResource("GradientTexture1D_w65oc")
+lifetime = 0.6
 emission_shape = 1
-emission_sphere_radius = 16.36
-gravity = Vector2(300, 0)
-scale_amount_curve = SubResource("Curve_1lwrq")
+emission_sphere_radius = 12.54
+direction = Vector2(0, 0)
+gravity = Vector2(0, 0)
+scale_amount_min = 0.2
+scale_amount_max = 0.5
+scale_amount_curve = SubResource("Curve_ytmb2")

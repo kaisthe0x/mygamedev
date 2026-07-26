@@ -6,7 +6,7 @@ extends SceneTree
 
 # The base anims every character shares. Attacks/specials are named per character
 # now (see configs/moves.gd), so they aren't required here.
-const EXPECTED := ["idle", "run", "jump", "dash", "attack"]
+const EXPECTED := ["idle", "run", "jump", "dash"]
 
 
 func _init() -> void:

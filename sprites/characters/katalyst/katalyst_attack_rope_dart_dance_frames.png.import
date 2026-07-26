@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bhyfyybxa563s"
-path="res://.godot/imported/lenbondosen_attack_frames.png-0ee93332ae024876abbf15e50664a80a.ctex"
+uid="uid://cik1b3r7cvlh6"
+path="res://.godot/imported/katalyst_attack_rope_dart_dance_frames.png-a378f67927dff4f843a4342babc20685.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/lenbondosen/lenbondosen_attack_frames.png"
-dest_files=["res://.godot/imported/lenbondosen_attack_frames.png-0ee93332ae024876abbf15e50664a80a.ctex"]
+source_file="res://sprites/characters/katalyst/katalyst_attack_rope_dart_dance_frames.png"
+dest_files=["res://.godot/imported/katalyst_attack_rope_dart_dance_frames.png-a378f67927dff4f843a4342babc20685.ctex"]
 
 [params]
 

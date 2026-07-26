@@ -491,6 +491,7 @@ func _fire_frame() -> int:
 	var hits := _hit_frames(&"range_attack")
 	if not hits.is_empty():
 		return int(hits[0])
+	@warning_ignore("integer_division")
 	return maxi(1, _sprite.sprite_frames.get_frame_count(&"range_attack") / 2)
 
 

@@ -15,9 +15,6 @@ extends RefCounted
 ## + one "special" from their generic attack/special sheets -- so they keep
 ## working until they get named sheets.
 
-## Engulfing green cast used by Lenny's freezing jab.
-const STATUS_GREEN := Color(0.2, 1.0, 0.35, 1.0)
-
 const CATALOG := {
 	"khalid": {
 		"attacks": {"strike": {"animation": "attack", "tuning": {"damage": 16}}},
@@ -25,14 +22,14 @@ const CATALOG := {
 		"default_attack": "strike", "default_special": "smash",
 	},
 	"katalyst": {
-		"attacks": {"combo": {"animation": "attack", "tuning": [
+		"attacks": {"rope_dart_dance": {"animation": "attack_rope_dart_dance", "tuning": [
 			{"damage": 16, "x": 24.0, "extents": Vector2(22, 18)},  # whip-reach thrust
 			{"damage": 16, "x": 0.0, "extents": Vector2(32, 20)},   # spin: AoE around the body
 			{"damage": 16, "x": 28.0, "extents": Vector2(24, 18)},  # finishing lunge
 		]}},
-		"specials": {"stomp": {"animation": "special_stomp", "tuning":
+		"specials": {"double_pierce": {"animation": "special_double_pierce", "tuning":
 			{"damage": 44, "knockback": 160, "stun": 0.18, "x": 30.0, "extents": Vector2(34, 16)}}},
-		"default_attack": "combo", "default_special": "stomp",
+		"default_attack": "rope_dart_dance", "default_special": "double_pierce",
 	},
 	"wayna": {
 		"attacks": {"strike": {"animation": "attack", "tuning": {"damage": 13, "stun": 0.1}}},
@@ -46,20 +43,17 @@ const CATALOG := {
 	},
 	"lenbondosen": {
 		"attacks": {
-			# NEW: a forward shot. Its particle carries the hit (see emitters.json /
-			# finger_guns.tscn), so the melee box stands down (damage 0).
-			"finger_guns": {"animation": "attack_finger_guns", "effect": "finger_guns",
+			# A forward shot. Its particle carries the hit (attacks/attack_finger_guns.tscn),
+			# so the melee box stands down (damage 0).
+			"finger_guns": {"animation": "attack_finger_guns", "effect": "attack_finger_guns",
 				"tuning": {"damage": 0}},
-			# The hammer/energy combo, now its own named attack.
-			"mouth_blast": {"animation": "attack_mouth_blast", "effect": "mouth_blast", "tuning": [
-				{"damage": 14, "stun": 5.0, "color": STATUS_GREEN, "x": 30.0, "extents": Vector2(26, 18)},
-				{"damage": 12, "x": 0.0, "extents": Vector2(34, 20)},
-				{"damage": 18, "x": 0.0, "extents": Vector2(42, 26)},
-			]},
 		},
 		"specials": {
-			"poison_raiser": {"animation": "special_poison_raiser", "effect": "poison_raiser",
+			"poison_raiser": {"animation": "special_poison_raiser", "effect": "special_poison_raiser",
 				"tuning": {"damage": 30, "knockback": 150, "x": 0.0, "extents": Vector2(38, 24)}},
+			# Was an attack combo; now a single-strike special.
+			"mouth_blast": {"animation": "special_mouth_blast", "effect": "special_mouth_blast",
+				"tuning": {"damage": 20, "x": 0.0, "extents": Vector2(40, 26)}},
 		},
 		"default_attack": "finger_guns",     # <- Lenny's default attack
 		"default_special": "poison_raiser",  # <- Lenny's default special

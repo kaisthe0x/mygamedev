@@ -125,18 +125,23 @@ func _sheet_start(anim: String) -> int:
 	return 0
 
 
-## Where a `type` can live, most specific first. A type containing "/" is taken
-## as an explicit path under particles/ (e.g. "environment/water"); otherwise we
-## look in the character's own folder, then the shared one. The bare
-## particles/<type>.tscn is a legacy fallback from the flat layout.
+## Where a `type` can live, most specific first. A type containing "/" is taken as
+## an explicit path under particles/ (e.g. "environment/water"). Otherwise: move
+## effects are grouped into the character's attacks/ or specials/ subfolder (matched
+## by the type's `attack`/`special` prefix); everything else (auras, boosts) sits in
+## the character's own folder, then shared/, then the flat particles/ fallback.
 func _candidates(type: String) -> Array[String]:
 	if "/" in type:
 		return ["%s/%s.tscn" % [PARTICLE_DIR, type]]
-	return [
-		"%s/characters/%s/%s.tscn" % [PARTICLE_DIR, _character, type],
-		"%s/shared/%s.tscn" % [PARTICLE_DIR, type],
-		"%s/%s.tscn" % [PARTICLE_DIR, type],
-	]
+	var out: Array[String] = []
+	if type.begins_with("attack"):
+		out.append("%s/characters/%s/attacks/%s.tscn" % [PARTICLE_DIR, _character, type])
+	elif type.begins_with("special"):
+		out.append("%s/characters/%s/specials/%s.tscn" % [PARTICLE_DIR, _character, type])
+	out.append("%s/characters/%s/%s.tscn" % [PARTICLE_DIR, _character, type])
+	out.append("%s/shared/%s.tscn" % [PARTICLE_DIR, type])
+	out.append("%s/%s.tscn" % [PARTICLE_DIR, type])
+	return out
 
 
 ## Spawn an effect scene. Its root may be a single CPUParticles2D/GPUParticles2D,

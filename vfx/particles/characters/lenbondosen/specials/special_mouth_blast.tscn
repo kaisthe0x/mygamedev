@@ -14,7 +14,7 @@ point_count = 5
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_n7cfj"]
 size = Vector2(158.25, 40)
 
-[node name="MouthBlast" type="Node2D" unique_id=854757983]
+[node name="SpecialMouthBlast" type="Node2D" unique_id=854757983]
 
 [node name="Attack" type="CPUParticles2D" parent="." unique_id=1922641520]
 position = Vector2(21, 0)

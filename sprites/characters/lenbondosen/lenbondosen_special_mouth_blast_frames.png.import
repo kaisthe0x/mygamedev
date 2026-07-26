@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5o4612mbj8nu"
-path="res://.godot/imported/lenbondosen_attack_mouth_blast_frames.png-4a5148500740e72483212f0d7d494d46.ctex"
+uid="uid://bd88rmqyhe3vf"
+path="res://.godot/imported/lenbondosen_special_mouth_blast_frames.png-e004aa67175770b974884544e4193165.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/lenbondosen/lenbondosen_attack_mouth_blast_frames.png"
-dest_files=["res://.godot/imported/lenbondosen_attack_mouth_blast_frames.png-4a5148500740e72483212f0d7d494d46.ctex"]
+source_file="res://sprites/characters/lenbondosen/lenbondosen_special_mouth_blast_frames.png"
+dest_files=["res://.godot/imported/lenbondosen_special_mouth_blast_frames.png-e004aa67175770b974884544e4193165.ctex"]
 
 [params]
 

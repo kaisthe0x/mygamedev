@@ -5,8 +5,8 @@
 [ext_resource type="Texture2D" uid="uid://fjhlwckdhbnr" path="res://sprites/characters/katalyst/katalyst_jump_frames.png" id="3_jump"]
 [ext_resource type="Texture2D" uid="uid://c4m2uiav75n6e" path="res://sprites/characters/katalyst/katalyst_land_frames.png" id="4_land"]
 [ext_resource type="Texture2D" uid="uid://brvvhey0v1gs" path="res://sprites/characters/katalyst/katalyst_dash_frames.png" id="5_dash"]
-[ext_resource type="Texture2D" uid="uid://cwe3xsve01gki" path="res://sprites/characters/katalyst/katalyst_attack_frames.png" id="6_attack"]
-[ext_resource type="Texture2D" uid="uid://dpl75r38pmyjo" path="res://sprites/characters/katalyst/katalyst_special_stomp_frames.png" id="7_special_stomp"]
+[ext_resource type="Texture2D" uid="uid://cik1b3r7cvlh6" path="res://sprites/characters/katalyst/katalyst_attack_rope_dart_dance_frames.png" id="6_attack_rope_dart_dance"]
+[ext_resource type="Texture2D" uid="uid://band4u5vnkesr" path="res://sprites/characters/katalyst/katalyst_special_double_pierce_frames.png" id="7_special_double_pierce"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -163,76 +163,76 @@ atlas = ExtResource("5_dash")
 region = Rect2(1536, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_1"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_1"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_2"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_2"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_3"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_3"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_4"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_4"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_5"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_5"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_6"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_6"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_7"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_7"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(896, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_8"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_8"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(1024, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_9"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_9"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(1152, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_10"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_rope_dart_dance_10"]
+atlas = ExtResource("6_attack_rope_dart_dance")
 region = Rect2(1280, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="special_stomp_1"]
-atlas = ExtResource("7_special_stomp")
+[sub_resource type="AtlasTexture" id="special_double_pierce_1"]
+atlas = ExtResource("7_special_double_pierce")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="special_stomp_2"]
-atlas = ExtResource("7_special_stomp")
+[sub_resource type="AtlasTexture" id="special_double_pierce_2"]
+atlas = ExtResource("7_special_double_pierce")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="special_stomp_3"]
-atlas = ExtResource("7_special_stomp")
+[sub_resource type="AtlasTexture" id="special_double_pierce_3"]
+atlas = ExtResource("7_special_double_pierce")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [resource]
 metadata/loop_from = {"idle": 2}
 metadata/loop_to = {"idle": 8}
-metadata/hit_frames = {"attack": [1, 5, 9], "special_stomp": [2]}
-metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "land": 1, "dash": 1, "attack": 1, "special_stomp": 1}
+metadata/hit_frames = {"attack_rope_dart_dance": [1, 5, 9], "special_double_pierce": [2]}
+metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "land": 1, "dash": 1, "attack_rope_dart_dance": 1, "special_double_pierce": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -354,50 +354,50 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("attack_1")
+"texture": SubResource("attack_rope_dart_dance_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_2")
+"texture": SubResource("attack_rope_dart_dance_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_3")
+"texture": SubResource("attack_rope_dart_dance_3")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_4")
+"texture": SubResource("attack_rope_dart_dance_4")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_5")
+"texture": SubResource("attack_rope_dart_dance_5")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_6")
+"texture": SubResource("attack_rope_dart_dance_6")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_7")
+"texture": SubResource("attack_rope_dart_dance_7")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_8")
+"texture": SubResource("attack_rope_dart_dance_8")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_9")
+"texture": SubResource("attack_rope_dart_dance_9")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_10")
+"texture": SubResource("attack_rope_dart_dance_10")
 }],
 "loop": false,
-"name": &"attack",
+"name": &"attack_rope_dart_dance",
 "speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("special_stomp_1")
+"texture": SubResource("special_double_pierce_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("special_stomp_2")
+"texture": SubResource("special_double_pierce_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("special_stomp_3")
+"texture": SubResource("special_double_pierce_3")
 }],
 "loop": false,
-"name": &"special_stomp",
+"name": &"special_double_pierce",
 "speed": 10.0
 }]

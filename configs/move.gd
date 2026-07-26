@@ -23,11 +23,11 @@ var tuning: Variant = {}
 
 
 ## Build a Move from a catalog entry. `animation` defaults to "<kind>_<id>".
-static func make(kind: String, id: String, d: Dictionary) -> Move:
+static func make(move_kind: String, move_id: String, d: Dictionary) -> Move:
 	var m := Move.new()
-	m.kind = kind
-	m.id = id
-	m.animation = StringName(d.get("animation", "%s_%s" % [kind, id]))
+	m.kind = move_kind
+	m.id = move_id
+	m.animation = StringName(d.get("animation", "%s_%s" % [move_kind, move_id]))
 	m.effect = String(d.get("effect", ""))
 	m.tuning = d.get("tuning", {})
 	return m

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cwe3xsve01gki"
-path="res://.godot/imported/katalyst_attack_frames.png-5c71b480cda1d72ee12e5c56ee4ba9cf.ctex"
+uid="uid://band4u5vnkesr"
+path="res://.godot/imported/katalyst_special_double_pierce_frames.png-ce5ac18fa483bdced29e52415a631807.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/katalyst/katalyst_attack_frames.png"
-dest_files=["res://.godot/imported/katalyst_attack_frames.png-5c71b480cda1d72ee12e5c56ee4ba9cf.ctex"]
+source_file="res://sprites/characters/katalyst/katalyst_special_double_pierce_frames.png"
+dest_files=["res://.godot/imported/katalyst_special_double_pierce_frames.png-ce5ac18fa483bdced29e52415a631807.ctex"]
 
 [params]
 

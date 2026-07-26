@@ -10,7 +10,7 @@ point_count = 4
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_heavy"]
 size = Vector2(240, 41)
 
-[node name="Heavy" type="Node2D" unique_id=377016795]
+[node name="SpecialPoisonRaiser" type="Node2D" unique_id=377016795]
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=263019033]
 z_index = -1
