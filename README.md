@@ -4,7 +4,12 @@ A 2D pixel-art action platformer in **Godot 4.7**. One player controller drives
 any of five characters, which share an animation set and can be swapped at
 runtime.
 
+
 Main scene: `scenes/level.tscn`. Press F5 to run.
+
+> Potential names for the game:
+> - Index32
+> - Way of All Flesh
 
 ---
 
