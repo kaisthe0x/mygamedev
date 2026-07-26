@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://bha5uiegvvsbq" path="res://vfx/particles/characters/lenbondosen/textures/finger_guns_texture.png" id="1_isp27"]
 [ext_resource type="Script" uid="uid://bdph6djfjwdjn" path="res://scripts/combat/shot.gd" id="2_shot"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hitbox"]
+[ext_resource type="Texture2D" uid="uid://r3f41426ufjs" path="res://vfx/particles/characters/lenbondosen/textures/mouth_blast_texture.png" id="4_4678f"]
 
 [sub_resource type="Curve" id="Curve_ho6g8"]
 _data = [Vector2(0, 0.09216583), 0.0, 0.0, 0, 0, Vector2(0.33078393, 0.8341014), 0.0, 0.0, 0, 0, Vector2(0.99808794, 1), 0.0, 0.0, 0, 0]
@@ -15,10 +16,21 @@ point_count = 5
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fg"]
 size = Vector2(20, 18)
 
-[node name="AttackFingerGuns" type="Node2D" unique_id=413399442]
-script = ExtResource("2_shot")
+[sub_resource type="Curve" id="Curve_d5bof"]
+_data = [Vector2(0, 0.018433213), 0.0, 0.0, 0, 0, Vector2(0.46271512, 0.843318), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 3
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=373334685]
+[sub_resource type="Curve" id="Curve_1mml0"]
+_data = [Vector2(0.0057361387, 0.5207373), 0.0, 0.0, 0, 0, Vector2(0.32695982, 0.20982146), 0.0, 0.0, 0, 0, Vector2(0.67304015, 0.12053573), 0.0, 0.0, 0, 0, Vector2(0.8967495, 0.075892925), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v6g7s"]
+size = Vector2(28, 24)
+
+[node name="AttackFingerGuns" type="Node2D" unique_id=413399442]
+
+[node name="Shot" type="CPUParticles2D" parent="." unique_id=373334685]
+script = ExtResource("2_shot")
 amount = 1
 texture = ExtResource("1_isp27")
 local_coords = true
@@ -32,7 +44,7 @@ scale_amount_min = 0.45
 scale_amount_max = 0.45
 scale_amount_curve = SubResource("Curve_ho6g8")
 
-[node name="Trail" type="CPUParticles2D" parent="." unique_id=230449329]
+[node name="Trail" type="CPUParticles2D" parent="Shot" unique_id=230449329]
 amount = 20
 texture = ExtResource("1_isp27")
 lifetime = 1.5
@@ -48,12 +60,52 @@ scale_amount_min = 0.0
 scale_amount_max = 0.4
 scale_amount_curve = SubResource("Curve_bse0x")
 
-[node name="Hitbox" type="Area2D" parent="." unique_id=1331666724]
+[node name="Hitbox" type="Area2D" parent="Shot" unique_id=1331666724]
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("3_hitbox")
 damage = 16.0
 knockback = 70.0
 
-[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1274581335]
+[node name="Shape" type="CollisionShape2D" parent="Shot/Hitbox" unique_id=1274581335]
 shape = SubResource("RectangleShape2D_fg")
+
+[node name="ShotLast" type="CPUParticles2D" parent="." unique_id=1693922611]
+script = ExtResource("2_shot")
+amount = 1
+texture = ExtResource("4_4678f")
+lifetime = 0.8
+local_coords = true
+emission_shape = 3
+emission_rect_extents = Vector2(1, 1)
+spread = 0.0
+gravity = Vector2(0, 0)
+angle_min = -90.0
+angle_max = -90.0
+scale_amount_curve = SubResource("Curve_d5bof")
+
+[node name="Trail" type="CPUParticles2D" parent="ShotLast" unique_id=73727693]
+amount = 200
+texture = ExtResource("4_4678f")
+lifetime = 1.5
+emission_shape = 1
+emission_sphere_radius = 4.72
+spread = 0.0
+gravity = Vector2(0, 20)
+initial_velocity_min = 50.0
+initial_velocity_max = 50.0
+angle_min = -90.0
+angle_max = -90.0
+scale_amount_min = 0.55
+scale_amount_max = 0.55
+scale_amount_curve = SubResource("Curve_1mml0")
+
+[node name="Hitbox" type="Area2D" parent="ShotLast" unique_id=52999124]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("3_hitbox")
+damage = 24.0
+knockback = 110.0
+
+[node name="Shape" type="CollisionShape2D" parent="ShotLast/Hitbox" unique_id=122977730]
+shape = SubResource("RectangleShape2D_v6g7s")

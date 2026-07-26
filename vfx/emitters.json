@@ -1,37 +1,20 @@
 {
-  "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene name under particles/), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left), boost (optional intensity MULTIPLIERS on the scene's own values so one type can be reused at different power levels: amount, speed, scale, lifetime; plus explosiveness which is absolute 0-1). clip_to_ground (optional bool on a burst: clamp its rectangular emission band and hitbox to the edges of the platform directly underfoot, so a ground blast doesn't spill past the ledge into open air).",
+  "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene name under particles/), node (OPTIONAL: one named child of a 'palette' scene to fire on its own -- list the same type with different node values to schedule different children at different frames, e.g. attack_finger_guns's Shot on [2,4] and ShotLast on [7]; omit for the whole scene as before), set (OPTIONAL: per-row property overrides so one scene covers several variants without a clone -- keys are 'ChildPath:property', empty path = the spawned node itself, and a 'res://...' value is loaded as a Resource, e.g. {\"Trail:texture\": \"res://...\"}), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered -- also how a LaserBeam scene is fired: it self-orients, self-arms, self-frees), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left), boost (optional intensity MULTIPLIERS on the scene's own values so one type can be reused at different power levels: amount, speed, scale, lifetime; plus explosiveness which is absolute 0-1). clip_to_ground (optional bool on a burst: clamp its rectangular emission band and hitbox to the edges of the platform directly underfoot, so a ground blast doesn't spill past the ledge into open air).",
   "wayna": {
     "run": [
       {
         "type": "fire_spark",
         "mode": "sustained",
-        "frames": [
-          5,
-          6,
-          7,
-          8,
-          9
-        ],
-        "pos": [
-          -1,
-          -10
-        ]
+        "frames": [5, 6, 7, 8, 9],
+        "pos": [-1, -10]
       }
     ],
     "dash": [
       {
         "type": "fire_dash",
         "mode": "sustained",
-        "frames": [
-          3,
-          4,
-          5,
-          6
-        ],
-        "pos": [
-          -1,
-          -9
-        ]
+        "frames": [3, 4, 5, 6],
+        "pos": [-1, -9]
       }
     ]
   },
@@ -41,62 +24,39 @@
         "type": "special_ready",
         "mode": "sustained",
         "frames": "all",
-        "pos": [
-          0,
-          -1
-        ]
+        "pos": [0, -1]
       }
     ],
     "attack_finger_guns": [
       {
         "type": "attack_finger_guns",
+        "node": "Shot",
         "mode": "burst",
-        "frames": [
-          2,
-          4
-        ],
-        "pos": [
-          14,
-          -23
-        ]
+        "frames": [2, 4],
+        "pos": [14, -23]
       },
       {
-        "type": "attack_finger_guns_last",
+        "type": "attack_finger_guns",
+        "node": "ShotLast",
         "mode": "burst",
-        "frames": [
-          7
-        ],
-        "pos": [
-          11,
-          -18
-        ]
+        "frames": [7],
+        "pos": [11, -18]
       }
     ],
     "special_mouth_blast": [
       {
         "type": "special_mouth_blast",
         "mode": "sustained",
-        "frames": [
-          6,
-          7
-        ],
-        "pos": [
-          9,
-          -26
-        ]
+        "frames": [6, 7],
+        "pos": [9, -26]
       }
     ],
     "special_poison_raiser": [
       {
         "type": "special_poison_raiser",
         "mode": "burst",
-        "frames": [
-          4
-        ],
-        "pos": [
-          0,
-          0
-        ],
+        "frames": [4],
+        "pos": [0, 0],
         "clip_to_ground": true
       }
     ],
@@ -105,10 +65,7 @@
         "type": "run_aura",
         "mode": "sustained",
         "frames": "all",
-        "pos": [
-          0,
-          0
-        ]
+        "pos": [-17, -17]
       }
     ],
     "dash": [
@@ -116,26 +73,15 @@
         "type": "dash_boost",
         "mode": "sustained",
         "frames": "all",
-        "pos": [
-          0,
-          -3
-        ]
+        "pos": [0, -3]
       }
     ],
     "jump": [
       {
         "type": "jump_boost",
         "mode": "sustained",
-        "frames": [
-          0,
-          1,
-          2,
-          3
-        ],
-        "pos": [
-          0,
-          0
-        ]
+        "frames": [0, 1, 2, 3],
+        "pos": [0, 0]
       }
     ]
   },
@@ -145,10 +91,7 @@
         "type": "special_ready",
         "mode": "sustained",
         "frames": "all",
-        "pos": [
-          0,
-          0
-        ]
+        "pos": [0, 0]
       }
     ],
     "run": [
@@ -156,37 +99,31 @@
         "type": "run_aura",
         "mode": "sustained",
         "frames": "all",
-        "pos": [
-          0,
-          0
-        ]
+        "pos": [-17, -17]
+      }
+    ],
+	 "jump": [
+      {
+        "type": "jump_boost",
+        "mode": "sustained",
+        "frames": [0, 1, 2, 3],
+        "pos": [0, 0]
       }
     ],
     "attack_rope_dart_dance": [
       {
         "type": "attack_rope_dart_dance",
         "mode": "burst",
-        "frames": [
-          2,
-          10
-        ],
-        "pos": [
-          9,
-          -22
-        ]
+        "frames": [2, 10],
+        "pos": [9, -22]
       }
     ],
     "special_double_pierce": [
       {
         "type": "special_double_pierce",
         "mode": "burst",
-        "frames": [
-          3
-        ],
-        "pos": [
-          0,
-          0
-        ],
+        "frames": [3],
+        "pos": [0, 0],
         "clip_to_ground": true
       }
     ]

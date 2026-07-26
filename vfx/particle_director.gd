@@ -77,8 +77,9 @@ func set_character(id: String) -> void:
 			var type: String = row["type"]
 			var boost: Dictionary = row.get("boost", {})
 			if row.get("mode", "burst") == "sustained":
-				var node := _spawn(type)
+				var node := _spawn(type, row.get("node", ""))
 				if node != null:
+					_apply_overrides(node, row.get("set", {}))
 					var emitters := _emitters_of(node)
 					for em in emitters:
 						_boost(em, boost)
@@ -95,6 +96,7 @@ func set_character(id: String) -> void:
 			else:
 				_bursts.append({
 					"anim": anim, "frames": frames, "pos": pos, "type": type,
+					"node": row.get("node", ""), "set": row.get("set", {}),
 					"boost": boost, "clip_to_ground": row.get("clip_to_ground", false),
 				})
 	_refresh()
@@ -145,9 +147,18 @@ func _candidates(type: String) -> Array[String]:
 
 
 ## Spawn an effect scene. Its root may be a single CPUParticles2D/GPUParticles2D,
-## OR a Node2D grouping several of them (a composite attack). Rejected only if it
-## holds no particle emitters at all.
-func _spawn(type: String) -> Node2D:
+## OR a Node2D grouping several of them (a composite attack).
+##
+## `node_name` addresses ONE named child of a "palette" scene -- a scene that bundles
+## several independently-scheduled emitters (e.g. attack_finger_guns holds a `Shot`
+## and a `ShotLast`, each fired on its own frames). We instantiate the palette, lift
+## the named child out on its own, and drop the rest -- so listing the same palette
+## `type` with different `node`s fires different children at different frames. Empty
+## node_name = the whole scene (single or composite), as before.
+##
+## Rejected only if it holds no particle emitters AND isn't a LaserBeam (whose look
+## is Line2D-based, not particles, but which the director still fires like a burst).
+func _spawn(type: String, node_name := "") -> Node2D:
 	var path := ""
 	var tried := _candidates(type)
 	for c in tried:
@@ -158,10 +169,22 @@ func _spawn(type: String) -> Node2D:
 		push_warning("ParticleDirector: no scene for type '%s'; looked in %s"
 			% [type, ", ".join(tried)])
 		return null
-	var node := (load(path) as PackedScene).instantiate()
-	if _emitters_of(node).is_empty():
-		push_warning("ParticleDirector: %s has no CPUParticles2D/GPUParticles2D " % path
-			+ "(as its root or a child), got %s" % node.get_class())
+	var root := (load(path) as PackedScene).instantiate()
+	var node := root as Node2D
+	if node_name != "":
+		var child := root.get_node_or_null(NodePath(node_name)) as Node2D
+		if child == null:
+			push_warning("ParticleDirector: palette %s has no child '%s'" % [path, node_name])
+			root.queue_free()
+			return null
+		root.remove_child(child)
+		child.owner = null  # was owned by the palette root we're about to drop
+		root.queue_free()
+		node = child
+	if _emitters_of(node).is_empty() and not (node is LaserBeam):
+		var where := path if node_name == "" else "%s -> %s" % [path, node_name]
+		push_warning("ParticleDirector: %s has no CPUParticles2D/GPUParticles2D " % where
+			+ "(as its root or a child) and is not a LaserBeam, got %s" % node.get_class())
 		node.queue_free()
 		return null
 	return node
@@ -232,6 +255,27 @@ func _boost(node: Node2D, boost: Dictionary) -> void:
 			+ "CPUParticles2D (GPUParticles2D keeps those on a shared material)")
 
 
+## Per-row property overrides, so one shared scene covers several variants without a
+## clone per tweak (e.g. a different projectile texture on the last shot). Keys are
+## "ChildPath:property" -- an empty path targets the spawned node itself -- and a
+## "res://..." string value is loaded as a Resource (a texture, curve, etc.). Applied
+## once on spawn, before the effect is faced/placed/armed.
+func _apply_overrides(node: Node2D, overrides: Dictionary) -> void:
+	for key in overrides:
+		var parts := String(key).rsplit(":", true, 1)
+		var prop: String = parts[-1]
+		var target: Node = node
+		if parts.size() == 2 and parts[0] != "":
+			target = node.get_node_or_null(NodePath(parts[0]))
+		if target == null:
+			push_warning("ParticleDirector: override '%s' -- no such child" % key)
+			continue
+		var value: Variant = overrides[key]
+		if value is String and (value as String).begins_with("res://"):
+			value = load(value)
+		target.set(prop, value)
+
+
 ## Remember the authored direction/gravity so facing can mirror them without
 ## drifting (mirroring in place would accumulate).
 func _capture(node: Node2D) -> Dictionary:
@@ -245,7 +289,12 @@ func _capture(node: Node2D) -> Dictionary:
 ## pointing that way when the character turns around.
 func _face(node: Node2D, base: Dictionary, pos: Vector2, m: float) -> void:
 	node.position = Vector2(pos.x * m, pos.y)
-	if node is CPUParticles2D:
+	if node is Shot:
+		# A Shot reads scale.x in _ready to pick its travel direction, then normalises
+		# it -- so facing is scale.x even when the shot's body is itself a CPUParticles2D
+		# (it rotates to _dir, so the particle direction/gravity mirror below is moot).
+		node.scale.x = m
+	elif node is CPUParticles2D:
 		node.direction = Vector2(base.dir.x * m, base.dir.y)
 		node.gravity = Vector2(base.grav.x * m, base.grav.y)
 	else:
@@ -282,11 +331,16 @@ func _refresh() -> void:
 
 
 func _fire_burst(b: Dictionary, m: float) -> void:
-	var node := _spawn(b.type)
+	var node := _spawn(b.type, b.get("node", ""))
 	if node == null:
 		return
+	_apply_overrides(node, b.get("set", {}))
 	var emitters := _emitters_of(node)
-	_face(node, _capture(node), b.pos, m)  # mirror direction/scale; world position set below
+	# A LaserBeam orients itself from the fire() direction, so DON'T mirror its scale
+	# here (that would double-flip); every other burst mirrors direction/scale now,
+	# world position below.
+	if not (node is LaserBeam):
+		_face(node, _capture(node), b.pos, m)
 	for em in emitters:
 		_boost(em, b.get("boost", {}))
 		em.one_shot = true
@@ -301,6 +355,13 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 	else:
 		add_child(node)
 	Nodes.place_at(node, target)  # snap to the strike point without interpolation smear
+	# A laser fires and forgets: it arms its own hitbox, flashes, and frees itself.
+	# The director just aims it down the facing and credits the attacker.
+	if node is LaserBeam:
+		var beam := node as LaserBeam
+		beam.source = _attacker()
+		beam.fire(Vector2(m, 0.0))
+		return
 	var hitboxes := _hitboxes_of(node)
 	# Keep a ground blast from spilling past the platform edge into open air: clip
 	# its emission band and hitbox to the surface underfoot before it fires.

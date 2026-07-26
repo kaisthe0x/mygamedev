@@ -69,13 +69,26 @@ frames. Adding an effect is a texture/scene + a JSON line, no code.
    already exist**, so it never clobbers editor tweaks); textures come from
    `build/gen_particle_textures.py`.
 2. **Config** — `emitters.json`, keyed
-   `character -> animation -> [ { type, mode, frames, pos } ]`:
+   `character -> animation -> [ { type, node?, set?, mode, frames, pos } ]`:
    - `type` — a scene whose root is a single `CPUParticles2D`/`GPUParticles2D`,
      **or a `Node2D` bundling several** as one composite attack (the director
      drives all of them, and mirrors the composite by flipping `scale.x`, so its
      child textures flip too; a single-particle root mirrors `direction`/`gravity`
      instead, keeping its texture). Layering separate scenes (several `{…}`) still
      works too.
+   - `node` — *optional* **palette addressing**. A "palette" scene bundles several
+     *independently-scheduled* emitters as named children; `node` names the one this
+     row fires. List the **same `type`** with different `node`s to fire different
+     children on different frames — e.g. `attack_finger_guns` holds a `Shot` (fired
+     on `[2,4]`) and a `ShotLast` (a different-textured projectile, fired on `[7]`),
+     each its own self-contained `Shot`/`Hitbox`/beam. Omit `node` for the whole
+     scene (single or composite), as before. This is why a per-frame variant no
+     longer needs a whole cloned scene file.
+   - `set` — *optional* **property overrides** applied on spawn, so one shared scene
+     covers several variants without a clone per tweak. Keys are `"ChildPath:property"`
+     (an empty path targets the spawned node itself); a `"res://…"` value is loaded
+     as a `Resource`. E.g. `"set": { "Trail:texture": "res://…/last.png" }` reskins
+     just the last shot — no second node needed.
    - **Composite child positions** — in a `Node2D` composite, the director only
      positions the *root* (at `pos`); each child particle keeps the local position
      you authored inside the scene. So lay one child at the feet `(0,0)`, another
@@ -255,13 +268,32 @@ itself. Build the base scene with `godot --headless --script vfx/build/build_las
   `rendering/viewport/hdr_2d`) lights the beam and not the LDR sprites. Tune or
   delete `_add_glow()`; the halo+core still read without it.
 
-Firing is wired through the ability hook `CharacterAbility.on_special_strike()`,
-called the instant the special's strike frame lands. `lenbondosen.gd` is the worked
-example — a short (`RANGE = 150`) beam that carries the hit — but it's **currently
-disabled** (`USE_BEAM = false`): Lenny's special is a melee burst now (damage from
-`ATTACKS` "special", look from the `special` particle in `emitters.json`). Flip
-`USE_BEAM` back on (and re-zero his `ATTACKS` special so the box doesn't double-hit)
-to restore the beam. Any ability can hook the same moment for an on-strike special.
+**Two ways to fire a beam:**
+
+1. **Frame-scheduled from `emitters.json`** (same timeline as particles). The
+   `ParticleDirector` fires any spawned node that is a `LaserBeam` like a `burst`:
+   it anchors it at `pos`, sets `source`, and calls `fire()` down the facing — the
+   beam then self-orients, self-arms, and self-frees. Drop a `LaserBeam` (or an
+   inherited `laser_beam_<id>.tscn`) into a move's **palette** scene as a named
+   child and schedule it with `node`:
+   ```json
+   "special_beam": [
+     { "type": "special_beam", "node": "Beam", "mode": "burst", "frames": [4], "pos": [22, -20] }
+   ]
+   ```
+   Gameplay numbers (`damage`, `beam_range`, …) come from the beam scene's own
+   exports; tweak per-move with `set` (e.g. `"set": { "Beam:beam_range": 200 }`).
+   This is the preferred path now — one frame-indexed config drives particles *and*
+   lasers together, editable from code or a future UI.
+
+2. **From ability code** — the hook `CharacterAbility.on_special_strike()`, called
+   the instant the special's strike frame lands. `lenbondosen.gd` is the worked
+   example — a short (`RANGE = 150`) beam that carries the hit — but it's **currently
+   disabled** (`USE_BEAM = false`): Lenny's special is a melee burst now (damage from
+   `ATTACKS` "special", look from the `special` particle in `emitters.json`). Flip
+   `USE_BEAM` back on (and re-zero his `ATTACKS` special so the box doesn't
+   double-hit) to restore it. Use this path when the beam needs code decisions the
+   config can't express; otherwise prefer the scheduled path above.
 
 ### Adding a new attack effect — where things plug in
 
