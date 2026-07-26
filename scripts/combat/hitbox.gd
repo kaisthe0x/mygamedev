@@ -40,10 +40,13 @@ func activate(duration: float = 0.0) -> void:
 		t.timeout.connect(deactivate)
 
 
+## Turn the box off -- the end of a swing's active frames, or a projectile expiring.
 func deactivate() -> void:
 	monitoring = false
 
 
+## On first overlap with a Hurtbox this activation, build a Hit from this box's
+## fields (damage/knockback/stun/status + source) and deliver it.
 func _on_area_entered(area: Area2D) -> void:
 	var box := area as Hurtbox
 	if box == null or box in _already_hit:

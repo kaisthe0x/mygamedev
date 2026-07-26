@@ -46,12 +46,8 @@ func _init() -> void:
 	hitbox.collision_layer = Combat.L_PLAYER_HIT   # player's beam; enemy variants flip this
 	hitbox.collision_mask = Combat.L_ENEMY_HURT
 	laser.add_child(hitbox)
-	var shape := CollisionShape2D.new()
+	var shape := Shapes.make_box(Vector2(SAMPLE_LEN, 8), Vector2(SAMPLE_LEN / 2.0, 0))
 	shape.name = "Shape"
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(SAMPLE_LEN, 8)
-	shape.shape = rect
-	shape.position = Vector2(SAMPLE_LEN / 2.0, 0)
 	hitbox.add_child(shape)
 
 	# Every packed node needs its owner set to the scene laser.

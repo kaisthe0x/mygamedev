@@ -16,6 +16,7 @@ var _ratio: float = 1.0
 var _label: Label
 
 
+## Add the floating name label above the bar. No name -> bar only.
 func setup(display_name: String) -> void:
 	if display_name.is_empty():
 		return
@@ -33,11 +34,13 @@ func setup(display_name: String) -> void:
 	add_child(_label)
 
 
+## Set the fill fraction (0..1, clamped) and redraw.
 func set_ratio(value: float) -> void:
 	_ratio = clampf(value, 0.0, 1.0)
 	queue_redraw()
 
 
+## Draw the border, background, then the fill bar (width scaled by the ratio).
 func _draw() -> void:
 	var w := bar_width
 	var h := bar_height

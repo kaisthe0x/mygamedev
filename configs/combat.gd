@@ -23,3 +23,7 @@ const KNOCKBACK_POP := 0.25
 const MIN_STAGGER := 0.18
 ## How long a discrete melee strike's hitbox stays live for one swing.
 const STRIKE_ACTIVE := 0.12
+## Red tint a hit flashes, fading back over HIT_FLASH_TIME. Shared by every body's
+## hit reaction (see Combatant.flash).
+const HIT_FLASH := Color(1.0, 0.4, 0.4)
+const HIT_FLASH_TIME := 0.16

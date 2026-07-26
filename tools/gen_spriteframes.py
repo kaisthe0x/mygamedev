@@ -112,6 +112,16 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("baghel", "range_attack"): [6],
 }
 
+# Per-frame duration multipliers, (char, anim) -> {sheet_frame: multiplier}. Each
+# frame normally shows for 1/fps; 2.0 holds it twice as long, 0.5 half -- so you can
+# make a wind-up snap or a key pose linger WITHOUT changing the whole animation's
+# fps. Sheet-relative indices (the idle-reference frame 0 counts), same numbering as
+# HIT_FRAMES / loop_from. This is the general form of OVERRIDES' `hold_last` (which
+# is just "the last frame"); a value set here wins over hold_last for that frame.
+FRAME_DURATIONS: dict[tuple[str, str], dict[int, float]] = {
+    # e.g. ("katalyst", "attack"): {6: 2.0, 10: 1.5}  # linger on the AoE + finisher
+}
+
 
 def uid_for(png: Path) -> str:
     """Read the Godot-assigned uid out of the sibling .import file."""
@@ -126,6 +136,15 @@ def uid_for(png: Path) -> str:
     if not m:
         raise SystemExit(f"no uid in {imp} -- try deleting it and re-importing")
     return m.group(1)
+
+
+def existing_uid(path: Path) -> str:
+    """The resource uid already in `path`'s header, or "" if none/missing. Kept so
+    regeneration doesn't orphan scenes that reference the .tres by uid."""
+    if not path.exists():
+        return ""
+    m = re.search(r'uid="(uid://[^"]+)"', path.read_text().split("\n", 1)[0])
+    return m.group(1) if m else ""
 
 
 def content_columns(alpha, w: int, h: int) -> list[bool]:
@@ -244,6 +263,7 @@ def process_group(group: str, anims: dict) -> None:
             tweak = OVERRIDES.get((char, anim), {})
             fps = tweak.get("fps", fps)
             hold_last = tweak.get("hold_last", 1.0)
+            frame_durs = FRAME_DURATIONS.get((char, anim), {})
             res_id = f"{idx}_{anim}"
 
             # Drop the idle-reference frame 0 from action animations, so they
@@ -257,6 +277,12 @@ def process_group(group: str, anims: dict) -> None:
                 )
             n_emitted = sheet.n - start
             sheet_starts[anim] = start
+            for fi in frame_durs:
+                if not start <= fi < sheet.n:
+                    raise SystemExit(
+                        f"{char}/{anim}: FRAME_DURATIONS index {fi} out of range; "
+                        f"sheet frames are {start}-{sheet.n - 1} (0 is the idle reference)"
+                    )
             rel = sheet.png.relative_to(PROJECT).as_posix()
             ext.append(
                 f'[ext_resource type="Texture2D" uid="{uid_for(sheet.png)}" '
@@ -270,6 +296,7 @@ def process_group(group: str, anims: dict) -> None:
             assert 0 <= pad_x <= canvas_w - sheet.fw, (char, anim, pad_x)
 
             frames = []
+            total_dur = 0.0
             for i in range(start, sheet.n):
                 sid = f"{anim}_{i}"
                 sub.append(
@@ -279,7 +306,8 @@ def process_group(group: str, anims: dict) -> None:
                     f"margin = Rect2({pad_x}, {pad_y}, "
                     f"{canvas_w - sheet.fw}, {canvas_h - sheet.h})"
                 )
-                duration = hold_last if i == sheet.n - 1 else 1.0
+                duration = frame_durs.get(i, hold_last if i == sheet.n - 1 else 1.0)
+                total_dur += duration
                 frames.append(
                     f'{{\n"duration": {duration},\n"texture": SubResource("{sid}")\n}}'
                 )
@@ -333,8 +361,9 @@ def process_group(group: str, anims: dict) -> None:
             if anim == "attack" or (char, anim) in HIT_FRAMES:
                 hit_points[anim] = hits
 
-            # Total frames counts the held last frame as `hold_last` frames.
-            seconds = (n_emitted - 1 + hold_last) / fps
+            # Playtime is the sum of every frame's duration (hold_last and any
+            # FRAME_DURATIONS multipliers included) over the fps.
+            seconds = total_dur / fps
             note = ""
             if loop_from or loop_to:
                 lo = loop_from - start if loop_from else 0
@@ -372,8 +401,13 @@ def process_group(group: str, anims: dict) -> None:
         if sheet_starts:
             pairs = ", ".join(f'"{a}": {i}' for a, i in sheet_starts.items())
             meta += f"metadata/sheet_start = {{{pairs}}}\n"
+        # Preserve any existing resource uid so scenes referencing this .tres by uid
+        # (player.tscn holds khalid.tres as its design-time default) don't dangle on
+        # regen. Files without one stay uid-less -- everything else loads by path.
+        out = out_dir / f"{char}.tres"
+        uid_attr = f' uid="{uid}"' if (uid := existing_uid(out)) else ""
         body = (
-            f'[gd_resource type="SpriteFrames" load_steps={load_steps} format=3]\n\n'
+            f'[gd_resource type="SpriteFrames" load_steps={load_steps} format=3{uid_attr}]\n\n'
             + "\n".join(ext)
             + "\n\n"
             + "\n\n".join(sub)
@@ -383,7 +417,6 @@ def process_group(group: str, anims: dict) -> None:
             + ", ".join(anim_entries)
             + "]\n"
         )
-        out = out_dir / f"{char}.tres"
         out.write_text(body)
         print(f"  {out.relative_to(PROJECT)}")
         print(f"      {'  '.join(timings)}")

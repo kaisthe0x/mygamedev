@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=55 format=3]
+[gd_resource type="SpriteFrames" load_steps=56 format=3]
 
 [ext_resource type="Texture2D" uid="uid://dly53ppuw7ob5" path="res://sprites/characters/lenbondosen/lenbondosen_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://bevhsyglqv4pc" path="res://sprites/characters/lenbondosen/lenbondosen_run_frames.png" id="2_run"]
@@ -141,6 +141,11 @@ margin = Rect2(1, 0, 2, 0)
 [sub_resource type="AtlasTexture" id="dash_6"]
 atlas = ExtResource("5_dash")
 region = Rect2(768, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_7"]
+atlas = ExtResource("5_dash")
+region = Rect2(896, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_1"]
@@ -348,6 +353,9 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("dash_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("dash_7")
 }],
 "loop": false,
 "name": &"dash",

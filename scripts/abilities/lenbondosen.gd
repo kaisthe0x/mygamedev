@@ -32,9 +32,7 @@ func on_heavy_strike(player: Player) -> void:
 	beam.beam_range = RANGE
 	beam.source = player
 	# Live in the level, not under the player, so it stays put as he moves on.
+	# Nodes.place_at snaps it to the muzzle without physics-interpolation smear.
 	player.get_parent().add_child(beam)
-	beam.global_position = player.global_position + Vector2(MUZZLE.x * facing, MUZZLE.y)
-	# Snap to the spawn spot instead of interpolating there from the level origin
-	# (physics interpolation is on), which would smear it across the level.
-	beam.reset_physics_interpolation()
+	Nodes.place_at(beam, player.global_position + Vector2(MUZZLE.x * facing, MUZZLE.y))
 	beam.fire(Vector2(facing, 0))

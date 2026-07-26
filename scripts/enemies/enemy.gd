@@ -176,14 +176,14 @@ func _build_sprite() -> void:
 
 
 func _build_body() -> void:
-	add_child(make_box(body_size, Vector2(0, -body_size.y / 2.0)))
+	add_child(Shapes.make_box(body_size, Vector2(0, -body_size.y / 2.0)))
 
 
 func _build_hurtbox() -> void:
 	_hurtbox = Hurtbox.new()
 	_hurtbox.collision_layer = Combat.L_ENEMY_HURT
 	_hurtbox.collision_mask = 0
-	_hurtbox.add_child(make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
+	_hurtbox.add_child(Shapes.make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
 	add_child(_hurtbox)
 	_hurtbox.hurt.connect(_on_hurt)
 
@@ -196,7 +196,7 @@ func _build_melee_hitbox() -> void:
 	_melee_hitbox.source = self
 	_melee_hitbox.knockback = melee_knockback
 	_melee_hitbox.stun = melee_stun
-	_melee_hitbox.add_child(make_box(melee_hitbox_extents * 2.0,
+	_melee_hitbox.add_child(Shapes.make_box(melee_hitbox_extents * 2.0,
 		Vector2(0, -melee_hitbox_extents.y)))
 	add_child(_melee_hitbox)
 
@@ -210,7 +210,7 @@ func _build_contact_hitbox() -> void:
 	_contact_hitbox.damage = contact_damage
 	_contact_hitbox.knockback = contact_knockback
 	_contact_hitbox.source = self
-	_contact_hitbox.add_child(make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
+	_contact_hitbox.add_child(Shapes.make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
 	add_child(_contact_hitbox)
 
 
@@ -481,11 +481,9 @@ func _fire_projectile() -> void:
 		proj.velocity = (target - muzzle).normalized() * projectile_speed
 
 	# Live in the level, not under the enemy, so it keeps going if the enemy dies.
+	# Nodes.place_at snaps it to the muzzle without physics-interpolation smear.
 	get_parent().add_child(proj)
-	proj.global_position = muzzle
-	# Snap here instead of interpolating from the level origin (physics
-	# interpolation is on), which would smear the wave's particles across the level.
-	proj.reset_physics_interpolation()
+	Nodes.place_at(proj, muzzle)
 
 
 func _fire_frame() -> int:
@@ -497,12 +495,7 @@ func _fire_frame() -> int:
 
 
 func _hit_frames(anim: StringName) -> Array:
-	var frames := _sprite.sprite_frames
-	if frames.has_meta("hit_frames"):
-		var by_anim: Dictionary = frames.get_meta("hit_frames")
-		if by_anim.has(String(anim)):
-			return by_anim[String(anim)]
-	return []
+	return AnimMeta.hit_frames(_sprite.sprite_frames, anim)
 
 
 # --- damage / death ---------------------------------------------------------
@@ -529,6 +522,8 @@ func _on_hurt(hit: Hit) -> void:
 			_status.show_for(hit.status_color, hit.status_time)
 
 
+## Enter the DEAD state and stop receiving hits. The body stays for the death
+## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
 	_set_state(State.DEAD)
 	_hurtbox.set_deferred("monitorable", false)

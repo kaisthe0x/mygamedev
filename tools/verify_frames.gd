@@ -11,8 +11,8 @@ func _init() -> void:
 	var canvases := {}
 	var failures := 0
 
-	for id in Player.CHARACTERS:
-		var path := Player.FRAMES_PATH % id
+	for id in CharacterConfig.IDS:
+		var path := CharacterConfig.FRAMES_PATH % id
 		var frames := load(path) as SpriteFrames
 		if frames == null:
 			print("FAIL %s: could not load %s" % [id, path])

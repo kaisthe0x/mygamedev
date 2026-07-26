@@ -11,6 +11,7 @@ var _overlay: AnimatedSprite2D
 var _time: float = 0.0
 
 
+## Build the additive overlay sprite that mirrors `target`, hidden until show_for().
 func setup(target: AnimatedSprite2D) -> void:
 	_target = target
 	_overlay = AnimatedSprite2D.new()
@@ -43,6 +44,8 @@ func _process(delta: float) -> void:
 	_sync()
 
 
+## Copy the target sprite's frame/flip/offset onto the overlay so the tint tracks
+## the exact pose, animating or frozen.
 func _sync() -> void:
 	_overlay.sprite_frames = _target.sprite_frames
 	_overlay.animation = _target.animation

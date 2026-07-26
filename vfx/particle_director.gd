@@ -39,6 +39,8 @@ var _sustained: Array[Dictionary] = []
 var _bursts: Array[Dictionary] = []
 
 
+## Wire the director to a player sprite: load emitters.json and watch the sprite's
+## frame/animation changes to drive effects. Call once, then set_character().
 func setup(sprite: AnimatedSprite2D) -> void:
 	_sprite = sprite
 	_load_config()
@@ -164,11 +166,8 @@ func _spawn(type: String) -> Node2D:
 ## any under it -- so a Node2D can bundle several particles as one attack, and the
 ## director drives them all together.
 func _emitters_of(root: Node) -> Array:
-	var out: Array = []
-	if root is CPUParticles2D or root is GPUParticles2D:
-		out.append(root)
-	out.append_array(root.find_children("*", "CPUParticles2D", true, false))
-	out.append_array(root.find_children("*", "GPUParticles2D", true, false))
+	var out := Nodes.find_all(root, "CPUParticles2D")
+	out.append_array(Nodes.find_all(root, "GPUParticles2D"))
 	return out
 
 
@@ -179,7 +178,7 @@ func _hitboxes_of(root: Node) -> Array:
 	var out: Array = []
 	if root is Hitbox:
 		out.append(root)
-	for a in root.find_children("*", "Area2D", true, false):
+	for a in Nodes.find_all(root, "Area2D", false):
 		if a is Hitbox:
 			out.append(a)
 	return out
@@ -203,26 +202,6 @@ func _mirror() -> float:
 	return -1.0 if _sprite.flip_h else 1.0
 
 
-## Multiply a min/max property pair by `f`.
-##
-## Godot clamps these pairs against each other on assign, so multiplying each in
-## turn double-applies the factor to one end (setting min above max drags max up,
-## then max gets multiplied again). Writing whichever end moves outward first
-## avoids the transient invalid state.
-func _scale_range(node: Node2D, min_prop: StringName, max_prop: StringName,
-		f: float) -> void:
-	if is_equal_approx(f, 1.0):
-		return
-	var lo: float = float(node.get(min_prop)) * f
-	var hi: float = float(node.get(max_prop)) * f
-	if f >= 1.0:
-		node.set(max_prop, hi)
-		node.set(min_prop, lo)
-	else:
-		node.set(min_prop, lo)
-		node.set(max_prop, hi)
-
-
 ## Per-entry intensity, layered on top of the shared scene, so several
 ## animations can reuse one particle type at different power levels without
 ## duplicating a scene that would then have to be re-tuned in two places.
@@ -239,9 +218,9 @@ func _boost(node: Node2D, boost: Dictionary) -> void:
 	if boost.has("explosiveness"):
 		node.explosiveness = float(boost["explosiveness"])
 	if node is CPUParticles2D:
-		_scale_range(node, &"initial_velocity_min", &"initial_velocity_max",
+		MathUtil.scale_min_max_pair(node, &"initial_velocity_min", &"initial_velocity_max",
 			float(boost.get("speed", 1.0)))
-		_scale_range(node, &"scale_amount_min", &"scale_amount_max",
+		MathUtil.scale_min_max_pair(node, &"scale_amount_min", &"scale_amount_max",
 			float(boost.get("scale", 1.0)))
 	elif boost.has("speed") or boost.has("scale"):
 		push_warning("ParticleDirector: 'speed'/'scale' boost needs a "
@@ -316,8 +295,7 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 		world.add_child(node)
 	else:
 		add_child(node)
-	node.global_position = target
-	node.reset_physics_interpolation()  # else it smears in from the level origin
+	Nodes.place_at(node, target)  # snap to the strike point without interpolation smear
 	var hitboxes := _hitboxes_of(node)
 	# Keep a ground blast from spilling past the platform edge into open air: clip
 	# its emission band and hitbox to the surface underfoot before it fires.
@@ -350,22 +328,12 @@ func _ground_edges_at(world_pos: Vector2) -> Vector2:
 		return Vector2(-INF, INF)
 	var left := INF
 	var right := -INF
-	for cs in (hit.collider as Node2D).find_children("*", "CollisionShape2D", true, false):
+	for cs in Nodes.find_all(hit.collider as Node, "CollisionShape2D", false):
 		if cs.shape is RectangleShape2D:
 			var hw: float = (cs.shape as RectangleShape2D).size.x * 0.5 * absf(cs.global_scale.x)
 			left = minf(left, cs.global_position.x - hw)
 			right = maxf(right, cs.global_position.x + hw)
 	return Vector2(left, right) if left <= right else Vector2(-INF, INF)
-
-
-## Intersect a horizontal band (world `center` +/- `half`) with [left, right].
-## Returns [new_center, new_half], or [] if none of it is over the ground.
-func _clip_band(center: float, half: float, left: float, right: float) -> Array:
-	var cl := maxf(center - half, left)
-	var cr := minf(center + half, right)
-	if cl >= cr:
-		return []
-	return [(cl + cr) * 0.5, (cr - cl) * 0.5]
 
 
 ## Clip a ground blast's rectangular emission bands and hitboxes to the platform
@@ -379,19 +347,19 @@ func _clip_to_ground(node: Node2D, emitters: Array, hitboxes: Array) -> void:
 	for em in emitters:
 		if em is CPUParticles2D and em.emission_shape == CPUParticles2D.EMISSION_SHAPE_RECTANGLE:
 			var sx: float = maxf(absf(em.global_scale.x), 0.001)
-			var r := _clip_band(em.global_position.x, em.emission_rect_extents.x * sx, edges.x, edges.y)
+			var r := MathUtil.clip_band(em.global_position.x, em.emission_rect_extents.x * sx, edges.x, edges.y)
 			if r.is_empty():
 				em.emitting = false
 				continue
 			em.global_position = Vector2(r[0], em.global_position.y)
 			em.emission_rect_extents = Vector2(r[1] / sx, em.emission_rect_extents.y)
 	for hb in hitboxes:
-		for cs in hb.find_children("*", "CollisionShape2D", true, false):
+		for cs in Nodes.find_all(hb, "CollisionShape2D", false):
 			if cs.shape is RectangleShape2D:
 				var rect: RectangleShape2D = cs.shape.duplicate()  # per-instance, don't touch the shared resource
 				cs.shape = rect
 				var sx: float = maxf(absf(cs.global_scale.x), 0.001)
-				var r := _clip_band(cs.global_position.x, rect.size.x * 0.5 * sx, edges.x, edges.y)
+				var r := MathUtil.clip_band(cs.global_position.x, rect.size.x * 0.5 * sx, edges.x, edges.y)
 				if r.is_empty():
 					hb.deactivate()
 					continue

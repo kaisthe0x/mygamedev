@@ -12,13 +12,15 @@ Main scene: `scenes/level.tscn`. Press F5 to run.
 
 ```
 assets/portraits/     Painted 1080x1080 character portraits (HUD art)
+configs/              Tuning DATA -- attack table, layers, feel, rosters (see configs/README.md)
+helpers/              Shared static utilities -- boxes, node lookup, anim meta (see helpers/README.md)
 vfx/                  All visual effects -- particles + laser beams (see vfx/README.md)
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
 scripts/              player, hud, character_switcher
 scripts/abilities/    Per-character abilities, named <character_id>.gd
-scripts/combat/       Combat layers, hurtbox, hitbox, floating health bar
+scripts/combat/       Hurtbox, hitbox, combatant base, health bar (constants -> configs/combat.gd)
 scripts/enemies/      Enemy base + projectile
 sprites/characters/   Source pixel-art sheets, one folder per character
 sprites/enemies/      Source enemy sheets, one folder per enemy
@@ -169,6 +171,15 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
 - **`fps`** — retime that one animation
 - **`hold_last`** — multiply the final frame's duration, letting a pose land
   before the character retracts
+- **`FRAME_DURATIONS`** (a separate config below `HIT_FRAMES`) — multiply the
+  duration of *any individual frame*, `(char, anim) -> {sheet_frame: multiplier}`.
+  Each frame normally shows for `1/fps`; `2.0` holds it twice as long, `0.5` half —
+  so you can make a wind-up snap or a key pose linger without retiming the whole
+  animation. Sheet-relative indices (idle-ref frame 0 counts), same numbering as
+  `HIT_FRAMES`/`loop_from`. It's the general form of `hold_last` (which only
+  targets the last frame); a value here wins over `hold_last` for that frame. Out-
+  of-range indices are rejected. Godot stores it as each frame's `duration` in the
+  `.tres`, so it survives regeneration.
 - **`loop_from`** — for a looping animation, the sheet frame the cycle restarts
   at. Frames before it play once as an intro; the tail repeats forever.
 - **`loop_to`** — optional end of that loop (sheet frame, inclusive). Without it

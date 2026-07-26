@@ -37,12 +37,7 @@ func _ready() -> void:
 	collision_mask = Combat.L_PLAYER_HURT
 	monitoring = true
 
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = hitbox_extents * 2.0
-	shape.shape = rect
-	shape.position = hitbox_offset
-	add_child(shape)
+	add_child(Shapes.make_box(hitbox_extents * 2.0, hitbox_offset))
 
 	if visual != null:
 		var v := visual.instantiate() as Node2D
@@ -61,7 +56,7 @@ func _ready() -> void:
 func _sample_visual_color(v: Node) -> Color:
 	var p := v as CPUParticles2D
 	if p == null:
-		p = v.find_children("*", "CPUParticles2D", true, false).front()
+		p = Nodes.find_first(v, "CPUParticles2D") as CPUParticles2D
 	if p != null and p.color_ramp != null:
 		return p.color_ramp.sample(0.0)
 	return color
@@ -150,11 +145,14 @@ func _expire() -> void:
 	if _expiring:
 		return
 	_expiring = true
-	monitoring = false
-	collision_layer = 0
+	# When a hit calls us, we're inside area_entered's physics flush, where Godot
+	# blocks toggling monitoring/collision (it errors and the box stays live on the
+	# player). Defer them to just after the flush so the shot actually goes inert.
+	set_deferred("monitoring", false)
+	set_deferred("collision_layer", 0)
 	velocity = Vector2.ZERO  # world-space particles stay where they were emitted
 	var linger := 0.0
-	for p in find_children("*", "CPUParticles2D", true, false):
+	for p in Nodes.find_all(self, "CPUParticles2D", false):
 		p.emitting = false
 		linger = maxf(linger, p.lifetime * (1.0 + p.lifetime_randomness))
 	if linger <= 0.0:

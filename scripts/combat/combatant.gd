@@ -9,10 +9,6 @@ extends CharacterBody2D
 ## own state machines, health, and hurt reactions -- this is deliberately just
 ## helpers, no lifecycle of its own.
 
-## Red tint a hit flashes, fading back over HIT_FLASH_TIME.
-const HIT_FLASH := Color(1.0, 0.4, 0.4)
-const HIT_FLASH_TIME := 0.16
-
 
 ## Anchor a sprite so its feet sit on the node origin, horizontally centred, using
 ## idle frame 0 -- the shared canvas anchor every animation lines up against.
@@ -22,16 +18,6 @@ static func anchor_to_feet(sprite: AnimatedSprite2D) -> void:
 		return
 	sprite.centered = false
 	sprite.offset = Vector2(-frame.get_width() / 2.0, -frame.get_height())
-
-
-## A rectangular CollisionShape2D of full `size`, centred at `offset`.
-static func make_box(size: Vector2, offset: Vector2) -> CollisionShape2D:
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = size
-	shape.shape = rect
-	shape.position = offset
-	return shape
 
 
 ## Apply an incoming hit's knockback to this body and return how long to stagger
@@ -52,6 +38,6 @@ func apply_knockback(hit: Hit, facing: int) -> float:
 
 ## Flash `sprite` red, fading back to white -- the shared "took a hit" tell.
 func flash(sprite: AnimatedSprite2D) -> void:
-	sprite.modulate = HIT_FLASH
+	sprite.modulate = Combat.HIT_FLASH
 	var tw := create_tween()
-	tw.tween_property(sprite, "modulate", Color.WHITE, HIT_FLASH_TIME)
+	tw.tween_property(sprite, "modulate", Color.WHITE, Combat.HIT_FLASH_TIME)

@@ -37,7 +37,7 @@ func _run() -> void:
 
 	await process_frame
 
-	for id in Player.CHARACTERS:
+	for id in CharacterConfig.IDS:
 		player.character = id
 		for anim in ANIMS:
 			var count := sprite.sprite_frames.get_frame_count(anim)

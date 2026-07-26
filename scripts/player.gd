@@ -14,14 +14,8 @@ signal health_changed(current: float, maximum: float)
 ## Emitted when the active character changes, for portrait/name displays.
 signal character_changed(id: String)
 
-const CHARACTERS: PackedStringArray = [
-	"feyke", "katalyst", "khalid", "lenbondosen", "wayna",
-]
-const FRAMES_PATH := "res://resources/characters/%s.tres"
-## Portrait files are capitalised while character ids are lower case.
-const PORTRAIT_PATH := "res://assets/portraits/%s.png"
-## Optional per-character ability script; missing file means no ability.
-const ABILITY_PATH := "res://scripts/abilities/%s.gd"
+## Character roster + resource-path templates live in CharacterConfig; per-character
+## attack tuning in Attacks (both under configs/).
 
 @export_enum("feyke", "katalyst", "khalid", "lenbondosen", "wayna")
 var character: String = "khalid":
@@ -88,7 +82,7 @@ var health: float = 100.0:
 ## control returns; keep it >= attack_recovery.
 @export var combo_reset_time: float = 0.45
 ## Damage a single light-attack hit deals; the heavy swing deals heavy_damage.
-## Fallback for characters/fields not specified in ATTACKS.
+## Fallback for characters/fields not specified in Attacks.TABLE.
 @export var attack_damage: float = 16.0
 @export var heavy_damage: float = 40.0
 ## How far in front of the feet the attack reaches, and its half-size.
@@ -165,7 +159,7 @@ func _apply_character() -> void:
 	var sprite := get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
 	if sprite == null:
 		return
-	var path := FRAMES_PATH % character
+	var path := CharacterConfig.FRAMES_PATH % character
 	if not ResourceLoader.exists(path):
 		push_warning("No SpriteFrames for character '%s' at %s" % [character, path])
 		return
@@ -192,7 +186,7 @@ func _equip_ability() -> void:
 	_ability = null
 	if Engine.is_editor_hint():
 		return
-	var path := ABILITY_PATH % character
+	var path := CharacterConfig.ABILITY_PATH % character
 	if not ResourceLoader.exists(path):
 		return
 	var script: GDScript = load(path)
@@ -228,9 +222,11 @@ func _face_mouse() -> void:
 
 ## Path to the current character's portrait, for HUD / character-select art.
 func portrait_path() -> String:
-	return PORTRAIT_PATH % (character.substr(0, 1).to_upper() + character.substr(1))
+	return CharacterConfig.PORTRAIT_PATH % (character.substr(0, 1).to_upper() + character.substr(1))
 
 
+## Subtract `amount` from health and flash the hit tell. The health setter clamps
+## and emits health_changed for the HUD.
 func take_damage(amount: float) -> void:
 	health -= amount
 	flash(_sprite)
@@ -245,7 +241,7 @@ func _build_combat() -> void:
 	_hurtbox = Hurtbox.new()
 	_hurtbox.collision_layer = Combat.L_PLAYER_HURT
 	_hurtbox.collision_mask = 0
-	_hurtbox.add_child(make_box(Vector2(16, 30), Vector2(0, -15)))
+	_hurtbox.add_child(Shapes.make_box(Vector2(16, 30), Vector2(0, -15)))
 	add_child(_hurtbox)
 	_hurtbox.hurt.connect(_on_hurt)
 
@@ -253,7 +249,7 @@ func _build_combat() -> void:
 	_attack_hitbox.collision_layer = Combat.L_PLAYER_HIT
 	_attack_hitbox.collision_mask = Combat.L_ENEMY_HURT
 	_attack_hitbox.source = self  # so knockback pushes enemies away from the player
-	_attack_shape = make_box(attack_hitbox_extents * 2.0,
+	_attack_shape = Shapes.make_box(attack_hitbox_extents * 2.0,
 		Vector2(0, -attack_hitbox_extents.y))
 	_attack_rect = _attack_shape.shape
 	_attack_hitbox.add_child(_attack_shape)
@@ -264,52 +260,11 @@ func _build_combat() -> void:
 	_status.setup(_sprite)
 
 
-const STATUS_GREEN := Color(0.2, 1.0, 0.35, 1.0)
-
-## Per-character attack data, one place per (character, attack). Each entry is a
-## dict of unset-defaults-to-0/exported fields:
-##   damage, knockback (px/s), stun (s), color (engulfing overlay), color_time (s),
-##   x (hitbox forward offset from the feet), extents (hitbox half-size)
-## `heavy` is one entry. `light` is EITHER one entry (all combo hits share it) OR
-## an ARRAY, one per combo segment -- so a specific hit differs (Lenny's first jab
-## freezes; Katalyst's spin is a wide x=0 AoE). Unset fields fall back to the
-## exported attack_damage/heavy_damage and attack_hitbox_x/_extents, so an entry
-## only lists what's special.
-const ATTACKS := {
-	"khalid": {"light": {"damage": 16}, "heavy": {"damage": 46, "knockback": 220}},
-	"katalyst": {
-		"light": [
-			{"damage": 16, "x": 24.0, "extents": Vector2(22, 18)},  # whip-reach thrust
-			{"damage": 16, "x": 0.0, "extents": Vector2(32, 20)},   # spin: AoE around the body
-			{"damage": 16, "x": 28.0, "extents": Vector2(24, 18)},  # finishing lunge
-		],
-		"heavy": {"damage": 44, "knockback": 160, "stun": 0.18,
-			"x": 30.0, "extents": Vector2(34, 16)},  # long ground blast
-	},
-	"wayna": {"light": {"damage": 13, "stun": 0.1}, "heavy": {"damage": 32, "knockback": 90}},
-	"feyke": {"light": {"damage": 15, "knockback": 45}, "heavy": {"damage": 38, "knockback": 150}},
-	"lenbondosen": {
-		"light": [
-			# Hammer thrust at full impact -- freezes the enemy 5s with a green cast.
-			{"damage": 14, "stun": 5.0, "color": STATUS_GREEN, "x": 30.0, "extents": Vector2(26, 18)},
-			# Energy burst forming -- AoE around the body (x=0, wide).
-			{"damage": 12, "x": 0.0, "extents": Vector2(34, 20)},
-			# Burst bloom -- bigger AoE finisher.
-			{"damage": 18, "x": 0.0, "extents": Vector2(42, 26)},
-		],
-		# Heavy's hit is carried by the heavy particle's OWN Hitbox now (authored in
-		# heavy.tscn, armed by the ParticleDirector on the burst). The melee box
-		# stands down -- 0 so it can't double-hit alongside the particle.
-		"heavy": {"damage": 0},
-	},
-}
-
-
-## The (character, kind, segment) entry from ATTACKS, or {} if unlisted. A `light`
+## The (character, kind, segment) entry from Attacks.TABLE, or {} if unlisted. A `light`
 ## array indexes by combo segment (a shorter array reuses its last entry); a
 ## single dict is shared by all hits.
 func _attack(kind: String, seg: int) -> Dictionary:
-	var entry: Variant = ATTACKS.get(character, {}).get(kind, null)
+	var entry: Variant = Attacks.TABLE.get(character, {}).get(kind, null)
 	if entry is Array:
 		entry = {} if entry.is_empty() else entry[mini(seg, entry.size() - 1)]
 	if entry == null:
@@ -368,28 +323,28 @@ func _on_frame_changed() -> void:
 
 
 func _heavy_strike_frame() -> int:
-	var frames := _sprite.sprite_frames
-	if frames.has_meta("hit_frames"):
-		var by_anim: Dictionary = frames.get_meta("hit_frames")
-		var hits: Array = by_anim.get("heavy_attack", [])
-		if not hits.is_empty():
-			return int(hits[0])
+	var hits := AnimMeta.hit_frames(_sprite.sprite_frames, &"heavy_attack")
+	if not hits.is_empty():
+		return int(hits[0])
 	@warning_ignore("integer_division")
-	return frames.get_frame_count(&"heavy_attack") / 2
+	return _sprite.sprite_frames.get_frame_count(&"heavy_attack") / 2
 
 
+## Add `amount` to health (setter clamps to max_health).
 func heal(amount: float) -> void:
 	health += amount
 
 
+## Switch to character `id` if it's a known one (swaps SpriteFrames + ability).
 func set_character(id: String) -> void:
-	if id in CHARACTERS:
+	if id in CharacterConfig.IDS:
 		character = id
 
 
+## Step to the next/previous character in the roster, wrapping around.
 func cycle_character(step: int = 1) -> void:
-	var i := CHARACTERS.find(character)
-	set_character(CHARACTERS[wrapi(i + step, 0, CHARACTERS.size())])
+	var i := CharacterConfig.IDS.find(character)
+	set_character(CharacterConfig.IDS[wrapi(i + step, 0, CharacterConfig.IDS.size())])
 
 
 func _physics_process(delta: float) -> void:
@@ -649,12 +604,10 @@ func _advance_combo() -> void:
 ## Emitted frame indices that end each combo segment. From the SpriteFrames
 ## `hit_frames` metadata (written by the generator); falls back to every frame.
 func _attack_hits() -> Array:
-	var frames := _sprite.sprite_frames
-	if frames.has_meta("hit_frames"):
-		var by_anim: Dictionary = frames.get_meta("hit_frames")
-		if by_anim.has("attack"):
-			return by_anim["attack"]
-	return range(frames.get_frame_count(&"attack"))
+	var hits := AnimMeta.hit_frames(_sprite.sprite_frames, &"attack")
+	if not hits.is_empty():
+		return hits
+	return range(_sprite.sprite_frames.get_frame_count(&"attack"))
 
 
 func _enter(state: State) -> void:
@@ -728,10 +681,7 @@ func _on_animation_looped() -> void:
 ## Emitted-frame value from a loop metadata dict (`loop_from` / `loop_to`) for the
 ## animation currently playing, or -1 if unset.
 func _loop_meta(key: StringName) -> int:
-	var frames := _sprite.sprite_frames
-	if frames == null or not frames.has_meta(key):
-		return -1
-	return int(frames.get_meta(key).get(String(_sprite.animation), -1))
+	return AnimMeta.loop_bound(_sprite.sprite_frames, _sprite.animation, String(key))
 
 
 func _on_animation_finished() -> void:
