@@ -35,6 +35,14 @@
         "pos": [0, 0]
       }
     ],
+    "fall": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, 0]
+      }
+    ],
     "attack_finger_guns": [
       {
         "type": "attack_finger_guns",
@@ -96,13 +104,13 @@
       {
         "type": "slam_wind_streaks",
         "mode": "sustained",
-        "frames": [1, 2, 3],
+        "frames": [0, 1, 2],
         "pos": [0, -12]
       },
       {
         "type": "slam_default",
         "mode": "burst",
-        "frames": [4, 5],
+        "frames": [3, 4],
         "pos": [0, 0],
         "clip_to_ground": true
       }
@@ -125,11 +133,19 @@
         "pos": [-17, -17]
       }
     ],
-	"jump": [
+    "jump": [
       {
         "type": "general_wind_streaks",
         "mode": "burst",
         "frames": [0, 1],
+        "pos": [0, 0]
+      }
+    ],
+    "fall": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "sustained",
+        "frames": "all",
         "pos": [0, 0]
       }
     ],
@@ -183,11 +199,19 @@
         "pos": [-17, -17]
       }
     ],
-	"jump": [
+    "jump": [
       {
         "type": "general_wind_streaks",
         "mode": "burst",
         "frames": [0, 1],
+        "pos": [0, 0]
+      }
+    ],
+    "fall": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "sustained",
+        "frames": "all",
         "pos": [0, 0]
       }
     ],
@@ -227,13 +251,13 @@
       {
         "type": "slam_wind_streaks",
         "mode": "sustained",
-        "frames": [0, 1, 2, 3],
+        "frames": [0, 1, 2],
         "pos": [0, -12]
       },
       {
         "type": "slam_default",
         "mode": "burst",
-        "frames": [4],
+        "frames": [3, 4],
         "pos": [0, 0],
         "clip_to_ground": true
       }

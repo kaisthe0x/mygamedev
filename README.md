@@ -66,8 +66,8 @@ This is the part worth understanding, because the source sheets are irregular.
 
 ### The problem
 
-Each character has up to several sheets (`idle`, `run`, `jump`, `land`, `dash`,
-`slam`, `attack`, `special`) — `land` and `slam` are optional universal moves, so
+Each character has up to several sheets (`idle`, `run`, `jump`, `fall`, `land`,
+`dash`, `slam`, `attack`, `special`) — `fall`, `land`, and `slam` are optional, so
 a character without that sheet just can't do it (the mechanic no-ops for them; see
 below). They are single-row grids, but nothing else is consistent:
 
@@ -165,6 +165,7 @@ generator:
 | idle | 6 | yes |
 | run | 10 | yes |
 | jump | 10 | no |
+| fall | 10 | yes |
 | land | 12 | no |
 | slam | 12 | no |
 | dash | 12 | no |
@@ -276,7 +277,7 @@ and a matching case in `_animation_for()` in `player.gd`.
 ## Player
 
 `scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / DASH / ATTACK / SPECIAL / LAND / SLAM`). Everything is tunable
+(`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM`). Everything is tunable
 in the inspector.
 
 | Group | Key values |
@@ -284,9 +285,9 @@ in the inspector.
 | Health | `max_health` 100 |
 | Movement | `run_speed` 160 & `jump_velocity` -330 (both **per character** — see below), `max_air_jumps` 1, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
 | Dash | `dash_speed` 420 (**per character** — see below), `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
-| Slam | `slam_speed` 1200, `slam_min_clearance` 50 |
+| Slam | `slam_speed` 1200, `slam_min_clearance` 50, `slam_hold_frame` 2, `slam_impact_distance` 30 |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
-| Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600, `land_min_fall_speed` 140 |
+| Juice | `land_min_fall_speed` 140, `land_predict_distance` 22 |
 
 **Per-character movement feel.** `run_speed`, `jump_velocity`, and `dash_speed` are
 seeded on every character change from `CharacterConfig.RUN_SPEEDS` /
@@ -306,28 +307,49 @@ within the window) and the i-frames still last only the lunge. Set
 `dash_anim_time <= dash_time` for the old squeezed-into-the-lunge look; raise it to
 see the frames more.
 
-**Landing squash (`LAND`).** On touchdown from a real fall (peak downward speed
-≥ `land_min_fall_speed`, so little hops and walking off a lip don't trigger it),
-a character that *has* a `land` animation plays a brief squash. It's **fully
-cancelable** — any action (attack / special / dash / jump) or a movement input
-breaks out instantly, so it never eats inputs; left alone it plays once and hands
-back to idle. Characters without a `land` sheet skip straight to idle/run as
-before. Only Katalyst has one so far.
+**Airborne arc: `JUMP → FALL → LAND`.** The full sequence when a character has the
+sheets for it:
+- **`JUMP`** plays the launch/rise once (its launch only replays on a *real* jump —
+  see the fall-pose note above).
+- **`FALL`** (looping) takes over the moment the jump animation finishes while still
+  airborne, or whenever you enter the air any other way (walk off a ledge, an air
+  action ends). A character with no `fall` sheet just holds the last jump frame, as
+  before.
+- **`LAND`** starts **predictively** — a downward ray (`land_predict_distance`, 22px,
+  against the body's `collision_mask` so it catches solid ground *and* one-way
+  platforms) fires it while falling at ≥ `land_min_fall_speed`, so the squash plays
+  *through* touchdown instead of after it. It also still triggers on touchdown
+  (`_just_landed`) as a fallback. It's **fully cancelable** — any action breaks out
+  (air-rules during the brief pre-land: specials become the slam, attacks are
+  grounded-only); left alone it plays once and hands back to idle/run. A character
+  with no `land` sheet skips straight to idle/run.
+
+Each phase is **opt-in per character** by the presence of the `fall` / `land` sheet.
+**Feyke, Katalyst, and Lenbondosen have both**; Khalid and Wayna have neither yet
+(they just jump → hold → idle).
 
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
 air, press `special` to plunge straight down at `slam_speed` (1200 — far faster than
-a normal fall, so it reads as committed). Horizontal drift bleeds off and the
-character plunges, **holding on the frame before impact** so the descent can be any
-height; the moment it lands, the `slam` animation plays through its impact frame and
-hands back to idle (via `_on_animation_finished`). That hold is why the impact effect
-always fires on the ground, never in mid-air. Like a special, it's committed — no
-cancel mid-plunge. The `special` button is context-sensitive: **on the ground it
-does the character's special, in the air it slams** (attacks and specials are both
-grounded-only). Characters without a `slam` sheet simply can't slam (the air press
-no-ops), so it's opt-in per character as art lands — **Lenny and Feyke have `slam`
-sheets so far**. Slam **particles** are authored per character in `vfx/emitters.json`
-under the `slam` animation: a `sustained` trail on the descent frames and a `burst`
-on the impact frame.
+a normal fall, so it reads as committed). Like a special it's committed (no cancel
+mid-plunge), and the `special` button is context-sensitive: **on the ground it does
+the character's special, in the air it slams** (attacks and specials are both
+grounded-only). Characters without a `slam` sheet can't slam (the air press no-ops);
+**Lenny and Feyke have `slam` sheets so far**.
+
+*Tall-plunge handling* — a long drop would finish the `slam` animation (firing its
+impact frames) **before** touchdown, so the impact particles would emit in mid-air.
+So while high, the animation **locks on its last descent frame** (`slam_hold_frame`,
+sheet-relative to match `emitters.json`) and the **sprite is hidden** — only the
+sustained wind-streak particles show, reading as a fast blur. Once the ground is
+within `slam_impact_distance` (a downward ray, like the predictive land) it **releases**:
+the sprite reappears and the remaining impact frames play into the ground, so the
+`burst` fires where it lands. A short slam never locks — it just plays through.
+Ends via `_on_animation_finished` → idle.
+
+Slam **particles** are authored per character in `vfx/emitters.json` under the `slam`
+animation: a `sustained` wind-streak trail on the descent frames (`0–2`) and a `burst`
+on the impact frames (`3–4`). Keep those frame ranges consistent so `slam_hold_frame`
+(the last descent frame) lines up.
 
 **Slam needs room below (`slam_min_clearance`, 50px).** The air press only slams when
 the nearest platform *straight down* is at least `slam_min_clearance` away — a ray from
@@ -394,10 +416,6 @@ identical for every character while always playing the full animation — so eve
 Katalyst's 13-frame transform-dash plays fully inside the 0.18s window. Grounded dashes stay level; air dashes keep
 falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
-
-**Fall tilt.** The sprite leans forward proportional to falling speed, up to
-`fall_tilt_degrees` (about 5 degrees on a normal jump, 8 on a long drop). Set it
-to 0 to disable. Rotation pivots on the node origin, which sits at the feet.
 
 **API for other systems:** `take_damage()`, `heal()`, `is_alive()`,
 `set_character()`, `cycle_character()`, `portrait_path()`, and the

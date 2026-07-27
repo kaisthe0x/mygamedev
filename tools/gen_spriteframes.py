@@ -39,6 +39,7 @@ CHARACTER_ANIMS = {
     "idle": (6.0, True),
     "run": (10.0, True),
     "jump": (10.0, False),
+    "fall": (10.0, True),    # loops while descending, after the jump anim finishes
     "land": (12.0, False),   # brief touchdown squash; plays once, then idle/run
     "slam": (12.0, False),   # air-down ground slam; plays once during the plunge
     "dash": (12.0, False),

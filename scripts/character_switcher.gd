@@ -7,6 +7,18 @@ extends Node2D
 
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 
+# --- Camera follow (TEMPORARY: speed-adaptive experiment) -------------------------
+## Loose/cinematic smoothing base at rest (lower = snappier). Frame-rate independent.
+const CAM_FOLLOW_BASE := 0.002
+## Below this vertical speed (px/s) the camera stays fully loose.
+const CAM_TIGHTEN_START := 600.0
+## At/above this vertical speed the camera is fully tight (≈ slam_speed, so a slam
+## keeps the character centred). Ramps linearly between START and FULL.
+const CAM_TIGHTEN_FULL := 1200.0
+## The near-snap lerp weight the follow reaches at full tightness (1.0 = hard snap).
+const CAM_TIGHT_K := 0.9
+# ---------------------------------------------------------------------------------
+
 @export var player_path: NodePath = ^"Player"
 @export var spawn_enemies := true
 
@@ -41,10 +53,18 @@ func _physics_process(delta: float) -> void:
 	if _player.global_position.y > LevelConfig.DEATH_Y or _player.health <= 0.0:
 		_respawn_player()
 		return
-	# Follow the player so you can traverse across the platforms.
+	# Follow the player so you can traverse across the platforms. Speed-adaptive: loose
+	# and cinematic normally, but tightens toward a near-snap as vertical speed rises,
+	# so a fast fall / slam (~slam_speed) stays centred instead of trailing far behind.
 	if _camera != null:
-		var target := Vector2(_player.global_position.x, _player.global_position.y - 30.0)
-		_camera.global_position = _camera.global_position.lerp(target, 1.0 - pow(0.002, delta))
+		# Aim where the player WILL be after its move this frame (we run before it),
+		# so a fast slam doesn't sit a constant frame behind.
+		var target := Vector2(_player.global_position.x, _player.global_position.y - 30.0) \
+			+ _player.velocity * delta
+		var vy := absf(_player.velocity.y)
+		var t := clampf((vy - CAM_TIGHTEN_START) / (CAM_TIGHTEN_FULL - CAM_TIGHTEN_START), 0.0, 1.0)
+		var k := lerpf(1.0 - pow(CAM_FOLLOW_BASE, delta), CAM_TIGHT_K, t)
+		_camera.global_position = _camera.global_position.lerp(target, k)
 
 
 ## Reset the player to the safe start, full health, and clear any bolts still in
