@@ -282,18 +282,20 @@ in the inspector.
 | Group | Key values |
 |---|---|
 | Health | `max_health` 100 |
-| Movement | `run_speed` 160 (**per character** — see below), `jump_velocity` -330, `max_air_jumps` 1, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
-| Dash | `dash_speed` 420, `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
+| Movement | `run_speed` 160 & `jump_velocity` -330 (both **per character** — see below), `max_air_jumps` 1, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
+| Dash | `dash_speed` 420 (**per character** — see below), `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
 | Slam | `slam_speed` 1200, `slam_min_clearance` 50 |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 | Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600, `land_min_fall_speed` 140 |
 
-**Per-character run speed.** `run_speed` is seeded on every character change from
-`CharacterConfig.RUN_SPEEDS` (in `configs/character_config.gd`) — edit per-character
+**Per-character movement feel.** `run_speed`, `jump_velocity`, and `dash_speed` are
+seeded on every character change from `CharacterConfig.RUN_SPEEDS` /
+`JUMP_VELOCITIES` / `DASH_SPEEDS` (in `configs/character_config.gd`) — edit per-character
 values there, not on the Player node (the inspector value is overwritten on swap).
-Characters not listed use `DEFAULT_RUN_SPEED` (160); **Katalyst runs a touch faster
-(190)**. The run *animation* cadence auto-scales to each character's speed, so faster
-runners don't foot-slide.
+Characters not listed use the `DEFAULT_*` values (`run` 160, `jump` -330 with negative =
+up, `dash` 420); **Katalyst runs a touch faster (250), jumps a touch higher (-370), and
+dashes a touch faster (500)**. The run *animation* cadence auto-scales to each
+character's speed, so faster runners don't foot-slide.
 
 **Dash lunge vs. animation.** The lunge (`dash_speed` for `dash_time`) is decoupled
 from the dash *animation*, which plays over `dash_anim_time`. When that's longer

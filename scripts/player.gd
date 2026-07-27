@@ -50,6 +50,9 @@ var health: float = 100.0:
 ## sprinting, slower when starting) instead of foot-sliding -- a slide reads as a
 ## smeary "blurry" run. >1 = busier legs. Purely visual; tune to taste.
 @export var run_anim_speed: float = 1.5
+## The current character's jump velocity (negative = up). Seeded per character on every
+## character change from CharacterConfig.JUMP_VELOCITIES -- edit per-character values
+## THERE, not here (this is overwritten on swap). More negative = higher jump.
 @export var jump_velocity: float = -330.0
 ## Extra mid-air jumps after the ground jump (1 = a double jump). The ground jump is
 ## silent; each air jump re-boosts AND spawns the character's jump particles (a
@@ -60,6 +63,9 @@ var health: float = 100.0:
 @export var fall_gravity_scale: float = 1.35
 
 @export_group("Dash")
+## The current character's dash (lunge) speed. Seeded per character on every character
+## change from CharacterConfig.DASH_SPEEDS -- edit per-character values THERE, not here
+## (this is overwritten on swap). Higher = a faster, farther dash.
 @export var dash_speed: float = 420.0
 @export var dash_time: float = 0.18
 @export var dash_cooldown: float = 0.45
@@ -197,8 +203,11 @@ func _apply_character() -> void:
 	# drive which animation ATTACK/SPECIAL play and its hit tuning).
 	_current_attack = Moves.get_move(character, "attacks")
 	_current_special = Moves.get_move(character, "specials")
-	# Per-character run speed (Katalyst runs a touch faster, etc.).
+	# Per-character movement feel (Katalyst runs a touch faster, jumps a touch higher,
+	# dashes a touch faster, etc.).
 	run_speed = CharacterConfig.run_speed(character)
+	jump_velocity = CharacterConfig.jump_velocity(character)
+	dash_speed = CharacterConfig.dash_speed(character)
 	# The generator's canvas size changes whenever the art does, so derive the
 	# offset from the frames rather than baking it into the scene.
 	anchor_to_feet(sprite)
