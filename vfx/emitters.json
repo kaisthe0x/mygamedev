@@ -218,7 +218,7 @@
       {
         "type": "special_f_you",
         "mode": "burst",
-        "frames": [2],
+        "frames": [3],
         "pos": [0, 0],
         "clip_to_ground": true
       }
