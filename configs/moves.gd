@@ -61,7 +61,7 @@ const CATALOG := {
 				"tuning": {"damage": 20, "x": 0.0, "extents": Vector2(40, 26)}},
 		},
 		"default_attack": "finger_guns",     # <- Lenny's default attack
-		"default_special": "poison_raiser",  # <- Lenny's default special
+		"default_special": "mouth_blast",  # <- Lenny's default special
 	},
 }
 

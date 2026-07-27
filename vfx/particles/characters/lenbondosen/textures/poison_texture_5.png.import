@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bha5uiegvvsbq"
-path="res://.godot/imported/finger_guns_texture.png-3763d15a83b04aa9f7cdaf75e2d2af26.ctex"
+uid="uid://doms4qm76t6w0"
+path="res://.godot/imported/poison_texture_5.png-050dda54ef98609cc5ea6558becad55c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/particles/characters/lenbondosen/textures/finger_guns_texture.png"
-dest_files=["res://.godot/imported/finger_guns_texture.png-3763d15a83b04aa9f7cdaf75e2d2af26.ctex"]
+source_file="res://vfx/particles/characters/lenbondosen/textures/poison_texture_5.png"
+dest_files=["res://.godot/imported/poison_texture_5.png-050dda54ef98609cc5ea6558becad55c.ctex"]
 
 [params]
 

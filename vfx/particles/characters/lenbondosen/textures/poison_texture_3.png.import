@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://chvy3ov84tpg"
-path="res://.godot/imported/texture2.png-2529bf9915cae8039ee8cf8d219a951c.ctex"
+uid="uid://cdjbn4yfdieh0"
+path="res://.godot/imported/poison_texture_3.png-a8d314ea969755268c2a308a05d6e51d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/particles/characters/lenbondosen/textures/texture2.png"
-dest_files=["res://.godot/imported/texture2.png-2529bf9915cae8039ee8cf8d219a951c.ctex"]
+source_file="res://vfx/particles/characters/lenbondosen/textures/poison_texture_3.png"
+dest_files=["res://.godot/imported/poison_texture_3.png-a8d314ea969755268c2a308a05d6e51d.ctex"]
 
 [params]
 

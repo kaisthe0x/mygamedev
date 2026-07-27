@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dtv0skm0jsndu"
-path="res://.godot/imported/aura_texture.png-133ce243dc4e5fbdf76aad17695efc91.ctex"
+uid="uid://cgkfc87elwk1j"
+path="res://.godot/imported/poison_texture_2.png-c26a4b0185eb2a7ef75b89275dc4f34f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png"
-dest_files=["res://.godot/imported/aura_texture.png-133ce243dc4e5fbdf76aad17695efc91.ctex"]
+source_file="res://vfx/particles/characters/lenbondosen/textures/poison_texture_2.png"
+dest_files=["res://.godot/imported/poison_texture_2.png-c26a4b0185eb2a7ef75b89275dc4f34f.ctex"]
 
 [params]
 

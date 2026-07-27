@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dky8fk73bhih1"
-path="res://.godot/imported/boost_texture.png-6b40bff3342e95b525623eb8fb419119.ctex"
+uid="uid://cbvuy5qr4tpli"
+path="res://.godot/imported/poison_texture_6.png-e72c0ba37b503d1e2f3187f584d16d0d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/particles/characters/lenbondosen/textures/boost_texture.png"
-dest_files=["res://.godot/imported/boost_texture.png-6b40bff3342e95b525623eb8fb419119.ctex"]
+source_file="res://vfx/particles/characters/lenbondosen/textures/poison_texture_6.png"
+dest_files=["res://.godot/imported/poison_texture_6.png-e72c0ba37b503d1e2f3187f584d16d0d.ctex"]
 
 [params]
 

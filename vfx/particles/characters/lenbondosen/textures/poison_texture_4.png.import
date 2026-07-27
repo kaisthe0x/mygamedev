@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://r3f41426ufjs"
-path="res://.godot/imported/mouth_blast_texture.png-104fbecb06ad69b93e7368097b21abe3.ctex"
+uid="uid://cff347124kspf"
+path="res://.godot/imported/poison_texture_4.png-c0067a9ed0df3e5e9df379016ce05af2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/particles/characters/lenbondosen/textures/mouth_blast_texture.png"
-dest_files=["res://.godot/imported/mouth_blast_texture.png-104fbecb06ad69b93e7368097b21abe3.ctex"]
+source_file="res://vfx/particles/characters/lenbondosen/textures/poison_texture_4.png"
+dest_files=["res://.godot/imported/poison_texture_4.png-c0067a9ed0df3e5e9df379016ce05af2.ctex"]
 
 [params]
 

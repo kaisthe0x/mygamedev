@@ -1,25 +1,27 @@
 [gd_scene format=3 uid="uid://dy7y7ijgsp0c5"]
 
-[ext_resource type="Texture2D" uid="uid://dky8fk73bhih1" path="res://vfx/particles/characters/lenbondosen/textures/boost_texture.png" id="1_wlh00"]
+[ext_resource type="Texture2D" uid="uid://dumlggaayr6wy" path="res://vfx/particles/characters/lenbondosen/textures/poison_texture_10.png" id="1_cel51"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_dpi5q"]
+[ext_resource type="Texture2D" uid="uid://cbvuy5qr4tpli" path="res://vfx/particles/characters/lenbondosen/textures/poison_texture_6.png" id="3_lf42e"]
+[ext_resource type="Texture2D" uid="uid://cgkfc87elwk1j" path="res://vfx/particles/characters/lenbondosen/textures/poison_texture_2.png" id="4_jbqkj"]
 
 [sub_resource type="Curve" id="Curve_cel51"]
 _data = [Vector2(0.009560227, 0.14285713), 0.0, 0.0, 0, 0, Vector2(0.07074569, 0.12903225), 0.0, 0.0, 0, 0, Vector2(0.18355641, 0.073732734), 0.0, 0.0, 0, 0, Vector2(0.4971319, 0), 0.0, 0.0, 0, 0]
 point_count = 4
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_lf42e"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tkh5j"]
 size = Vector2(120.5, 6)
 
 [sub_resource type="Curve" id="Curve_osfjr"]
 _data = [Vector2(0.026768643, 0.26728112), 0.0, 0.0, 0, 0, Vector2(0.07074569, 0.12903225), 0.0, 0.0, 0, 0, Vector2(0.18355641, 0.073732734), 0.0, 0.0, 0, 0, Vector2(0.4971319, 0), 0.0, 0.0, 0, 0]
 point_count = 4
 
-[sub_resource type="CanvasTexture" id="CanvasTexture_cel51"]
-specular_color = Color(0.9843137, 0.9490196, 0.21176471, 1)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lf42e"]
+size = Vector2(20, 4)
 
 [sub_resource type="Curve" id="Curve_1rhev"]
-_data = [Vector2(0, 0.625), 0.0, 0.0, 0, 0, Vector2(0.14722753, 0.51785713), 0.0, 0.0, 0, 0, Vector2(0.25812617, 0.4910714), 0.0, 0.0, 0, 0, Vector2(0.32313573, 0.36160713), 0.0, 0.0, 0, 0]
-point_count = 4
+_data = [Vector2(0, 0.48387092), 0.0, 0.0, 0, 0, Vector2(0.124282986, 0.29953915), 0.0, 0.0, 0, 0, Vector2(0.21988529, 0.23502302), 0.0, 0.0, 0, 0, Vector2(0.29827917, 0.18894005), 0.0, 0.0, 0, 0, Vector2(0.36137667, 0.046082973), 0.0, 0.0, 0, 0]
+point_count = 5
 
 [node name="SlamDefault" type="Node2D" unique_id=1768553560]
 
@@ -27,7 +29,7 @@ point_count = 4
 z_index = -1
 position = Vector2(0, -1)
 amount = 650
-texture = ExtResource("1_wlh00")
+texture = ExtResource("1_cel51")
 lifetime = 0.4
 emission_shape = 3
 emission_rect_extents = Vector2(60, 1)
@@ -44,19 +46,21 @@ damage = 45.0
 
 [node name="Shape" type="CollisionShape2D" parent="Reach/Hitbox" unique_id=1110074381]
 position = Vector2(0.75, -1)
-shape = SubResource("RectangleShape2D_lf42e")
+shape = SubResource("RectangleShape2D_tkh5j")
 
 [node name="Impact" type="CPUParticles2D" parent="." unique_id=2017976439]
 z_index = -1
 position = Vector2(0, -2)
 amount = 200
-texture = ExtResource("1_wlh00")
+texture = ExtResource("3_lf42e")
 lifetime = 0.2
 emission_shape = 3
 emission_rect_extents = Vector2(10, 1)
 direction = Vector2(0, -1)
 spread = 0.0
 gravity = Vector2(0, -980)
+scale_amount_min = 0.1
+scale_amount_max = 0.5
 scale_amount_curve = SubResource("Curve_osfjr")
 
 [node name="Hitbox" type="Area2D" parent="Impact" unique_id=644883128]
@@ -66,14 +70,13 @@ script = ExtResource("2_dpi5q")
 damage = 70.0
 
 [node name="Shape" type="CollisionShape2D" parent="Impact/Hitbox" unique_id=1564382195]
-position = Vector2(0.75, -1)
 shape = SubResource("RectangleShape2D_lf42e")
 
 [node name="Particles" type="CPUParticles2D" parent="." unique_id=833943951]
 z_index = -1
 position = Vector2(1, -5)
 amount = 30
-texture = SubResource("CanvasTexture_cel51")
+texture = ExtResource("4_jbqkj")
 lifetime = 0.3
 emission_shape = 3
 emission_rect_extents = Vector2(60, 5)
@@ -81,5 +84,7 @@ direction = Vector2(0, -1)
 spread = 0.0
 gravity = Vector2(0, 200)
 initial_velocity_max = 73.13
+scale_amount_min = 0.1
+scale_amount_max = 0.1
 scale_amount_curve = SubResource("Curve_1rhev")
 color = Color(0.9411765, 0.8039216, 0.10980392, 1)
