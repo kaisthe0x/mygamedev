@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://pg1neklkdaj1"
-path="res://.godot/imported/feyke_special_slam_frames.png-b098bd04555de8d26fc592a27d27c049.ctex"
+uid="uid://bnjgw7cw6qjxr"
+path="res://.godot/imported/feyke_land_frames.png-28ccae187dca9295f6a1cf41bc461e8c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/feyke/feyke_special_slam_frames.png"
-dest_files=["res://.godot/imported/feyke_special_slam_frames.png-b098bd04555de8d26fc592a27d27c049.ctex"]
+source_file="res://sprites/characters/feyke/feyke_land_frames.png"
+dest_files=["res://.godot/imported/feyke_land_frames.png-28ccae187dca9295f6a1cf41bc461e8c.ctex"]
 
 [params]
 

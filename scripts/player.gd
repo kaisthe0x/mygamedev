@@ -38,6 +38,10 @@ var health: float = 100.0:
 		health_changed.emit(health, max_health)
 
 @export_group("Movement")
+## The current character's run speed (px/s). Seeded per character on every character
+## change from CharacterConfig.RUN_SPEEDS -- edit per-character values THERE, not here
+## (this is overwritten on swap). The inspector value only applies before a character
+## is equipped.
 @export var run_speed: float = 160.0
 @export var acceleration: float = 1200.0
 @export var friction: float = 1400.0
@@ -47,6 +51,10 @@ var health: float = 100.0:
 ## smeary "blurry" run. >1 = busier legs. Purely visual; tune to taste.
 @export var run_anim_speed: float = 1.5
 @export var jump_velocity: float = -330.0
+## Extra mid-air jumps after the ground jump (1 = a double jump). The ground jump is
+## silent; each air jump re-boosts AND spawns the character's jump particles (a
+## combat-capable burst -- see emitters.json "double_jump").
+@export var max_air_jumps: int = 1
 @export var gravity: float = 900.0
 ## Falling faster than rising makes the arc feel less floaty.
 @export var fall_gravity_scale: float = 1.35
@@ -62,6 +70,12 @@ var health: float = 100.0:
 @export var dash_anim_time: float = 0.30
 ## Gravity kept during an air dash. 0 hangs in place, 1 falls normally.
 @export_range(0.0, 1.0) var dash_gravity_scale: float = 0.35
+
+@export_group("Slam")
+## Downward plunge speed of an air-down ground slam (much faster than a normal
+## fall, so it reads as a committed slam). Universal move; only characters with a
+## `slam` sheet can do it. Particles are authored per character in emitters.json.
+@export var slam_speed: float = 1200.0
 
 @export_group("Juice")
 ## How far the sprite leans forward at full falling speed, in degrees.
@@ -89,7 +103,7 @@ var health: float = 100.0:
 @export var attack_hitbox_x: float = 18.0
 @export var attack_hitbox_extents := Vector2(15, 18)
 
-enum State { IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND }
+enum State { IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM }
 
 var _state: State = State.IDLE
 var _facing: int = 1
@@ -106,6 +120,12 @@ var _dash_cd: float = 0.0
 ## Airborne tracking, so a touchdown can trigger the landing squash.
 var _was_on_floor: bool = true
 var _fall_peak: float = 0.0  # fastest downward speed reached this airborne stretch
+## Air jumps spent since leaving the ground; reset on touchdown (see _physics_process).
+var _air_jumps_used: int = 0
+## True only when a jump was actually triggered, so the jump animation replays its
+## launch. Entering JUMP just by being airborne (after a dash, walking off a ledge)
+## leaves it false -- the anim then holds its last (fall) frame instead of relaunching.
+var _jump_launch: bool = false
 var _just_landed: bool = false
 ## Which combo segment we're on (index into the attack's hit-frame list).
 var _combo_step: int = 0
@@ -173,6 +193,8 @@ func _apply_character() -> void:
 	# drive which animation ATTACK/SPECIAL play and its hit tuning).
 	_current_attack = Moves.get_move(character, "attacks")
 	_current_special = Moves.get_move(character, "specials")
+	# Per-character run speed (Katalyst runs a touch faster, etc.).
+	run_speed = CharacterConfig.run_speed(character)
 	# The generator's canvas size changes whenever the art does, so derive the
 	# offset from the frames rather than baking it into the scene.
 	anchor_to_feet(sprite)
@@ -182,6 +204,11 @@ func _apply_character() -> void:
 	_combo_window = 0.0
 	_combo_playing = false
 	_buffered_special = false
+	# Drop back to idle: a state-specific animation (e.g. slam) may not exist on the
+	# new character, and a swap is a clean slate anyway. Skip in the editor so a
+	# preview character keeps whatever pose the scene is set to show.
+	if not Engine.is_editor_hint():
+		_state = State.IDLE
 	sprite.speed_scale = 1.0
 	sprite.play(_animation_for(_state))
 	_equip_ability()
@@ -369,6 +396,7 @@ func _physics_process(delta: float) -> void:
 	_just_landed = on_floor and not _was_on_floor and _fall_peak >= land_min_fall_speed
 	if on_floor:
 		_fall_peak = 0.0
+		_air_jumps_used = 0  # refresh the double jump on every touchdown
 	_was_on_floor = on_floor
 
 	if _stun_left > 0.0:
@@ -379,6 +407,8 @@ func _physics_process(delta: float) -> void:
 		_process_attack(delta)
 	elif _state == State.SPECIAL:
 		_process_special(delta)
+	elif _state == State.SLAM:
+		_process_slam(delta)
 	elif _state == State.LAND:
 		_process_land(delta)
 	else:
@@ -444,21 +474,34 @@ func _process_normal(delta: float) -> void:
 		_face_mouse()  # standing still: turn to look toward the cursor
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
+	# Special: on the ground it's the character's special; in the AIR it becomes the
+	# ground slam instead (specials are grounded-only). A character with no slam sheet
+	# simply can't act on the special button while airborne.
 	if Input.is_action_just_pressed("special"):
-		_start_special()  # supersedes any light chain in progress
-		return
-	if Input.is_action_just_pressed("attack"):
+		if is_on_floor():
+			_start_special()  # supersedes any light chain in progress
+			return
+		elif _has_slam():
+			_enter(State.SLAM)  # air special = ground slam
+			return
+	# Attacks are grounded-only -- no air attacks.
+	if Input.is_action_just_pressed("attack") and is_on_floor():
 		_advance_combo()
 		return
 	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
 		_enter(State.DASH)
 		return
-	# Tap `drop` (down by default) to fall through the one-way platform you're
-	# standing on (a no-op on the solid floor). Jump is just jump.
+	# `drop` (down by default): on the ground, fall through the one-way platform you're
+	# standing on (a no-op on the solid floor). The slam is on the special button now
+	# (see above), so drop does nothing in the air. Jump is just jump.
 	if Input.is_action_just_pressed("drop") and is_on_floor():
 		_drop_through_platform()
-	if Input.is_action_just_pressed("jump") and is_on_floor():
-		velocity.y = jump_velocity
+	if Input.is_action_just_pressed("jump"):
+		if is_on_floor():
+			velocity.y = jump_velocity  # ground jump -- silent, no particles
+			_jump_launch = true
+		elif _air_jumps_used < max_air_jumps:
+			_air_jump()
 
 	if not is_on_floor():
 		_state = State.JUMP
@@ -491,6 +534,19 @@ func _drop_through_platform() -> bool:
 	return false
 
 
+## A mid-air jump (the double jump). Re-boosts upward, replays the launch pose, and
+## -- unlike the silent ground jump -- spawns the character's jump particles: a
+## code-triggered burst (combat-capable) under the "double_jump" key in emitters.json,
+## fired here so only air jumps produce it. Guarded by _air_jumps_used < max_air_jumps.
+func _air_jump() -> void:
+	velocity.y = jump_velocity
+	_air_jumps_used += 1
+	_sprite.play(&"jump")
+	_sprite.set_frame_and_progress(0, 0.0)  # replay the launch from the top
+	if _particles != null:
+		_particles.fire_effect("double_jump")
+
+
 ## A brief touchdown squash. Fully cancelable -- any action or a movement input
 ## breaks out of it instantly, so it never eats inputs; left alone it plays out
 ## and hands back to idle (see _on_animation_finished).
@@ -510,6 +566,7 @@ func _process_land(delta: float) -> void:
 		return
 	if Input.is_action_just_pressed("jump"):
 		velocity.y = jump_velocity
+		_jump_launch = true
 		_state = State.JUMP
 		return
 
@@ -587,6 +644,30 @@ func _process_special(delta: float) -> void:
 		velocity.y += gravity * delta
 
 
+## An air-down ground slam: committed like a special. Horizontal drift bleeds off
+## while the character plunges straight down at `slam_speed`. The descent holds on
+## the last pre-impact frame, so the slam's impact frame -- where the ground burst
+## is authored -- only plays once we've actually landed; then _on_animation_finished
+## hands back to idle. Per-character particles fire off emitters.json (a sustained
+## trail on the descent frames, a burst on the impact frame).
+func _process_slam(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+	if is_on_floor():
+		velocity.y = 0.0
+		_sprite.speed_scale = 1.0  # unfreeze: play through the impact frame -> idle
+		return
+	velocity.y = maxf(velocity.y, slam_speed)  # keep the plunge fast the whole way down
+	# Freeze on the frame before impact so a tall drop can't fire the impact in mid-air.
+	var last := _sprite.sprite_frames.get_frame_count(&"slam") - 1
+	if last > 0 and _sprite.frame >= last - 1:
+		_sprite.set_frame_and_progress(last - 1, 0.0)
+		_sprite.speed_scale = 0.0
+
+
+func _has_slam() -> bool:
+	return _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(&"slam")
+
+
 ## One press = one combo segment: play the frames up to the next hit, then hold
 ## there. Each hit frame is a segment boundary (see the generator's HIT_FRAMES).
 ## Letting `combo_reset_time` lapse drops you back to the first segment; pressing
@@ -640,6 +721,9 @@ func _enter(state: State) -> void:
 				_sprite.speed_scale = anim_time / maxf(dash_anim_time, dash_time)
 		State.ATTACK:
 			velocity.x = 0.0
+		State.SLAM:
+			# Commit: kill horizontal drift and start the downward plunge now.
+			velocity = Vector2(0.0, slam_speed)
 
 
 func _animation_for(state: State) -> StringName:
@@ -650,6 +734,7 @@ func _animation_for(state: State) -> StringName:
 		State.ATTACK: return _current_attack.animation
 		State.SPECIAL: return _current_special.animation
 		State.LAND: return &"land"
+		State.SLAM: return &"slam"
 		_: return &"idle"
 
 
@@ -658,6 +743,16 @@ func _update_animation(delta: float) -> void:
 	var next := _animation_for(_state)
 	if _sprite.animation != next:
 		_sprite.play(next)
+		# `jump` doubles as the fall pose. Only replay its launch when a jump was
+		# actually triggered; entering JUMP just by being airborne (a dash ended, or
+		# you walked off a ledge) snaps to the last frame so it doesn't look like a
+		# fresh jump you never asked for.
+		if next == &"jump" and not _jump_launch:
+			var jn := _sprite.sprite_frames.get_frame_count(&"jump")
+			if jn > 0:
+				_sprite.set_frame_and_progress(jn - 1, 0.0)
+	if next == &"jump":
+		_jump_launch = false  # spent once the jump anim is showing
 
 	# Keep the run cadence matched to actual ground speed so the legs don't
 	# foot-slide (which reads as a smeary run). Other states keep their own rate:
@@ -698,5 +793,5 @@ func _loop_meta(key: StringName) -> int:
 func _on_animation_finished() -> void:
 	# Light attack is a paused single frame and jump holds its last frame, so
 	# only dash, the special swing, and the landing squash end on playback finishing.
-	if _state == State.DASH or _state == State.SPECIAL or _state == State.LAND:
+	if _state == State.DASH or _state == State.SPECIAL or _state == State.LAND or _state == State.SLAM:
 		_enter(State.IDLE)

@@ -62,7 +62,7 @@
     ],
     "run": [
       {
-        "type": "run_aura",
+        "type": "run_default",
         "mode": "sustained",
         "frames": "all",
         "pos": [-17, -17]
@@ -70,18 +70,33 @@
     ],
     "dash": [
       {
-        "type": "dash_boost",
+        "type": "dash_default",
         "mode": "sustained",
         "frames": "all",
         "pos": [0, -3]
       }
     ],
-    "jump": [
+    "double_jump": [
       {
-        "type": "jump_boost",
-        "mode": "sustained",
-        "frames": [0, 1, 2, 3],
+        "_comment": "Fired from code on the second (air) jump only -- player.gd _air_jump -> ParticleDirector.fire_effect. The key is intentionally NOT a real sprite animation, so it never auto-fires on a frame; the ground jump stays silent.",
+        "type": "jump_default",
+        "mode": "burst",
         "pos": [0, 0]
+      }
+    ],
+    "slam": [
+      {
+        "type": "fall_wind_streaks",
+        "mode": "sustained",
+        "frames": [1, 2, 3],
+        "pos": [0, -12]
+      },
+      {
+        "type": "slam_default",
+        "mode": "burst",
+        "frames": [4, 5],
+        "pos": [0, 0],
+        "clip_to_ground": true
       }
     ]
   },
@@ -102,11 +117,10 @@
         "pos": [-17, -17]
       }
     ],
-	 "jump": [
+    "double_jump": [
       {
         "type": "jump_boost",
-        "mode": "sustained",
-        "frames": [0, 1, 2, 3],
+        "mode": "burst",
         "pos": [0, 0]
       }
     ],
@@ -123,6 +137,71 @@
         "type": "special_double_pierce",
         "mode": "burst",
         "frames": [3],
+        "pos": [0, 0],
+        "clip_to_ground": true
+      }
+    ]
+  },
+  "feyke": {
+    "idle": [
+      {
+        "type": "special_ready",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, 0]
+      }
+    ],
+    "run": [
+      {
+        "type": "run_default",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [-17, -17]
+      }
+    ],
+	"dash": [
+	  {
+		"type": "dash_default",
+		"mode": "sustained",
+		"frames": "all",
+		"pos": [0, -3]
+	  }
+	],
+    "double_jump": [
+      {
+        "type": "jump_default",
+        "mode": "burst",
+        "pos": [0, 0]
+      }
+    ],
+    "attack_ring_kiss": [
+      {
+        "type": "attack_ring_kiss",
+        "mode": "burst",
+        "frames": [3],
+        "pos": [16, -26]
+      }
+    ],
+    "special_f_you": [
+      {
+        "type": "special_f_you",
+        "mode": "burst",
+        "frames": [2],
+        "pos": [0, 0],
+        "clip_to_ground": true
+      }
+    ],
+    "slam": [
+      {
+        "type": "fall_wind_streaks",
+        "mode": "sustained",
+        "frames": [0,1,2,3],
+        "pos": [0, -12]
+      },
+      {
+        "type": "slam_default",
+        "mode": "burst",
+        "frames": [4],
         "pos": [0, 0],
         "clip_to_ground": true
       }

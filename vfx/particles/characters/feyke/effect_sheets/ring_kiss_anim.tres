@@ -1,0 +1,60 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://ctlseun4i73bd"]
+
+[ext_resource type="Texture2D" uid="uid://bvue6om6j0xg" path="res://vfx/particles/characters/feyke/effect_sheets/ring_kiss_anim.png" id="1_72jwa"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_871o1"]
+atlas = ExtResource("1_72jwa")
+region = Rect2(0, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wwhr4"]
+atlas = ExtResource("1_72jwa")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qarhj"]
+atlas = ExtResource("1_72jwa")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eelxy"]
+atlas = ExtResource("1_72jwa")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2gtli"]
+atlas = ExtResource("1_72jwa")
+region = Rect2(512, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ayt8u"]
+atlas = ExtResource("1_72jwa")
+region = Rect2(640, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xv8bx"]
+atlas = ExtResource("1_72jwa")
+region = Rect2(768, 0, 128, 80)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_871o1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wwhr4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qarhj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_eelxy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2gtli")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ayt8u")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xv8bx")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 14.0
+}]

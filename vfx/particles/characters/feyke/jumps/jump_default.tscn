@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://c8jmhpwoj5he"]
+
+[ext_resource type="Texture2D" uid="uid://1n7wa2whf3es" path="res://vfx/particles/characters/feyke/textures/smoke_texture_3.png" id="1_7pimd"]
+
+[sub_resource type="Curve" id="Curve_deyxt"]
+_data = [Vector2(0, 0.38709676), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.2580645), 0.0, 0.0, 0, 0, Vector2(0.24474189, 0.16589862), 0.0, 0.0, 0, 0, Vector2(0.36520076, 0.123595595), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="JumpDefault" type="Node2D" unique_id=1024961707]
+
+[node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=85137628]
+amount = 30
+texture = ExtResource("1_7pimd")
+lifetime = 0.4
+emission_shape = 1
+emission_sphere_radius = 13.27
+gravity = Vector2(0, 50)
+angle_min = 180.0
+angle_max = 180.0
+scale_amount_min = 0.5
+scale_amount_max = 0.5
+scale_amount_curve = SubResource("Curve_deyxt")

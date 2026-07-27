@@ -37,9 +37,14 @@ const CATALOG := {
 		"default_attack": "strike", "default_special": "burst",
 	},
 	"feyke": {
-		"attacks": {"strike": {"animation": "attack", "tuning": {"damage": 15, "knockback": 45}}},
-		"specials": {"slam": {"animation": "special_slam", "tuning": {"damage": 38, "knockback": 150}}},
-		"default_attack": "strike", "default_special": "slam",
+		# Ring kiss: a homing "kiss" shot (like Lenny's finger guns) -- one burst of
+		# three particles. Its projectile carries the hit (attacks/attack_ring_kiss.tscn),
+		# so the melee box stands down (damage 0).
+		"attacks": {"ring_kiss": {"animation": "attack_ring_kiss", "effect": "attack_ring_kiss",
+			"tuning": {"damage": 0}}},
+		"specials": {"f_you": {"animation": "special_f_you",
+			"tuning": {"damage": 38, "knockback": 150, "x": 20.0, "extents": Vector2(34, 22)}}},
+		"default_attack": "ring_kiss", "default_special": "f_you",
 	},
 	"lenbondosen": {
 		"attacks": {

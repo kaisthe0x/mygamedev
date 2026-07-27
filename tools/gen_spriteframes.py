@@ -40,6 +40,7 @@ CHARACTER_ANIMS = {
     "run": (10.0, True),
     "jump": (10.0, False),
     "land": (12.0, False),   # brief touchdown squash; plays once, then idle/run
+    "slam": (12.0, False),   # air-down ground slam; plays once during the plunge
     "dash": (12.0, False),
     "attack": (12.0, False),
     "special": (10.0, False),
@@ -108,7 +109,10 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
 # smoothness. Any attack not listed treats every frame as its own hit (so each
 # click advances one frame -- the old snap feel). Emitted as resource metadata.
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
-    ("feyke", "attack"): [2, 3, 7],
+    # Ring kiss (attack): a single-burst "kiss" shot -- fires on frame 3.
+    ("feyke", "attack_ring_kiss"): [3],
+    # F you (special): the hit lands on frame 2.
+    ("feyke", "special_f_you"): [2],
     # Katalyst's 11-frame swing is a 3-hit combo: a forward whip-reach (2), the
     # spinning energy AoE at its peak (6), and the extended finishing strike (10).
     ("katalyst", "attack_rope_dart_dance"): [2, 6, 10],

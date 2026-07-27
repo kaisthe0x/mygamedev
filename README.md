@@ -37,11 +37,11 @@ tools/                Generator + verification scripts (not shipped)
 | Input | Action | Notes |
 |---|---|---|
 | A / D | `move_left` / `move_right` | |
-| S / ↓ | `drop` | Tap to fall through the one-way platform you're on (controller: D-pad down / left-stick down; remappable in the Input Map) |
-| Space | `jump` | |
+| S / ↓ | `drop` | Tap to fall through the one-way platform you're on (ground only; a no-op on solid floor). Controller: D-pad down / left-stick down; remappable in the Input Map |
+| Space | `jump` | Press again in the air to **double jump** (`max_air_jumps`) — the air jump re-boosts and spawns the character's jump particles; the ground jump is silent |
 | Shift | `dash` | Has a cooldown |
-| Left mouse | `attack` | The current *attack* — each press advances the combo |
-| Right mouse | `special` | The current *special* — committed full-animation move |
+| Left mouse | `attack` | The current *attack* — each press advances the combo. **Ground only** (no air attacks) |
+| Right mouse | `special` | On the ground: the current *special* (committed full-animation move). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
 | Q / E | `prev_character` / `next_character` | Dev only |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — clear + respawn all enemies |
@@ -66,9 +66,10 @@ This is the part worth understanding, because the source sheets are irregular.
 
 ### The problem
 
-Each character has up to seven sheets (`idle`, `run`, `jump`, `land`, `dash`,
-`attack`, `special`) — `land` is newer, so a character without one is just
-skipped (see below). They are single-row grids, but nothing else is consistent:
+Each character has up to several sheets (`idle`, `run`, `jump`, `land`, `dash`,
+`slam`, `attack`, `special`) — `land` and `slam` are optional universal moves, so
+a character without that sheet just can't do it (the mechanic no-ops for them; see
+below). They are single-row grids, but nothing else is consistent:
 
 - Frame counts vary (2-13+) between animations *and* between characters — the
   slicer (`frame_count`) auto-detects the count, up to a generous cap, so long
@@ -164,6 +165,8 @@ generator:
 | idle | 6 | yes |
 | run | 10 | yes |
 | jump | 10 | no |
+| land | 12 | no |
+| slam | 12 | no |
 | dash | 12 | no |
 | attack | 12 | no |
 | special | 10 | no |
@@ -216,15 +219,20 @@ for smoothness (see **Player → Attack combo**). Any attack not listed defaults
 "every frame is a hit" — one frame per click, the older snap feel. Emitted as
 `metadata/hit_frames`, read by `player.gd`.
 
-Configured so far, with wind-up / in-between frames between the hits:
+Configured so far (keyed by the move's animation, since a character has several),
+with wind-up / in-between frames between the hits:
 
-| Character | `HIT_FRAMES` (sheet indices) |
-|---|---|
-| feyke | `[2, 3, 7]` |
-| katalyst | `[2, 6, 10]` — whip-reach, spin-AoE, finisher |
-| lenbondosen | `[8, 12, 13]` — blue hammer thrust, then the energy burst forming and blooming |
+| Character | Animation | `HIT_FRAMES` (sheet indices) |
+|---|---|---|
+| feyke | `attack_ring_kiss` | `[3]` — single-burst "kiss" shot |
+| feyke | `special_f_you` | `[2]` |
+| katalyst | `attack_rope_dart_dance` | `[2, 6, 10]` — whip-reach, spin-AoE, finisher |
+| katalyst | `special_double_pierce` | `[3]` |
+| lenbondosen | `attack_finger_guns` | `[2, 4, 7]` — three shots |
+| lenbondosen | `special_mouth_blast` | `[3, 6, 9]` |
+| lenbondosen | `special_poison_raiser` | `[4]` |
 
-Special attacks can list a strike frame too (`("char","special"): [...]`);
+Specials list a strike frame the same way (keyed by the special's animation);
 without one the special lands on its middle frame.
 
 > **Indices, not frame numbers.** These are 0-based sheet indices, where index 0
@@ -268,16 +276,24 @@ and a matching case in `_animation_for()` in `player.gd`.
 ## Player
 
 `scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / DASH / ATTACK / SPECIAL / LAND`). Everything is tunable
+(`IDLE / RUN / JUMP / DASH / ATTACK / SPECIAL / LAND / SLAM`). Everything is tunable
 in the inspector.
 
 | Group | Key values |
 |---|---|
 | Health | `max_health` 100 |
-| Movement | `run_speed` 160, `jump_velocity` -330, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
+| Movement | `run_speed` 160 (**per character** — see below), `jump_velocity` -330, `max_air_jumps` 1, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
 | Dash | `dash_speed` 420, `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
+| Slam | `slam_speed` 1200 |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 | Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600, `land_min_fall_speed` 140 |
+
+**Per-character run speed.** `run_speed` is seeded on every character change from
+`CharacterConfig.RUN_SPEEDS` (in `configs/character_config.gd`) — edit per-character
+values there, not on the Player node (the inspector value is overwritten on swap).
+Characters not listed use `DEFAULT_RUN_SPEED` (160); **Katalyst runs a touch faster
+(190)**. The run *animation* cadence auto-scales to each character's speed, so faster
+runners don't foot-slide.
 
 **Dash lunge vs. animation.** The lunge (`dash_speed` for `dash_time`) is decoupled
 from the dash *animation*, which plays over `dash_anim_time`. When that's longer
@@ -296,14 +312,47 @@ breaks out instantly, so it never eats inputs; left alone it plays once and hand
 back to idle. Characters without a `land` sheet skip straight to idle/run as
 before. Only Katalyst has one so far.
 
+**Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
+air, press `special` to plunge straight down at `slam_speed` (1200 — far faster than
+a normal fall, so it reads as committed). Horizontal drift bleeds off and the
+character plunges, **holding on the frame before impact** so the descent can be any
+height; the moment it lands, the `slam` animation plays through its impact frame and
+hands back to idle (via `_on_animation_finished`). That hold is why the impact effect
+always fires on the ground, never in mid-air. Like a special, it's committed — no
+cancel mid-plunge. The `special` button is context-sensitive: **on the ground it
+does the character's special, in the air it slams** (attacks and specials are both
+grounded-only). Characters without a `slam` sheet simply can't slam (the air press
+no-ops), so it's opt-in per character as art lands — **Lenny and Feyke have `slam`
+sheets so far**. Slam **particles** are authored per character in `vfx/emitters.json`
+under the `slam` animation: a `sustained` trail on the descent frames and a `burst`
+on the impact frame.
+
+**Double jump.** After the ground jump, `max_air_jumps` (default 1) extra jumps are
+allowed in mid-air; the counter refreshes on every touchdown. The **ground jump is
+silent**; each **air jump** re-boosts *and* spawns the character's jump particles.
+Because the particle director is frame-indexed and can't tell a first jump from a
+second, the jump effect is a **code-triggered burst**: it's configured under a
+`double_jump` key in `emitters.json` (deliberately *not* a real sprite-animation
+name, so it never auto-fires on a frame), and `_air_jump()` fires it via
+`ParticleDirector.fire_effect("double_jump")`. That burst is combat-capable — give
+its scene a `Hitbox` and the air jump deals damage / applies a buff, same as any
+other burst.
+
+**Jump vs. fall pose.** The `jump` animation doubles as the airborne/fall pose, but
+its *launch* only replays when a jump is actually triggered (`_jump_launch`). Entering
+the airborne state without jumping — a dash ending mid-air, or walking off a ledge —
+holds the animation's last (fall) frame instead of re-launching, so you don't get a
+phantom second jump before landing.
+
 **Attack combo (LMB).** One press plays one *segment* — the frames up to the
 next hit animate, then the sprite holds the hit frame for a short
 `attack_recovery` and hands control back to idle. Hit frames come from the
 `HIT_FRAMES` config via SpriteFrames metadata (`_attack_hits()`); an attack with
-no entry treats every frame as a hit, so each click advances one frame. Feyke,
-lenbondosen and katalyst have authored hit frames (three hits with smooth
+no entry treats every frame as a hit, so each click advances one frame.
+Lenbondosen and katalyst have authored multi-hit combos (three hits with smooth
 wind-up/in-between frames — katalyst's are whip-reach / spin-AoE / finisher);
-khalid and wayna still step one frame per click.
+Feyke's `ring_kiss` is a single-hit shot (one burst); khalid and wayna still step
+one frame per click.
 
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:

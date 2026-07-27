@@ -28,6 +28,10 @@ extends Node2D
 
 const CONFIG_PATH := "res://vfx/emitters.json"
 const PARTICLE_DIR := "res://vfx/particles"
+## Per-character effect scenes are organised into these category subfolders; a type
+## is searched across all of them (see _candidates), so names don't have to match the
+## folder and a character can group its run/jump/dash/slam/attack/special effects.
+const SUBFOLDERS: Array[String] = ["attacks", "specials", "runs", "jumps", "dashes", "slams", "other"]
 
 var _sprite: AnimatedSprite2D
 var _config: Dictionary = {}
@@ -128,18 +132,19 @@ func _sheet_start(anim: String) -> int:
 
 
 ## Where a `type` can live, most specific first. A type containing "/" is taken as
-## an explicit path under particles/ (e.g. "environment/water"). Otherwise: move
-## effects are grouped into the character's attacks/ or specials/ subfolder (matched
-## by the type's `attack`/`special` prefix); everything else (auras, boosts) sits in
-## the character's own folder, then shared/, then the flat particles/ fallback.
+## an explicit path under particles/ (e.g. "environment/water"). Otherwise it's
+## searched across the current character's category subfolders (SUBFOLDERS: runs/,
+## jumps/, dashes/, slams/, attacks/, specials/, other/) so a type resolves wherever
+## it's filed and its name need not match the folder (the slam's fall_wind_streaks
+## trail sits in other/). Then the character's own folder root (characters not yet
+## reorganised into subfolders, like Katalyst/Wayna), then shared/, then the flat
+## particles/ fallback.
 func _candidates(type: String) -> Array[String]:
 	if "/" in type:
 		return ["%s/%s.tscn" % [PARTICLE_DIR, type]]
 	var out: Array[String] = []
-	if type.begins_with("attack"):
-		out.append("%s/characters/%s/attacks/%s.tscn" % [PARTICLE_DIR, _character, type])
-	elif type.begins_with("special"):
-		out.append("%s/characters/%s/specials/%s.tscn" % [PARTICLE_DIR, _character, type])
+	for sub in SUBFOLDERS:
+		out.append("%s/characters/%s/%s/%s.tscn" % [PARTICLE_DIR, _character, sub, type])
 	out.append("%s/characters/%s/%s.tscn" % [PARTICLE_DIR, _character, type])
 	out.append("%s/shared/%s.tscn" % [PARTICLE_DIR, type])
 	out.append("%s/%s.tscn" % [PARTICLE_DIR, type])
@@ -156,8 +161,9 @@ func _candidates(type: String) -> Array[String]:
 ## `type` with different `node`s fires different children at different frames. Empty
 ## node_name = the whole scene (single or composite), as before.
 ##
-## Rejected only if it holds no particle emitters AND isn't a LaserBeam (whose look
-## is Line2D-based, not particles, but which the director still fires like a burst).
+## Rejected only if it holds no particle emitters AND isn't a self-visual projectile:
+## a LaserBeam (Line2D-based) or a Shot (which can carry an AnimatedSprite2D playing a
+## drawn frame animation instead of particles). Those manage their own look and life.
 func _spawn(type: String, node_name := "") -> Node2D:
 	var path := ""
 	var tried := _candidates(type)
@@ -181,10 +187,10 @@ func _spawn(type: String, node_name := "") -> Node2D:
 		child.owner = null  # was owned by the palette root we're about to drop
 		root.queue_free()
 		node = child
-	if _emitters_of(node).is_empty() and not (node is LaserBeam):
+	if _emitters_of(node).is_empty() and not (node is LaserBeam) and not (node is Shot):
 		var where := path if node_name == "" else "%s -> %s" % [path, node_name]
 		push_warning("ParticleDirector: %s has no CPUParticles2D/GPUParticles2D " % where
-			+ "(as its root or a child) and is not a LaserBeam, got %s" % node.get_class())
+			+ "(as its root or a child) and is not a LaserBeam/Shot, got %s" % node.get_class())
 		node.queue_free()
 		return null
 	return node
@@ -327,6 +333,18 @@ func _refresh() -> void:
 	# re-fires each pass, which is the intent.
 	for b in _bursts:
 		if b.anim == anim and b.frames.has(frame):
+			_fire_burst(b, m)
+
+
+## Fire the burst emitters configured under `anim` right now, as a code-driven
+## one-shot -- for an effect tied to an event rather than an animation frame. Give
+## the effect an `anim` key that is NOT a real sprite animation (e.g. "double_jump")
+## so _refresh never auto-fires it on a frame, then call this at the moment it should
+## go off. Used by the double jump: only the second, airborne jump spawns particles.
+func fire_effect(anim: String) -> void:
+	var m := _mirror()
+	for b in _bursts:
+		if b.anim == anim:
 			_fire_burst(b, m)
 
 

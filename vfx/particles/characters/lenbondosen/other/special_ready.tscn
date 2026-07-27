@@ -6,7 +6,7 @@
 _data = [Vector2(0, 0.11235964), 0.0, 0.0, 0, 0, Vector2(0.250478, 0.078651786), 0.0, 0.0, 0, 0, Vector2(0.5277246, 0.0138248205), 0.0, 0.0, 0, 0, Vector2(0.751434, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 5
 
-[node name="HeavyReady" type="Node2D" unique_id=67767293]
+[node name="SpecialReady" type="Node2D" unique_id=67767293]
 
 [node name="Energy" type="CPUParticles2D" parent="." unique_id=1890578058]
 position = Vector2(0, -1)

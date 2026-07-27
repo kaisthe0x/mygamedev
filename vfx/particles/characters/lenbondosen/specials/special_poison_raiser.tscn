@@ -1,7 +1,7 @@
-[gd_scene format=3 uid="uid://cuqr7cna356a3"]
+[gd_scene format=3 uid="uid://dqyr1k1uf6nnn"]
 
-[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_jrha8"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
+[ext_resource type="Texture2D" uid="uid://dtv0skm0jsndu" path="res://vfx/particles/characters/lenbondosen/textures/aura_texture.png" id="1_niova"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_sebo5"]
 
 [sub_resource type="Curve" id="Curve_uashs"]
 _data = [Vector2(0, 0.23502302), 0.0, 0.0, 0, 0, Vector2(0.16061184, 0.36607146), 0.0, 0.0, 0, 0, Vector2(0.3537285, 0.13824886), 0.0, 0.0, 0, 0, Vector2(0.4971319, 0), 0.0, 0.0, 0, 0]
@@ -15,7 +15,7 @@ size = Vector2(240, 41)
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=263019033]
 z_index = -1
 amount = 700
-texture = ExtResource("1_jrha8")
+texture = ExtResource("1_niova")
 lifetime = 0.5
 emission_shape = 3
 emission_rect_extents = Vector2(120, 1)
@@ -29,7 +29,7 @@ scale_amount_curve = SubResource("Curve_uashs")
 [node name="Hitbox" type="Area2D" parent="." unique_id=1495896596]
 collision_layer = 32
 collision_mask = 16
-script = ExtResource("2_hitbox")
+script = ExtResource("2_sebo5")
 damage = 50.0
 knockback = 150.0
 

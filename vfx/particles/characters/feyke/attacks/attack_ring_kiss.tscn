@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://qvuuxgwwh18e"]
+
+[ext_resource type="SpriteFrames" path="res://vfx/particles/characters/feyke/effect_sheets/ring_kiss_anim.tres" id="1_sf"]
+[ext_resource type="Script" uid="uid://bdph6djfjwdjn" path="res://scripts/combat/shot.gd" id="2_shot"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hb"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kiss"]
+size = Vector2(24, 20)
+
+[sub_resource type="Curve" id="Curve_oqa74"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.20076482, 1), 0.0, 0.0, 0, 0, Vector2(0.3785851, 0.47191018), 0.0, 0.0, 0, 0, Vector2(0.48565963, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="AttackRingKiss" type="Node2D" unique_id=890394430]
+script = ExtResource("2_shot")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1267085474]
+scale = Vector2(0.2, 0.2)
+sprite_frames = ExtResource("1_sf")
+autoplay = "default"
+
+[node name="Hitbox" type="Area2D" parent="Sprite" unique_id=360628885]
+scale = Vector2(4.9999995, 4.9999995)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("3_hb")
+damage = 14.0
+knockback = 60.0
+
+[node name="Shape" type="CollisionShape2D" parent="Sprite/Hitbox" unique_id=2024332018]
+shape = SubResource("RectangleShape2D_kiss")
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1817190421]
+amount = 100
+lifetime = 0.5
+emission_shape = 3
+emission_rect_extents = Vector2(2, 3)
+direction = Vector2(100, 0)
+gravity = Vector2(0, 100)
+initial_velocity_min = 11.19
+initial_velocity_max = 11.19
+scale_amount_curve = SubResource("Curve_oqa74")
+color = Color(0.011764706, 0.015686275, 0.015686275, 1)

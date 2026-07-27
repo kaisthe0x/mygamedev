@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d0frapsllbtl7"
-path="res://.godot/imported/feyke_attack_frames.png-2539ad88de3f4b8b411cb1c6e2f7769d.ctex"
+uid="uid://d2qxxcorqk13w"
+path="res://.godot/imported/lenbondosen_slam_frames.png-fa1bc06e0e0110226d818c775b89f427.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/feyke/feyke_attack_frames.png"
-dest_files=["res://.godot/imported/feyke_attack_frames.png-2539ad88de3f4b8b411cb1c6e2f7769d.ctex"]
+source_file="res://sprites/characters/lenbondosen/lenbondosen_slam_frames.png"
+dest_files=["res://.godot/imported/lenbondosen_slam_frames.png-fa1bc06e0e0110226d818c775b89f427.ctex"]
 
 [params]
 

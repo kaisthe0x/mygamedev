@@ -23,8 +23,17 @@ vfx/
     laser_beam_<id>.tscn     Per-character inherited beams (laser_beam_lenny.tscn)
     laser_beam_<id>.gdshader Per-character beam shaders (swirl, etc.)
   particles/
-    characters/<id>/           Per-character effects (lenbondosen/aura.tscn)
-    characters/<id>/textures/  Per-character drawn sprites (lenbondosen_beam.png)
+    characters/<id>/           Per-character effects — organised into category
+      runs/ jumps/ dashes/       subfolders (a character's default run/jump/dash/
+      slams/ attacks/ specials/  slam + its named attacks/specials), plus other/
+      other/                     for shared bits. A type is found in ANY of these,
+                                 so its name needn't match the folder. Characters
+                                 not yet reorganised (Katalyst, Wayna) keep flat
+                                 scenes in the character root — still resolved.
+    characters/<id>/effect_sheets/ Hand-drawn effect ANIMATION strips + their sliced
+                                 SpriteFrames (ring_kiss_anim.png/.tres) — see
+                                 gen_effect_frames.gd. Authored in the art repo.
+    characters/<id>/textures/  Per-character static textures (smoke, beam, sparks)
     enemies/<id>/              Per-enemy effects (baghel/ground_wave.tscn)
     enemies/<id>/textures/     Per-enemy drawn sprites
     shared/                    Reusable across characters (explosions, hits, dust)
@@ -54,16 +63,22 @@ frames. Adding an effect is a texture/scene + a JSON line, no code.
    `lenbondosen_attack_particles_07.png` → `lenbondosen_beam.png`). They feed
    things like the laser Core texture below.
 
-   A `type` in the JSON resolves **most specific first**:
+   A `type` in the JSON resolves by searching, in order: the current character's
+   category subfolders (`runs/ jumps/ dashes/ slams/ attacks/ specials/ other/`),
+   then the character's own root, then `shared/`, then the flat `particles/`:
 
    | `type` | Resolves to |
    |---|---|
-   | `fire_spark` | `characters/<current character>/fire_spark.tscn`, else `shared/fire_spark.tscn` |
+   | `run_default` | first hit among `characters/<char>/{runs,jumps,…,other}/run_default.tscn`, else `characters/<char>/run_default.tscn`, else `shared/…`, else `particles/…` |
+   | `fire_spark` | (Wayna isn't reorganised) falls through the subfolders to `characters/wayna/fire_spark.tscn` |
    | `environment/water` | `vfx/particles/environment/water.tscn` (any `type` containing `/` is an explicit path) |
 
-   So character effects stay short in the JSON and can't collide between
-   characters, while shared and environment effects are addressed directly. A
-   bare `vfx/particles/<type>.tscn` still works as a legacy fallback.
+   Searching every subfolder means a type's **name doesn't have to match its folder**
+   — the slam's `fall_wind_streaks` trail sits in `other/` and still resolves under
+   the `slam` animation. Character effects stay short in the JSON and can't collide
+   between characters; shared/environment effects are addressed directly. A bare
+   `vfx/particles/<type>.tscn` still works as a legacy fallback. (`SUBFOLDERS` in
+   `particle_director.gd` is the searched list.)
 
    `build/build_particles.gd` scaffolds a starter scene (it **skips files that
    already exist**, so it never clobbers editor tweaks); textures come from
@@ -102,6 +117,11 @@ frames. Adding an effect is a texture/scene + a JSON line, no code.
      **burst** is **anchored in the world** at the spot it fires and stays put as
      he moves on — right for a blast/detonation, and it keeps the burst's hitbox
      where you see the blast instead of dragging it along behind the player.
+     - **Code-triggered bursts** — a `burst` keyed under an animation name the sprite
+       never plays won't auto-fire on a frame; call `ParticleDirector.fire_effect(key)`
+       to spawn it on a game event instead. That's how the **double jump** works: its
+       effect lives under `double_jump` and `player.gd` fires it only on the air jump
+       (so the ground jump stays silent). See the double-jump note in the root README.
    - `frames` — **sheet-relative** indices (same numbering as `loop_from` /
      `hit_frames`; the idle-reference frame counts). Converted to emitted indices
      via the `sheet_start` SpriteFrames metadata. Or the string **`"all"`** —
@@ -340,3 +360,38 @@ hand-tuned scenes.
 | `python3 vfx/build/gen_particle_textures.py` | Regenerate the shared particle textures (`vfx/particles/textures/*.png`) |
 | `godot --headless --script vfx/build/build_particles.gd` | Scaffold particle-type scenes (`vfx/particles/*.tscn`; skips existing) |
 | `godot --headless --script vfx/build/build_laser.gd` | Build the base laser scene (`vfx/laser/laser_beam.tscn`; skips if it exists) |
+| `godot --headless --script tools/gen_effect_frames.gd` | Slice drawn effect strips → SpriteFrames (see **Drawn projectile animations** below) |
+
+### Drawn projectile animations (an `AnimatedSprite2D`, not particles)
+
+When you want a projectile to play a **hand-drawn frame animation** (a ring forming
+and flying, say) instead of a particle emitter repeating one texture, build it as a
+`Shot` that carries an `AnimatedSprite2D`:
+
+1. Export the projectile as a **horizontal strip** named `<name>_anim.png` into the
+   character's **`effect_sheets/`** folder (e.g.
+   `characters/feyke/effect_sheets/ring_kiss_anim.png`). These drawn effect sheets are
+   authored in the art repo under `art/characters/<char>/effect_sheets/`; keep static
+   emitter textures (smoke, sparks) in `textures/` instead.
+2. Run `godot --headless --script tools/gen_effect_frames.gd` — it finds every
+   `*_anim.png` under `vfx/particles/` and slices it (128px frames by default, or set
+   a count in the tool's `OVERRIDES`) into `<name>_anim.tres`, a `SpriteFrames` with
+   one `default` animation.
+3. In the projectile scene, make the root a `Node2D` with **`shot.gd`**, and give it
+   an `AnimatedSprite2D` child (`sprite_frames` = the `.tres`, `autoplay = "default"`)
+   plus a `Hitbox`. The `Shot` handles travel/homing/hit; the sprite is just its look.
+   The `Hitbox` can sit **anywhere** in the scene (e.g. under the `AnimatedSprite2D`) —
+   `shot.gd` finds it by search, not a fixed path.
+
+The `ParticleDirector` fires it like any other `burst` — it accepts a `Shot` (or a
+`LaserBeam`) even with **no particle emitters**, since those carry their own visual
+and manage their own life. Facing is by travel direction: the shot rotates to its
+heading, so author the strip pointing **right**.
+
+**`Shot` exports** (`scripts/combat/shot.gd`): `speed`, `homing` (steer rate; 0 = fly
+straight), `max_range`, `acquire_range`. Targeting is **x-axis only**: it locks the
+nearest enemy *ahead in the facing/mouse direction*, ignores enemies overhead
+(`vertical_reach`), and **never steers upward** — it can only track level or *down*
+toward a lower enemy. Set `can_fly_up = true` to lift those limits (e.g. a future
+Wayna shot). `impact_effect` (a `PackedScene`) spawns a one-shot effect at the point
+of contact when it hits — a hit spark/puff — and self-frees; leave empty for none.

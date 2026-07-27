@@ -1,6 +1,11 @@
-[gd_scene format=3 uid="uid://cajxiln2e4sum"]
+[gd_scene format=3 uid="uid://dgauosndg4x8s"]
 
-[ext_resource type="Texture2D" uid="uid://dky8fk73bhih1" path="res://vfx/particles/characters/lenbondosen/textures/boost_texture.png" id="1_hd2fs"]
+[sub_resource type="Gradient" id="Gradient_kivo7"]
+colors = PackedColorArray(0.023529412, 0.023529412, 0.019607844, 1, 0.19215687, 0.18431373, 0.18431373, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_hcik2"]
+gradient = SubResource("Gradient_kivo7")
+width = 100
 
 [sub_resource type="Curve" id="Curve_dh7ud"]
 _limits = [-360.0, 360.0, 0.0, 1.0]
@@ -11,12 +16,12 @@ point_count = 5
 _data = [Vector2(0, 0.3271889), 0.0, 0.0, 0, 0, Vector2(0.06309751, 0.2488479), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.19354838), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.04147458), 0.0, 0.0, 0, 0]
 point_count = 4
 
-[node name="DashBoost" type="Node2D" unique_id=512025542]
+[node name="DashDefault" type="Node2D" unique_id=512025542]
 
 [node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=215251584]
 position = Vector2(-12, -12)
-amount = 135
-texture = ExtResource("1_hd2fs")
+amount = 80
+texture = SubResource("GradientTexture1D_hcik2")
 lifetime = 0.2
 emission_shape = 3
 emission_rect_extents = Vector2(12, 12)
