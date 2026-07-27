@@ -30,11 +30,18 @@ extends Node2D
 ## Optional one-shot effect spawned at the point of contact when the shot hits an enemy
 ## (a hit spark / puff). It's parented into the world and self-frees. Empty = none.
 @export var impact_effect: PackedScene
+## Optional drawn END animation, played in place when the shot reaches max range WITHOUT
+## hitting anything -- so it dissolves instead of blinking out. A SpriteFrames (its
+## "default" animation, non-looping); on expiry the shot freezes, stops its hitbox, swaps
+## its AnimatedSprite2D to this, and frees when it finishes. Empty = just vanish. (Only
+## the natural-expiry case -- a hit uses impact_effect above.)
+@export var end_frames: SpriteFrames
 
 var _dir := Vector2.RIGHT
 var _traveled := 0.0
 var _target: Node2D
 var _acquired := false
+var _dying := false  # true while the end animation plays out; movement + hits are off
 
 
 func _ready() -> void:
@@ -53,6 +60,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _dying:
+		return  # dissolving in place -- no more travel or homing
 	if not _acquired:
 		_target = _nearest_enemy_ahead()
 		_acquired = true
@@ -69,7 +78,7 @@ func _physics_process(delta: float) -> void:
 	rotation = _dir.angle()
 	_traveled += speed * delta
 	if _traveled >= max_range:
-		queue_free()
+		_expire()
 
 
 ## Nearest enemy AHEAD of the shot in its facing x-direction, within acquire_range
@@ -126,6 +135,43 @@ func _on_struck(_victim: Hurtbox) -> void:
 	if impact_effect != null:
 		_spawn_impact()
 	queue_free()
+
+
+## Reached max range without hitting anything. With no `end_frames`, just vanish (the
+## old behaviour). Otherwise dissolve in place: freeze, switch off the hitbox + any
+## particle trail, play the drawn end animation on the shot's own sprite (seamless --
+## same position/scale/facing), and free when it finishes.
+func _expire() -> void:
+	if end_frames == null:
+		queue_free()
+		return
+	_dying = true
+	var hb := _find_hitbox()
+	if hb != null:
+		hb.deactivate()
+	for em in find_children("*", "CPUParticles2D", true, false):
+		em.emitting = false  # stop any trail so only the dissolve shows
+	for em in find_children("*", "GPUParticles2D", true, false):
+		em.emitting = false
+	var spr := _find_sprite()
+	if spr == null:  # a particle-only shot with no drawn sprite -- make one to play on
+		spr = AnimatedSprite2D.new()
+		add_child(spr)
+	spr.sprite_frames = end_frames
+	spr.play(&"default")
+	spr.animation_finished.connect(queue_free)
+	# Backstop so a mistakenly-looping end animation can't leave the shot alive forever.
+	get_tree().create_timer(3.0).timeout.connect(func() -> void:
+		if is_instance_valid(self):
+			queue_free())
+
+
+## The shot's AnimatedSprite2D (its drawn body), found anywhere in the scene, or null
+## for a particle-only shot.
+func _find_sprite() -> AnimatedSprite2D:
+	for a in find_children("*", "AnimatedSprite2D", true, false):
+		return a as AnimatedSprite2D
+	return null
 
 
 ## Spawn the impact effect in the world at the hit point and let it self-finish: its

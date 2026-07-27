@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" format=3 uid="uid://ctlseun4i73bd"]
+[gd_resource type="SpriteFrames" format=3 uid="uid://cgeu4vrnqd16"]
 
 [ext_resource type="Texture2D" uid="uid://bvue6om6j0xg" path="res://vfx/particles/characters/feyke/effect_sheets/ring_kiss_anim.png" id="1_72jwa"]
 
@@ -22,14 +22,6 @@ region = Rect2(384, 0, 128, 80)
 atlas = ExtResource("1_72jwa")
 region = Rect2(512, 0, 128, 80)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_ayt8u"]
-atlas = ExtResource("1_72jwa")
-region = Rect2(640, 0, 128, 80)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_xv8bx"]
-atlas = ExtResource("1_72jwa")
-region = Rect2(768, 0, 128, 80)
-
 [resource]
 animations = [{
 "frames": [{
@@ -47,12 +39,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_2gtli")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_ayt8u")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_xv8bx")
 }],
 "loop": 0,
 "name": &"default",

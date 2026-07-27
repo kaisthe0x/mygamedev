@@ -27,6 +27,14 @@
         "pos": [0, -1]
       }
     ],
+    "jump": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "burst",
+        "frames": [0, 1],
+        "pos": [0, 0]
+      }
+    ],
     "attack_finger_guns": [
       {
         "type": "attack_finger_guns",
@@ -86,7 +94,7 @@
     ],
     "slam": [
       {
-        "type": "fall_wind_streaks",
+        "type": "slam_wind_streaks",
         "mode": "sustained",
         "frames": [1, 2, 3],
         "pos": [0, -12]
@@ -111,15 +119,31 @@
     ],
     "run": [
       {
-        "type": "run_aura",
+        "type": "run_default",
         "mode": "sustained",
         "frames": "all",
         "pos": [-17, -17]
       }
     ],
+	"jump": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "burst",
+        "frames": [0, 1],
+        "pos": [0, 0]
+      }
+    ],
+    "dash": [
+      {
+        "type": "dash_default",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, -3]
+      }
+    ],
     "double_jump": [
       {
-        "type": "jump_boost",
+        "type": "jump_default",
         "mode": "burst",
         "pos": [0, 0]
       }
@@ -159,14 +183,22 @@
         "pos": [-17, -17]
       }
     ],
-	"dash": [
-	  {
-		"type": "dash_default",
-		"mode": "sustained",
-		"frames": "all",
-		"pos": [0, -3]
-	  }
-	],
+	"jump": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "burst",
+        "frames": [0, 1],
+        "pos": [0, 0]
+      }
+    ],
+    "dash": [
+      {
+        "type": "dash_default",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, -3]
+      }
+    ],
     "double_jump": [
       {
         "type": "jump_default",
@@ -193,9 +225,9 @@
     ],
     "slam": [
       {
-        "type": "fall_wind_streaks",
+        "type": "slam_wind_streaks",
         "mode": "sustained",
-        "frames": [0,1,2,3],
+        "frames": [0, 1, 2, 3],
         "pos": [0, -12]
       },
       {

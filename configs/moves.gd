@@ -23,9 +23,9 @@ const CATALOG := {
 	},
 	"katalyst": {
 		"attacks": {"rope_dart_dance": {"animation": "attack_rope_dart_dance", "tuning": [
-			{"damage": 16, "x": 24.0, "extents": Vector2(22, 18)},  # whip-reach thrust
-			{"damage": 16, "x": 0.0, "extents": Vector2(32, 20)},   # spin: AoE around the body
-			{"damage": 16, "x": 28.0, "extents": Vector2(24, 18)},  # finishing lunge
+			{"damage": 16, "x": 24.0, "extents": Vector2(22, 18)}, # whip-reach thrust
+			{"damage": 16, "x": 0.0, "extents": Vector2(32, 20)}, # spin: AoE around the body
+			{"damage": 16, "x": 28.0, "extents": Vector2(24, 18)}, # finishing lunge
 		]}},
 		"specials": {"double_pierce": {"animation": "special_double_pierce", "tuning":
 			{"damage": 44, "knockback": 160, "stun": 0.18, "x": 30.0, "extents": Vector2(34, 16)}}},
@@ -60,8 +60,8 @@ const CATALOG := {
 			"mouth_blast": {"animation": "special_mouth_blast", "effect": "special_mouth_blast",
 				"tuning": {"damage": 20, "x": 0.0, "extents": Vector2(40, 26)}},
 		},
-		"default_attack": "finger_guns",     # <- Lenny's default attack
-		"default_special": "mouth_blast",  # <- Lenny's default special
+		"default_attack": "finger_guns", # <- Lenny's default attack
+		"default_special": "poison_raiser", # <- Lenny's default special
 	},
 }
 

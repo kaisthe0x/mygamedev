@@ -76,6 +76,10 @@ var health: float = 100.0:
 ## fall, so it reads as a committed slam). Universal move; only characters with a
 ## `slam` sheet can do it. Particles are authored per character in emitters.json.
 @export var slam_speed: float = 1200.0
+## Minimum clear space (px) directly below the feet before an air slam is allowed --
+## if the nearest platform straight down is closer than this, the slam press does
+## nothing (no room to build a real plunge). Set 0 to always allow.
+@export var slam_min_clearance: float = 50.0
 
 @export_group("Juice")
 ## How far the sprite leans forward at full falling speed, in degrees.
@@ -481,8 +485,8 @@ func _process_normal(delta: float) -> void:
 		if is_on_floor():
 			_start_special()  # supersedes any light chain in progress
 			return
-		elif _has_slam():
-			_enter(State.SLAM)  # air special = ground slam
+		elif _has_slam() and _slam_has_clearance():
+			_enter(State.SLAM)  # air special = ground slam (only with room below)
 			return
 	# Attacks are grounded-only -- no air attacks.
 	if Input.is_action_just_pressed("attack") and is_on_floor():
@@ -666,6 +670,22 @@ func _process_slam(delta: float) -> void:
 
 func _has_slam() -> bool:
 	return _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(&"slam")
+
+
+## True when there's at least `slam_min_clearance` of clear space straight down before
+## the nearest platform -- so a slam has room to build a real plunge. A ray from the
+## feet down that distance (against whatever the body lands on -- solid ground AND
+## one-way platforms, via our own collision_mask); no hit = clear. 0 clearance = always.
+func _slam_has_clearance() -> bool:
+	if slam_min_clearance <= 0.0:
+		return true
+	var space := get_world_2d().direct_space_state
+	if space == null:
+		return true
+	var q := PhysicsRayQueryParameters2D.create(
+		global_position, global_position + Vector2(0.0, slam_min_clearance), collision_mask)
+	q.exclude = [get_rid()]  # ignore our own body
+	return space.intersect_ray(q).is_empty()
 
 
 ## One press = one combo segment: play the frames up to the next hit, then hold

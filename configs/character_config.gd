@@ -21,7 +21,7 @@ const ABILITY_PATH := "res://scripts/abilities/%s.gd"
 ## listed falls back to DEFAULT_RUN_SPEED. Add an entry to make a character distinct.
 const DEFAULT_RUN_SPEED := 160.0
 const RUN_SPEEDS := {
-	"katalyst": 190.0,  # a little faster than the others
+	"katalyst": 250.0, # a little faster than the others
 }
 
 

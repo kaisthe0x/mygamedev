@@ -25,10 +25,13 @@ const FRAME_WIDTH := 128
 ## Per-strip tuning, keyed by the file stem (e.g. "ring_kiss_anim"):
 ##   frames -- explicit frame count (omit to infer from FRAME_WIDTH)
 ##   fps    -- playback speed (default DEFAULT_FPS)
-##   loop   -- default true; set false for a one-shot formation that holds its last frame
+##   loop   -- defaults true, EXCEPT strips ending in "_end_anim" (a dissolve/expiry
+##             animation) default to false so they play once and don't repeat. Set
+##             explicitly here to override either default.
 const OVERRIDES := {
 	# Feyke's ring kiss FORMS (blob -> ring) then holds the ring as it flies.
 	"ring_kiss_anim": {"fps": 14.0, "loop": false},
+	"ring_kiss_end_anim": {"fps": 14.0},  # dissolve on expiry; loop defaults off (_end_anim)
 }
 
 
@@ -72,7 +75,8 @@ func _build(png_path: String) -> void:
 
 	var frames := int(cfg.get("frames", maxi(1, roundi(float(w) / FRAME_WIDTH))))
 	var fps := float(cfg.get("fps", DEFAULT_FPS))
-	var loop: bool = cfg.get("loop", true)
+	# "_end_anim" strips are one-shot dissolves -- default them to non-looping.
+	var loop: bool = cfg.get("loop", not stem.ends_with("_end_anim"))
 
 	@warning_ignore("integer_division")
 	var fw := w / frames

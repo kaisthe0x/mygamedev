@@ -16,7 +16,7 @@ point_count = 5
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=444618323]
 z_index = -2
-amount = 40
+amount = 80
 texture = SubResource("GradientTexture1D_w65oc")
 lifetime = 0.6
 emission_shape = 1

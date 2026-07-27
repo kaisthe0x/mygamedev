@@ -74,7 +74,7 @@ frames. Adding an effect is a texture/scene + a JSON line, no code.
    | `environment/water` | `vfx/particles/environment/water.tscn` (any `type` containing `/` is an explicit path) |
 
    Searching every subfolder means a type's **name doesn't have to match its folder**
-   — the slam's `fall_wind_streaks` trail sits in `other/` and still resolves under
+   — the slam's `slam_wind_streaks` trail sits in `other/` and still resolves under
    the `slam` animation. Character effects stay short in the JSON and can't collide
    between characters; shared/environment effects are addressed directly. A bare
    `vfx/particles/<type>.tscn` still works as a legacy fallback. (`SUBFOLDERS` in
@@ -395,3 +395,21 @@ nearest enemy *ahead in the facing/mouse direction*, ignores enemies overhead
 toward a lower enemy. Set `can_fly_up = true` to lift those limits (e.g. a future
 Wayna shot). `impact_effect` (a `PackedScene`) spawns a one-shot effect at the point
 of contact when it hits — a hit spark/puff — and self-frees; leave empty for none.
+
+**End / dissolve animation (`end_frames`).** So a shot that reaches `max_range`
+*without hitting anything* dissolves instead of blinking out, give it an `end_frames`
+`SpriteFrames`. On expiry the shot freezes in place, switches off its hitbox + any
+particle trail, swaps its `AnimatedSprite2D` to `end_frames` (seamless — same
+position/scale/facing), and frees when that animation finishes. To make one:
+
+1. Draw the dissolve as a horizontal strip named `<base>_end_anim.png` (the `_end_anim`
+   suffix makes `gen_effect_frames.gd` slice it **non-looping** automatically — a
+   dissolve plays once). Drop it in the character's `effect_sheets/` beside the fly
+   strip, e.g. `ring_kiss_end_anim.png`.
+2. Run `gen_effect_frames.gd` → `<base>_end_anim.tres`.
+3. Point the projectile scene's `Shot.end_frames` at that `.tres`
+   (`attack_ring_kiss.tscn` is the worked example).
+
+This is expiry-only — a hit still uses `impact_effect`. Leave `end_frames` empty to
+keep the old blink-out. (Only works for a drawn `AnimatedSprite2D` shot; a
+particle-only shot gets a fresh sprite spawned for the dissolve.)

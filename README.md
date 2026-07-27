@@ -284,7 +284,7 @@ in the inspector.
 | Health | `max_health` 100 |
 | Movement | `run_speed` 160 (**per character** — see below), `jump_velocity` -330, `max_air_jumps` 1, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
 | Dash | `dash_speed` 420, `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
-| Slam | `slam_speed` 1200 |
+| Slam | `slam_speed` 1200, `slam_min_clearance` 50 |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 | Juice | `fall_tilt_degrees` 8, `fall_tilt_at_speed` 600, `land_min_fall_speed` 140 |
 
@@ -326,6 +326,13 @@ no-ops), so it's opt-in per character as art lands — **Lenny and Feyke have `s
 sheets so far**. Slam **particles** are authored per character in `vfx/emitters.json`
 under the `slam` animation: a `sustained` trail on the descent frames and a `burst`
 on the impact frame.
+
+**Slam needs room below (`slam_min_clearance`, 50px).** The air press only slams when
+the nearest platform *straight down* is at least `slam_min_clearance` away — a ray from
+the feet down that distance (against the body's own `collision_mask`, so it catches
+solid ground **and** one-way platforms; no floor below = clear). Too close to the
+ground and the press just no-ops, so you can't slam with no room to build a plunge. Set
+`slam_min_clearance` to 0 to always allow.
 
 **Double jump.** After the ground jump, `max_air_jumps` (default 1) extra jumps are
 allowed in mid-air; the counter refreshes on every touchdown. The **ground jump is

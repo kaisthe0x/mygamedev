@@ -135,7 +135,7 @@ func _sheet_start(anim: String) -> int:
 ## an explicit path under particles/ (e.g. "environment/water"). Otherwise it's
 ## searched across the current character's category subfolders (SUBFOLDERS: runs/,
 ## jumps/, dashes/, slams/, attacks/, specials/, other/) so a type resolves wherever
-## it's filed and its name need not match the folder (the slam's fall_wind_streaks
+## it's filed and its name need not match the folder (the slam's slam_wind_streaks
 ## trail sits in other/). Then the character's own folder root (characters not yet
 ## reorganised into subfolders, like Katalyst/Wayna), then shared/, then the flat
 ## particles/ fallback.
