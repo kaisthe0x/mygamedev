@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://de7ciqim7mugy"]
+
+[ext_resource type="Texture2D" uid="uid://7bewlns27mm7" path="res://vfx/particles/characters/wayna/textures/basic-texture.png" id="1_5djow"]
+
+[sub_resource type="Curve" id="Curve_uashs"]
+_data = [Vector2(0, 0.11235964), 0.0, 0.0, 0, 0, Vector2(0.250478, 0.078651786), 0.0, 0.0, 0, 0, Vector2(0.5277246, 0.0138248205), 0.0, 0.0, 0, 0, Vector2(0.751434, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[node name="SpecialReady" type="Node2D" unique_id=67767293]
+
+[node name="Energy" type="CPUParticles2D" parent="." unique_id=1890578058]
+position = Vector2(0, -1)
+amount = 20
+texture = ExtResource("1_5djow")
+lifetime = 0.3
+explosiveness = 0.5
+emission_shape = 3
+emission_rect_extents = Vector2(11, 1)
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 10.0
+initial_velocity_max = 50.0
+scale_amount_curve = SubResource("Curve_uashs")

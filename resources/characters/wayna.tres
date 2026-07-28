@@ -3,58 +3,95 @@
 [ext_resource type="Texture2D" uid="uid://bjfw5m0gbmffy" path="res://sprites/characters/wayna/wayna_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://kj61gbuxq3yb" path="res://sprites/characters/wayna/wayna_run_frames.png" id="2_run"]
 [ext_resource type="Texture2D" uid="uid://belosv0ehpw6a" path="res://sprites/characters/wayna/wayna_jump_frames.png" id="3_jump"]
-[ext_resource type="Texture2D" uid="uid://bbnouerbhixl0" path="res://sprites/characters/wayna/wayna_dash_frames.png" id="4_dash"]
-[ext_resource type="Texture2D" uid="uid://c7ua0834ew4ma" path="res://sprites/characters/wayna/wayna_attack_frames.png" id="5_attack"]
-[ext_resource type="Texture2D" uid="uid://bb88kas0htnf" path="res://sprites/characters/wayna/wayna_special_burst_frames.png" id="6_special_burst"]
+[ext_resource type="Texture2D" uid="uid://c7s23q0xtpvdv" path="res://sprites/characters/wayna/wayna_land_frames.png" id="4_land"]
+[ext_resource type="Texture2D" uid="uid://bbnouerbhixl0" path="res://sprites/characters/wayna/wayna_dash_frames.png" id="5_dash"]
+[ext_resource type="Texture2D" uid="uid://c7ua0834ew4ma" path="res://sprites/characters/wayna/wayna_attack_frames.png" id="6_attack"]
+[ext_resource type="Texture2D" uid="uid://bb88kas0htnf" path="res://sprites/characters/wayna/wayna_special_burst_frames.png" id="7_special_burst"]
+[ext_resource type="Texture2D" uid="uid://dmiajsddnmxrv" path="res://sprites/characters/wayna/wayna_heavy_attack_frames.png" id="8_heavy_attack"]
 
 [sub_resource type="AtlasTexture" id="attack_1"]
-atlas = ExtResource("5_attack")
+atlas = ExtResource("6_attack")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_2"]
-atlas = ExtResource("5_attack")
+atlas = ExtResource("6_attack")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_3"]
-atlas = ExtResource("5_attack")
+atlas = ExtResource("6_attack")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="dash_1"]
-atlas = ExtResource("4_dash")
+atlas = ExtResource("5_dash")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_2"]
+atlas = ExtResource("5_dash")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_3"]
+atlas = ExtResource("5_dash")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_4"]
+atlas = ExtResource("5_dash")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_5"]
+atlas = ExtResource("5_dash")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="dash_6"]
+atlas = ExtResource("5_dash")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_1"]
+atlas = ExtResource("8_heavy_attack")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="dash_2"]
-atlas = ExtResource("4_dash")
+[sub_resource type="AtlasTexture" id="heavy_attack_2"]
+atlas = ExtResource("8_heavy_attack")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="dash_3"]
-atlas = ExtResource("4_dash")
+[sub_resource type="AtlasTexture" id="heavy_attack_3"]
+atlas = ExtResource("8_heavy_attack")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="dash_4"]
-atlas = ExtResource("4_dash")
+[sub_resource type="AtlasTexture" id="heavy_attack_4"]
+atlas = ExtResource("8_heavy_attack")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="dash_5"]
-atlas = ExtResource("4_dash")
+[sub_resource type="AtlasTexture" id="heavy_attack_5"]
+atlas = ExtResource("8_heavy_attack")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="dash_6"]
-atlas = ExtResource("4_dash")
+[sub_resource type="AtlasTexture" id="heavy_attack_6"]
+atlas = ExtResource("8_heavy_attack")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="dash_7"]
-atlas = ExtResource("4_dash")
+[sub_resource type="AtlasTexture" id="heavy_attack_7"]
+atlas = ExtResource("8_heavy_attack")
 region = Rect2(896, 0, 128, 80)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="heavy_attack_8"]
+atlas = ExtResource("8_heavy_attack")
+region = Rect2(1024, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="idle_0"]
@@ -85,27 +122,32 @@ margin = Rect2(0, 0, 2, 0)
 [sub_resource type="AtlasTexture" id="jump_1"]
 atlas = ExtResource("3_jump")
 region = Rect2(128, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="jump_2"]
 atlas = ExtResource("3_jump")
 region = Rect2(256, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="jump_3"]
 atlas = ExtResource("3_jump")
 region = Rect2(384, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="jump_4"]
 atlas = ExtResource("3_jump")
 region = Rect2(512, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+margin = Rect2(0, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="jump_5"]
-atlas = ExtResource("3_jump")
-region = Rect2(640, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+[sub_resource type="AtlasTexture" id="land_1"]
+atlas = ExtResource("4_land")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="land_2"]
+atlas = ExtResource("4_land")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="run_1"]
 atlas = ExtResource("2_run")
@@ -133,42 +175,42 @@ region = Rect2(640, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_1"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_2"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_3"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_4"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_5"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_6"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_7"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(896, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_burst_8"]
-atlas = ExtResource("6_special_burst")
+atlas = ExtResource("7_special_burst")
 region = Rect2(1024, 0, 128, 80)
 margin = Rect2(2, 0, 2, 0)
 
@@ -206,13 +248,39 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("dash_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("dash_7")
 }],
 "loop": 0,
 "name": &"dash",
 "speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("heavy_attack_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("heavy_attack_8")
+}],
+"loop": 0,
+"name": &"heavy_attack",
+"speed": 10.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -246,28 +314,36 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("jump_4")
-}, {
-"duration": 1.0,
-"texture": SubResource("jump_5")
 }],
 "loop": 0,
 "name": &"jump",
 "speed": 10.0
 }, {
 "frames": [{
-"duration": 3.0,
+"duration": 1.0,
+"texture": SubResource("land_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("land_2")
+}],
+"loop": 0,
+"name": &"land",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 2.0,
 "texture": SubResource("run_1")
 }, {
-"duration": 3.0,
+"duration": 2.0,
 "texture": SubResource("run_2")
 }, {
-"duration": 3.0,
+"duration": 2.0,
 "texture": SubResource("run_3")
 }, {
-"duration": 3.0,
+"duration": 2.0,
 "texture": SubResource("run_4")
 }, {
-"duration": 3.0,
+"duration": 2.0,
 "texture": SubResource("run_5")
 }],
 "loop": 1,
@@ -309,8 +385,10 @@ metadata/hit_frames = {
 metadata/sheet_start = {
 "attack": 1,
 "dash": 1,
+"heavy_attack": 1,
 "idle": 0,
 "jump": 1,
+"land": 1,
 "run": 1,
 "special_burst": 1
 }
