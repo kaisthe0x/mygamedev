@@ -98,9 +98,6 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     # 8 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "special_poison_raiser"): {"fps": 13.0},
     ("wayna", "special_burst"): {"fps": 16.0},
-    # Sheet frames 1-4 are the launch (lean, ignite); 5-9 are sustained flight,
-    # so only the tail should cycle while she keeps running.
-    ("wayna", "run"): {"loop_from": 5},
     # Idle: frames 0-1 settle in; 2-8 is the raise-a-flame flourish that loops.
     ("katalyst", "idle"): {"loop_from": 2, "loop_to": 8},
 }
