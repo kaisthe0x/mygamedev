@@ -5,7 +5,7 @@ extends SceneTree
 ## instead of a particle emitter repeating one texture.
 ##
 ## Convention: any horizontal strip named "<name>_anim.png" anywhere under
-## vfx/particles/ is sliced on a UNIFORM grid into "<name>_anim.tres" beside it, as a
+## vfx/ is sliced on a UNIFORM grid into "<name>_anim.tres" beside it, as a
 ## single looping animation called "default". Unlike the character pipeline
 ## (tools/gen_spriteframes.py) there's no feet-anchoring and no idle-reference frame
 ## -- a projectile just plays its frames.
@@ -16,7 +16,7 @@ extends SceneTree
 ##
 ## Run:  godot --headless --script tools/gen_effect_frames.gd
 
-const ROOT := "res://vfx/particles"
+const ROOT := "res://vfx"
 const DEFAULT_FPS := 12.0
 ## Project standard: every sprite/animation frame is 128px wide, so a strip's frame
 ## count is width / 128. (Override per-strip below if a one-off differs.)

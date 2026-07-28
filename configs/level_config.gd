@@ -25,13 +25,18 @@ const PLATFORMS := [
 ## being swarmed. (In a real level you'd drop enemy.tscn in and set these in the
 ## inspector instead.)
 const ROSTER := [
-	{"id": "kebus", "name": "Kebus", "pos": Vector2(150, 0)},      # ground stroller
+	# Kebus: ground stroller; lobs an aimed staff bolt (attack_bolt.tscn) when the
+	# player is in ranged distance, closes to melee when adjacent.
+	{
+		"id": "kebus", "name": "Kebus", "pos": Vector2(150, 0),
+		"ranged_particle": "res://vfx/enemy/kebus/attack/attack_bolt.tscn",
+	},
 	# Baghel: ranged-only, short-range ground surge, scratches his back at rest.
 	{
 		"id": "baghel", "name": "Baghel", "pos": Vector2(470, 0),
 		"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0,
 		"projectile_speed": 200.0,
-		"ranged_particle": "res://vfx/particles/enemies/baghel/ground_wave.tscn",
+		"ranged_particle": "res://vfx/enemy/baghel/attack/attack_ground_wave.tscn",
 		"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9),
 		"muzzle_offset": Vector2(16, 1), "ranged_damage": 7.0,  # y~ground so the wave touches it
 		"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0,

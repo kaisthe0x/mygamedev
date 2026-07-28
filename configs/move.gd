@@ -8,8 +8,7 @@ extends RefCounted
 ##
 ## Effects are frame-indexed: the ParticleDirector fires whatever emitters.json lists
 ## under this move's `animation` name (a particle -- optionally carrying its own
-## Hitbox -- or a laser via the character's ability hook). `effect` here is just the
-## human label of what it uses.
+## Hitbox). `effect` here is just the human label of what it uses.
 
 var id: String              ## short name, e.g. "finger_guns"
 var kind: String            ## "attack" or "special"

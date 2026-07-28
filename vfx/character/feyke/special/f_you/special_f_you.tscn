@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://cuqr7cna356a3"]
+
+[ext_resource type="Texture2D" uid="uid://dsaxyqgjl5wfo" path="res://vfx/character/feyke/shared/textures/smoke_texture_1.png" id="1_8fpq1"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_54c0n"]
+
+[sub_resource type="Curve" id="Curve_uashs"]
+_data = [Vector2(0, 0.15668201), 0.0, 0.0, 0, 0, Vector2(0.10707457, 0.22119814), 0.0, 0.0, 0, 0, Vector2(0.30210325, 0.10599077), 0.0, 0.0, 0, 0, Vector2(0.458891, 0.10599077), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_heavy"]
+size = Vector2(252, 50)
+
+[sub_resource type="Curve" id="Curve_8fpq1"]
+_data = [Vector2(0.0038240924, 0.073732734), 0.0, 0.0, 0, 0, Vector2(0.24474189, 0.06912446), 0.0, 0.0, 0, 0, Vector2(0.749522, 0.059907794), 0.0, 0.0, 0, 0, Vector2(1, 0.0138248205), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="SpecialFYou" type="Node2D" unique_id=377016795]
+
+[node name="Smoke" type="CPUParticles2D" parent="." unique_id=263019033]
+z_index = -1
+position = Vector2(-4, 1)
+amount = 700
+texture = ExtResource("1_8fpq1")
+lifetime = 0.5
+emission_shape = 3
+emission_rect_extents = Vector2(120, 1)
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 150.0
+initial_velocity_max = 250.75
+scale_amount_curve = SubResource("Curve_uashs")
+
+[node name="Hitbox" type="Area2D" parent="Smoke" unique_id=1495896596]
+position = Vector2(4, -1)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_54c0n")
+damage = 50.0
+knockback = 150.0
+
+[node name="Shape" type="CollisionShape2D" parent="Smoke/Hitbox" unique_id=795428265]
+position = Vector2(-4, -25)
+shape = SubResource("RectangleShape2D_heavy")
+
+[node name="Leftover" type="CPUParticles2D" parent="." unique_id=2145401808]
+z_index = -1
+position = Vector2(-3, -23)
+amount = 200
+texture = ExtResource("1_8fpq1")
+emission_shape = 3
+emission_rect_extents = Vector2(120, 30)
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 150.0
+initial_velocity_max = 250.75
+scale_amount_curve = SubResource("Curve_8fpq1")

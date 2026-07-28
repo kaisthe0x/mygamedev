@@ -2,7 +2,7 @@ class_name Shapes
 extends RefCounted
 
 ## Collision-shape builders shared by everything that assembles colliders in code
-## (player/enemy combat boxes, projectiles, platforms, the laser). Kept static and
+## (player/enemy combat boxes, projectiles, platforms). Kept static and
 ## dependency-free so non-Combatant nodes can use them too.
 
 

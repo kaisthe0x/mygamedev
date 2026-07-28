@@ -19,7 +19,7 @@ Main scene: `scenes/level.tscn`. Press F5 to run.
 assets/portraits/     Painted 1080x1080 character portraits (HUD art)
 configs/              Tuning DATA -- attack table, layers, feel, rosters (see configs/README.md)
 helpers/              Shared static utilities -- boxes, node lookup, anim meta (see helpers/README.md)
-vfx/                  All visual effects -- particles + laser beams (see vfx/README.md)
+vfx/                  All visual effects -- particles + drawn slashes (see vfx/README.md)
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
@@ -346,7 +346,7 @@ the sprite reappears and the remaining impact frames play into the ground, so th
 `burst` fires where it lands. A short slam never locks — it just plays through.
 Ends via `_on_animation_finished` → idle.
 
-Slam **particles** are authored per character in `vfx/emitters.json` under the `slam`
+Slam **particles** are authored per character in `vfx/config/emitters.json` under the `slam`
 animation: a `sustained` wind-streak trail on the descent frames (`0–2`) and a `burst`
 on the impact frames (`3–4`). Keep those frame ranges consistent so `slam_hold_frame`
 (the last descent frame) lines up.
@@ -464,7 +464,7 @@ existing abilities keep working because the base class no-ops every hook.
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range burst: melee damage from `ATTACKS` "special" + a `special` particle blast (`emitters.json`) on the strike frame. His **Energy Beam** (`on_special_strike` → `LaserBeam`) is kept but **disabled** (`USE_BEAM = false` in `lenbondosen.gd`); flip it on to restore the laser. (He previously had *Hangtime* and *Sprint*, both removed.) |
+| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range burst: melee damage from `ATTACKS` "special" + a `special_poison_raiser` particle blast (`emitters.json`) on the strike frame. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
 | Katalyst | **Stomp** | A special attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
 
 Both latch on the frame the special *starts* and only if the character was
@@ -484,22 +484,25 @@ typical platform heights; if it ever matters, have the ability keep driving
 
 ---
 
-## Visual effects (particles + lasers)
+## Visual effects (particles + drawn slashes)
 
-All VFX — the frame-indexed particle system and the `LaserBeam` component — live
-in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
+All VFX — the frame-indexed particle system and the drawn `FlashEffect` slashes —
+live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 
 - **Particles:** data-driven emitters layered on the sprites. A `ParticleDirector`
-  (`vfx/particle_director.gd`, a child of the player) watches the sprite and emits
-  authored types at authored frames. Adding one = a scene in `vfx/particles/` + a
-  line in `vfx/emitters.json`, no code.
-- **Laser beams:** a `RayCast2D` + `Line2D` scene (`vfx/laser/laser_beam.tscn`)
-  with `vfx/laser_beam.gd` for behaviour; per-character inherited scenes carry the
-  drawn look. Fired from a `CharacterAbility.on_special_strike()` hook.
-- **Where to add an attack effect:** a visual → `vfx/emitters.json`; a hit's
-  numbers → `ATTACKS` in `scripts/player.gd`; a spawned thing/behavior → a
+  (`vfx/script/particle_director.gd`, a child of the player) watches the sprite and
+  emits authored types at authored frames. It resolves a type by recursively
+  indexing `vfx/character/<char>/` + `vfx/shared/`, so a scene resolves wherever it's
+  filed. Adding one = a scene under `vfx/character/<id>/…` + a line in
+  `vfx/config/emitters.json`, no code.
+- **Drawn slashes:** a directional crescent that must mirror with facing is a
+  **`FlashEffect`** (`vfx/script/flash_effect.gd`) — a `Sprite2D`/`AnimatedSprite2D`
+  (+ optional `Hitbox`) that grows/fades and self-frees. Use it instead of a
+  `CPUParticles2D` when the texture itself must h-flip (Wayna's chainsaw).
+- **Where to add an attack effect:** a visual → `vfx/config/emitters.json`; a hit's
+  numbers → the move's `tuning` in `configs/moves.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
-  `Local Coords`, HDR glow, per-child positioning) in [vfx/README.md](vfx/README.md).
+  `Local Coords`, per-child positioning) in [vfx/README.md](vfx/README.md).
 
 ---
 
@@ -544,10 +547,11 @@ to hand-wire. Key traits:
     then fizzles, hitting whatever it passes (Baghel's red energy). Tint via
     `ranged_color`.
   - **Look** — `ranged_particle` points at a particle scene (e.g.
-    `vfx/particles/enemies/baghel/ground_wave.tscn`) that the projectile instances as
+    `vfx/enemy/baghel/attack/attack_ground_wave.tscn`, or Kebus'
+    `vfx/enemy/kebus/attack/attack_bolt.tscn`) that the projectile instances as
     its visual, so you edit/preview it in the editor like any particle scene
-    (they're built `emitting = true`). Empty = a simple orb trail built in code
-    (Kebus). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
+    (they're built `emitting = true`). Empty = a simple orb trail built in code (the
+    `projectile.gd` fallback). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
     (a small box for a bolt, a tall slab rising from the ground for a wave).
     Baghel's wave is a **crest**: chunks kick up-and-forward out of a
     ground-hugging emission strip and arc back down under gravity while the
@@ -559,7 +563,7 @@ to hand-wire. Key traits:
     embers along the floor (`local_coords = off`, so they stay put as the shot
     rolls on) that linger and fade behind it. Its colour is **sampled from the
     wave's gradient** (`_sample_visual_color`), so it always matches whatever red
-    you tint `ground_wave.tscn` to in the editor — no second gradient to keep in
+    you tint `attack_ground_wave.tscn` to in the editor — no second gradient to keep in
     sync.
   - **Graceful fade** — on impact or when `life` runs out, a projectile doesn't
     `queue_free` instantly (which would vaporise every live particle). It
@@ -709,8 +713,8 @@ Fixes, all in `project.godot`:
   physics ticks. This is the main fix. Camera + follow run in `_physics_process`
   so both interpolate together; teleports (spawn, respawn) call
   `reset_physics_interpolation()` (`_place()`) so they snap instead of smearing.
-  > **Gotcha:** anything `add_child`'d and *then* moved to a spawn point (the
-  > laser beam, enemy projectiles/the ground wave) must call
+  > **Gotcha:** anything `add_child`'d and *then* moved to a spawn point (enemy
+  > projectiles / the ground wave, a world-anchored particle burst) must call
   > `reset_physics_interpolation()` after positioning — otherwise it interpolates
   > from the level origin to the spawn spot on the first frame, flashing the
   > effect (and its world-space particles) scattered across the level.
@@ -809,7 +813,7 @@ fine. **Trust the actual run over the squiggles.**
 | `python3 tools/gen_spriteframes.py` | Regenerate SpriteFrames from the sheets |
 | `godot --headless --script tools/verify_frames.gd` | Assert all animations load on a uniform canvas |
 | `godot --script tools/capture_shots.gd` | Render every character/animation to PNGs for eyeballing alignment |
-| VFX build tools (particle textures/scenes, base laser) | Moved under `vfx/build/` — see [vfx/README.md](vfx/README.md#build-tools) |
+| VFX build tools (particle textures/scenes) | Under `vfx/script/` — see [vfx/README.md](vfx/README.md#build-tools) |
 
 ---
 

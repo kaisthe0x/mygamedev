@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://qvuuxgwwh18e"]
+
+[ext_resource type="SpriteFrames" uid="uid://cgeu4vrnqd16" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_anim.tres" id="1_sf"]
+[ext_resource type="Script" uid="uid://bdph6djfjwdjn" path="res://scripts/combat/shot.gd" id="2_shot"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hb"]
+[ext_resource type="SpriteFrames" uid="uid://mvoeo75x6d1e" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_end_anim.tres" id="4_end"]
+[ext_resource type="Texture2D" uid="uid://1n7wa2whf3es" path="res://vfx/character/feyke/shared/textures/smoke_texture_3.png" id="5_8g0gd"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kiss"]
+size = Vector2(24, 20)
+
+[sub_resource type="Curve" id="Curve_oqa74"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1e-05, 0.61607146), 0.0, 0.0, 0, 0, Vector2(0.21032506, 0.48847926), 0.0, 0.0, 0, 0, Vector2(0.36520073, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="AttackRingKiss" type="Node2D" unique_id=890394430]
+script = ExtResource("2_shot")
+speed = 125.0
+max_range = 450.0
+end_frames = ExtResource("4_end")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1267085474]
+scale = Vector2(0.2, 0.2)
+sprite_frames = ExtResource("1_sf")
+autoplay = "default"
+
+[node name="Hitbox" type="Area2D" parent="Sprite" unique_id=360628885]
+scale = Vector2(4.9999995, 4.9999995)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("3_hb")
+damage = 14.0
+knockback = 60.0
+
+[node name="Shape" type="CollisionShape2D" parent="Sprite/Hitbox" unique_id=2024332018]
+shape = SubResource("RectangleShape2D_kiss")
+
+[node name="Trail" type="CPUParticles2D" parent="." unique_id=1817190421]
+position = Vector2(-3, 0)
+amount = 45
+texture = ExtResource("5_8g0gd")
+lifetime = 3.0
+direction = Vector2(100, 0)
+spread = 11.41
+gravity = Vector2(0, 0)
+initial_velocity_min = 45.0
+initial_velocity_max = 45.0
+angle_min = -45.0
+scale_amount_min = 0.2
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_oqa74")
+color = Color(0.011764706, 0.015686275, 0.015686275, 1)

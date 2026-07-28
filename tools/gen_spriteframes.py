@@ -128,6 +128,7 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("lenbondosen", "special_mouth_blast"): [3, 6, 9],
     # Poison raiser (special): the blast lands on frame 4.
     ("lenbondosen", "special_poison_raiser"): [4],
+    ("wayna", "attack_chainsaw"): [3, 4, 6],
     # Kebus swings connect on sheet frame 3 (the 4th frame).
     ("kebus", "melee_attack"): [3],
     # Baghel emits his ground surge on the last frame (sheet index 6 = "frame 7",

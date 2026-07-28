@@ -5,24 +5,44 @@
 [ext_resource type="Texture2D" uid="uid://belosv0ehpw6a" path="res://sprites/characters/wayna/wayna_jump_frames.png" id="3_jump"]
 [ext_resource type="Texture2D" uid="uid://c7s23q0xtpvdv" path="res://sprites/characters/wayna/wayna_land_frames.png" id="4_land"]
 [ext_resource type="Texture2D" uid="uid://bbnouerbhixl0" path="res://sprites/characters/wayna/wayna_dash_frames.png" id="5_dash"]
-[ext_resource type="Texture2D" uid="uid://c7ua0834ew4ma" path="res://sprites/characters/wayna/wayna_attack_frames.png" id="6_attack"]
+[ext_resource type="Texture2D" uid="uid://ca0xgmghuyqa2" path="res://sprites/characters/wayna/wayna_attack_chainsaw_frames.png" id="6_attack_chainsaw"]
 [ext_resource type="Texture2D" uid="uid://bb88kas0htnf" path="res://sprites/characters/wayna/wayna_special_burst_frames.png" id="7_special_burst"]
 [ext_resource type="Texture2D" uid="uid://dmiajsddnmxrv" path="res://sprites/characters/wayna/wayna_heavy_attack_frames.png" id="8_heavy_attack"]
 
-[sub_resource type="AtlasTexture" id="attack_1"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_chainsaw_1"]
+atlas = ExtResource("6_attack_chainsaw")
 region = Rect2(128, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+margin = Rect2(0, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_2"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_chainsaw_2"]
+atlas = ExtResource("6_attack_chainsaw")
 region = Rect2(256, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+margin = Rect2(0, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_3"]
-atlas = ExtResource("6_attack")
+[sub_resource type="AtlasTexture" id="attack_chainsaw_3"]
+atlas = ExtResource("6_attack_chainsaw")
 region = Rect2(384, 0, 128, 80)
-margin = Rect2(2, 0, 2, 0)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_chainsaw_4"]
+atlas = ExtResource("6_attack_chainsaw")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_chainsaw_5"]
+atlas = ExtResource("6_attack_chainsaw")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_chainsaw_6"]
+atlas = ExtResource("6_attack_chainsaw")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_chainsaw_7"]
+atlas = ExtResource("6_attack_chainsaw")
+region = Rect2(896, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="dash_1"]
 atlas = ExtResource("5_dash")
@@ -218,16 +238,28 @@ margin = Rect2(2, 0, 2, 0)
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("attack_1")
+"texture": SubResource("attack_chainsaw_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_2")
+"texture": SubResource("attack_chainsaw_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_3")
+"texture": SubResource("attack_chainsaw_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_chainsaw_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_chainsaw_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_chainsaw_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_chainsaw_7")
 }],
 "loop": 0,
-"name": &"attack",
+"name": &"attack_chainsaw",
 "speed": 12.0
 }, {
 "frames": [{
@@ -331,19 +363,19 @@ animations = [{
 "speed": 12.0
 }, {
 "frames": [{
-"duration": 2.0,
+"duration": 1.0,
 "texture": SubResource("run_1")
 }, {
-"duration": 2.0,
+"duration": 1.0,
 "texture": SubResource("run_2")
 }, {
-"duration": 2.0,
+"duration": 1.0,
 "texture": SubResource("run_3")
 }, {
-"duration": 2.0,
+"duration": 1.0,
 "texture": SubResource("run_4")
 }, {
-"duration": 2.0,
+"duration": 1.0,
 "texture": SubResource("run_5")
 }],
 "loop": 1,
@@ -380,10 +412,10 @@ animations = [{
 "speed": 16.0
 }]
 metadata/hit_frames = {
-"attack": [0, 1, 2]
+"attack_chainsaw": [2, 3, 5]
 }
 metadata/sheet_start = {
-"attack": 1,
+"attack_chainsaw": 1,
 "dash": 1,
 "heavy_attack": 1,
 "idle": 0,

@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://cpviau6mbtvbe"]
+
+[ext_resource type="Texture2D" uid="uid://jwuu3sohugps" path="res://vfx/character/wayna/attack/chainsaw/slash_texture_1.png" id="1_3aoge"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_ko6gf"]
+[ext_resource type="Script" uid="uid://c3bgrmscd6b1" path="res://vfx/script/flash_effect.gd" id="3_flash"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6nthj"]
+size = Vector2(45, 9)
+
+[node name="AttackChainsaw" type="Node2D" unique_id=924954202]
+script = ExtResource("3_flash")
+
+[node name="Slash" type="Sprite2D" parent="." unique_id=1625689936]
+z_index = -1
+position = Vector2(19, -1)
+rotation = -0.0435057
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("1_3aoge")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=930254930]
+position = Vector2(-2, 0)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_ko6gf")
+stun = 10.0
+status_color = Color(1, 0.6696667, 0, 0.71000004)
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1963840971]
+position = Vector2(24.5, -1.5)
+shape = SubResource("RectangleShape2D_6nthj")

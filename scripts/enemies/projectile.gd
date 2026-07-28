@@ -67,7 +67,7 @@ func _sample_visual_color(v: Node) -> Color:
 ## that lingers and fades (longer life than the crest) rather than following it.
 func _make_ground_trail(tint: Color) -> CPUParticles2D:
 	var p := CPUParticles2D.new()
-	p.texture = load("res://vfx/particles/textures/pixel_ember.png")
+	p.texture = load("res://vfx/shared/textures/pixel_ember.png")
 	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	p.local_coords = false
 	p.amount = 40
@@ -95,7 +95,7 @@ func _make_ground_trail(tint: Color) -> CPUParticles2D:
 
 func _make_trail() -> CPUParticles2D:
 	var p := CPUParticles2D.new()
-	p.texture = load("res://vfx/particles/textures/pixel_ember.png")
+	p.texture = load("res://vfx/shared/textures/pixel_ember.png")
 	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	p.local_coords = false          # embers stay put so they trail behind
 	p.amount = 18

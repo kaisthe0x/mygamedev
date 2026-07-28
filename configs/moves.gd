@@ -9,7 +9,7 @@ extends RefCounted
 ## `default_special` in that character's entry below. ===
 ##
 ## Each move entry: { animation (the SpriteFrames anim), effect (label of the
-## particle/laser it fires via emitters.json, keyed by that animation), tuning (the
+## particle it fires via emitters.json, keyed by that animation), tuning (the
 ## melee-hitbox ATTACKS-style dict, or an array per combo segment; 0 damage when the
 ## effect carries the hit). Characters not listed fall back to LEGACY -- one "attack"
 ## + one "special" from their generic attack/special sheets -- so they keep
@@ -32,9 +32,13 @@ const CATALOG := {
 		"default_attack": "rope_dart_dance", "default_special": "double_pierce",
 	},
 	"wayna": {
-		"attacks": {"strike": {"animation": "attack", "tuning": {"damage": 13, "stun": 0.1}}},
+		# Chainsaw: a forward energy-slash swing. Its particle (emitters.json ->
+		# attack_chainsaw) carries the hit via its OWN Hitbox, so the melee box stands
+		# down (damage 0) -- tune the actual damage on that particle scene's Hitbox.
+		"attacks": {"chainsaw": {"animation": "attack_chainsaw", "effect": "attack_chainsaw",
+			"tuning": {"damage": 0}}},
 		"specials": {"burst": {"animation": "special_burst", "tuning": {"damage": 32, "knockback": 90}}},
-		"default_attack": "strike", "default_special": "burst",
+		"default_attack": "chainsaw", "default_special": "burst",
 	},
 	"feyke": {
 		# Ring kiss: a homing "kiss" shot (like Lenny's finger guns) -- one burst of

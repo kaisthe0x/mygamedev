@@ -79,7 +79,7 @@ func _respawn_player() -> void:
 		Nodes.place_at(_camera, LevelConfig.SPAWN + Vector2(0, -30))
 
 
-## A subtle additive glow so bright HDR effects (the laser) bloom, and little
+## A subtle additive glow so bright HDR effects bloom, and little
 ## else -- the threshold sits at 1.0, above where the LDR pixel-art sprites live.
 ## Tune intensity/bloom/threshold here, or delete this to drop the bloom entirely.
 func _add_glow() -> void:
