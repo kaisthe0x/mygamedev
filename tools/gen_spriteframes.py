@@ -115,8 +115,10 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
 # smoothness. Any attack not listed treats every frame as its own hit (so each
 # click advances one frame -- the old snap feel). Emitted as resource metadata.
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
-    # Ring kiss (attack): a single-burst "kiss" shot -- fires on frame 3.
-    ("feyke", "attack_ring_kiss"): [3],
+    # Ring kiss (attack): a single-burst "kiss" shot -- hit + projectile launch on
+    # frame 2 (emitters.json fires attack_ring_kiss on the SAME frame; they must match
+    # or the combo pauses before the emitter frame and nothing spawns).
+    ("feyke", "attack_ring_kiss"): [2],
     # F you (special): the hit lands on frame 2.
     ("feyke", "special_f_you"): [2],
     # Katalyst's 11-frame swing is a 3-hit combo: a forward whip-reach (2), the
