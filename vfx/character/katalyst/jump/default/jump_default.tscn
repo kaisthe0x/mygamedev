@@ -7,7 +7,7 @@
 _data = [Vector2(0, 0.38709676), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.2580645), 0.0, 0.0, 0, 0, Vector2(0.24474189, 0.16589862), 0.0, 0.0, 0, 0, Vector2(0.38623327, 0.023041487), 0.0, 0.0, 0, 0]
 point_count = 4
 
-[node name="JumpBoost" type="Node2D" unique_id=108304347]
+[node name="JumpDefault" type="Node2D" unique_id=108304347]
 
 [node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=1202322602]
 amount = 20

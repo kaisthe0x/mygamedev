@@ -23,6 +23,12 @@ extends Node2D
 ## Drawn visuals pop from this scale multiple to their authored scale over the first bit
 ## (a quick swing snap). 1.0 = no grow.
 @export var grow_from: float = 0.7
+## Continuous emission window (seconds). 0 = a one-shot burst (the default). > 0 = the
+## effect's particles keep emitting CONTINUOUSLY for this long, then stop -- so the emit
+## DURATION is set independently of particle lifetime/velocity (which set how FAR each
+## particle travels, not how long they keep spawning). While a timed emission plays, the
+## striker's animation is HELD on its current frame (see apply_tuning -> hold_animation).
+@export var emit_duration: float = 0.0
 
 ## Who struck (knockback credit + lunge/armor target); set by the spawner.
 var source: Node = null
@@ -46,11 +52,13 @@ func _ready() -> void:
 				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 			tw.tween_property(v, "modulate:a", 0.0, lifetime).set_ease(Tween.EASE_IN)
 
-	# Free once the visual is done: the slash lifetime OR the longest particle life,
-	# whichever outlasts the other, so a particle burst isn't cut short.
-	var free_delay := lifetime
+	# Free once everything's done. One-shot burst: max(slash lifetime, longest particle
+	# life). Timed emission (emit_duration > 0): the emission WINDOW plus the last
+	# particle's life, so a continuous stream isn't cut off mid-emit.
+	var emit_window := maxf(emit_duration, 0.0)
+	var free_delay := maxf(lifetime, emit_window)
 	for em in _emitters():
-		free_delay = maxf(free_delay, em.lifetime * (1.0 + em.lifetime_randomness))
+		free_delay = maxf(free_delay, emit_window + em.lifetime * (1.0 + em.lifetime_randomness))
 	get_tree().create_timer(free_delay).timeout.connect(queue_free)
 
 
@@ -88,17 +96,38 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 	var hits: int = int(t.get("multi_hit", 1))
 	if hits > 1 and _hitbox != null:
 		_setup_multi_hit(hits)
+	# Hold the striker's pose while a timed emission plays out (Wayna frozen on the
+	# inferno cast frame until the fire finishes) -- option A: the strike drives its wielder.
+	if emit_duration > 0.0 and source != null and source.has_method("hold_animation"):
+		source.hold_animation(emit_duration)
+	# Damage-over-time: re-hit everyone in the box every `tick` seconds for the strike's
+	# life (inferno = 10 dmg every 0.25s). tick 0 = a single hit (the default).
+	var tick: float = t.get("tick", 0.0)
+	if tick > 0.0 and _hitbox != null:
+		_start_ticking(tick)
 
 
-## Re-arm the hitbox `hits` times across the strike's life, so it can connect more than
-## once (a buff). Each activation clears the box's per-hit memory, so something standing
-## in it is struck once per pulse.
+## Hit `hits` times across the strike's life -- a fixed COUNT of pulses (a buff: "hits
+## three times"). For a steady interval instead (a burning field), use `tick`.
 func _setup_multi_hit(hits: int) -> void:
 	var interval := lifetime / float(hits)
 	for i in range(1, hits):
 		get_tree().create_timer(interval * i).timeout.connect(func() -> void:
 			if is_instance_valid(_hitbox):
-				_hitbox.activate())
+				_hitbox.pulse())
+
+
+## Re-pulse the hitbox every `interval` seconds for the strike's whole life -- a
+## damage-over-time field. A repeating Timer (freed with this node, so it stops when the
+## strike does). The pulse hits whoever is standing in the box at that instant.
+func _start_ticking(interval: float) -> void:
+	var timer := Timer.new()
+	timer.wait_time = interval
+	timer.timeout.connect(func() -> void:
+		if is_instance_valid(_hitbox):
+			_hitbox.pulse())
+	add_child(timer)
+	timer.start()
 
 
 ## Resize / reposition the hitbox from tuning `extents` (half-size) and `x` (forward

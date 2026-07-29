@@ -97,7 +97,6 @@ OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
     ("khalid", "special_smash"): {"hold_last": 2.5},
     # 8 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "special_poison_raiser"): {"fps": 13.0},
-    ("wayna", "special_burst"): {"fps": 16.0},
     # Idle: frames 0-1 settle in; 2-8 is the raise-a-flame flourish that loops.
     ("katalyst", "idle"): {"loop_from": 2, "loop_to": 8},
 }
@@ -129,6 +128,8 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     # Poison raiser (special): the blast lands on frame 4.
     ("lenbondosen", "special_poison_raiser"): [4],
     ("wayna", "attack_chainsaw"): [3, 4, 6],
+    # Inferno (special): flames erupt as she throws her arms up -- lands on frame 3.
+    ("wayna", "special_inferno"): [3],
     # Kebus swings connect on sheet frame 3 (the 4th frame).
     ("kebus", "melee_attack"): [3],
     # Baghel emits his ground surge on the last frame (sheet index 6 = "frame 7",

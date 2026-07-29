@@ -42,13 +42,16 @@ const CATALOG := {
 		"default_attack": "rope_dart_dance", "default_special": "double_pierce",
 	},
 	"wayna": {
-		# Chainsaw: a forward energy-slash Strike (attack_chainsaw.tscn). Its Hitbox is fed
-		# these numbers at spawn. Her old `burst` special is gone (a new one is coming) --
-		# an empty specials pool means the special button does nothing for now.
+		# Chainsaw: a forward energy-slash Strike (attack_chainsaw.tscn). Inferno: flames
+		# erupt around her (special_inferno.tscn, a fire-burst Strike). Both Hitboxes are
+		# fed these numbers at spawn; their shapes are authored in the scenes.
 		"attacks": {"chainsaw": {"animation": "attack_chainsaw", "effect": "attack_chainsaw", "kind": Combat.AttackKind.MELEE,
 			"tuning": {"damage": 25, "stun": 2.0, "color": Color(0.9068, 0, 0, 0.759)}}},
-		"specials": {},
-		"default_attack": "chainsaw", "default_special": "",
+		# A burning field: 10 damage every 0.25s to whoever stands in the semi-circle while
+		# it emits (~2s). No per-tick knockback -- it's a burn, not a fling.
+		"specials": {"inferno": {"animation": "special_inferno", "effect": "special_inferno", "kind": Combat.AttackKind.BLAST,
+			"tuning": {"damage": 10, "tick": 0.25}}},
+		"default_attack": "chainsaw", "default_special": "inferno",
 	},
 	"feyke": {
 		# Ring kiss: a homing "kiss" Projectile (attack_ring_kiss.tscn); f_you: a close blast.

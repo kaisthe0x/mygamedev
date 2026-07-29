@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bb88kas0htnf"
-path="res://.godot/imported/wayna_special_burst_frames.png-21d645eb9bf68b2070aa97f7e710e0a7.ctex"
+uid="uid://bhtdw2aet4jvg"
+path="res://.godot/imported/wayna_special_inferno_frames.png-96e3b60e96e47c3a29a979a3a8facc07.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/wayna/wayna_special_burst_frames.png"
-dest_files=["res://.godot/imported/wayna_special_burst_frames.png-21d645eb9bf68b2070aa97f7e710e0a7.ctex"]
+source_file="res://sprites/characters/wayna/wayna_special_inferno_frames.png"
+dest_files=["res://.godot/imported/wayna_special_inferno_frames.png-96e3b60e96e47c3a29a979a3a8facc07.ctex"]
 
 [params]
 

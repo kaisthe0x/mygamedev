@@ -206,8 +206,8 @@ Wayna's run uses `loop_from`; Katalyst's idle uses both. They're sheet-relative
 idle can loop a different range — just author `loop_from`/`loop_to` per sheet.
 
 Special attacks are tuned toward a ~0.5s feel: khalid `hold_last` 2.5 (few frames,
-so the last pose sits rather than the whole swing slowing), lenbondosen 13 fps
-and wayna 16 fps (too slow at 10). The generator prints resulting durations,
+so the last pose sits rather than the whole swing slowing) and lenbondosen 13 fps
+(too slow at 10). The generator prints resulting durations,
 marks overridden entries with `*`, notes loop ranges as `[loop N-M]` and hit
 frames as `[hits...]`.
 
@@ -325,8 +325,8 @@ sheets for it:
   with no `land` sheet skips straight to idle/run.
 
 Each phase is **opt-in per character** by the presence of the `fall` / `land` sheet.
-**Feyke, Katalyst, and Lenbondosen have both**; Khalid and Wayna have neither yet
-(they just jump → hold → idle).
+**Feyke, Katalyst, Lenbondosen, and Wayna have both**; Khalid has neither yet
+(he just jumps → holds → idle).
 
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
 air, press `special` to plunge straight down at `slam_speed` (1200 — far faster than
@@ -382,8 +382,8 @@ next hit animate, then the sprite holds the hit frame for a short
 no entry treats every frame as a hit, so each click advances one frame.
 Lenbondosen and katalyst have authored multi-hit combos (three hits with smooth
 wind-up/in-between frames — katalyst's are whip-reach / spin-AoE / finisher);
-Feyke's `ring_kiss` is a single-hit shot (one burst); khalid and wayna still step
-one frame per click.
+Wayna's `chainsaw` is a 3-hit combo too. Feyke's `ring_kiss` is a single-hit shot
+(one burst); khalid still steps one frame per click.
 
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:
@@ -675,7 +675,8 @@ lunge/armor. An **empty** `tuning` means "the effect scene carries its own numbe
   descriptive metadata for the future move-select / build UI — it does **not** drive
   behavior.
 - A character with **no effect scene** for an attack deals no damage (Khalid, for now);
-  a character with an **empty specials pool** (Wayna) simply can't special yet.
+  a character with an **empty specials pool** (`get_move` returns null) simply can't
+  special — the button no-ops.
 
 ### Dash i-frames
 

@@ -2,21 +2,25 @@
 
 [ext_resource type="Texture2D" uid="uid://1n7wa2whf3es" path="res://vfx/character/feyke/shared/textures/smoke_texture_3.png" id="1_7pimd"]
 
-[sub_resource type="Curve" id="Curve_deyxt"]
-_data = [Vector2(0, 0.38709676), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.2580645), 0.0, 0.0, 0, 0, Vector2(0.24474189, 0.16589862), 0.0, 0.0, 0, 0, Vector2(0.36520076, 0.123595595), 0.0, 0.0, 0, 0]
-point_count = 4
+[sub_resource type="Curve" id="Curve_oydit"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.04780115, 0.75115204), 0.0, 0.0, 0, 0, Vector2(0.15296367, 0.718894), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.59447), 0.0, 0.0, 0, 0, Vector2(0.33652008, 0.3410138), 0.0, 0.0, 0, 0, Vector2(0.4416826, 0.47926265), 0.0, 0.0, 0, 0, Vector2(0.46080306, 0), 0.0, 0.0, 0, 0]
+point_count = 7
 
 [node name="JumpDefault" type="Node2D" unique_id=1024961707]
 
-[node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=85137628]
-amount = 30
+[node name="Shmoke" type="CPUParticles2D" parent="." unique_id=968585275]
+texture_filter = 1
+position = Vector2(0, -4)
+scale = Vector2(-11.732044, -0.4559592)
+amount = 80
 texture = ExtResource("1_7pimd")
-lifetime = 0.4
-emission_shape = 1
-emission_sphere_radius = 13.27
-gravity = Vector2(0, 50)
-angle_min = 180.0
-angle_max = 180.0
-scale_amount_min = 0.5
-scale_amount_max = 0.5
-scale_amount_curve = SubResource("Curve_deyxt")
+lifetime = 0.3
+lifetime_randomness = 0.3
+emission_shape = 3
+emission_rect_extents = Vector2(1, 1)
+direction = Vector2(0, 1)
+spread = 21.98
+gravity = Vector2(0, 100)
+scale_amount_min = 0.03
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_oydit")

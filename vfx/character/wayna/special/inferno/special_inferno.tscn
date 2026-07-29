@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://cuw28ujuutgfc"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="2_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hb"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_cs1c2"]
+
+[sub_resource type="Curve" id="Curve_yckvq"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.18929255, 1), 0.0, 0.0, 0, 0, Vector2(0.43785852, 1), 0.0, 0.0, 0, 0, Vector2(0.7877629, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="Gradient" id="Grad_fire"]
+offsets = PackedFloat32Array(0, 0.35, 0.7, 1)
+colors = PackedColorArray(1, 0.96, 0.69, 1, 0.95, 0.82, 0.11, 1, 0.91, 0.34, 0.05, 1, 0.6, 0.12, 0.04, 0)
+
+[sub_resource type="ConvexPolygonShape2D" id="Rect_hb"]
+points = PackedVector2Array(48, 0, 44.34, -18.37, 33.94, -33.94, 18.37, -44.34, 0, -48, -18.37, -44.34, -33.94, -33.94, -44.34, -18.37, -48, 0)
+
+[node name="SpecialInferno" type="Node2D" unique_id=644681303]
+script = ExtResource("2_strike")
+lifetime = 0.6
+emit_duration = 2.0
+
+[node name="Fire" type="CPUParticles2D" parent="." unique_id=1139046070]
+texture_filter = 1
+position = Vector2(0, -4)
+amount = 800
+texture = SubResource("CanvasTexture_cs1c2")
+lifetime = 0.4
+lifetime_randomness = 0.3
+emission_shape = 2
+emission_sphere_radius = 5.25
+direction = Vector2(0, -1)
+spread = 97.17
+gravity = Vector2(0, -120)
+initial_velocity_min = 300.0
+initial_velocity_max = 300.0
+scale_amount_min = 2.0
+scale_amount_max = 4.0
+scale_amount_curve = SubResource("Curve_yckvq")
+color_ramp = SubResource("Grad_fire")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=250512180]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("3_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=21461555]
+scale = Vector2(2.3333955, 2.6968367)
+shape = SubResource("Rect_hb")

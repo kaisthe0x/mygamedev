@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dmiajsddnmxrv"
-path="res://.godot/imported/wayna_heavy_attack_frames.png-9c13145ff79d197f9e36bdfb851d136f.ctex"
+uid="uid://mm8q5miyyrwh"
+path="res://.godot/imported/wayna_fall_frames.png-14dd5c67d283736d58eaa84d0514613e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/wayna/wayna_heavy_attack_frames.png"
-dest_files=["res://.godot/imported/wayna_heavy_attack_frames.png-9c13145ff79d197f9e36bdfb851d136f.ctex"]
+source_file="res://sprites/characters/wayna/wayna_fall_frames.png"
+dest_files=["res://.godot/imported/wayna_fall_frames.png-14dd5c67d283736d58eaa84d0514613e.ctex"]
 
 [params]
 

@@ -393,23 +393,31 @@ func _refresh() -> void:
 ## the effect an `anim` key that is NOT a real sprite animation (e.g. "double_jump")
 ## so _refresh never auto-fires it on a frame, then call this at the moment it should
 ## go off. Used by the double jump: only the second, airborne jump spawns particles.
-func fire_effect(anim: String) -> void:
+## `tilt` (radians) rotates the spawned burst so its emission leans -- e.g. the double
+## jump tilts its exhaust opposite to horizontal travel. 0 = no tilt (the default).
+func fire_effect(anim: String, tilt: float = 0.0) -> void:
 	var m := _mirror()
 	for b in _bursts:
 		if b.anim == anim:
-			_fire_burst(b, m)
+			_fire_burst(b, m, tilt)
 
 
-func _fire_burst(b: Dictionary, m: float) -> void:
+func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	var node := _spawn(b.type, b.get("node", ""))
 	if node == null:
 		return
 	_apply_overrides(node, b.get("set", {}))
 	var emitters := _emitters_of(node)
 	_face(node, _capture(node), b.pos, m)
+	# Optional lean: rotate the whole burst so its emission tilts (e.g. the double-jump
+	# exhaust angling opposite to travel). World gravity still pulls particles down.
+	if not is_zero_approx(tilt):
+		node.rotation += tilt
 	for em in emitters:
 		_boost(em, b.get("boost", {}))
-		em.one_shot = true
+	# A Strike with emit_duration > 0 emits CONTINUOUSLY for that long (a held stream,
+	# e.g. Wayna's inferno); anything else is a one-shot burst. Set below, after placement.
+	var emit_dur: float = node.emit_duration if node is Strike else 0.0
 	# A burst is a one-shot blast that belongs at the spot it fires -- NOT stuck to
 	# the player. Parented under him, the emitter and its hitbox would follow as he
 	# walks and hit enemies away from the blast. Anchor it in the world at the strike
@@ -427,9 +435,15 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 	if b.get("clip_to_ground", false):
 		_clip_to_ground(node, emitters, hitboxes)
 	# Emit + arm now that the geometry is final. Arming is after add_child so
-	# Hitbox._ready() (which starts it disabled) has already run.
+	# Hitbox._ready() (which starts it disabled) has already run. A one-shot burst emits
+	# its pool once; a timed emission keeps going and is switched off after emit_dur.
 	for em in emitters:
+		em.one_shot = emit_dur <= 0.0
 		em.emitting = true
+		if emit_dur > 0.0:
+			get_tree().create_timer(emit_dur).timeout.connect(func() -> void:
+				if is_instance_valid(em):
+					em.emitting = false)
 	_inject_tuning(node, hitboxes)  # feed moves.gd numbers before the box goes live
 	for hb in hitboxes:
 		hb.source = _attacker()

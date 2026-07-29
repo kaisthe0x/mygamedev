@@ -115,6 +115,10 @@ var health: float = 100.0:
 ## control returns; keep it >= attack_recovery.
 @export var combo_reset_time: float = 0.45
 
+## Max radians the double-jump exhaust tilts away from straight-down at full run speed
+## (~34°). The puff leans opposite to horizontal travel; 0 = straight down. Tune to taste.
+const DOUBLE_JUMP_LEAN := 0.6
+
 enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL}
 
 var _state: State = State.IDLE
@@ -167,6 +171,10 @@ var _stun_left: float = 0.0
 ## Time left of super-armor: while > 0, hits still hurt but don't stagger/interrupt.
 ## Granted by a Strike's tuning via set_armor() (a future buff/heavy-attack property).
 var _armor_left: float = 0.0
+## Time left the sprite is FROZEN on its current frame -- an attack/special holding its
+## pose while a timed effect plays (Wayna held on the inferno cast frame while the fire
+## emits). Set by hold_animation(); the sprite resumes when it hits 0.
+var _hold_left: float = 0.0
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
@@ -371,6 +379,18 @@ func set_armor(duration: float) -> void:
 	_armor_left = maxf(_armor_left, duration)
 
 
+## Freeze the sprite on its current frame for `duration` seconds, then resume -- so an
+## attack/special can HOLD its pose while a timed effect plays out (a Strike with
+## emit_duration calls this: Wayna stays on the inferno cast frame until the fire ends).
+## The state machine keeps running (movement, gravity); only playback is paused, and the
+## committed special won't end until its animation resumes and finishes.
+func hold_animation(duration: float) -> void:
+	if duration <= 0.0 or _sprite == null:
+		return
+	_hold_left = maxf(_hold_left, duration)
+	_sprite.pause()
+
+
 # Land the special on its authored strike frame (hit_frames metadata), or, if the
 # character didn't author one, on the middle frame as a sensible default.
 func _on_frame_changed() -> void:
@@ -419,6 +439,10 @@ func _physics_process(delta: float) -> void:
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 	_armor_left = maxf(_armor_left - delta, 0.0)
+	if _hold_left > 0.0:
+		_hold_left = maxf(_hold_left - delta, 0.0)
+		if _hold_left <= 0.0 and _sprite != null:
+			_sprite.play()  # resume the held animation where it left off
 
 	# Track the fall so a touchdown from a real drop (not a tiny hop) can squash.
 	var on_floor := is_on_floor()
@@ -597,7 +621,11 @@ func _air_jump() -> void:
 	_sprite.play(&"jump")
 	_sprite.set_frame_and_progress(0, 0.0) # replay the launch from the top
 	if _particles != null:
-		_particles.fire_effect("double_jump")
+		# Tilt the exhaust OPPOSITE to horizontal travel (fling right -> puff kicks
+		# down-left), scaled by how fast you're moving, so a sideways air-jump doesn't
+		# spray straight down. 0 when moving straight up.
+		var lean := clampf(velocity.x / maxf(run_speed, 1.0), -1.0, 1.0)
+		_particles.fire_effect("double_jump", lean * DOUBLE_JUMP_LEAN)
 
 
 ## The landing animation -- it can start in the AIR (predictive, so it plays through

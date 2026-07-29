@@ -48,6 +48,19 @@ func deactivate() -> void:
 	monitoring = false
 
 
+## Re-deal to every Hurtbox CURRENTLY inside the box -- one pulse of a ticking / DoT
+## field (Wayna's inferno: 10 dmg every 0.25s while it burns). `area_entered` only fires
+## on ENTER, so a target standing still in the box would never be hit again; this clears
+## the per-hit memory and re-delivers to whoever's overlapping right now. Walk out and you
+## stop taking it. No-op while the box is off.
+func pulse() -> void:
+	if not monitoring:
+		return
+	_already_hit.clear()
+	for area in get_overlapping_areas():
+		_on_area_entered(area)
+
+
 ## On first overlap with a Hurtbox this activation, build a Hit from this box's
 ## fields (damage/knockback/stun/status + source) and deliver it.
 func _on_area_entered(area: Area2D) -> void:
