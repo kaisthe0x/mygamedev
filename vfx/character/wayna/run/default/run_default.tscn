@@ -12,9 +12,19 @@ width = 150
 _data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.10707457, 0.22471917), 0.0, 0.0, 0, 0, Vector2(0.1625239, 0.08294928), -0.3887322, -0.3887322, 0, 0, Vector2(0.24856597, 0.07834101), 0.0, 0.0, 0, 0, Vector2(0.43785852, 0.05529952), 0.0, 0.0, 0, 0]
 point_count = 5
 
-[node name="RunAura" type="Node2D" unique_id=1959900955]
+[sub_resource type="CanvasTexture" id="CanvasTexture_o5gur"]
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=444618323]
+[sub_resource type="Curve" id="Curve_mp0vy"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.18929255, 1), 0.0, 0.0, 0, 0, Vector2(0.43785852, 1), 0.0, 0.0, 0, 0, Vector2(0.7877629, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="Gradient" id="Gradient_y1543"]
+offsets = PackedFloat32Array(0, 0.35, 0.7, 1)
+colors = PackedColorArray(1, 0.96, 0.69, 1, 0.95, 0.82, 0.11, 1, 0.91, 0.34, 0.05, 1, 0.6, 0.12, 0.04, 0)
+
+[node name="RunDefault" type="Node2D" unique_id=1959900955]
+
+[node name="WindStreaks" type="CPUParticles2D" parent="." unique_id=444618323]
 z_index = -2
 amount = 80
 texture = SubResource("GradientTexture1D_w65oc")
@@ -26,3 +36,21 @@ gravity = Vector2(0, 0)
 scale_amount_min = 0.2
 scale_amount_max = 0.5
 scale_amount_curve = SubResource("Curve_ytmb2")
+
+[node name="Fire" type="CPUParticles2D" parent="." unique_id=1407052810]
+z_index = -1
+texture_filter = 1
+position = Vector2(0, -4)
+amount = 50
+texture = SubResource("CanvasTexture_o5gur")
+lifetime = 0.15000000000000002
+lifetime_randomness = 0.3
+emission_shape = 2
+emission_sphere_radius = 0.01
+direction = Vector2(0, 1)
+spread = 26.87
+gravity = Vector2(0, 10)
+initial_velocity_min = 120.0
+initial_velocity_max = 120.0
+scale_amount_curve = SubResource("Curve_mp0vy")
+color_ramp = SubResource("Gradient_y1543")

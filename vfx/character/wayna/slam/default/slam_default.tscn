@@ -1,0 +1,91 @@
+[gd_scene format=3 uid="uid://ccwfuea8kdt5x"]
+
+[ext_resource type="Texture2D" uid="uid://dh7kwti5s4use" path="res://vfx/character/wayna/shared/textures/fire_texure_6.png" id="1_rei8f"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_0cgka"]
+[ext_resource type="Texture2D" uid="uid://c1l4b2lv3x5yh" path="res://vfx/character/wayna/shared/textures/fire_texure_1.png" id="3_avyv7"]
+[ext_resource type="Texture2D" uid="uid://b4a10k0fwoy4g" path="res://vfx/character/wayna/shared/textures/fire_texure_7.png" id="4_rei8f"]
+
+[sub_resource type="Curve" id="Curve_cel51"]
+_data = [Vector2(0.009560227, 0.14285713), 0.0, 0.0, 0, 0, Vector2(0.07074569, 0.12903225), 0.0, 0.0, 0, 0, Vector2(0.18355641, 0.073732734), 0.0, 0.0, 0, 0, Vector2(0.4971319, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lf42e"]
+size = Vector2(130, 6)
+
+[sub_resource type="Curve" id="Curve_osfjr"]
+_data = [Vector2(0.026768643, 0.26728112), 0.0, 0.0, 0, 0, Vector2(0.07074569, 0.12903225), 0.0, 0.0, 0, 0, Vector2(0.18355641, 0.073732734), 0.0, 0.0, 0, 0, Vector2(0.4971319, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0cgka"]
+size = Vector2(27, 9)
+
+[sub_resource type="Curve" id="Curve_1rhev"]
+_data = [Vector2(0, 0.3820225), 0.0, 0.0, 0, 0, Vector2(0.13193117, 0.21348321), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.1685394), 0.0, 0.0, 0, 0, Vector2(0.38814533, 0.11235964), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="SlamDefault" type="Node2D" unique_id=1768553560]
+
+[node name="Reach" type="CPUParticles2D" parent="." unique_id=1413245414]
+z_index = 1
+position = Vector2(0, -6)
+amount = 650
+texture = ExtResource("3_avyv7")
+lifetime = 0.4
+emission_shape = 3
+emission_rect_extents = Vector2(60, 2)
+direction = Vector2(0, 1)
+spread = 0.0
+gravity = Vector2(0, 0)
+scale_amount_curve = SubResource("Curve_cel51")
+
+[node name="Hitbox" type="Area2D" parent="Reach" unique_id=1643934347]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_0cgka")
+damage = 60.0
+
+[node name="Shape" type="CollisionShape2D" parent="Reach/Hitbox" unique_id=1110074381]
+position = Vector2(-1, 3)
+shape = SubResource("RectangleShape2D_lf42e")
+
+[node name="Impact" type="CPUParticles2D" parent="." unique_id=2017976439]
+z_index = 1
+position = Vector2(0, -6)
+amount = 50
+texture = ExtResource("1_rei8f")
+lifetime = 0.2
+emission_shape = 3
+emission_rect_extents = Vector2(10, 1)
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, -980)
+scale_amount_min = 0.4
+scale_amount_max = 0.7
+scale_amount_curve = SubResource("Curve_osfjr")
+
+[node name="Hitbox" type="Area2D" parent="Impact" unique_id=644883128]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_0cgka")
+damage = 70.0
+
+[node name="Shape" type="CollisionShape2D" parent="Impact/Hitbox" unique_id=1564382195]
+position = Vector2(0.5, 0.5)
+shape = SubResource("RectangleShape2D_0cgka")
+
+[node name="Particles" type="CPUParticles2D" parent="." unique_id=833943951]
+z_index = -1
+position = Vector2(2, -19)
+amount = 70
+texture = ExtResource("4_rei8f")
+lifetime = 0.3
+randomness = 0.52
+emission_shape = 3
+emission_rect_extents = Vector2(60, 20)
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, 200)
+initial_velocity_max = 73.13
+scale_amount_min = 0.1
+scale_amount_max = 0.1
+scale_amount_curve = SubResource("Curve_1rhev")
