@@ -1,87 +1,95 @@
 [gd_scene format=3 uid="uid://ngkvwebknjw3"]
 
-[ext_resource type="Texture2D" uid="uid://bq030jsjxi681" path="res://vfx/character/lenbondosen/shared/textures/poison_texture_11.png" id="1_4678f"]
-[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="2_shot"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hitbox"]
-[ext_resource type="Texture2D" uid="uid://dpjsjcu5cgx07" path="res://vfx/character/lenbondosen/shared/textures/poison_texture_8.png" id="4_d5bof"]
+[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="1_proj"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
 
-[sub_resource type="Curve" id="Curve_ho6g8"]
-_data = [Vector2(0, 0.09216583), 0.0, 0.0, 0, 0, Vector2(0.3575526, 0.3820225), 0.0, 0.0, 0, 0, Vector2(0.9942638, 0.70786524), 0.0, 0.0, 0, 0]
-point_count = 3
+[sub_resource type="Curve" id="Curve_taper"]
+_data = [Vector2(0.0056074746, 0), 0.0, 0.0, 0, 0, Vector2(0.9644859, 0.41921395), 0.0, 0.0, 0, 0]
+point_count = 2
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_fg"]
-size = Vector2(20, 18)
+[sub_resource type="RectangleShape2D" id="Shape_small"]
+size = Vector2(16, 7)
 
-[sub_resource type="Curve" id="Curve_d5bof"]
-_data = [Vector2(0, 0.018433213), 0.0, 0.0, 0, 0, Vector2(0.50286806, 0.39631337), 0.0, 0.0, 0, 0, Vector2(0.99999994, 0.57142854), 0.0, 0.0, 0, 0]
-point_count = 3
+[sub_resource type="RectangleShape2D" id="Shape_mid"]
+size = Vector2(24, 9)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_v6g7s"]
-size = Vector2(28, 24)
+[sub_resource type="RectangleShape2D" id="Shape_big"]
+size = Vector2(34, 12)
 
-[sub_resource type="Curve" id="Curve_uashs"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.25239006, 0.94009215), 0.0, 0.0, 0, 0, Vector2(0.49904397, 0.51152074), 0.0, 0.0, 0, 0, Vector2(0.7476099, 0.24423963), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 5
+[node name="AttackFingerGuns" type="Node2D" unique_id=1310011239]
 
-[node name="AttackFingerGuns" type="Node2D" unique_id=413399442]
+[node name="ShotSmall" type="Node2D" parent="." unique_id=2131560552]
+script = ExtResource("1_proj")
+speed = 620.0
+homing = 0.0
+max_range = 420.0
 
-[node name="Shot" type="CPUParticles2D" parent="." unique_id=373334685]
-amount = 1
-texture = ExtResource("1_4678f")
-local_coords = true
-emission_shape = 3
-emission_rect_extents = Vector2(1, 1)
-spread = 0.0
-gravity = Vector2(0, 0)
-scale_amount_min = 0.2
-scale_amount_max = 0.2
-scale_amount_curve = SubResource("Curve_ho6g8")
-script = ExtResource("2_shot")
+[node name="Bolt" type="Line2D" parent="ShotSmall" unique_id=1225465313]
+scale = Vector2(1.0479119, 0.98797774)
+points = PackedVector2Array(-14, 0, 0, 0)
+width = 8.0
+width_curve = SubResource("Curve_taper")
+default_color = Color(0.73333335, 0.93333334, 0.4627451, 1)
+begin_cap_mode = 2
+end_cap_mode = 2
 
-[node name="Hitbox" type="Area2D" parent="Shot" unique_id=1331666724]
+[node name="Hitbox" type="Area2D" parent="ShotSmall" unique_id=338842975]
+position = Vector2(-7, 0)
 collision_layer = 32
 collision_mask = 16
-script = ExtResource("3_hitbox")
-damage = 16.0
-knockback = 70.0
+script = ExtResource("2_hb")
+damage = 14.0
+knockback = 60.0
 
-[node name="Shape" type="CollisionShape2D" parent="Shot/Hitbox" unique_id=1274581335]
-shape = SubResource("RectangleShape2D_fg")
+[node name="Shape" type="CollisionShape2D" parent="ShotSmall/Hitbox" unique_id=1569237248]
+shape = SubResource("Shape_small")
 
-[node name="ShotLast" type="CPUParticles2D" parent="." unique_id=1693922611]
-amount = 1
-texture = ExtResource("4_d5bof")
-lifetime = 0.8
-local_coords = true
-emission_shape = 3
-emission_rect_extents = Vector2(1, 1)
-spread = 0.0
-gravity = Vector2(0, 0)
-scale_amount_min = 0.5
-scale_amount_max = 0.5
-scale_amount_curve = SubResource("Curve_d5bof")
-script = ExtResource("2_shot")
+[node name="ShotMid" type="Node2D" parent="." unique_id=140691189]
+script = ExtResource("1_proj")
+speed = 640.0
+homing = 0.0
+max_range = 450.0
 
-[node name="Hitbox" type="Area2D" parent="ShotLast" unique_id=52999124]
+[node name="Bolt" type="Line2D" parent="ShotMid" unique_id=1839694285]
+points = PackedVector2Array(-22, 0, 0, 0)
+width = 8.0
+width_curve = SubResource("Curve_taper")
+default_color = Color(0.4862745, 0.92941177, 0.26666668, 1)
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="Hitbox" type="Area2D" parent="ShotMid" unique_id=668095362]
+position = Vector2(-11, 0)
 collision_layer = 32
 collision_mask = 16
-script = ExtResource("3_hitbox")
+script = ExtResource("2_hb")
+damage = 18.0
+knockback = 85.0
+
+[node name="Shape" type="CollisionShape2D" parent="ShotMid/Hitbox" unique_id=1711143698]
+shape = SubResource("Shape_mid")
+
+[node name="ShotBig" type="Node2D" parent="." unique_id=456312175]
+script = ExtResource("1_proj")
+speed = 660.0
+max_range = 480.0
+
+[node name="Bolt" type="Line2D" parent="ShotBig" unique_id=1302624897]
+scale = Vector2(1, -0.49355525)
+points = PackedVector2Array(-32, 0, 0, 0)
+width = 15.0
+width_curve = SubResource("Curve_taper")
+default_color = Color(0.55, 2.5, 0.46, 1)
+joint_mode = 2
+begin_cap_mode = 2
+
+[node name="Hitbox" type="Area2D" parent="ShotBig" unique_id=536528318]
+position = Vector2(-16, 0)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
 damage = 24.0
 knockback = 110.0
 
-[node name="Shape" type="CollisionShape2D" parent="ShotLast/Hitbox" unique_id=122977730]
-shape = SubResource("RectangleShape2D_v6g7s")
-
-[node name="Trail" type="CPUParticles2D" parent="ShotLast" unique_id=1098699584]
-position = Vector2(-9, 0)
-amount = 600
-lifetime = 0.8
-emission_shape = 2
-emission_sphere_radius = 4.34
-direction = Vector2(-1, 0)
-spread = 76.57
-gravity = Vector2(0, 0)
-initial_velocity_min = 100.0
-initial_velocity_max = 100.0
-scale_amount_curve = SubResource("Curve_uashs")
-color = Color(0.5529412, 0.99607843, 0.42745098, 1)
+[node name="Shape" type="CollisionShape2D" parent="ShotBig/Hitbox" unique_id=293751059]
+shape = SubResource("Shape_big")

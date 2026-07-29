@@ -4,14 +4,14 @@
     "run": [
       {
         "type": "run_default",
-		"node": "WindStreaks",
+        "node": "WindStreaks",
         "mode": "sustained",
         "frames": "all",
         "pos": [-17, -17]
       },
-	   {
+      {
         "type": "run_default",
-		"node": "Fire",
+        "node": "Fire",
         "mode": "sustained",
         "frames": "all",
         "pos": [0, -23]
@@ -108,17 +108,24 @@
     "attack_finger_guns": [
       {
         "type": "attack_finger_guns",
-        "node": "Shot",
+        "node": "ShotSmall",
         "mode": "burst",
-        "frames": [2, 4],
+        "frames": [2],
         "pos": [14, -23]
       },
       {
         "type": "attack_finger_guns",
-        "node": "ShotLast",
+        "node": "ShotMid",
+        "mode": "burst",
+        "frames": [4],
+        "pos": [14, -23]
+      },
+      {
+        "type": "attack_finger_guns",
+        "node": "ShotBig",
         "mode": "burst",
         "frames": [7],
-        "pos": [11, -18]
+        "pos": [20, -23]
       }
     ],
     "special_mouth_blast": [
@@ -259,6 +266,12 @@
         "mode": "sustained",
         "frames": "all",
         "pos": [-17, -17]
+      },
+      {
+        "type": "jump_default",
+        "mode": "burst",
+        "frames": [0],
+        "pos": [0, 0]
       }
     ],
     "jump": [

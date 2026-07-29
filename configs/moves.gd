@@ -63,9 +63,10 @@ const CATALOG := {
 	},
 	"lenbondosen": {
 		"attacks": {
-			# Two shots with DIFFERENT damage (16 / 24) that one tuning dict can't express,
-			# so finger_guns keeps its per-shot numbers on the scene's Hitboxes: an EMPTY
-			# tuning tells the director not to override them (the effect carries the hit).
+			# Three glowing laser BOLTS (small/bigger/biggest, 14/18/24 dmg) fired across the
+			# combo's 3 clicks -- their different per-shot damage can't fit one tuning dict, so
+			# each bolt carries its own on its Hitbox and finger_guns keeps an EMPTY tuning
+			# (the director doesn't override the scene's numbers).
 			"finger_guns": {"animation": "attack_finger_guns", "effect": "attack_finger_guns", "kind": Combat.AttackKind.PROJECTILE,
 				"tuning": {}},
 		},

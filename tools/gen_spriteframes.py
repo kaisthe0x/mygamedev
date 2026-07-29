@@ -90,15 +90,24 @@ def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
 #                loop runs to the last frame; with it the cycle is loop_from..loop_to
 #                and any frames past loop_to only ever show in the intro pass. Lets
 #                a character loop a mid-sheet range (e.g. a 3-8 idle flourish).
+#   keep_first -- KEEP the idle-reference frame 0 in playback (normally dropped from
+#                every non-idle anim). For a run/anim that should ease out of the
+#                neutral pose; pair with loop_from so that frame plays once, not in the
+#                loop. (idle always keeps frame 0 -- this is for the others.)
 # loop_from / loop_to are sheet-relative (they count the idle-reference frame 0),
 # same numbering as HIT_FRAMES. Anything not listed here uses the ANIMS default.
-OVERRIDES: dict[tuple[str, str], dict[str, float]] = {
+OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # 4 frames read as a snap; let the final pose sit instead of speeding up.
     ("khalid", "special_smash"): {"hold_last": 2.5},
     # 8 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "special_poison_raiser"): {"fps": 13.0},
     # Idle: frames 0-1 settle in; 2-8 is the raise-a-flame flourish that loops.
     ("katalyst", "idle"): {"loop_from": 2, "loop_to": 8},
+    # Run: keep frame 0 (the neutral pose) so it eases into the run -- plays it once,
+    # then cycles 1..end (loop_from), instead of dropping it like a normal action anim.
+    ("feyke", "run"): {"fps": 4.0, "keep_first": True, "loop_from": 1, "loop_to": 4},
+    ("feyke", "idle"): {"loop_from": 1, "loop_to": 4},
+    ("wayna", "run"): {"fps": 4.0},
 }
 
 # Attack hit frames (sheet-relative). An attack combo plays one segment per
@@ -297,10 +306,12 @@ def process_group(group: str, anims: dict) -> None:
             frame_durs = FRAME_DURATIONS.get((char, anim), {})
             res_id = f"{idx}_{anim}"
 
-            # Drop the idle-reference frame 0 from action animations, so they
-            # start on their real first frame. `start` maps sheet index -> emitted
-            # index (emitted = sheet - start). Only "idle" keeps its frame 0.
-            start = 0 if anim == "idle" else 1
+            # Drop the idle-reference frame 0 from action animations, so they start
+            # on their real first frame. `start` maps sheet index -> emitted index
+            # (emitted = sheet - start). "idle" always keeps frame 0; any other anim
+            # can too via a `keep_first` override (e.g. a run that eases out of the
+            # neutral pose -- pair with loop_from so frame 0 only shows as the intro).
+            start = 0 if (anim == "idle" or tweak.get("keep_first")) else 1
             if sheet.n - start < 1:
                 raise SystemExit(
                     f"{char}/{anim}: only {sheet.n} frame(s); need at least "

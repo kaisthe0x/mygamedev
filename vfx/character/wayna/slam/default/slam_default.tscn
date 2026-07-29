@@ -1,8 +1,6 @@
-[gd_scene format=3 uid="uid://jnrahtp3blit"]
+[gd_scene format=3 uid="uid://ccwfuea8kdt5x"]
 
-[ext_resource type="Texture2D" uid="uid://dh7kwti5s4use" path="res://vfx/character/wayna/shared/textures/fire_texure_6.png" id="1_rei8f"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_0cgka"]
-[ext_resource type="Texture2D" uid="uid://c1l4b2lv3x5yh" path="res://vfx/character/wayna/shared/textures/fire_texure_1.png" id="3_avyv7"]
 [ext_resource type="Texture2D" uid="uid://b4a10k0fwoy4g" path="res://vfx/character/wayna/shared/textures/fire_texure_7.png" id="4_rei8f"]
 
 [sub_resource type="Curve" id="Curve_cel51"]
@@ -24,12 +22,13 @@ _data = [Vector2(0, 0.3820225), 0.0, 0.0, 0, 0, Vector2(0.13193117, 0.21348321),
 point_count = 4
 
 [node name="SlamDefault" type="Node2D" unique_id=1768553560]
+position = Vector2(0, 1)
 
 [node name="Reach" type="CPUParticles2D" parent="." unique_id=1413245414]
 z_index = 1
-position = Vector2(0, -6)
+position = Vector2(1, 1)
 amount = 650
-texture = ExtResource("3_avyv7")
+texture = ExtResource("4_rei8f")
 lifetime = 0.4
 emission_shape = 3
 emission_rect_extents = Vector2(60, 2)
@@ -50,9 +49,9 @@ shape = SubResource("RectangleShape2D_lf42e")
 
 [node name="Impact" type="CPUParticles2D" parent="." unique_id=2017976439]
 z_index = 1
-position = Vector2(0, -6)
-amount = 50
-texture = ExtResource("1_rei8f")
+position = Vector2(0, 2)
+amount = 100
+texture = ExtResource("4_rei8f")
 lifetime = 0.2
 emission_shape = 3
 emission_rect_extents = Vector2(10, 1)

@@ -276,6 +276,21 @@ func get_state() -> State:
 	return _state
 
 
+## The active attack / special Move (or null for a special-less character like Wayna),
+## for the HUD / debug panel / a future move-select UI.
+func current_attack() -> Move:
+	return _current_attack
+
+
+func current_special() -> Move:
+	return _current_special
+
+
+## Does the current character's SpriteFrames have this animation (slam / fall / land)?
+func has_anim(anim: StringName) -> bool:
+	return _sprite != null and _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(anim)
+
+
 ## Switch the active attack or special to `id` -- one of Moves.ids(character, kind).
 ## `kind` is "attacks" or "specials". This is the hook a future move-select UI calls;
 ## until then the character's catalog defaults are used. An unknown id falls back to
@@ -638,6 +653,11 @@ func _drop_through_platform() -> bool:
 func _air_jump() -> void:
 	velocity.y = jump_velocity
 	_air_jumps_used += 1
+	# The jump arrests the descent, so fall damage / the land squash should measure only
+	# the NEW fall from here -- not the whole drop since he left the ground. Re-anchor the
+	# apex and clear the peak speed; the rise after this re-raises the apex.
+	_apex_y = global_position.y
+	_fall_peak = 0.0
 	# Go (back) to JUMP so the jump anim actually shows -- otherwise FALL/anim logic
 	# reverts the sprite to `fall` the same frame. _jump_launch replays the launch.
 	_jump_launch = true

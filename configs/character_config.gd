@@ -21,7 +21,10 @@ const ABILITY_PATH := "res://scripts/abilities/%s.gd"
 ## listed falls back to DEFAULT_RUN_SPEED. Add an entry to make a character distinct.
 const DEFAULT_RUN_SPEED := 160.0
 const RUN_SPEEDS := {
-	"katalyst": 250.0, # a little faster than the others
+	"katalyst": 250.0,
+	"lenbondosen": 190.0,
+	"wayna": 180.0,
+	"feyke": 150.0,
 }
 
 
@@ -35,7 +38,7 @@ static func run_speed(character: String) -> float:
 ## character change; anyone not listed falls back to DEFAULT_JUMP_VELOCITY.
 const DEFAULT_JUMP_VELOCITY := -330.0
 const JUMP_VELOCITIES := {
-	"katalyst": -370.0,  # jumps a little higher than the others
+	"katalyst": - 370.0, # jumps a little higher than the others
 }
 
 
@@ -49,7 +52,7 @@ static func jump_velocity(character: String) -> float:
 ## back to DEFAULT_DASH_SPEED. Higher = a faster, farther dash (dash_time is fixed).
 const DEFAULT_DASH_SPEED := 420.0
 const DASH_SPEEDS := {
-	"katalyst": 500.0,  # dashes a little faster than the others
+	"katalyst": 500.0, # dashes a little faster than the others
 }
 
 

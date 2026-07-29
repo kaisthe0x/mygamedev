@@ -191,6 +191,11 @@ atlas = ExtResource("3_jump")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
+[sub_resource type="AtlasTexture" id="jump_6"]
+atlas = ExtResource("3_jump")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
 [sub_resource type="AtlasTexture" id="land_1"]
 atlas = ExtResource("5_land")
 region = Rect2(128, 0, 128, 80)
@@ -199,16 +204,6 @@ margin = Rect2(1, 0, 2, 0)
 [sub_resource type="AtlasTexture" id="land_2"]
 atlas = ExtResource("5_land")
 region = Rect2(256, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="land_3"]
-atlas = ExtResource("5_land")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="land_4"]
-atlas = ExtResource("5_land")
-region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="run_1"]
@@ -229,6 +224,26 @@ margin = Rect2(1, 0, 2, 0)
 [sub_resource type="AtlasTexture" id="run_4"]
 atlas = ExtResource("2_run")
 region = Rect2(512, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_5"]
+atlas = ExtResource("2_run")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_6"]
+atlas = ExtResource("2_run")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_7"]
+atlas = ExtResource("2_run")
+region = Rect2(896, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_8"]
+atlas = ExtResource("2_run")
+region = Rect2(1024, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="slam_1"]
@@ -466,6 +481,9 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("jump_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("jump_6")
 }],
 "loop": 0,
 "name": &"jump",
@@ -477,12 +495,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("land_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("land_3")
-}, {
-"duration": 1.0,
-"texture": SubResource("land_4")
 }],
 "loop": 0,
 "name": &"land",
@@ -500,6 +512,18 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("run_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_8")
 }],
 "loop": 1,
 "name": &"run",

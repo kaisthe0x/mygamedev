@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://b3nmmpcl6a0y3"]
 
+[ext_resource type="Texture2D" uid="uid://dsaxyqgjl5wfo" path="res://vfx/character/feyke/shared/textures/smoke_texture_1.png" id="1_tbg8c"]
+
 [sub_resource type="Gradient" id="Gradient_1lwrq"]
 offsets = PackedFloat32Array(0, 0.51097804)
 colors = PackedColorArray(0.015686275, 0.015686275, 0.015686275, 1, 0.34509805, 0.44313726, 0.21568628, 1)
@@ -12,10 +14,15 @@ width = 150
 _data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.10707457, 0.22471917), 0.0, 0.0, 0, 0, Vector2(0.1625239, 0.08294928), -0.3887322, -0.3887322, 0, 0, Vector2(0.24856597, 0.07834101), 0.0, 0.0, 0, 0, Vector2(0.43785852, 0.05529952), 0.0, 0.0, 0, 0]
 point_count = 5
 
+[sub_resource type="Curve" id="Curve_c82ew"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.08413002, 0.86175114), 0.0, 0.0, 0, 0, Vector2(0.14722754, 0.85253453), 0.0, 0.0, 0, 0, Vector2(0.2256214, 0.74654377), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.59447), 0.0, 0.0, 0, 0, Vector2(0.33843213, 0.49308753), 0.0, 0.0, 0, 0, Vector2(0.4416826, 0.47926265), 0.0, 0.0, 0, 0, Vector2(0.61950284, 0.13824886), 0.0, 0.0, 0, 0, Vector2(0.7170172, 0.04147458), 0.0, 0.0, 0, 0]
+point_count = 9
+
 [node name="RunDefault" type="Node2D" unique_id=1959900955]
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1960260810]
 z_index = -2
+scale = Vector2(1.010101, 1.0070922)
 amount = 40
 texture = SubResource("GradientTexture1D_1lwrq")
 lifetime = 0.6
@@ -26,3 +33,20 @@ gravity = Vector2(0, 0)
 scale_amount_min = 0.2
 scale_amount_max = 0.5
 scale_amount_curve = SubResource("Curve_fwbju")
+
+[node name="Shmoke" type="CPUParticles2D" parent="." unique_id=1040128122]
+texture_filter = 1
+position = Vector2(16, 15.000001)
+scale = Vector2(-12.2143755, -0.3896922)
+amount = 70
+texture = ExtResource("1_tbg8c")
+lifetime = 0.7
+lifetime_randomness = 0.3
+emission_shape = 3
+emission_rect_extents = Vector2(1, 1)
+direction = Vector2(0, 0)
+gravity = Vector2(0, 0)
+angle_min = -90.0
+scale_amount_min = 0.2
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_c82ew")
