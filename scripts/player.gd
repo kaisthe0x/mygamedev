@@ -143,6 +143,9 @@ var _dash_cd: float = 0.0
 ## Airborne tracking, so a touchdown can trigger the landing squash.
 var _was_on_floor: bool = true
 var _fall_peak: float = 0.0 # fastest downward speed reached this airborne stretch
+## Highest point (min y) reached this airborne stretch, so a touchdown can report how far
+## he DROPPED (landing y - apex y) to the ability's on_land -- e.g. Katalyst's fall damage.
+var _apex_y: float = 0.0
 ## Air jumps spent since leaving the ground; reset on touchdown (see _physics_process).
 var _air_jumps_used: int = 0
 ## True only when a jump was actually triggered, so the jump animation replays its
@@ -175,6 +178,9 @@ var _armor_left: float = 0.0
 ## pose while a timed effect plays (Wayna held on the inferno cast frame while the fire
 ## emits). Set by hold_animation(); the sprite resumes when it hits 0.
 var _hold_left: float = 0.0
+## The active held/channeled effect (Wayna's inferno) while its emission plays, so a hit
+## can break it (see _on_hurt). Null when nothing is being channeled.
+var _channel: Strike = null
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
@@ -354,6 +360,16 @@ func active_hit() -> Dictionary:
 ## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
 func _on_hurt(hit: Hit) -> void:
 	take_damage(hit.amount)
+	# Per-character reaction to being hurt (retaliation, defensive buff, ...).
+	if _ability != null:
+		_ability.on_hurt(self, hit)
+	# A held/channeled effect (Wayna's inferno) breaks when she's hit, if it opts in --
+	# stop it and release the pose-hold. Independent of the ability hook above.
+	if _channel != null and is_instance_valid(_channel) and _channel.interrupt_on_hurt:
+		_channel.cancel()
+		_hold_left = 0.0
+		_sprite.play()
+	_channel = null
 	# Super-armor: the hit still hurts, but no knockback/stagger and the swing isn't
 	# interrupted (a Strike granted it via set_armor from its tuning).
 	if _armor_left > 0.0:
@@ -384,10 +400,11 @@ func set_armor(duration: float) -> void:
 ## emit_duration calls this: Wayna stays on the inferno cast frame until the fire ends).
 ## The state machine keeps running (movement, gravity); only playback is paused, and the
 ## committed special won't end until its animation resumes and finishes.
-func hold_animation(duration: float) -> void:
+func hold_animation(duration: float, effect: Strike = null) -> void:
 	if duration <= 0.0 or _sprite == null:
 		return
 	_hold_left = maxf(_hold_left, duration)
+	_channel = effect  # remember it so a hit can break the channel (see _on_hurt)
 	_sprite.pause()
 
 
@@ -443,12 +460,19 @@ func _physics_process(delta: float) -> void:
 		_hold_left = maxf(_hold_left - delta, 0.0)
 		if _hold_left <= 0.0 and _sprite != null:
 			_sprite.play()  # resume the held animation where it left off
+			_channel = null  # channel finished on its own
 
-	# Track the fall so a touchdown from a real drop (not a tiny hop) can squash.
+	# Track the fall so a touchdown from a real drop (not a tiny hop) can squash, and so
+	# the ability's on_land learns how far/fast he fell.
 	var on_floor := is_on_floor()
 	if not on_floor:
+		if _was_on_floor:
+			_apex_y = global_position.y  # just left the ground -- start measuring the drop
 		_fall_peak = maxf(_fall_peak, velocity.y) # +y is downward
+		_apex_y = minf(_apex_y, global_position.y) # highest point reached (min y)
 	_just_landed = on_floor and not _was_on_floor and _fall_peak >= land_min_fall_speed
+	if on_floor and not _was_on_floor and _ability != null:
+		_ability.on_land(self, maxf(global_position.y - _apex_y, 0.0), _fall_peak)
 	if on_floor:
 		_fall_peak = 0.0
 		_air_jumps_used = 0 # refresh the double jump on every touchdown

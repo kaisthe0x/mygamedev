@@ -6,11 +6,6 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_kiss"]
 size = Vector2(24, 20)
 
-[sub_resource type="Curve" id="Curve_uashs"]
-_limits = [-200.0, 200.0, 0.0, 1.0]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.017208412, -185.25346), 0.0, 0.0, 0, 0, Vector2(0.51434034, -200), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 4
-
 [node name="AttackChainsaw" type="Node2D" unique_id=890394430]
 rotation = -0.30770043
 script = ExtResource("2_strike")
@@ -27,16 +22,3 @@ status_color = Color(0.90683234, 0, 0, 0.75900006)
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=2024332018]
 shape = SubResource("RectangleShape2D_kiss")
-
-[node name="Trail" type="CPUParticles2D" parent="." unique_id=505338666]
-amount = 20
-lifetime = 0.3
-emission_shape = 1
-emission_sphere_radius = 2.77
-direction = Vector2(100, -1)
-spread = 0.0
-gravity = Vector2(400, 0)
-initial_velocity_min = 400.0
-initial_velocity_max = 400.0
-tangential_accel_max = 32.84
-tangential_accel_curve = SubResource("Curve_uashs")

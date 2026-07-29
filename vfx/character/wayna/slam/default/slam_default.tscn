@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://ccwfuea8kdt5x"]
+[gd_scene format=3 uid="uid://jnrahtp3blit"]
 
 [ext_resource type="Texture2D" uid="uid://dh7kwti5s4use" path="res://vfx/character/wayna/shared/textures/fire_texure_6.png" id="1_rei8f"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_0cgka"]

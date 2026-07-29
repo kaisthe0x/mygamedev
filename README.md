@@ -451,21 +451,27 @@ Two hooks, both optional:
 |---|---|---|
 | `setup(player)` | Once, on equip | One-off changes (`player.run_speed = 200`), resetting state |
 | `physics(player, delta)` | Every physics frame, **after** the state machine sets velocity and **before** `move_and_slide()` | Movement overrides — whatever you set here wins |
+| `on_special_strike(player)` | The special's strike frame | Spawn a code-driven effect/projectile on connect |
+| `on_hurt(player, hit)` | Player takes a combat hit | React to damage — retaliation, defensive buff |
+| `on_land(player, fall_distance, fall_speed)` | Every touchdown | Fall damage, landing shockwaves (`fall_distance` = px dropped from the apex) |
 
 `physics` runs last on purpose, so an ability can override anything the state
 machine decided. `player.get_state()` exposes the current state
 (`Player.State.SPECIAL`, etc.), and the whole Player API — `take_damage()`,
 `velocity`, `is_on_floor()`, every exported tunable — is available.
 
-Add event hooks (on-hit, on-land) to `character_ability.gd` as they're needed;
-existing abilities keep working because the base class no-ops every hook.
+This is the **per-character rule engine**: each rule is "on EVENT, if CONDITION,
+do ACTION," and each character's file overrides only the hooks it cares about
+(base = no-ops, so existing abilities keep working). Add new event hooks to
+`character_ability.gd` + fire them from the player as more are needed.
 
 ### Current abilities
 
 | Character | Ability | Effect |
 |---|---|---|
 | Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (`emitters.json`) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
-| Katalyst | **Stomp** | A special attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
+| Katalyst | **Stomp** + **Weak knees** | A mid-air special becomes a downward drive (hangs for the wind-up, then plunges at `SLAM_SPEED`). And via `on_land`, **every** landing past `SAFE_FALL` (400px) deals fall damage scaled by drop distance × landing speed — a high enough fall can kill him (it's why he can't slam). A `_weak_knees` flag gates it, ready for a future "knee transplant" pickup to switch off. |
+| Wayna | **Inferno interrupt** | Not an ability script — her `special_inferno` is a channeled `Strike` (`emit_duration`) with `interrupt_on_hurt = true`, so taking a hit **cancels the fire** (stops emission + damage ticks, releases her held pose). The `on_hurt` ability hook stays free for any *other* reaction she gets later. |
 
 Both latch on the frame the special *starts* and only if the character was
 airborne then — checking the state alone would also fire for a grounded special

@@ -29,11 +29,16 @@ extends Node2D
 ## particle travels, not how long they keep spawning). While a timed emission plays, the
 ## striker's animation is HELD on its current frame (see apply_tuning -> hold_animation).
 @export var emit_duration: float = 0.0
+## For a held/channeled effect (emit_duration > 0): whether the caster being HIT cancels
+## it -- the channel breaks (Wayna's inferno stops when she's damaged). Default true (the
+## norm). Set false for an uninterruptible channel. Ignored by non-channel strikes.
+@export var interrupt_on_hurt: bool = true
 
 ## Who struck (knockback credit + lunge/armor target); set by the spawner.
 var source: Node = null
 
 var _hitbox: Hitbox
+var _tick_timer: Timer  # the DoT re-pulse timer, if any (see _start_ticking)
 
 
 func _ready() -> void:
@@ -99,7 +104,7 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 	# Hold the striker's pose while a timed emission plays out (Wayna frozen on the
 	# inferno cast frame until the fire finishes) -- option A: the strike drives its wielder.
 	if emit_duration > 0.0 and source != null and source.has_method("hold_animation"):
-		source.hold_animation(emit_duration)
+		source.hold_animation(emit_duration, self)  # pass self so the caster can cancel us
 	# Damage-over-time: re-hit everyone in the box every `tick` seconds for the strike's
 	# life (inferno = 10 dmg every 0.25s). tick 0 = a single hit (the default).
 	var tick: float = t.get("tick", 0.0)
@@ -128,6 +133,25 @@ func _start_ticking(interval: float) -> void:
 			_hitbox.pulse())
 	add_child(timer)
 	timer.start()
+	_tick_timer = timer
+
+
+## Stop this effect NOW -- the caster's channel was interrupted (e.g. Wayna hit mid-
+## inferno). Halt emission, damage ticks, and the hitbox, then free once the live
+## particles fade so it dissipates instead of popping.
+func cancel() -> void:
+	if is_instance_valid(_tick_timer):
+		_tick_timer.stop()
+	if _hitbox != null:
+		_hitbox.deactivate()
+	var linger := 0.0
+	for em in _emitters():
+		em.emitting = false
+		linger = maxf(linger, em.lifetime * (1.0 + em.lifetime_randomness))
+	if linger <= 0.0:
+		queue_free()
+	else:
+		get_tree().create_timer(linger).timeout.connect(queue_free)
 
 
 ## Resize / reposition the hitbox from tuning `extents` (half-size) and `x` (forward

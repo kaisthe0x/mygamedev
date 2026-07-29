@@ -29,3 +29,18 @@ func physics(_player: Player, _delta: float) -> void:
 ## effect or projectile from code.
 func on_special_strike(_player: Player) -> void:
 	pass
+
+
+## Called when this character takes a combat hit (right as it lands). React to being
+## hurt -- a retaliation, a defensive buff, whatever. `hit` carries amount/knockback/
+## stun/source. A held/channeled effect (Wayna's inferno) is interrupted SEPARATELY via
+## the Strike's `interrupt_on_hurt`, so this hook stays free for anything else.
+func on_hurt(_player: Player, _hit: Hit) -> void:
+	pass
+
+
+## Called on every touchdown, with how far he DROPPED from his highest point this
+## airborne stretch (`fall_distance`, px) and the speed he hit at (`fall_speed`, px/s).
+## For fall damage, landing shockwaves, etc.
+func on_land(_player: Player, _fall_distance: float, _fall_speed: float) -> void:
+	pass
