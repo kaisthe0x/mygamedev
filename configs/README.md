@@ -13,8 +13,8 @@ globally as `X.MEMBER` (e.g. `Combat.L_WORLD`, `Attacks.TABLE`). Nothing here ru
 | File | Class | Holds |
 |---|---|---|
 | `combat.gd` | `Combat` | Collision-layer bitmask table (`L_*`, mirrors project.godot) + shared hit-reaction feel (`KNOCKBACK_POP`, `MIN_STAGGER`, `STRIKE_ACTIVE`, `HIT_FLASH`, `HIT_FLASH_TIME`) |
-| `move.gd` | `Move` | One attack/special: its animation, effect, and hit tuning. A tiny data class built from the catalog. |
-| `moves.gd` | `Moves` | `CATALOG` — every character's named **attacks + specials** and the **default** of each. **Edit `default_attack` / `default_special` here to change what a character uses.** Characters not listed fall back to a legacy `attack` + `special` pair. |
+| `move.gd` | `Move` | One attack/special: its animation, effect, hit `tuning`, and `attack_kind` (the `Combat.AttackKind` taxonomy label for the future build UI). A tiny data class built from the catalog. |
+| `moves.gd` | `Moves` | `CATALOG` — every character's named **attacks + specials** and the **default** of each. The `tuning` numbers are the SINGLE source of an attack's hit (the director feeds them into the effect's own Hitbox — see the root README's *Player attacks* section). **Edit `default_attack` / `default_special` here to change what a character uses.** A character with an empty pool (Wayna's specials) has none yet; `get_move` returns null. |
 | `character_config.gd` | `CharacterConfig` | The player roster `IDS` + the per-id resource path templates (`FRAMES_PATH`, `PORTRAIT_PATH`, `ABILITY_PATH`) |
 | `level_config.gd` | `LevelConfig` | The dev test level: `SPAWN`, `DEATH_Y`, `PLATFORMS`, and the enemy `ROSTER` (per-instance Enemy `@export` overrides) |
 

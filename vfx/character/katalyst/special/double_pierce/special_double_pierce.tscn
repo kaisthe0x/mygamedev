@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://2gh8rebkeg03" path="res://vfx/character/katalyst/shared/textures/stab-texture-blend.png" id="1_fn1m8"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
 [ext_resource type="Texture2D" uid="uid://bu2rwpipm6klk" path="res://vfx/character/katalyst/shared/textures/basic-texture.png" id="2_q8s51"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="strike_root"]
 
 [sub_resource type="Curve" id="Curve_1d3nn"]
 _data = [Vector2(0, 0.2718894), 0.0, 0.0, 0, 0, Vector2(0.22944552, 0.11059904), 0.0, 0.0, 0, 0, Vector2(0.48183557, 0), 0.0, 0.0, 0, 0]
@@ -13,6 +14,7 @@ point_count = 3
 size = Vector2(170, 22)
 
 [node name="SpecialDoublePierce" type="Node2D" unique_id=377016795]
+script = ExtResource("strike_root")
 
 [node name="PierceRight" type="CPUParticles2D" parent="." unique_id=489457670]
 position = Vector2(44, -15)

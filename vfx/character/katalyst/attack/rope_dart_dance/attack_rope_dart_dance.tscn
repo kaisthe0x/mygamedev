@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://cgs8l7a2eiamq" path="res://vfx/character/katalyst/shared/textures/stab-texture.png" id="1_j340o"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_c6i3f"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="strike_root"]
 
 [sub_resource type="Curve" id="Curve_l7crr"]
 _data = [Vector2(0.0057361387, 0.2488479), 0.0, 0.0, 0, 0, Vector2(0.33460802, 0.13364053), 0.0, 0.0, 0, 0, Vector2(0.6500956, 0.08294928), 0.0, 0.0, 0, 0, Vector2(0.8527724, 0.04147458), 0.0, 0.0, 0, 0, Vector2(0.9942638, 0.023041487), 0.0, 0.0, 0, 0]
@@ -11,6 +12,7 @@ point_count = 5
 size = Vector2(45, 9)
 
 [node name="AttackRopeDartDance" type="Node2D" unique_id=924954202]
+script = ExtResource("strike_root")
 
 [node name="Attack" type="CPUParticles2D" parent="." unique_id=1625689936]
 z_index = -1

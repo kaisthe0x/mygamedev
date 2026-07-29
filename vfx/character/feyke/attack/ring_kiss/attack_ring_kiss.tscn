@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://qvuuxgwwh18e"]
 
-[ext_resource type="SpriteFrames" uid="uid://cgeu4vrnqd16" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_anim.tres" id="1_sf"]
-[ext_resource type="Script" uid="uid://bdph6djfjwdjn" path="res://scripts/combat/shot.gd" id="2_shot"]
+[ext_resource type="SpriteFrames" uid="uid://baqxonyo7y0nc" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_anim.tres" id="1_sf"]
+[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="2_shot"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hb"]
-[ext_resource type="SpriteFrames" uid="uid://mvoeo75x6d1e" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_end_anim.tres" id="4_end"]
+[ext_resource type="SpriteFrames" uid="uid://dlfuij4ev0o00" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_end_anim.tres" id="4_end"]
 [ext_resource type="Texture2D" uid="uid://1n7wa2whf3es" path="res://vfx/character/feyke/shared/textures/smoke_texture_3.png" id="5_8g0gd"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_kiss"]

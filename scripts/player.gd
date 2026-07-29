@@ -114,13 +114,6 @@ var health: float = 100.0:
 ## instead of restarting it. Ticks on through idle, so you can chain after
 ## control returns; keep it >= attack_recovery.
 @export var combo_reset_time: float = 0.45
-## Damage a single light-attack hit deals; the special swing deals special_damage.
-## Fallback when a move's tuning omits damage (see configs/moves.gd).
-@export var attack_damage: float = 16.0
-@export var special_damage: float = 40.0
-## How far in front of the feet the attack reaches, and its half-size.
-@export var attack_hitbox_x: float = 18.0
-@export var attack_hitbox_extents := Vector2(15, 18)
 
 enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL}
 
@@ -131,6 +124,13 @@ var _facing: int = 1
 ## future UI hook). Seeded to the character's defaults on every character change.
 var _current_attack: Move
 var _current_special: Move
+## The resolved per-hit tuning of the attack/special currently swinging -- damage,
+## knockback, stun, reach, and the lunge / super-armor / multi-hit knobs. Set at
+## segment/special start via resolve_tuning() (the buff seam), and read by the
+## ParticleDirector when it arms that attack's Hitbox -- so combat numbers live in
+## configs/moves.gd, not baked in the effect scene. Empty = no attack in progress (or a
+## move that deliberately carries its own scene numbers, like the two finger-gun shots).
+var _active_hit: Dictionary = {}
 var _dash_left: float = 0.0
 ## Counts down the whole dash state (lunge + the animation's tail), so the frames
 ## finish playing after the lunge is over.
@@ -164,16 +164,15 @@ var _recovery_left: float = 0.0
 var _buffered_special: bool = false
 ## Time left frozen from a stun-carrying hit (input ignored).
 var _stun_left: float = 0.0
+## Time left of super-armor: while > 0, hits still hurt but don't stagger/interrupt.
+## Granted by a Strike's tuning via set_armor() (a future buff/heavy-attack property).
+var _armor_left: float = 0.0
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
 var _particles: ParticleDirector
 ## Combat boxes, built in code (like the particle director) to avoid a scene edit.
 var _hurtbox: Hurtbox
-var _attack_hitbox: Hitbox
-## The attack box's shape, resized/repositioned per strike for per-character reach.
-var _attack_shape: CollisionShape2D
-var _attack_rect: RectangleShape2D
 var _status: StatusOverlay
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -317,45 +316,40 @@ func _build_combat() -> void:
 	add_child(_hurtbox)
 	_hurtbox.hurt.connect(_on_hurt)
 
-	_attack_hitbox = Hitbox.new()
-	_attack_hitbox.collision_layer = Combat.L_PLAYER_HIT
-	_attack_hitbox.collision_mask = Combat.L_ENEMY_HURT
-	_attack_hitbox.source = self # so knockback pushes enemies away from the player
-	_attack_shape = Shapes.make_box(attack_hitbox_extents * 2.0,
-		Vector2(0, -attack_hitbox_extents.y))
-	_attack_rect = _attack_shape.shape
-	_attack_hitbox.add_child(_attack_shape)
-	add_child(_attack_hitbox)
+	# No built-in attack box any more: every attack is a spawned Strike/Projectile whose
+	# own Hitbox carries the hit, fed from moves.gd via the director (see _active_hit).
 
 	_status = StatusOverlay.new()
 	add_child(_status)
 	_status.setup(_sprite)
 
 
-## Enable the attack hitbox for one strike of `move`'s combo segment `seg`: its
-## damage / reach / effects, each field falling back to the exported defaults. When
-## the move's effect carries the hit (tuning damage 0), the box just deals nothing.
-func _strike(move: Move, seg: int = 0) -> void:
-	if _attack_hitbox == null:
-		return
-	var a := move.segment(seg)
-	_attack_hitbox.damage = a.get("damage", attack_damage if move.kind == "attack" else special_damage)
-	_attack_hitbox.knockback = a.get("knockback", 0.0)
-	_attack_hitbox.stun = a.get("stun", 0.0)
-	_attack_hitbox.status_color = a.get("color", Color(0, 0, 0, 0))
-	_attack_hitbox.status_time = a.get("color_time", a.get("stun", 0.0))
+## THE BUFF SEAM. Resolve the effective per-hit tuning of `move`'s combo segment `seg`
+## -- the numbers the attack's Hitbox is configured with. Today it's the base straight
+## from configs/moves.gd; the item/build system will later layer its modifiers here
+## (damage x1.3, +reach, hits twice, ...) so every attack becomes buffable without
+## re-plumbing. Set into _active_hit at segment/special start; read by the director.
+func resolve_tuning(move: Move, seg: int = 0) -> Dictionary:
+	var base: Dictionary = move.segment(seg)
+	# <-- buff/item/event modifiers fold in here later (base is copied so nothing mutates
+	# the catalog). For now the effective hit IS the base.
+	return base.duplicate()
 
-	var ext: Vector2 = a.get("extents", attack_hitbox_extents)
-	var bx: float = a.get("x", attack_hitbox_x)
-	_attack_rect.size = ext * 2.0
-	_attack_shape.position = Vector2(bx * _facing, -ext.y) # box sits on the ground, reaching forward
-	_attack_hitbox.activate(Combat.STRIKE_ACTIVE)
+
+## The resolved tuning of the attack currently swinging, for the ParticleDirector to
+## feed into that attack's Hitbox. Empty when no attack is in progress.
+func active_hit() -> Dictionary:
+	return _active_hit
 
 
 ## Take a hit: damage, optional shove, optional freeze/overlay.
 ## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
 func _on_hurt(hit: Hit) -> void:
 	take_damage(hit.amount)
+	# Super-armor: the hit still hurts, but no knockback/stagger and the swing isn't
+	# interrupted (a Strike granted it via set_armor from its tuning).
+	if _armor_left > 0.0:
+		return
 	var stagger := apply_knockback(hit, _facing) # shove + how long to stagger
 	if stagger > 0.0:
 		_stun_left = stagger
@@ -365,12 +359,23 @@ func _on_hurt(hit: Hit) -> void:
 		_status.show_for(hit.status_color, hit.status_time)
 
 
+## Shove the player forward along its facing -- a Strike's lunge (option A: the strike
+## reaches back to its wielder). A brief burst; friction bleeds it off. Dormant until a
+## move/buff sets a `lunge` in its tuning.
+func apply_lunge(impulse: float) -> void:
+	velocity.x = impulse * _facing
+
+
+## Grant super-armor for `duration` seconds (see _on_hurt). Stacks by taking the longer.
+func set_armor(duration: float) -> void:
+	_armor_left = maxf(_armor_left, duration)
+
+
 # Land the special on its authored strike frame (hit_frames metadata), or, if the
 # character didn't author one, on the middle frame as a sensible default.
 func _on_frame_changed() -> void:
 	if _state == State.SPECIAL:
 		if _sprite.frame == _special_strike_frame():
-			_strike(_current_special)
 			if _ability != null:
 				_ability.on_special_strike(self)
 		return
@@ -413,6 +418,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
+	_armor_left = maxf(_armor_left - delta, 0.0)
 
 	# Track the fall so a touchdown from a real drop (not a tiny hop) can squash.
 	var on_floor := is_on_floor()
@@ -503,10 +509,10 @@ func _process_normal(delta: float) -> void:
 	# ground slam instead (specials are grounded-only). A character with no slam sheet
 	# simply can't act on the special button while airborne.
 	if Input.is_action_just_pressed("special"):
-		if is_on_floor():
+		if is_on_floor() and _current_special != null:
 			_start_special() # supersedes any light chain in progress
 			return
-		elif _has_slam() and _slam_has_clearance():
+		elif not is_on_floor() and _has_slam() and _slam_has_clearance():
 			_enter(State.SLAM) # air special = ground slam (only with room below)
 			return
 	# Attacks are grounded-only -- no air attacks.
@@ -619,7 +625,7 @@ func _process_land(delta: float) -> void:
 		return
 
 	# Grounded recovery.
-	if Input.is_action_just_pressed("special"):
+	if Input.is_action_just_pressed("special") and _current_special != null:
 		_start_special()
 		return
 	if Input.is_action_just_pressed("attack"):
@@ -689,7 +695,6 @@ func _process_attack(delta: float) -> void:
 			_combo_playing = false
 			_recovery_left = attack_recovery
 			_combo_window = combo_reset_time
-			_strike(_current_attack, _combo_step - 1) # this segment connects (0-based)
 			if _buffered_special: # cancel straight into the buffered special
 				_start_special()
 		return
@@ -717,6 +722,7 @@ func _start_special() -> void:
 	_combo_window = 0.0
 	_combo_playing = false
 	_buffered_special = false
+	_active_hit = resolve_tuning(_current_special, 0)  # feed the special's Hitbox
 	_enter(State.SPECIAL)
 
 
@@ -809,6 +815,9 @@ func _advance_combo() -> void:
 	var seg_start := 0 if _combo_step == 0 else int(hits[_combo_step - 1]) + 1
 	_seg_end = int(hits[_combo_step])
 	_combo_step += 1
+	# Resolve THIS segment's hit now (before its frames play), so the director feeds the
+	# right damage/reach into the Strike/Projectile it fires for this segment.
+	_active_hit = resolve_tuning(_current_attack, _combo_step - 1)
 
 	_combo_window = combo_reset_time
 	_combo_playing = true

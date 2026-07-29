@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://buo0iu8kx6rta" path="res://vfx/character/lenbondosen/shared/textures/poison_texture_9.png" id="1_2dsmi"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
 [ext_resource type="Texture2D" uid="uid://cgkfc87elwk1j" path="res://vfx/character/lenbondosen/shared/textures/poison_texture_2.png" id="3_c2fxt"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="strike_root"]
 
 [sub_resource type="Curve" id="Curve_n6npq"]
 _data = [Vector2(0.0019120462, 0.078651786), 0.0, 0.0, 0, 0, Vector2(0.17399618, 0.24719107), 0.0, 0.0, 0, 0, Vector2(0.34799236, 0.48847926), 0.0, 0.0, 0, 0, Vector2(0.500956, 0.68539333), 0.0, 0.0, 0, 0, Vector2(0.64627147, 0.97752815), 0.0, 0.0, 0, 0]
@@ -16,6 +17,7 @@ _data = [Vector2(0.0019120462, 0.036866307), 0.0, 0.0, 0, 0, Vector2(0.21797323,
 point_count = 5
 
 [node name="SpecialMouthBlast" type="Node2D" unique_id=854757983]
+script = ExtResource("strike_root")
 
 [node name="Attack" type="CPUParticles2D" parent="." unique_id=1922641520]
 position = Vector2(1.9073486e-06, 0)

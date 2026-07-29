@@ -1,6 +1,6 @@
-[gd_resource type="SpriteFrames" format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://dlfuij4ev0o00"]
 
-[ext_resource type="Texture2D" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_end_anim.png" id="1_bxtxd"]
+[ext_resource type="Texture2D" uid="uid://de6rpxauny2xv" path="res://vfx/character/feyke/attack/ring_kiss/ring_kiss_end_anim.png" id="1_bxtxd"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_6luw3"]
 atlas = ExtResource("1_bxtxd")

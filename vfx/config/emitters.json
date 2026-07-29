@@ -6,15 +6,24 @@
         "type": "run_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [-17, -17]
+        "pos": [
+          -17,
+          -17
+        ]
       }
     ],
     "jump": [
       {
         "type": "general_wind_streaks",
         "mode": "burst",
-        "frames": [0, 1],
-        "pos": [0, 0]
+        "frames": [
+          0,
+          1
+        ],
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "fall": [
@@ -22,7 +31,10 @@
         "type": "general_wind_streaks",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "dash": [
@@ -30,31 +42,34 @@
         "type": "dash_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [-12, -5]
+        "pos": [
+          -12,
+          -5
+        ]
       }
     ],
     "double_jump": [
       {
         "type": "jump_default",
         "mode": "burst",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "attack_chainsaw": [
       {
         "type": "attack_chainsaw",
         "mode": "burst",
-        "frames": [3, 4],
-        "pos": [-4, -18]
-      },
-      {
-        "type": "attack_chainsaw",
-        "mode": "burst",
-        "frames": [6],
-        "pos": [-4, -18],
-        "set": {
-          "Slash:texture": "res://vfx/character/wayna/attack/chainsaw/slash_texture_2.png"
-        }
+        "frames": [
+          3,
+          4
+        ],
+        "pos": [
+          3,
+          -18
+        ]
       }
     ]
   },
@@ -64,15 +79,24 @@
         "type": "special_ready",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, -1]
+        "pos": [
+          0,
+          -1
+        ]
       }
     ],
     "jump": [
       {
         "type": "general_wind_streaks",
         "mode": "burst",
-        "frames": [0, 1],
-        "pos": [0, 0]
+        "frames": [
+          0,
+          1
+        ],
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "fall": [
@@ -80,7 +104,10 @@
         "type": "general_wind_streaks",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "attack_finger_guns": [
@@ -88,31 +115,52 @@
         "type": "attack_finger_guns",
         "node": "Shot",
         "mode": "burst",
-        "frames": [2, 4],
-        "pos": [14, -23]
+        "frames": [
+          2,
+          4
+        ],
+        "pos": [
+          14,
+          -23
+        ]
       },
       {
         "type": "attack_finger_guns",
         "node": "ShotLast",
         "mode": "burst",
-        "frames": [7],
-        "pos": [11, -18]
+        "frames": [
+          7
+        ],
+        "pos": [
+          11,
+          -18
+        ]
       }
     ],
     "special_mouth_blast": [
       {
         "type": "special_mouth_blast",
-        "mode": "sustained",
-        "frames": [6, 7],
-        "pos": [9, -26]
+        "mode": "burst",
+        "frames": [
+          6
+        ],
+        "pos": [
+          9,
+          -26
+        ]
       }
     ],
     "special_poison_raiser": [
       {
         "type": "special_poison_raiser",
         "mode": "burst",
-        "frames": [4],
-        "pos": [0, 0],
+        "frames": [
+          4
+        ],
+        "pos": [
+          0,
+          0
+        ],
         "clip_to_ground": true
       }
     ],
@@ -121,7 +169,10 @@
         "type": "run_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [-17, -17]
+        "pos": [
+          -17,
+          -17
+        ]
       }
     ],
     "dash": [
@@ -129,7 +180,10 @@
         "type": "dash_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, -3]
+        "pos": [
+          0,
+          -3
+        ]
       }
     ],
     "double_jump": [
@@ -137,21 +191,37 @@
         "_comment": "Fired from code on the second (air) jump only -- player.gd _air_jump -> ParticleDirector.fire_effect. The key is intentionally NOT a real sprite animation, so it never auto-fires on a frame; the ground jump stays silent.",
         "type": "jump_default",
         "mode": "burst",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "slam": [
       {
         "type": "slam_wind_streaks",
         "mode": "sustained",
-        "frames": [0, 1, 2],
-        "pos": [0, -12]
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "pos": [
+          0,
+          -12
+        ]
       },
       {
         "type": "slam_default",
         "mode": "burst",
-        "frames": [3, 4],
-        "pos": [0, 0],
+        "frames": [
+          3,
+          4
+        ],
+        "pos": [
+          0,
+          0
+        ],
         "clip_to_ground": true
       }
     ]
@@ -162,7 +232,10 @@
         "type": "special_ready",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "run": [
@@ -170,15 +243,24 @@
         "type": "run_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [-17, -17]
+        "pos": [
+          -17,
+          -17
+        ]
       }
     ],
     "jump": [
       {
         "type": "general_wind_streaks",
         "mode": "burst",
-        "frames": [0, 1],
-        "pos": [0, 0]
+        "frames": [
+          0,
+          1
+        ],
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "fall": [
@@ -186,7 +268,10 @@
         "type": "general_wind_streaks",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "dash": [
@@ -194,30 +279,48 @@
         "type": "dash_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, -3]
+        "pos": [
+          0,
+          -3
+        ]
       }
     ],
     "double_jump": [
       {
         "type": "jump_default",
         "mode": "burst",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "attack_rope_dart_dance": [
       {
         "type": "attack_rope_dart_dance",
         "mode": "burst",
-        "frames": [2, 10],
-        "pos": [9, -22]
+        "frames": [
+          2,
+          6,
+          10
+        ],
+        "pos": [
+          9,
+          -22
+        ]
       }
     ],
     "special_double_pierce": [
       {
         "type": "special_double_pierce",
         "mode": "burst",
-        "frames": [3],
-        "pos": [0, 0],
+        "frames": [
+          3
+        ],
+        "pos": [
+          0,
+          0
+        ],
         "clip_to_ground": true
       }
     ]
@@ -228,7 +331,10 @@
         "type": "special_ready",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "run": [
@@ -236,15 +342,24 @@
         "type": "run_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [-17, -17]
+        "pos": [
+          -17,
+          -17
+        ]
       }
     ],
     "jump": [
       {
         "type": "general_wind_streaks",
         "mode": "burst",
-        "frames": [0, 1],
-        "pos": [0, 0]
+        "frames": [
+          0,
+          1
+        ],
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "fall": [
@@ -252,7 +367,10 @@
         "type": "general_wind_streaks",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "dash": [
@@ -260,30 +378,46 @@
         "type": "dash_default",
         "mode": "sustained",
         "frames": "all",
-        "pos": [0, -3]
+        "pos": [
+          0,
+          -3
+        ]
       }
     ],
     "double_jump": [
       {
         "type": "jump_default",
         "mode": "burst",
-        "pos": [0, 0]
+        "pos": [
+          0,
+          0
+        ]
       }
     ],
     "attack_ring_kiss": [
       {
         "type": "attack_ring_kiss",
         "mode": "burst",
-        "frames": [3],
-        "pos": [16, -26]
+        "frames": [
+          3
+        ],
+        "pos": [
+          16,
+          -26
+        ]
       }
     ],
     "special_f_you": [
       {
         "type": "special_f_you",
         "mode": "burst",
-        "frames": [3],
-        "pos": [0, 0],
+        "frames": [
+          3
+        ],
+        "pos": [
+          0,
+          0
+        ],
         "clip_to_ground": true
       }
     ],
@@ -291,14 +425,27 @@
       {
         "type": "slam_wind_streaks",
         "mode": "sustained",
-        "frames": [0, 1, 2],
-        "pos": [0, -12]
+        "frames": [
+          0,
+          1,
+          2
+        ],
+        "pos": [
+          0,
+          -12
+        ]
       },
       {
         "type": "slam_default",
         "mode": "burst",
-        "frames": [3, 4],
-        "pos": [0, 0],
+        "frames": [
+          3,
+          4
+        ],
+        "pos": [
+          0,
+          0
+        ],
         "clip_to_ground": true
       }
     ]

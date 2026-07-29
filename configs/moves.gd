@@ -15,83 +15,89 @@ extends RefCounted
 ## + one "special" from their generic attack/special sheets -- so they keep
 ## working until they get named sheets.
 
+## `kind` is the descriptive Combat.AttackKind taxonomy (for the future move-select /
+## build UI). `tuning` numbers are the SINGLE source of an attack's hit -- the director
+## feeds them into the effect scene's own Hitbox at spawn (see Player.resolve_tuning /
+## ParticleDirector._inject_tuning), so nothing is baked in a .tscn. An EMPTY `tuning`
+## means "the effect scene carries its own numbers" -- used by finger_guns, whose two
+## shots have different damage that one tuning dict can't express.
 const CATALOG := {
 	"khalid": {
-		"attacks": {"strike": {"animation": "attack", "tuning": {"damage": 16}}},
-		"specials": {"smash": {"animation": "special_smash", "tuning": {"damage": 46, "knockback": 220}}},
+		# No effect scene yet -> nothing spawns a Hitbox, so his swings deal 0 for now
+		# (his new look + moveset are coming). The animations still play.
+		"attacks": {"strike": {"animation": "attack", "kind": Combat.AttackKind.MELEE, "tuning": {"damage": 0}}},
+		"specials": {"smash": {"animation": "special_smash", "kind": Combat.AttackKind.MELEE, "tuning": {"damage": 0}}},
 		"default_attack": "strike", "default_special": "smash",
 	},
 	"katalyst": {
-		"attacks": {"rope_dart_dance": {"animation": "attack_rope_dart_dance", "tuning": [
+		"attacks": {"rope_dart_dance": {"animation": "attack_rope_dart_dance", "kind": Combat.AttackKind.MELEE, "tuning": [
 			{"damage": 16, "x": 24.0, "extents": Vector2(22, 18)}, # whip-reach thrust
 			{"damage": 16, "x": 0.0, "extents": Vector2(32, 20)}, # spin: AoE around the body
 			{"damage": 16, "x": 28.0, "extents": Vector2(24, 18)}, # finishing lunge
 		]}},
-		"specials": {"double_pierce": {"animation": "special_double_pierce", "tuning":
-			{"damage": 44, "knockback": 160, "stun": 0.18, "x": 30.0, "extents": Vector2(34, 16)}}},
+		# Numbers here; the hitbox SHAPE/position is authored in special_double_pierce.tscn
+		# (no extents/x, so the director doesn't override the scene box).
+		"specials": {"double_pierce": {"animation": "special_double_pierce", "kind": Combat.AttackKind.GROUND, "tuning":
+			{"damage": 44, "knockback": 160, "stun": 0.18}}},
 		"default_attack": "rope_dart_dance", "default_special": "double_pierce",
 	},
 	"wayna": {
-		# Chainsaw: a forward energy-slash swing. Its particle (emitters.json ->
-		# attack_chainsaw) carries the hit via its OWN Hitbox, so the melee box stands
-		# down (damage 0) -- tune the actual damage on that particle scene's Hitbox.
-		"attacks": {"chainsaw": {"animation": "attack_chainsaw", "effect": "attack_chainsaw",
-			"tuning": {"damage": 0}}},
-		"specials": {"burst": {"animation": "special_burst", "tuning": {"damage": 32, "knockback": 90}}},
-		"default_attack": "chainsaw", "default_special": "burst",
+		# Chainsaw: a forward energy-slash Strike (attack_chainsaw.tscn). Its Hitbox is fed
+		# these numbers at spawn. Her old `burst` special is gone (a new one is coming) --
+		# an empty specials pool means the special button does nothing for now.
+		"attacks": {"chainsaw": {"animation": "attack_chainsaw", "effect": "attack_chainsaw", "kind": Combat.AttackKind.MELEE,
+			"tuning": {"damage": 25, "stun": 2.0, "color": Color(0.9068, 0, 0, 0.759)}}},
+		"specials": {},
+		"default_attack": "chainsaw", "default_special": "",
 	},
 	"feyke": {
-		# Ring kiss: a homing "kiss" shot (like Lenny's finger guns) -- one burst of
-		# three particles. Its projectile carries the hit (attacks/attack_ring_kiss.tscn),
-		# so the melee box stands down (damage 0).
-		"attacks": {"ring_kiss": {"animation": "attack_ring_kiss", "effect": "attack_ring_kiss",
-			"tuning": {"damage": 0}}},
-		"specials": {"f_you": {"animation": "special_f_you",
-			"tuning": {"damage": 38, "knockback": 150, "x": 20.0, "extents": Vector2(34, 22)}}},
+		# Ring kiss: a homing "kiss" Projectile (attack_ring_kiss.tscn); f_you: a close blast.
+		"attacks": {"ring_kiss": {"animation": "attack_ring_kiss", "effect": "attack_ring_kiss", "kind": Combat.AttackKind.PROJECTILE,
+			"tuning": {"damage": 14, "knockback": 60}}},
+		"specials": {"f_you": {"animation": "special_f_you", "kind": Combat.AttackKind.BLAST,
+			"tuning": {"damage": 38, "knockback": 150}}},  # shape authored in special_f_you.tscn
 		"default_attack": "ring_kiss", "default_special": "f_you",
 	},
 	"lenbondosen": {
 		"attacks": {
-			# A forward shot. Its particle carries the hit (attacks/attack_finger_guns.tscn),
-			# so the melee box stands down (damage 0).
-			"finger_guns": {"animation": "attack_finger_guns", "effect": "attack_finger_guns",
-				"tuning": {"damage": 0}},
+			# Two shots with DIFFERENT damage (16 / 24) that one tuning dict can't express,
+			# so finger_guns keeps its per-shot numbers on the scene's Hitboxes: an EMPTY
+			# tuning tells the director not to override them (the effect carries the hit).
+			"finger_guns": {"animation": "attack_finger_guns", "effect": "attack_finger_guns", "kind": Combat.AttackKind.PROJECTILE,
+				"tuning": {}},
 		},
 		"specials": {
-			"poison_raiser": {"animation": "special_poison_raiser", "effect": "special_poison_raiser",
-				"tuning": {"damage": 30, "knockback": 150, "x": 0.0, "extents": Vector2(38, 24)}},
-			# Was an attack combo; now a single-strike special.
-			"mouth_blast": {"animation": "special_mouth_blast", "effect": "special_mouth_blast",
-				"tuning": {"damage": 20, "x": 0.0, "extents": Vector2(40, 26)}},
+			# Shapes authored in the scenes; only numbers here.
+			"poison_raiser": {"animation": "special_poison_raiser", "effect": "special_poison_raiser", "kind": Combat.AttackKind.GROUND,
+				"tuning": {"damage": 30, "knockback": 150}},
+			"mouth_blast": {"animation": "special_mouth_blast", "effect": "special_mouth_blast", "kind": Combat.AttackKind.BLAST,
+				"tuning": {"damage": 20}},
 		},
 		"default_attack": "finger_guns", # <- Lenny's default attack
 		"default_special": "poison_raiser", # <- Lenny's default special
 	},
 }
 
-## Fallback for any character not in CATALOG: their generic attack + special
-## sheets as a single attack and a single special (damage from the Player's exports).
-const LEGACY := {
-	"attacks": {"attack": {"animation": "attack", "tuning": {}}},
-	"specials": {"special": {"animation": "special", "tuning": {}}},
-	"default_attack": "attack", "default_special": "special",
-}
-
 
 static func _entry(character: String) -> Dictionary:
-	return CATALOG.get(character, LEGACY)
+	return CATALOG.get(character, {})
 
 
 ## The Move object for a character's attack/special by id, or the default when `id`
-## is empty / unknown. `kind` is "attacks" or "specials".
+## is empty / unknown. `kind` is "attacks" or "specials". Returns null when the pool is
+## empty (a character with no special yet, like Wayna) -- callers must tolerate that.
 static func get_move(character: String, kind: String, id := "") -> Move:
 	var entry := _entry(character)
-	var pool: Dictionary = entry[kind]
+	var pool: Dictionary = entry.get(kind, {})
+	if pool.is_empty():
+		return null
 	if id.is_empty() or not pool.has(id):
 		id = entry["default_attack"] if kind == "attacks" else entry["default_special"]
+	if not pool.has(id):
+		return null
 	return Move.make("attack" if kind == "attacks" else "special", id, pool[id])
 
 
 ## Ids of a character's available attacks / specials (for a future switch UI).
 static func ids(character: String, kind: String) -> Array:
-	return _entry(character)[kind].keys()
+	return _entry(character).get(kind, {}).keys()

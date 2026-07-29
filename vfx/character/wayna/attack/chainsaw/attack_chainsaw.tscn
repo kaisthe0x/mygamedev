@@ -1,30 +1,42 @@
-[gd_scene format=3 uid="uid://cpviau6mbtvbe"]
+[gd_scene format=3 uid="uid://bsvyye6vxykgs"]
 
-[ext_resource type="Texture2D" uid="uid://jwuu3sohugps" path="res://vfx/character/wayna/attack/chainsaw/slash_texture_1.png" id="1_3aoge"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_ko6gf"]
-[ext_resource type="Script" uid="uid://c3bgrmscd6b1" path="res://vfx/script/flash_effect.gd" id="3_flash"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="2_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hb"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_6nthj"]
-size = Vector2(45, 9)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kiss"]
+size = Vector2(24, 20)
 
-[node name="AttackChainsaw" type="Node2D" unique_id=924954202]
-script = ExtResource("3_flash")
+[sub_resource type="Curve" id="Curve_uashs"]
+_limits = [-200.0, 200.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.017208412, -185.25346), 0.0, 0.0, 0, 0, Vector2(0.51434034, -200), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 4
 
-[node name="Slash" type="Sprite2D" parent="." unique_id=1625689936]
-z_index = -1
-position = Vector2(19, -1)
-rotation = -0.0435057
-scale = Vector2(0.5, 0.5)
-texture = ExtResource("1_3aoge")
+[node name="AttackChainsaw" type="Node2D" unique_id=890394430]
+rotation = -0.30770043
+script = ExtResource("2_strike")
 
-[node name="Hitbox" type="Area2D" parent="." unique_id=930254930]
-position = Vector2(-2, 0)
+[node name="Hitbox" type="Area2D" parent="." unique_id=360628885]
+rotation = 0.31790805
+scale = Vector2(1.4999999, 1.4999999)
 collision_layer = 32
 collision_mask = 16
-script = ExtResource("2_ko6gf")
-stun = 10.0
-status_color = Color(1, 0.6696667, 0, 0.71000004)
+script = ExtResource("3_hb")
+damage = 25.0
+stun = 2.0
+status_color = Color(0.90683234, 0, 0, 0.75900006)
 
-[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1963840971]
-position = Vector2(24.5, -1.5)
-shape = SubResource("RectangleShape2D_6nthj")
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=2024332018]
+shape = SubResource("RectangleShape2D_kiss")
+
+[node name="Trail" type="CPUParticles2D" parent="." unique_id=505338666]
+amount = 20
+lifetime = 0.3
+emission_shape = 1
+emission_sphere_radius = 2.77
+direction = Vector2(100, -1)
+spread = 0.0
+gravity = Vector2(400, 0)
+initial_velocity_min = 400.0
+initial_velocity_max = 400.0
+tangential_accel_max = 32.84
+tangential_accel_curve = SubResource("Curve_uashs")

@@ -464,7 +464,7 @@ existing abilities keep working because the base class no-ops every hook.
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range burst: melee damage from `ATTACKS` "special" + a `special_poison_raiser` particle blast (`emitters.json`) on the strike frame. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
+| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (`emitters.json`) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
 | Katalyst | **Stomp** | A special attack started mid-air becomes a ground slam: he hangs for the wind-up, then drives straight down at `SLAM_SPEED` until he lands. |
 
 Both latch on the frame the special *starts* and only if the character was
@@ -486,7 +486,7 @@ typical platform heights; if it ever matters, have the ability keep driving
 
 ## Visual effects (particles + drawn slashes)
 
-All VFX — the frame-indexed particle system and the drawn `FlashEffect` slashes —
+All VFX — the frame-indexed particle system and the drawn `Strike` slashes —
 live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 
 - **Particles:** data-driven emitters layered on the sprites. A `ParticleDirector`
@@ -496,9 +496,10 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
   filed. Adding one = a scene under `vfx/character/<id>/…` + a line in
   `vfx/config/emitters.json`, no code.
 - **Drawn slashes:** a directional crescent that must mirror with facing is a
-  **`FlashEffect`** (`vfx/script/flash_effect.gd`) — a `Sprite2D`/`AnimatedSprite2D`
-  (+ optional `Hitbox`) that grows/fades and self-frees. Use it instead of a
-  `CPUParticles2D` when the texture itself must h-flip (Wayna's chainsaw).
+  **`Strike`** (`scripts/combat/strike.gd`) — a `Sprite2D`/`AnimatedSprite2D` + a
+  `Hitbox` that grows/fades and self-frees, and covers melee slashes, blasts, and ground
+  AoEs. Use it instead of a `CPUParticles2D` when the texture itself must h-flip (Wayna's
+  chainsaw). Its projectile sibling is **`Projectile`** (`scripts/combat/projectile.gd`).
 - **Where to add an attack effect:** a visual → `vfx/config/emitters.json`; a hit's
   numbers → the move's `tuning` in `configs/moves.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
@@ -636,40 +637,45 @@ a new effect field here and nothing else's signature changes.
   additive tinted copy synced to the sprite) and its pose is paused for the
   duration.
 
-### Player attacks — `ATTACKS` (`player.gd`)
+### Player attacks — `moves.gd` tuning + a spawned `Strike` / `Projectile`
 
-One table per `(character, attack)`, holding both the on-hit effects **and** the
-hitbox geometry so they can't drift apart. Each entry is a **dict** where unset
-fields fall back to the exported defaults:
+There's **no built-in attack box** any more. Every attack is a **spawned node** that
+carries its own `Hitbox`: a **`Strike`** (`scripts/combat/strike.gd` — a melee slash /
+blast / ground AoE that stays at the body) or a **`Projectile`**
+(`scripts/combat/projectile.gd` — a shot that leaves the body, used by players *and*
+enemies via a `hostile` flag). The `ParticleDirector` fires it on the attack's authored
+frames and feeds it the hit's numbers from **`configs/moves.gd`** — so combat numbers
+live in one place, in code, never baked in a `.tscn`.
 
-| field | meaning | fallback |
-|---|---|---|
-| `damage` | hit damage | `attack_damage` / `special_damage` |
-| `knockback` | px/s shove away from the player | 0 |
-| `stun` | seconds frozen | 0 |
-| `color` / `color_time` | engulfing status overlay + duration | none |
-| `x` | hitbox forward offset from the feet | `attack_hitbox_x` |
-| `extents` | hitbox half-size | `attack_hitbox_extents` |
+Each move's `tuning` (a dict, or an ARRAY one-per-combo-segment):
 
-```gdscript
-"katalyst": {
-    "light": [                                                  # ARRAY = per combo segment
-        {"damage": 16, "x": 24, "extents": Vector2(22, 18)},    # whip-reach thrust
-        {"damage": 16, "x": 0,  "extents": Vector2(32, 20)},    # spin: AoE around the body (x=0)
-        {"damage": 16, "x": 28, "extents": Vector2(24, 18)},    # finishing lunge
-    ],
-    "special": {"damage": 44, "knockback": 160, "stun": 0.18, "x": 30, "extents": Vector2(34, 16)},
-}
-```
+| field | meaning |
+|---|---|
+| `damage` | hit damage |
+| `knockback` | px/s shove away from the attacker |
+| `stun` | seconds frozen |
+| `color` / `color_time` | engulfing status overlay + duration |
+| `x` | hitbox forward reach (mirrors with facing) |
+| `extents` | hitbox half-size |
+| `lunge` / `super_armor` / `multi_hit` | `Strike` wielder-effects — dormant hooks the buff system will use |
 
-- `special` is one entry. `light` is **either** one entry (all combo hits share it)
-  **or an array**, one per combo segment — that's how a *specific* hit differs
-  (Lenny's first jab freezes 5s + green; Katalyst's middle hit is a wide `x = 0`
-  around-the-body AoE). A shorter array reuses its last entry.
-- `_strike(kind, seg)` reads the entry, sets the effects, and resizes/repositions
-  the **one** hitbox shape (`_attack_shape` / `_attack_rect`) — no extra nodes. A
-  box at **`x` = 0 with wide extents** hits both sides; `x` flips with facing.
-- Unlisted characters/attacks fall back entirely to the exported damage + box.
+**How a hit reaches the box (and the buff seam):** on each segment/special start the
+player resolves the effective tuning via **`resolve_tuning(move, seg)`** into
+`_active_hit` — *this is where the future item/build system layers its modifiers*
+(damage ×1.3, +reach, hits twice). When the director arms the attack's `Hitbox` it calls
+`_inject_tuning`, passing `_active_hit` to the node's `apply_tuning()` — which sets
+damage/knockback/stun and, for a `Strike`, resizes the box from `extents`/`x` and fires
+lunge/armor. An **empty** `tuning` means "the effect scene carries its own numbers"
+(finger_guns, whose two shots have different damage one dict can't express).
+
+- `light` combos stay segment-per-click; each segment resolves its own tuning, so the
+  three rope-dart hits keep different reach + damage. A combo's emitters.json frames must
+  match its `HIT_FRAMES` (one effect spawn per segment).
+- The move's **`kind`** (`Combat.AttackKind`: MELEE / BLAST / GROUND / PROJECTILE) is
+  descriptive metadata for the future move-select / build UI — it does **not** drive
+  behavior.
+- A character with **no effect scene** for an attack deals no damage (Khalid, for now);
+  a character with an **empty specials pool** (Wayna) simply can't special yet.
 
 ### Dash i-frames
 

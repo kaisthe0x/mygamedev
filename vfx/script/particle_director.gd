@@ -12,7 +12,7 @@ extends Node2D
 ##            dash/default/, other/, ...) plus the global vfx/shared/, so a type
 ##            resolves wherever it's filed with no hardcoded folder list. Its root
 ##            may be a single CPUParticles2D/GPUParticles2D, a Node2D bundling
-##            several as one attack, a Shot, or a FlashEffect (a drawn slash).
+##            several as one attack, a Projectile, or a FlashEffect (a drawn slash).
 ## - mode   : "sustained" (emit while any listed frame is showing) or
 ##            "burst" (spawn a one-shot each time a listed frame is entered)
 ## - frames : SHEET-relative indices (same numbering as loop_from / hit_frames;
@@ -184,7 +184,7 @@ func _index_dir(dir_path: String) -> void:
 ## node_name = the whole scene (single or composite), as before.
 ##
 ## Rejected only if it holds no particle emitters AND isn't a self-visual object:
-## a Shot (which can carry an AnimatedSprite2D playing a drawn frame animation) or a
+## a Projectile (which can carry an AnimatedSprite2D playing a drawn frame animation) or a
 ## FlashEffect (a drawn slash that mirrors + frees itself). Those manage their own look.
 func _spawn(type: String, node_name := "") -> Node2D:
 	var path: String = _index.get(type, "")
@@ -204,10 +204,10 @@ func _spawn(type: String, node_name := "") -> Node2D:
 		child.owner = null  # was owned by the palette root we're about to drop
 		root.queue_free()
 		node = child
-	if _emitters_of(node).is_empty() and not (node is Shot) and not (node is FlashEffect):
+	if _emitters_of(node).is_empty() and not (node is Projectile) and not (node is Strike):
 		var where := path if node_name == "" else "%s -> %s" % [path, node_name]
 		push_warning("ParticleDirector: %s has no CPUParticles2D/GPUParticles2D " % where
-			+ "(as its root or a child) and is not a Shot/FlashEffect, got %s" % node.get_class())
+			+ "(as its root or a child) and is not a Projectile/Strike, got %s" % node.get_class())
 		node.queue_free()
 		return null
 	return node
@@ -239,6 +239,34 @@ func _hitboxes_of(root: Node) -> Array:
 ## director is a child of the player, so that's our parent.
 func _attacker() -> Node:
 	return get_parent()
+
+
+## Feed the player's currently-resolved hit tuning (from moves.gd via resolve_tuning)
+## into an attack effect's Hitbox(es), so combat numbers live in code, not baked in the
+## scene. A Strike/Projectile takes the whole dict via apply_tuning (a Strike also does
+## lunge/armor/multi-hit); a plain composite gets its box fields set directly. Empty
+## tuning (no attack in progress, or a move that carries its own scene numbers) = no-op,
+## so the box keeps its authored values.
+func _inject_tuning(node: Node2D, hitboxes: Array) -> void:
+	var atk := _attacker()
+	if atk == null or not atk.has_method("active_hit"):
+		return
+	var hit: Dictionary = atk.active_hit()
+	if hit.is_empty():
+		return
+	if node.has_method("apply_tuning"):
+		node.apply_tuning(hit, atk)
+		return
+	for hb in hitboxes:
+		if hit.has("damage"):
+			hb.damage = hit["damage"]
+		if hit.has("knockback"):
+			hb.knockback = hit["knockback"]
+		if hit.has("stun"):
+			hb.stun = hit["stun"]
+		if hit.has("color"):
+			hb.status_color = hit["color"]
+			hb.status_time = hit.get("color_time", hit.get("stun", 0.0))
 
 
 ## Where world-anchored bursts are parented so they stay put instead of following
@@ -312,8 +340,8 @@ func _capture(node: Node2D) -> Dictionary:
 ## pointing that way when the character turns around.
 func _face(node: Node2D, base: Dictionary, pos: Vector2, m: float) -> void:
 	node.position = Vector2(pos.x * m, pos.y)
-	if node is Shot:
-		# A Shot reads scale.x in _ready to pick its travel direction, then normalises
+	if node is Projectile:
+		# A Projectile reads scale.x in _ready to pick its travel direction, then normalises
 		# it -- so facing is scale.x even when the shot's body is itself a CPUParticles2D
 		# (it rotates to _dir, so the particle direction/gravity mirror below is moot).
 		node.scale.x = m
@@ -334,6 +362,9 @@ func _refresh() -> void:
 	var m := _mirror()
 
 	for entry in _sustained:
+		if not is_instance_valid(entry.node):
+			continue  # a self-freeing effect (Strike/Projectile) shouldn't be sustained,
+			# but guard anyway so a freed node never reaches _face
 		var on: bool = entry.anim == anim and entry.frames.has(frame)
 		_face(entry.node, entry.base, entry.pos, m)
 		for em in entry.emitters:
@@ -341,6 +372,8 @@ func _refresh() -> void:
 		# Switch any damage hitbox on/off with the emit window -- once per entry so
 		# the box arms fresh each strike (a Hitbox dedupes hits per activation).
 		if on != entry.active:
+			if on:
+				_inject_tuning(entry.node, entry.hitboxes)  # feed moves.gd numbers on arm
 			for hb in entry.hitboxes:
 				if on:
 					hb.activate()
@@ -397,12 +430,13 @@ func _fire_burst(b: Dictionary, m: float) -> void:
 	# Hitbox._ready() (which starts it disabled) has already run.
 	for em in emitters:
 		em.emitting = true
+	_inject_tuning(node, hitboxes)  # feed moves.gd numbers before the box goes live
 	for hb in hitboxes:
 		hb.source = _attacker()
 		hb.activate()
-	# A Shot flies off and a FlashEffect fades itself out -- both manage their own life;
-	# everything else is freed once its one-shot emitters finish and their particles die.
-	if not (node is Shot) and not (node is FlashEffect):
+	# A Projectile flies off and a Strike fades itself out -- both manage their own
+	# life; everything else is freed once its one-shot emitters finish and particles die.
+	if not (node is Projectile) and not (node is Strike):
 		_free_when_done(node, emitters)
 
 
@@ -481,4 +515,5 @@ func _process(_delta: float) -> void:
 		return
 	var m := _mirror()
 	for entry in _sustained:
-		_face(entry.node, entry.base, entry.pos, m)
+		if is_instance_valid(entry.node):
+			_face(entry.node, entry.base, entry.pos, m)

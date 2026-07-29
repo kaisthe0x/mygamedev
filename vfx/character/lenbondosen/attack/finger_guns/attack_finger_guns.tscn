@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ngkvwebknjw3"]
 
 [ext_resource type="Texture2D" uid="uid://bq030jsjxi681" path="res://vfx/character/lenbondosen/shared/textures/poison_texture_11.png" id="1_4678f"]
-[ext_resource type="Script" uid="uid://bdph6djfjwdjn" path="res://scripts/combat/shot.gd" id="2_shot"]
+[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="2_shot"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hitbox"]
 [ext_resource type="Texture2D" uid="uid://dpjsjcu5cgx07" path="res://vfx/character/lenbondosen/shared/textures/poison_texture_8.png" id="4_d5bof"]
 

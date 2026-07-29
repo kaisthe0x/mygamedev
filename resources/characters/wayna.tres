@@ -39,11 +39,6 @@ atlas = ExtResource("6_attack_chainsaw")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_chainsaw_7"]
-atlas = ExtResource("6_attack_chainsaw")
-region = Rect2(896, 0, 128, 80)
-margin = Rect2(0, 0, 2, 0)
-
 [sub_resource type="AtlasTexture" id="dash_1"]
 atlas = ExtResource("5_dash")
 region = Rect2(128, 0, 128, 80)
@@ -254,9 +249,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("attack_chainsaw_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_chainsaw_7")
 }],
 "loop": 0,
 "name": &"attack_chainsaw",
@@ -363,19 +355,19 @@ animations = [{
 "speed": 12.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 2.5,
 "texture": SubResource("run_1")
 }, {
-"duration": 1.0,
+"duration": 2.5,
 "texture": SubResource("run_2")
 }, {
-"duration": 1.0,
+"duration": 2.5,
 "texture": SubResource("run_3")
 }, {
-"duration": 1.0,
+"duration": 2.5,
 "texture": SubResource("run_4")
 }, {
-"duration": 1.0,
+"duration": 2.5,
 "texture": SubResource("run_5")
 }],
 "loop": 1,

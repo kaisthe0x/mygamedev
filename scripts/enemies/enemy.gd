@@ -15,7 +15,6 @@ extends Combatant
 ## Everything visual/physical is built in code, so an enemy is just this script
 ## configured via exports (or subclassed) -- no scene to keep in sync.
 
-const PROJECTILE := preload("res://scripts/enemies/projectile.gd")
 const FRAMES_PATH := "res://resources/enemies/%s.tres"
 
 @export var enemy_id: String = "kebus"
@@ -121,7 +120,6 @@ var _impacted := false  # this attack already fired its hit-stop
 
 var _sprite: AnimatedSprite2D
 var _hurtbox: Hurtbox
-var _melee_hitbox: Hitbox
 var _bar: FloatingHealthBar
 var _status: StatusOverlay
 var _edge_ray_left: RayCast2D
@@ -136,7 +134,6 @@ func _ready() -> void:
 	_build_sprite()
 	_build_body()
 	_build_hurtbox()
-	_build_melee_hitbox()
 	_build_contact_hitbox()
 	_build_health_bar()
 	_build_edge_rays()
@@ -186,19 +183,6 @@ func _build_hurtbox() -> void:
 	_hurtbox.add_child(Shapes.make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
 	add_child(_hurtbox)
 	_hurtbox.hurt.connect(_on_hurt)
-
-
-func _build_melee_hitbox() -> void:
-	_melee_hitbox = Hitbox.new()
-	_melee_hitbox.collision_layer = Combat.L_ENEMY_HIT
-	_melee_hitbox.collision_mask = Combat.L_PLAYER_HURT
-	_melee_hitbox.damage = melee_damage
-	_melee_hitbox.source = self
-	_melee_hitbox.knockback = melee_knockback
-	_melee_hitbox.stun = melee_stun
-	_melee_hitbox.add_child(Shapes.make_box(melee_hitbox_extents * 2.0,
-		Vector2(0, -melee_hitbox_extents.y)))
-	add_child(_melee_hitbox)
 
 
 func _build_contact_hitbox() -> void:
@@ -405,8 +389,7 @@ func _start_attack(state: State, anim: StringName, player: Node2D) -> void:
 
 func _on_frame_changed() -> void:
 	if _state == State.MELEE and _sprite.frame in _hit_frames(&"melee_attack"):
-		_position_melee_hitbox()
-		_melee_hitbox.activate()
+		_spawn_melee_strike()
 		_begin_hitstop()
 	elif _state == State.RANGE and not _attack_fired and _sprite.frame >= _fire_frame():
 		_attack_fired = true
@@ -445,40 +428,67 @@ func _apply_shake() -> void:
 
 func _on_anim_finished() -> void:
 	if _state == State.MELEE or _state == State.RANGE:
-		_melee_hitbox.deactivate()
 		_attack_cd = attack_cooldown
 		_set_state(State.IDLE)
 
 
-func _position_melee_hitbox() -> void:
-	_melee_hitbox.position.x = melee_hitbox_x * _facing
+## Spawn a hostile Strike for one melee swing -- the enemy counterpart to a player's
+## melee. Its Hitbox is built from this enemy's melee tuning; Strike sets the team layers
+## from `hostile` and frees itself after a brief flash. Attached to the enemy so it sits
+## in front of the body for the swing.
+func _spawn_melee_strike() -> void:
+	var strike := Strike.new()
+	strike.hostile = true
+	strike.lifetime = 0.15
+	strike.source = self
+	var hb := Hitbox.new()
+	hb.damage = melee_damage
+	hb.knockback = melee_knockback
+	hb.stun = melee_stun
+	hb.source = self
+	hb.add_child(Shapes.make_box(melee_hitbox_extents * 2.0, Vector2(0, -melee_hitbox_extents.y)))
+	strike.add_child(hb)
+	add_child(strike)                                  # _ready: team layers + free timer
+	strike.position = Vector2(melee_hitbox_x * _facing, 0)
+	hb.activate()
 
 
 func _fire_projectile() -> void:
 	var muzzle := global_position + Vector2(muzzle_offset.x * _facing, muzzle_offset.y)
-	var proj := Area2D.new()
-	proj.set_script(PROJECTILE)
-	proj.damage = ranged_damage
-	proj.knockback = ranged_knockback
-	proj.stun = ranged_stun
-	proj.color = ranged_color  # set before add_child so _ready tints the orb
-	proj.hitbox_extents = ranged_hitbox_extents
-	proj.hitbox_offset = ranged_hitbox_offset
+	# One shared Projectile class for players AND enemies -- hostile = true puts it on
+	# the enemy-hit layer scanning player hurtboxes, homing = 0 flies straight, and the
+	# look/damage are the `ranged_particle` scene + a Hitbox built from this enemy's tuning.
+	var proj := Projectile.new()
+	proj.hostile = true
+	proj.homing = 0.0                # aim once / surge forward -- no steering
+	proj.rotate_to_heading = false   # visual authored blasting +x -> mirror, don't rotate
+	proj.source = self
 	if not ranged_particle.is_empty():
-		proj.visual = load(ranged_particle)
+		proj.add_child((load(ranged_particle) as PackedScene).instantiate())
+
+	# The shot's damage box, sized from this enemy's ranged hitbox exports. The
+	# Projectile arms it and sets its team layers from `hostile` on _ready.
+	var hb := Hitbox.new()
+	hb.damage = ranged_damage
+	hb.knockback = ranged_knockback
+	hb.stun = ranged_stun
+	hb.add_child(Shapes.make_box(ranged_hitbox_extents * 2.0, ranged_hitbox_offset))
+	proj.add_child(hb)
 
 	if ranged_mode == "forward":
-		# Surge straight ahead along the ground; capped distance via lifetime.
+		# Surge straight ahead along the ground; capped distance via max_range.
 		proj.velocity = Vector2(projectile_speed * _facing, 0.0)
-		proj.life = ranged_travel / maxf(projectile_speed, 1.0)
+		proj.max_range = ranged_travel
 		proj.ground_trail = true  # scorch the floor red as it rolls past
 	else:
-		# Aim at the player's torso so a high muzzle still connects with a short
-		# body; fall back to straight ahead if the player vanished mid-cast.
+		# Aim at the player's torso so a high muzzle still connects with a short body;
+		# fall back to straight ahead if the player vanished mid-cast. Fizzle after a
+		# few seconds if it misses everything.
 		var player := _player()
 		var target := (player.global_position + Vector2(0, -15)) if player != null \
 			else muzzle + Vector2(_facing, 0)
 		proj.velocity = (target - muzzle).normalized() * projectile_speed
+		proj.max_life = 3.0
 
 	# Live in the level, not under the enemy, so it keeps going if the enemy dies.
 	# Nodes.place_at snaps it to the muzzle without physics-interpolation smear.
@@ -514,7 +524,6 @@ func _on_hurt(hit: Hit) -> void:
 	# frame and nothing moves; a pure stun freezes for longer.
 	var stagger := apply_knockback(hit, _facing)
 	if stagger > 0.0:
-		_melee_hitbox.deactivate()
 		_stun_left = stagger
 		_set_state(State.STUN)
 		# A tagged freeze holds the current pose (not idle) + shows the overlay.
@@ -528,7 +537,6 @@ func _on_hurt(hit: Hit) -> void:
 func _die() -> void:
 	_set_state(State.DEAD)
 	_hurtbox.set_deferred("monitorable", false)
-	_melee_hitbox.deactivate()
 	set_deferred("collision_layer", 0)
 	var tw := create_tween()
 	tw.tween_property(_sprite, "modulate:a", 0.0, 0.4)

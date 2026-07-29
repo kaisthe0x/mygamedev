@@ -14,6 +14,25 @@ const L_ENEMY_HURT := 1 << 4   # 16  enemies receive hits here
 const L_PLAYER_HIT := 1 << 5   # 32  player attack boxes / friendly projectiles
 const L_ENEMY_HIT := 1 << 6    # 64  enemy attack boxes / hostile projectiles
 
+## Player-facing taxonomy of an attack, for the (future) move-select / build UI so
+## it can label each move -- "this is a Blast, that's a Ground attack". DESCRIPTIVE
+## only: it does NOT drive behavior (clip_to_ground etc. are explicit params), so
+## kind and behavior can never drift. Recorded per move in configs/moves.gd (and per
+## enemy attack), and spans both node classes -- Strike covers MELEE/BLAST/GROUND,
+## Projectile covers PROJECTILE. Room to grow (BEAM, TRAP, ...).
+enum AttackKind { MELEE, BLAST, GROUND, PROJECTILE }
+
+## Team helpers for an attack box / projectile: which layer it lives on and which
+## hurt layer it scans. Friendly (player) boxes hit enemies; hostile boxes hit the
+## player. Keeps the two presets in one place so Strike/Projectile just pass a bool.
+static func hit_layer(hostile: bool) -> int:
+	return L_ENEMY_HIT if hostile else L_PLAYER_HIT
+
+
+static func hurt_mask(hostile: bool) -> int:
+	return L_PLAYER_HURT if hostile else L_ENEMY_HURT
+
+
 # --- combat feel (shared by Player and Enemy hit reactions) -------------------
 ## Upward pop on a knockback, as a fraction of the horizontal shove, so a hit
 ## lifts the victim a little and reads.

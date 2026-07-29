@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://dsaxyqgjl5wfo" path="res://vfx/character/feyke/shared/textures/smoke_texture_1.png" id="1_8fpq1"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_54c0n"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="strike_root"]
 
 [sub_resource type="Curve" id="Curve_uashs"]
 _data = [Vector2(0, 0.15668201), 0.0, 0.0, 0, 0, Vector2(0.10707457, 0.22119814), 0.0, 0.0, 0, 0, Vector2(0.30210325, 0.10599077), 0.0, 0.0, 0, 0, Vector2(0.458891, 0.10599077), 0.0, 0.0, 0, 0]
@@ -15,6 +16,7 @@ _data = [Vector2(0.0038240924, 0.073732734), 0.0, 0.0, 0, 0, Vector2(0.24474189,
 point_count = 4
 
 [node name="SpecialFYou" type="Node2D" unique_id=377016795]
+script = ExtResource("strike_root")
 
 [node name="Smoke" type="CPUParticles2D" parent="." unique_id=263019033]
 z_index = -1

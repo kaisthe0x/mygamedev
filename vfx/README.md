@@ -2,7 +2,7 @@
 
 Everything that draws an effect over the gameplay lives here: the **frame-indexed
 particle system** (data-driven emitters layered on the sprites), the drawn
-**`FlashEffect`** slashes, and the per-enemy attack VFX. One folder owns the look,
+**`Strike`** slashes, and the per-enemy attack VFX. One folder owns the look,
 the config, the code, and the build tools.
 
 Combat lives elsewhere on purpose: `Hitbox`/`Hurtbox`/`Combatant` are in
@@ -18,9 +18,10 @@ vfx/
     emitters.json          Frame-indexed particle config (hand-edited)
   script/
     particle_director.gd   ParticleDirector — watches the sprite, emits per frame
-    flash_effect.gd        FlashEffect — a drawn slash that mirrors + frees itself
     build_particles.gd     Scaffold particle-type scenes (skips existing)
     gen_particle_textures.py  Regenerate the shared particle textures
+    # The attack COMPONENTS a scene attaches -- Strike (slash/blast/ground) and
+    # Projectile (a shot, player or enemy) -- live in scripts/combat/, with Hitbox.
   character/<id>/          Per-character effects, grouped by category:
     attack/<move>/           a named attack + the art ONLY it uses
                              (wayna/attack/chainsaw/{attack_chainsaw.tscn, slash_*.png})
@@ -59,7 +60,9 @@ frames. Adding an effect is a scene + a JSON line, no code.
 
 1. **Particle types** — scenes under `vfx/character/<id>/…`. A type's root may be a
    single `CPUParticles2D`/`GPUParticles2D`, a `Node2D` bundling several as one
-   composite attack, a `Shot` (drawn projectile), or a `FlashEffect` (drawn slash).
+   composite attack, a `Projectile` (a shot), or a `Strike` (a slash / blast / ground
+   AoE). A `Strike`/`Projectile` carries its own `Hitbox`, fed the hit's numbers from
+   `configs/moves.gd` at spawn (see the damage section below) — nothing is baked here.
 
    **How a `type` resolves.** On character swap the director recursively indexes
    `vfx/character/<character>/` (**any** nesting — `attack/chainsaw/`, `dash/default/`,
@@ -86,7 +89,7 @@ frames. Adding an effect is a scene + a JSON line, no code.
      positions flip too; a single-particle root mirrors `direction`/`gravity` instead,
      keeping its texture). Note: a `CPUParticles2D`'s individual particle **textures**
      do not reliably h-flip under a node scale flip — a directional *drawn* slash
-     reads cleanest as a **`FlashEffect`** (`vfx/script/flash_effect.gd`): a `Node2D`
+     reads cleanest as a **`Strike`** (`scripts/combat/strike.gd`): a `Node2D`
      bundling a `Sprite2D`/`AnimatedSprite2D` (which *do* mirror texture + rotation
      under the scale flip) + a `Hitbox`. It briefly grows+fades its visuals and frees
      itself, and the director accepts it and arms its hitbox like any burst (see
@@ -153,35 +156,40 @@ frames. Adding an effect is a scene + a JSON line, no code.
    **Author every effect facing right.** The director mirrors the whole thing
    when the character turns: `pos.x`, and for `CPUParticles2D` also `direction.x`
    and `gravity.x`. (`GPUParticles2D` keeps those on a shared
-   `ParticleProcessMaterial` which must not be mutated, so it — and a `FlashEffect`
+   `ParticleProcessMaterial` which must not be mutated, so it — and a `Strike`
    slash — falls back to flipping the node's `scale.x`, which mirrors a drawn
    texture cleanly.)
 3. **Director** — instantiated by `player.gd` at runtime (not in the editor).
    Rebuilds its emitters (and its scene index) on character swap, so switching away
    from Wayna removes her fire cleanly.
 
-### Making a particle attack deal damage — add a `Hitbox`
+### Making an attack deal damage — a `Strike`/`Projectile` + its `Hitbox`
 
-A particle/flash effect can carry its **own hand-authored hitbox**, so an attack's
-reach is whatever box you draw — no reach formula, no code per attack.
+An attack effect carries its **own `Hitbox`**, and its **numbers come from
+`configs/moves.gd`** (fed in at spawn), while its **shape/position is authored in the
+scene**. Code owns the numbers (clobber-safe, buffable); the editor owns the geometry.
 
-1. In the effect scene, make the root a **`Node2D`** (or `FlashEffect`) and add a
-   **`Hitbox`** child (`Area2D` + `scripts/combat/hitbox.gd`, `collision_layer = 32`
-   → `mask = 16` for a player attack) with a `CollisionShape2D` under it.
-   `special_mouth_blast.tscn` and `attack_chainsaw.tscn` are worked examples.
-2. In the inspector, set the **Shape** *and* the **Damage / Knockback / Stun**
-   right on the `Hitbox`. Shape and numbers live together on the node.
-3. The **`ParticleDirector` arms it for you**: on spawn it sets the box's `source`
-   to the player and switches it **on exactly while the effect is emitting** — the
-   listed frames for a `sustained` effect, the burst's life for a `burst`. One
-   activation = one hit per enemy (the `Hitbox` dedupes), re-armed fresh each strike.
-   Because the box lives under the composite it **auto-mirrors** with facing.
-4. **Avoid double-hits:** zero the melee `tuning` for that move so the particle's box
-   is the only thing that hits (Wayna's `chainsaw` and Lenny's specials use
-   `{"damage": 0}` for exactly this reason).
+1. Make the effect scene's root a **`Strike`** (`scripts/combat/strike.gd` — a slash /
+   blast / ground AoE) or a **`Projectile`** (`scripts/combat/projectile.gd` — a shot),
+   and add a **`Hitbox`** child (`Area2D` + `scripts/combat/hitbox.gd`) with a
+   `CollisionShape2D`. Author the shape/position; the layers are set for you from the
+   node's `hostile` flag. `attack_chainsaw.tscn` and `special_poison_raiser.tscn` are
+   worked examples.
+2. Put the **numbers** (`damage` / `knockback` / `stun` / `color`, and for a `Strike`
+   the `extents`/`x` reach + `lunge`/`super_armor`/`multi_hit`) in the move's `tuning`
+   in **`configs/moves.gd`** — NOT on the `Hitbox`. The player resolves them via
+   `resolve_tuning()` (the buff seam) into `_active_hit`, and the director's
+   `_inject_tuning` passes them to the node's `apply_tuning()` when it arms the box. Any
+   value left on the `Hitbox` is a fallback used only when the move's `tuning` omits it
+   (or is empty — the finger-guns case, where two shots carry their own per-shot damage).
+3. The **`ParticleDirector` arms it**: on spawn it sets `source` and switches the box on
+   while the effect is emitting (a `sustained` effect's frames, a `burst`'s life). One
+   activation = one hit per target (the `Hitbox` dedupes); `multi_hit` re-arms it. The
+   box auto-mirrors with facing.
 
 An effect with no `Hitbox` (an aura, a run trail) is unaffected — the director only
-arms boxes it finds.
+arms boxes it finds. There is **no built-in player attack box** any more; every attack,
+for players and enemies, is one of these spawned nodes.
 
 **Keep a ground blast on its platform** — add `"clip_to_ground": true` to a `burst`
 entry and, at spawn, the director rays straight down through `L_WORLD`, finds the
@@ -208,7 +216,7 @@ To get a trail *and* a straight plume, keep it off and give the particles enough
 > particle renders decoupled from its node, so a `scale.x` flip never reaches it and
 > an **angled texture won't mirror**. If a particle's texture must flip with facing,
 > either turn `Local Coords` **on**, or (for a directional drawn effect) use a
-> **`FlashEffect`** `Sprite2D` — which mirrors cleanly under the flip — instead of a
+> **`Strike`** `Sprite2D` — which mirrors cleanly under the flip — instead of a
 > particle. A world-space particle can only ever mirror its *motion*, never its
 > texture.
 
@@ -244,15 +252,17 @@ Pick the layer by *what the effect is*:
 
 Enemy effects live under `vfx/enemy/<id>/attack/` and are loaded **by path**, not the
 director index: an enemy's `ranged_particle` (`configs/level_config.gd` roster, or an
-`enemy.tscn` inspector field) points at the scene, and `scripts/enemies/projectile.gd`
-instances it as the shot's `visual`. Two examples:
+`enemy.tscn` inspector field) points at the scene. `enemy.gd` spawns a **hostile
+`Projectile`** (the same `scripts/combat/projectile.gd` players use — team via the
+`hostile` flag) and adds that scene as its visual + a `Hitbox` built from the enemy's
+ranged tuning. Enemy **melee** is a hostile **`Strike`** spawned the same way. Two
+ranged examples:
 
 - **Baghel** `attack/attack_ground_wave.tscn` — a `CPUParticles2D` ground surge (the
   `forward` ranged mode, with a scorched `ground_trail`).
 - **Kebus** `attack/attack_bolt.tscn` — an aimed staff bolt: an ember-trail
-  `CPUParticles2D` + a soft glow `Core`. (This was drawn procedurally in
-  `projectile.gd`'s `visual == null` fallback; it's now an editable scene. That
-  code fallback still exists for any enemy without a `ranged_particle`.)
+  `CPUParticles2D` + a soft glow `Core`. (Was drawn procedurally before the merge; it's
+  now an editable scene. An enemy with no `ranged_particle` gets no visual.)
 
 ## Build tools
 
@@ -269,7 +279,7 @@ hand-tuned scenes.
 
 When you want a projectile to play a **hand-drawn frame animation** (a ring forming
 and flying, say) instead of a particle emitter repeating one texture, build it as a
-`Shot` that carries an `AnimatedSprite2D`:
+`Projectile` that carries an `AnimatedSprite2D`:
 
 1. Export the projectile as a **horizontal strip** named `<name>_anim.png` into the
    attack's folder (e.g. `character/feyke/attack/ring_kiss/ring_kiss_anim.png`).
@@ -278,16 +288,16 @@ and flying, say) instead of a particle emitter repeating one texture, build it a
    `*_anim.png` under `vfx/` and slices it (128px frames by default, or set a count
    in the tool's `OVERRIDES`) into `<name>_anim.tres`, a `SpriteFrames` with one
    `default` animation.
-3. In the projectile scene, make the root a `Node2D` with **`shot.gd`**, and give it
+3. In the projectile scene, make the root a `Node2D` with **`projectile.gd`**, and give it
    an `AnimatedSprite2D` child (`sprite_frames` = the `.tres`, `autoplay = "default"`)
-   plus a `Hitbox` (anywhere — `shot.gd` finds it by search, not a fixed path).
+   plus a `Hitbox` (anywhere — `projectile.gd` finds it by search, not a fixed path).
 
-The `ParticleDirector` fires it like any other `burst` — it accepts a `Shot` even
+The `ParticleDirector` fires it like any other `burst` — it accepts a `Projectile` even
 with **no particle emitters**, since it carries its own visual and manages its own
 life. Facing is by travel direction: the shot rotates to its heading, so author the
 strip pointing **right**.
 
-**`Shot` exports** (`scripts/combat/shot.gd`): `speed`, `homing` (steer rate; 0 = fly
+**`Projectile` exports** (`scripts/combat/projectile.gd`): `speed`, `homing` (steer rate; 0 = fly
 straight), `max_range`, `acquire_range`. Targeting is **x-axis only**: it locks the
 nearest enemy *ahead in the facing/mouse direction*, ignores enemies overhead
 (`vertical_reach`), and **never steers upward**. Set `can_fly_up = true` to lift those
@@ -304,7 +314,7 @@ finishes. To make one:
    suffix makes `gen_effect_frames.gd` slice it **non-looping** — a dissolve plays
    once). Drop it in the attack's folder beside the fly strip.
 2. Run `gen_effect_frames.gd` → `<base>_end_anim.tres`.
-3. Point the projectile scene's `Shot.end_frames` at that `.tres`
+3. Point the projectile scene's `Projectile.end_frames` at that `.tres`
    (`attack_ring_kiss.tscn` is the worked example).
 
 This is expiry-only — a hit still uses `impact_effect`. Leave `end_frames` empty to

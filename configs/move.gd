@@ -11,7 +11,11 @@ extends RefCounted
 ## Hitbox). `effect` here is just the human label of what it uses.
 
 var id: String              ## short name, e.g. "finger_guns"
-var kind: String            ## "attack" or "special"
+var kind: String            ## "attack" or "special" (the slot it fills)
+## Player-facing taxonomy (Combat.AttackKind: MELEE / BLAST / GROUND / PROJECTILE), for
+## the future move-select / build UI to label the move. Descriptive only -- it does NOT
+## drive behavior. Defaults to MELEE.
+var attack_kind: int = Combat.AttackKind.MELEE
 var animation: StringName   ## SpriteFrames animation, e.g. &"attack_finger_guns"
 var effect: String          ## what it fires (for reference); "" = none
 ## Melee-hitbox tuning, same shape as an ATTACKS entry: damage / knockback / stun /
@@ -26,6 +30,7 @@ static func make(move_kind: String, move_id: String, d: Dictionary) -> Move:
 	var m := Move.new()
 	m.kind = move_kind
 	m.id = move_id
+	m.attack_kind = int(d.get("kind", Combat.AttackKind.MELEE))
 	m.animation = StringName(d.get("animation", "%s_%s" % [move_kind, move_id]))
 	m.effect = String(d.get("effect", ""))
 	m.tuning = d.get("tuning", {})
