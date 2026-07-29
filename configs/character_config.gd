@@ -25,6 +25,7 @@ const RUN_SPEEDS := {
 	"lenbondosen": 190.0,
 	"wayna": 180.0,
 	"feyke": 150.0,
+	"khalid": 230.0
 }
 
 

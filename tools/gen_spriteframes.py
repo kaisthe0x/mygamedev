@@ -99,6 +99,7 @@ def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
 OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # 4 frames read as a snap; let the final pose sit instead of speeding up.
     ("khalid", "special_smash"): {"hold_last": 2.5},
+    ("khalid", "run"): {"fps": 7.0},
     # 8 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "special_poison_raiser"): {"fps": 13.0},
     # Idle: frames 0-1 settle in; 2-8 is the raise-a-flame flourish that loops.
