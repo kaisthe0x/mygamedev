@@ -2,3 +2,23 @@ root = true
 
 [*]
 charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# GDScript uses tabs (Godot standard); gdformat enforces this too.
+[*.gd]
+indent_style = tab
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{json,md,yaml,yml}]
+indent_style = space
+indent_size = 2
+
+# Godot owns these -- let it write them however it likes; editors must not reformat.
+[*.{tscn,tres,import,godot}]
+trim_trailing_whitespace = false
+insert_final_newline = false

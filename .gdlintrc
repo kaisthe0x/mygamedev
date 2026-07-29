@@ -1,0 +1,7 @@
+# Config for gdlint (opt-in -- see .pre-commit-config.yaml). gdformat keeps code within
+# 100 cols; the higher limit here just tolerates the occasional long doc-comment.
+max-line-length: 120
+# We deliberately group related @exports with their backing vars for readability, which
+# this rule forbids -- so it's off.
+disable:
+  - class-definitions-order

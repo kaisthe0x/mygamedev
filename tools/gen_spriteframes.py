@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import math
 import re
-import sys
 from pathlib import Path
 
 from PIL import Image
@@ -39,9 +38,9 @@ CHARACTER_ANIMS = {
     "idle": (6.0, True),
     "run": (10.0, True),
     "jump": (10.0, False),
-    "fall": (10.0, True),    # loops while descending, after the jump anim finishes
-    "land": (12.0, False),   # brief touchdown squash; plays once, then idle/run
-    "slam": (12.0, False),   # air-down ground slam; plays once during the plunge
+    "fall": (10.0, True),  # loops while descending, after the jump anim finishes
+    "land": (12.0, False),  # brief touchdown squash; plays once, then idle/run
+    "slam": (12.0, False),  # air-down ground slam; plays once during the plunge
     "dash": (12.0, False),
     "attack": (12.0, False),
     "special": (10.0, False),
@@ -70,6 +69,7 @@ def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
     if anim.startswith("special"):
         return base.get("special", (10.0, False))
     return (10.0, False)
+
 
 # Frame 0 of every sheet is a static idle-reference pose the artist includes so
 # the animation lines up with idle. It is the alignment anchor (see Sheet.bias),
@@ -186,7 +186,7 @@ def frame_count(cols: list[bool], w: int) -> int:
         if w % n:
             continue
         fw = w // n
-        if not all(any(cols[i * fw:(i + 1) * fw]) for i in range(n)):
+        if not all(any(cols[i * fw : (i + 1) * fw]) for i in range(n)):
             continue
         if any(cols[i * fw - 1] and cols[i * fw] for i in range(1, n)):
             continue
@@ -234,7 +234,7 @@ def process_group(group: str, anims: dict) -> None:
         # special_* sheets follow. So a character can carry several attacks/specials.
         globbed: dict[str, Path] = {}
         for png in (src_dir / char).glob(f"{char}_*_frames.png"):
-            globbed[png.name[len(char) + 1:-len("_frames.png")]] = png
+            globbed[png.name[len(char) + 1 : -len("_frames.png")]] = png
         base_order = [a for a in anims if a in globbed]
         extras = [a for a in globbed if a not in anims]
         attacks = sorted(a for a in extras if a.startswith("attack"))
@@ -245,7 +245,7 @@ def process_group(group: str, anims: dict) -> None:
 
     all_sheets = [s for per_char in sheets.values() for s in per_char.values()]
     if not all_sheets:
-        print(f"  (no sheets found)")
+        print("  (no sheets found)")
         return
 
     # One canvas shared by every item and animation in the group, so a scene can
@@ -274,8 +274,7 @@ def process_group(group: str, anims: dict) -> None:
             f"({widest}px) because frame 0 is {scale} in:"
         )
         for s in culprits[:5]:
-            print(f"        {s.png.parent.name}/{s.png.stem.replace('_frames', '')}"
-                  f"  {s.bias:+d}px")
+            print(f"        {s.png.parent.name}/{s.png.stem.replace('_frames', '')}  {s.bias:+d}px")
 
     for char in characters:
         per_char = sheets[char]
@@ -340,9 +339,7 @@ def process_group(group: str, anims: dict) -> None:
                 )
                 duration = frame_durs.get(i, hold_last if i == sheet.n - 1 else 1.0)
                 total_dur += duration
-                frames.append(
-                    f'{{\n"duration": {duration},\n"texture": SubResource("{sid}")\n}}'
-                )
+                frames.append(f'{{\n"duration": {duration},\n"texture": SubResource("{sid}")\n}}')
 
             loop_from = int(tweak.get("loop_from", 0))
             if loop_from:
@@ -383,9 +380,11 @@ def process_group(group: str, anims: dict) -> None:
                         f"frames are {start}-{sheet.n - 1}"
                     )
                 if hits and hits[-1] != n_emitted - 1:
-                    print(f"  note: {char}/{anim} last hit is frame "
-                          f"{hits[-1] + start}, not the final frame "
-                          f"{sheet.n - 1}; trailing frames won't play")
+                    print(
+                        f"  note: {char}/{anim} last hit is frame "
+                        f"{hits[-1] + start}, not the final frame "
+                        f"{sheet.n - 1}; trailing frames won't play"
+                    )
             else:
                 hits = list(range(n_emitted))
             # Emit hit_frames for the player's light attack (always) and for any
@@ -403,9 +402,7 @@ def process_group(group: str, anims: dict) -> None:
                 note += f"[loop {lo}-{hi}]"
             if raw_hits is not None:
                 note += f"[hits{hits}]"
-            timings.append(
-                f"{anim}:{n_emitted}f/{seconds:.2f}s" + ("*" if tweak else "") + note
-            )
+            timings.append(f"{anim}:{n_emitted}f/{seconds:.2f}s" + ("*" if tweak else "") + note)
 
             anim_entries.append(
                 "{\n"

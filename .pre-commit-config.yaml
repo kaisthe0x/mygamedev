@@ -1,0 +1,29 @@
+# Auto-formatting / linting on commit. Enable once with `scripts/setup-dev.sh` (or
+# `.devtools/bin/pre-commit install`). The hooks below AUTO-FIX staged files.
+#
+# NO gdformat: GDScript's only formatter reflows our compact, comment-rich dicts (the
+# moves.gd catalog, inline `.append({...})`) into a hideous vertical form and even shuffles
+# inline comments to the wrong lines -- worse than the hand style, with no option to tame
+# it. So GDScript is kept consistent via .editorconfig + review, not an auto-formatter.
+# gdlint IS available (opt-in) for catching real issues:
+#     .devtools/bin/pre-commit run --hook-stage manual gdlint
+#
+# NOTE: .tscn / .tres / .import are Godot-owned -- never add hooks that rewrite them.
+exclude: '^\.godot/'
+
+repos:
+  # Python (tools/, vfx/script/) -- ruff is conservative and standard (black-style).
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args: [--fix]
+
+  # GDScript LINT only (no formatting). Opt-in, not a commit gate -- run it when you want
+  # a quality pass. class-definitions-order is disabled in .gdlintrc (deliberate style).
+  - repo: https://github.com/Scony/godot-gdscript-toolkit
+    rev: 4.5.0
+    hooks:
+      - id: gdlint
+        stages: [manual]

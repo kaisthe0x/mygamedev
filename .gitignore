@@ -5,3 +5,6 @@
 # Python tooling cache (tools/*.py)
 __pycache__/
 *.pyc
+
+# Local dev tools venv (see scripts/setup-dev.sh)
+.devtools/
