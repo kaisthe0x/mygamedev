@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://b2gvi6ecvy7m5"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="3_dot"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="4_hitbox"]
+
+[sub_resource type="Curve" id="Curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Grad_dust"]
+offsets = PackedFloat32Array(0, 0)
+colors = PackedColorArray(0.53333336, 0.09411765, 0.07058824, 1, 0.8792635, 0, 0, 1)
+
+[sub_resource type="Gradient" id="Grad_debris"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0.77, 0.04, 0.04, 1)
+
+[sub_resource type="RectangleShape2D" id="Shape_gb"]
+size = Vector2(239, 9)
+
+[node name="SpecialGroundBreaker" type="Node2D" unique_id=884210001]
+script = ExtResource("1_strike")
+
+[node name="Shock" type="CPUParticles2D" parent="." unique_id=884210002]
+position = Vector2(0, -1)
+amount = 250
+texture = ExtResource("3_dot")
+lifetime = 0.5
+explosiveness = 0.9
+emission_shape = 3
+emission_rect_extents = Vector2(120, 2)
+direction = Vector2(0, 0)
+spread = 78.0
+gravity = Vector2(0, 0)
+scale_amount_min = 0.3
+scale_amount_max = 0.7
+scale_amount_curve = SubResource("Curve_shrink")
+color_ramp = SubResource("Grad_dust")
+
+[node name="Debris" type="CPUParticles2D" parent="." unique_id=884210003]
+position = Vector2(-1, -3)
+amount = 45
+texture = ExtResource("3_dot")
+lifetime = 0.55
+explosiveness = 1.0
+emission_shape = 3
+emission_rect_extents = Vector2(120, 3)
+direction = Vector2(0, -1)
+spread = 55.0
+gravity = Vector2(0, 780)
+initial_velocity_min = 170.0
+initial_velocity_max = 400.0
+scale_amount_min = 0.4
+scale_amount_max = 0.9
+scale_amount_curve = SubResource("Curve_shrink")
+color_ramp = SubResource("Grad_debris")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=884210004]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("4_hitbox")
+damage = 50.0
+knockback = 200.0
+stun = 0.2
+status_color = Color(0.8235294, 0.7490196, 0.078431375, 1)
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=884210005]
+position = Vector2(0.5, -1.5)
+shape = SubResource("Shape_gb")

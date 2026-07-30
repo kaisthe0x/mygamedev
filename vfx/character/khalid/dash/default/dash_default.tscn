@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://b3m3m6gb1ksrg"]
+
+[sub_resource type="Gradient" id="Gradient_khalid"]
+offsets = PackedFloat32Array(0, 0.6003683, 0.7661142)
+colors = PackedColorArray(0.7735731, 0.03876, 0.03876, 1, 0.08235294, 0.5294118, 0.49019608, 1, 0.8235294, 0.7490196, 0.078431375, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_khalid"]
+gradient = SubResource("Gradient_khalid")
+width = 100
+
+[sub_resource type="Curve" id="Curve_spin"]
+_limits = [-360.0, 360.0, 0.0, 1.0]
+_data = [Vector2(0, 360), 0.0, 0.0, 0, 0, Vector2(0.45315486, 360), 0.0, 0.0, 0, 0, Vector2(0.4703633, -41.47464), 0.0, 0.0, 0, 0, Vector2(0.7323135, -194.10135), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 0.3271889), 0.0, 0.0, 0, 0, Vector2(0.06309751, 0.2488479), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.19354838), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.04147458), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="DashDefault" type="Node2D" unique_id=1477328167]
+
+[node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=234077515]
+position = Vector2(-12, -12)
+amount = 150
+texture = SubResource("GradientTexture1D_khalid")
+lifetime = 0.2
+emission_shape = 3
+emission_rect_extents = Vector2(12, 10)
+spread = 96.71
+gravity = Vector2(500, 0)
+initial_velocity_min = 50.0
+initial_velocity_max = 50.0
+angular_velocity_curve = SubResource("Curve_spin")
+scale_amount_curve = SubResource("Curve_scale")

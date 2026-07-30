@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://dh6hld48gumat"]
+
+[sub_resource type="Gradient" id="Gradient_khalid"]
+offsets = PackedFloat32Array(0, 0.6003683, 0.7661142)
+colors = PackedColorArray(0.7735731, 0.03876, 0.03876, 1, 0.08235294, 0.5294118, 0.49019608, 1, 0.8235294, 0.7490196, 0.078431375, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_khalid"]
+gradient = SubResource("Gradient_khalid")
+width = 150
+
+[sub_resource type="Curve" id="Curve_khalid"]
+_data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.10707457, 0.22471917), 0.0, 0.0, 0, 0, Vector2(0.1625239, 0.08294928), -0.3887322, -0.3887322, 0, 0, Vector2(0.24856597, 0.07834101), 0.0, 0.0, 0, 0, Vector2(0.43785852, 0.05529952), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[node name="GeneralWindStreaks" type="Node2D"]
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="."]
+z_index = -2
+amount = 40
+texture = SubResource("GradientTexture1D_khalid")
+lifetime = 0.6
+emission_shape = 1
+emission_sphere_radius = 13.49
+direction = Vector2(0, 0)
+gravity = Vector2(0, -400)
+angle_min = 90.0
+angle_max = 90.0
+scale_amount_min = 0.2
+scale_amount_max = 0.5
+scale_amount_curve = SubResource("Curve_khalid")

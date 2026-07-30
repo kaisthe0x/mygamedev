@@ -140,6 +140,9 @@ var _dash_left: float = 0.0
 ## finish playing after the lunge is over.
 var _dash_anim_left: float = 0.0
 var _dash_cd: float = 0.0
+## True when the equipped ability took over this dash's movement (e.g. Khalid's
+## teleport). The lunge is skipped; the dash animation + i-frames + cooldown still run.
+var _dash_custom: bool = false
 ## Airborne tracking, so a touchdown can trigger the landing squash.
 var _was_on_floor: bool = true
 var _fall_peak: float = 0.0 # fastest downward speed reached this airborne stretch
@@ -169,6 +172,9 @@ var _recovery_left: float = 0.0
 ## A special press during a light swing, held until the current hit lands so a fast
 ## light->special cancels into the special instead of being swallowed by recovery.
 var _buffered_special: bool = false
+## True while a "flurry" attack (Khalid's ora-ora) is held: the animation loops and its
+## punch frames fire the hit every pass; releasing the button ends it. See _process_attack.
+var _flurry: bool = false
 ## Time left frozen from a stun-carrying hit (input ignored).
 var _stun_left: float = 0.0
 ## Time left of super-armor: while > 0, hits still hurt but don't stagger/interrupt.
@@ -242,6 +248,7 @@ func _apply_character() -> void:
 	_combo_window = 0.0
 	_combo_playing = false
 	_buffered_special = false
+	_flurry = false
 	# Drop back to idle: a state-specific animation (e.g. slam) may not exist on the
 	# new character, and a swap is a clean slate anyway. Skip in the editor so a
 	# preview character keeps whatever pose the scene is set to show.
@@ -306,6 +313,14 @@ func set_move(kind: String, id: String) -> void:
 ## directional effects.
 func get_facing() -> int:
 	return _facing
+
+
+## Fire a code-triggered particle burst by its emitters.json key (a key that isn't a
+## real sprite animation, so it only ever fires from code -- e.g. "double_jump",
+## Khalid's "blink_out"/"blink_in"). Anchored in the world at the player's current spot.
+func fire_effect(anim: String, tilt: float = 0.0) -> void:
+	if _particles != null:
+		_particles.fire_effect(anim, tilt)
 
 
 ## Turn to face the mouse cursor. Used when standing still and on every attack, so
@@ -536,14 +551,27 @@ func _process_stun(delta: float) -> void:
 
 func _process_dash(delta: float) -> void:
 	_dash_anim_left -= delta
-	if _dash_left > 0.0:
+	# Are we still holding the direction we dashed? Then the dash should blend into a
+	# run, not brake to a stop and re-accelerate.
+	var input := Input.get_axis("move_left", "move_right")
+	var holding_dash_dir := input != 0.0 and signf(input) == float(_facing)
+	if _dash_custom:
+		# The ability already displaced us (teleport). No lunge -- keep the i-frame
+		# window ticking, and settle horizontal velocity toward a run (if held) or a
+		# stop, so the exit flows the same as a normal dash.
+		_dash_left = maxf(_dash_left - delta, 0.0)
+		var target := run_speed * _facing if holding_dash_dir else 0.0
+		velocity.x = move_toward(velocity.x, target, (dash_speed / dash_time) * delta)
+	elif _dash_left > 0.0:
 		_dash_left -= delta
 		velocity.x = dash_speed * _facing # the lunge -- unchanged, still snappy
 	else:
-		# Lunge done: settle to a stop over the rest of the window while the dash
-		# frames finish, so the animation plays out without the dash reaching farther.
+		# Lunge done: over the rest of the window, settle toward run speed if the player
+		# is still holding this direction (so it flows straight into a run), otherwise
+		# toward a stop -- while the dash frames finish either way.
+		var target := run_speed * _facing if holding_dash_dir else 0.0
 		var recovery := maxf(dash_anim_time - dash_time, 0.001)
-		velocity.x = move_toward(velocity.x, 0.0, (dash_speed / recovery) * delta)
+		velocity.x = move_toward(velocity.x, target, (dash_speed / recovery) * delta)
 	if is_on_floor():
 		velocity.y = 0.0
 	else:
@@ -551,7 +579,9 @@ func _process_dash(delta: float) -> void:
 		# hanging in place on an invisible floor.
 		velocity.y += gravity * dash_gravity_scale * delta
 	if _dash_anim_left <= 0.0:
-		_enter(State.IDLE)
+		# Exit straight into RUN when still holding the dash direction (velocity is
+		# already at run speed) so there's no one-frame stop; otherwise IDLE.
+		_enter(State.RUN if holding_dash_dir and is_on_floor() else State.IDLE)
 
 
 func _process_normal(delta: float) -> void:
@@ -758,6 +788,18 @@ func _process_attack(delta: float) -> void:
 	if Input.is_action_just_pressed("special"):
 		_buffered_special = true
 
+	# Flurry (Khalid's ora-ora): the animation loops on its own and its punch frames fire
+	# the hit every pass; we just hold it while the button is down. A special still cancels
+	# it; releasing attack ends it back to idle.
+	if _flurry:
+		if _buffered_special:
+			_flurry = false
+			_start_special()
+		elif not Input.is_action_pressed("attack"):
+			_flurry = false
+			_enter(State.IDLE)
+		return
+
 	if _combo_playing:
 		# Animate through the segment; freeze on the hit frame once reached.
 		# Pin in case playback overshot the hit between physics ticks.
@@ -876,6 +918,13 @@ func _slam_has_clearance() -> bool:
 ## Letting `combo_reset_time` lapse drops you back to the first segment; pressing
 ## past the finisher wraps to the start.
 func _advance_combo() -> void:
+	# A flurry attack doesn't chain segments -- the first press starts the held loop and
+	# _process_attack runs it. Ignore re-presses once it's going.
+	if _current_attack != null and _current_attack.style == "flurry":
+		if not _flurry:
+			_start_flurry()
+		return
+
 	_face_mouse() # aim the swing toward the cursor, even mid-combo
 	var hits := _attack_hits()
 	if hits.is_empty():
@@ -897,6 +946,20 @@ func _advance_combo() -> void:
 	_sprite.speed_scale = 1.0
 	_sprite.play(_current_attack.animation)
 	_sprite.set_frame_and_progress(seg_start, 0.0)
+
+
+## Start a held "flurry" attack: play the (looping) animation once and let it cycle. The
+## director fires the punch effect on its punch frames every pass, so the hits come from
+## the rate of the loop; _process_attack ends it when the button is released. Resolve the
+## tuning once up front so each punch the director fires gets fed the same numbers.
+func _start_flurry() -> void:
+	_face_mouse() # aim the flurry toward the cursor
+	_buffered_special = false
+	_flurry = true
+	_active_hit = resolve_tuning(_current_attack, 0)
+	_enter(State.ATTACK)
+	_sprite.speed_scale = 1.0
+	_sprite.play(_current_attack.animation)
 
 
 ## Emitted frame indices that end each combo segment. From the SpriteFrames
@@ -926,6 +989,9 @@ func _enter(state: State) -> void:
 			if fps > 0.0:
 				var anim_time := frames.get_frame_count(&"dash") / fps
 				_sprite.speed_scale = anim_time / maxf(dash_anim_time, dash_time)
+			# Let the ability replace the dash's MOVEMENT (Khalid teleports). It does the
+			# displacement now; _process_dash then skips the lunge and just plays the tail.
+			_dash_custom = _ability != null and _ability.dash(self)
 		State.ATTACK:
 			velocity.x = 0.0
 		State.SLAM:

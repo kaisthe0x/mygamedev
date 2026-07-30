@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://btrfy6p4gacc5"]
+
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
+[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="2_ember"]
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 0.38709676), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.2580645), 0.0, 0.0, 0, 0, Vector2(0.24474189, 0.16589862), 0.0, 0.0, 0, 0, Vector2(0.38623327, 0.023041487), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="JumpDefault" type="Node2D" unique_id=1076837919]
+
+[node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=561053936]
+amount = 70
+texture = ExtResource("1_dot")
+lifetime = 0.4
+emission_shape = 3
+emission_rect_extents = Vector2(10, 1)
+gravity = Vector2(0, 30)
+scale_amount_curve = SubResource("Curve_scale")
+color = Color(0.53333336, 0.09411765, 0.07058824, 1)
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=522536182]
+amount = 20
+texture = ExtResource("2_ember")
+lifetime = 0.4
+emission_shape = 3
+emission_rect_extents = Vector2(10, 1)
+gravity = Vector2(0, 10)
+scale_amount_curve = SubResource("Curve_scale")
+color = Color(0.48235294, 0.078431375, 0.050980393, 1)

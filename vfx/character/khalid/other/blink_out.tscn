@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://3t05vrx7fgln"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_tsrde"]
+
+[sub_resource type="Curve" id="Curve_out"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Grad_out"]
+offsets = PackedFloat32Array(0, 0.17179024, 0.5153707, 1)
+colors = PackedColorArray(1.6, 0.22, 0.22, 1, 0.08235294, 0.5294118, 0.49019608, 1, 0.8235294, 0.7490196, 0.078431375, 1, 1.6, 0.08, 0.08, 0)
+
+[node name="BlinkOut" type="CPUParticles2D" unique_id=1485347679]
+amount = 100
+texture = SubResource("CanvasTexture_tsrde")
+lifetime = 0.2
+explosiveness = 1.0
+emission_shape = 1
+emission_sphere_radius = 11.0
+direction = Vector2(0, 0)
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 90.0
+initial_velocity_max = 140.0
+scale_amount_curve = SubResource("Curve_out")
+color_ramp = SubResource("Grad_out")

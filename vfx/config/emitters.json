@@ -346,6 +346,86 @@
         "frames": "all",
         "pos": [-17, -17]
       }
+    ],
+    "jump": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "burst",
+        "frames": [0, 1],
+        "pos": [0, 0]
+      }
+    ],
+    "fall": [
+      {
+        "type": "general_wind_streaks",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, 0]
+      }
+    ],
+    "dash": [
+      {
+        "type": "dash_default",
+        "mode": "sustained",
+        "frames": "all",
+        "pos": [0, -3]
+      }
+    ],
+    "double_jump": [
+      {
+        "type": "jump_default",
+        "mode": "burst",
+        "pos": [0, -3]
+      }
+    ],
+    "blink_out": [
+      {
+        "_comment": "Fired from code in khalid.gd dash() at the spot he leaves. Not a real anim, so it never auto-fires -- only the teleport triggers it.",
+        "type": "blink_out",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
+    "blink_in": [
+      {
+        "_comment": "Fired from code in khalid.gd dash() at the spot he arrives.",
+        "type": "blink_in",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
+    "attack_ora_ora": [
+      {
+        "_comment": "Flurry: a punch Strike fires on each fist-extend frame (2, 4); the looping anim re-fires them every pass while attack is held, so the hits come at the loop rate.",
+        "type": "attack_ora_ora",
+        "mode": "burst",
+        "frames": [2, 4],
+        "pos": [20, -24]
+      }
+    ],
+    "special_ground_breaker": [
+      {
+        "type": "special_ground_breaker",
+        "mode": "burst",
+        "frames": [6],
+        "pos": [0, 0],
+        "clip_to_ground": true
+      }
+    ],
+    "slam": [
+      {
+        "type": "slam_wind_streaks",
+        "mode": "sustained",
+        "frames": [0, 1, 2],
+        "pos": [0, -12]
+      },
+      {
+        "type": "slam_default",
+        "mode": "burst",
+        "frames": [3, 4],
+        "pos": [0, 0],
+        "clip_to_ground": true
+      }
     ]
   }
 }

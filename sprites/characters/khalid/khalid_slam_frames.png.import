@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4kvugvyh5e3s"
-path="res://.godot/imported/khalid_attack_frames.png-433883a024dbf663134274c49aa92088.ctex"
+uid="uid://dwdte2jir2sty"
+path="res://.godot/imported/khalid_slam_frames.png-e60374407285f94f2d774d1ded13017b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/khalid/khalid_attack_frames.png"
-dest_files=["res://.godot/imported/khalid_attack_frames.png-433883a024dbf663134274c49aa92088.ctex"]
+source_file="res://sprites/characters/khalid/khalid_slam_frames.png"
+dest_files=["res://.godot/imported/khalid_slam_frames.png-e60374407285f94f2d774d1ded13017b.ctex"]
 
 [params]
 

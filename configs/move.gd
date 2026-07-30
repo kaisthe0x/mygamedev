@@ -18,6 +18,11 @@ var kind: String            ## "attack" or "special" (the slot it fills)
 var attack_kind: int = Combat.AttackKind.MELEE
 var animation: StringName   ## SpriteFrames animation, e.g. &"attack_finger_guns"
 var effect: String          ## what it fires (for reference); "" = none
+## Attack cadence. "combo" (default) = one click per segment, freezing on each hit frame
+## (the click-chained swing everyone else uses). "flurry" = hold the attack button and
+## the animation loops rapidly, its punch frames firing the effect (hit) every pass;
+## releasing ends it. Specials ignore this. See Player._advance_combo / _process_attack.
+var style: String = "combo"
 ## Melee-hitbox tuning, same shape as an ATTACKS entry: damage / knockback / stun /
 ## color / x (forward reach) / extents (half-size). Unset fields fall back to the
 ## Player's exported defaults. May be a single dict, OR an ARRAY (one per combo
@@ -33,6 +38,7 @@ static func make(move_kind: String, move_id: String, d: Dictionary) -> Move:
 	m.attack_kind = int(d.get("kind", Combat.AttackKind.MELEE))
 	m.animation = StringName(d.get("animation", "%s_%s" % [move_kind, move_id]))
 	m.effect = String(d.get("effect", ""))
+	m.style = String(d.get("style", "combo"))
 	m.tuning = d.get("tuning", {})
 	return m
 

@@ -25,9 +25,17 @@ const CATALOG := {
 	"khalid": {
 		# No effect scene yet -> nothing spawns a Hitbox, so his swings deal 0 for now
 		# (his new look + moveset are coming). The animations still play.
-		"attacks": {"strike": {"animation": "attack", "kind": Combat.AttackKind.MELEE, "tuning": {"damage": 0}}},
-		"specials": {"smash": {"animation": "special_smash", "kind": Combat.AttackKind.MELEE, "tuning": {"damage": 0}}},
-		"default_attack": "strike", "default_special": "smash",
+		# Ora ora: a rapid punch FLURRY -- hold attack and the animation loops fast, each
+		# punch frame firing the attack_ora_ora Strike (its fist Hitbox carries the hit,
+		# fed these numbers). Low per-punch damage/knockback -- the DPS comes from the rate.
+		"attacks": {"ora_ora": {"animation": "attack_ora_ora", "effect": "attack_ora_ora", "kind": Combat.AttackKind.MELEE,
+			"style": "flurry", "tuning": {"damage": 5, "knockback": 20}}},
+		# Ground breaker: an overhead slam that cracks the ground -- a GROUND-type Strike
+		# (special_ground_breaker.tscn) whose hitbox SHAPE is authored in the scene (no
+		# extents/x here), fed these numbers at spawn. His attack has no effect scene yet.
+		"specials": {"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND,
+			"tuning": {"damage": 40, "knockback": 160, "stun": 0.2}}},
+		"default_attack": "ora_ora", "default_special": "ground_breaker",
 	},
 	"katalyst": {
 		"attacks": {"rope_dart_dance": {"animation": "attack_rope_dart_dance", "kind": Combat.AttackKind.MELEE, "tuning": [

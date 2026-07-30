@@ -83,6 +83,8 @@ def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
 #   fps       -- override playback speed for that one animation
 #   hold_last -- multiply the final frame's duration, to let a pose land before
 #                the character retracts
+#   loop      -- force the animation's loop flag on/off, overriding the ANIMS default
+#                (e.g. a hold-to-repeat "flurry" attack that should cycle, not play once)
 #   loop_from -- for a looping animation, the sheet frame to restart from. Frames
 #                before it play once as an intro; the tail cycles forever.
 #                Emitted as resource metadata; player.gd honours it.
@@ -97,9 +99,12 @@ def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
 # loop_from / loop_to are sheet-relative (they count the idle-reference frame 0),
 # same numbering as HIT_FRAMES. Anything not listed here uses the ANIMS default.
 OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
-    # 4 frames read as a snap; let the final pose sit instead of speeding up.
-    ("khalid", "special_smash"): {"hold_last": 2.5},
     ("khalid", "run"): {"fps": 7.0},
+    # Ora ora: a hold-to-repeat punch flurry -- loops fast (see moves.gd style "flurry").
+    ("khalid", "attack_ora_ora"): {"loop": True, "fps": 18.0},
+    # Ground breaker: 8 frames of wind-up into an overhead slam; let the impact pose sit.
+    ("khalid", "special_ground_breaker"): {"fps": 15.0, "hold_last": 1.6},
+    ("khalid", "slam"): {"fps": 15.0, "hold_last": 1.6},
     # 8 and 9 frames respectively -- too slow at 10 fps.
     ("lenbondosen", "special_poison_raiser"): {"fps": 13.0},
     # Idle: frames 0-1 settle in; 2-8 is the raise-a-flame flourish that loops.
@@ -122,6 +127,9 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("feyke", "attack_ring_kiss"): [2],
     # F you (special): the hit lands on frame 2.
     ("feyke", "special_f_you"): [2],
+    # Ground breaker (special): 8-frame wind-up; the overhead slam connects on frame 6
+    # (emitters.json fires the ground blast on the same frame).
+    ("khalid", "special_ground_breaker"): [6],
     # Katalyst's 11-frame swing is a 3-hit combo: a forward whip-reach (2), the
     # spinning energy AoE at its peak (6), and the extended finishing strike (10).
     ("katalyst", "attack_rope_dart_dance"): [2, 6, 10],
@@ -305,6 +313,7 @@ def process_group(group: str, anims: dict) -> None:
             fps, loop = anim_timing(anim, anims)
             tweak = OVERRIDES.get((char, anim), {})
             fps = tweak.get("fps", fps)
+            loop = bool(tweak.get("loop", loop))  # e.g. a held "flurry" attack that cycles
             hold_last = tweak.get("hold_last", 1.0)
             frame_durs = FRAME_DURATIONS.get((char, anim), {})
             res_id = f"{idx}_{anim}"

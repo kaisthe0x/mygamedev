@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://danpw6u245y2q"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_nm0c7"]
+
+[sub_resource type="Curve" id="Curve_in"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Grad_in"]
+offsets = PackedFloat32Array(0, 0.31464738, 0.61844486, 1)
+colors = PackedColorArray(0.5529412, 0.07450981, 0.07058824, 1, 0.8235294, 0.7490196, 0.078431375, 1, 0.2, 1.4, 1.2, 0.8, 0.9, 0.8, 0.1, 0)
+
+[node name="BlinkIn" type="CPUParticles2D" unique_id=1584838301]
+amount = 100
+texture = SubResource("CanvasTexture_nm0c7")
+lifetime = 0.2
+explosiveness = 1.0
+emission_shape = 1
+emission_sphere_radius = 3.9
+direction = Vector2(0, 0)
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 120.0
+initial_velocity_max = 185.0
+scale_amount_curve = SubResource("Curve_in")
+color_ramp = SubResource("Grad_in")

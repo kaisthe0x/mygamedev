@@ -40,7 +40,7 @@ tools/                Generator + verification scripts (not shipped)
 | S / ↓ | `drop` | Tap to fall through the one-way platform you're on (ground only; a no-op on solid floor). Controller: D-pad down / left-stick down; remappable in the Input Map |
 | Space | `jump` | Press again in the air to **double jump** (`max_air_jumps`) — the air jump re-boosts and spawns the character's jump particles; the ground jump is silent |
 | Shift | `dash` | Has a cooldown |
-| Left mouse | `attack` | The current *attack* — each press advances the combo. **Ground only** (no air attacks) |
+| Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** (no air attacks) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
 | Q / E | `prev_character` / `next_character` | Dev only |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
@@ -325,8 +325,11 @@ sheets for it:
   with no `land` sheet skips straight to idle/run.
 
 Each phase is **opt-in per character** by the presence of the `fall` / `land` sheet.
-**Feyke, Katalyst, Lenbondosen, and Wayna have both**; Khalid has neither yet
-(he just jumps → holds → idle).
+**All five characters now have both.** (Khalid's full kit — movement VFX
+(run/jump/fall/dash/double-jump), a **ground slam** (`slam_default` + `slam_wind_streaks`),
+and his **Ground Breaker** special (an overhead-slam GROUND `Strike`, damage from
+`moves.gd`) — is wired in `emitters.json`, all in his red-teal-gold palette. Only his
+light **attack** still lacks an effect scene, so it deals no damage for now.)
 
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
 air, press `special` to plunge straight down at `slam_speed` (1200 — far faster than
@@ -383,7 +386,16 @@ no entry treats every frame as a hit, so each click advances one frame.
 Lenbondosen and katalyst have authored multi-hit combos (three hits with smooth
 wind-up/in-between frames — katalyst's are whip-reach / spin-AoE / finisher);
 Wayna's `chainsaw` is a 3-hit combo too. Feyke's `ring_kiss` is a single-hit shot
-(one burst); khalid still steps one frame per click.
+(one burst).
+
+**Attack styles (`Move.style`).** Most attacks are `"combo"` (the click-per-segment
+swing above). Khalid's `ora_ora` is a `"flurry"`: **hold** the attack button and the
+animation loops fast (marked `loop: true` in the generator `OVERRIDES`), its punch
+frames (2, 4 in `emitters.json`) firing the `attack_ora_ora` `Strike` on every pass —
+so the hits come at the loop's rate, not per click. Releasing ends it back to idle; a
+buffered special still cancels it. `_advance_combo()` routes the first press to
+`_start_flurry()`, and `_process_attack()` holds it while `attack` is pressed. Per-punch
+damage/knockback are low (`moves.gd`) since the DPS comes from the cadence.
 
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:
@@ -451,6 +463,7 @@ Two hooks, both optional:
 |---|---|---|
 | `setup(player)` | Once, on equip | One-off changes (`player.run_speed = 200`), resetting state |
 | `physics(player, delta)` | Every physics frame, **after** the state machine sets velocity and **before** `move_and_slide()` | Movement overrides — whatever you set here wins |
+| `dash(player) -> bool` | The instant a dash starts (`_enter(State.DASH)`), before any lunge | Replace the dash's *movement* (return `true` to take over — do the displacement yourself; the player skips the lunge but still runs the dash i-frames/cooldown/animation) |
 | `on_special_strike(player)` | The special's strike frame | Spawn a code-driven effect/projectile on connect |
 | `on_hurt(player, hit)` | Player takes a combat hit | React to damage — retaliation, defensive buff |
 | `on_land(player, fall_distance, fall_speed)` | Every touchdown | Fall damage, landing shockwaves (`fall_distance` = px dropped from the apex) |
@@ -472,6 +485,7 @@ do ACTION," and each character's file overrides only the hooks it cares about
 | Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (`emitters.json`) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
 | Katalyst | **Stomp** + **Weak knees** | A mid-air special becomes a downward drive (hangs for the wind-up, then plunges at `SLAM_SPEED`). And via `on_land`, **every** landing past `SAFE_FALL` (400px) deals fall damage scaled by drop distance × landing speed — a high enough fall can kill him (it's why he can't slam). A `_weak_knees` flag gates it, ready for a future "knee transplant" pickup to switch off. |
 | Wayna | **Inferno interrupt** | Not an ability script — her `special_inferno` is a channeled `Strike` (`emit_duration`) with `interrupt_on_hurt = true`, so taking a hit **cancels the fire** (stops emission + damage ticks, releases her held pose). The `on_hurt` ability hook stays free for any *other* reaction she gets later. |
+| Khalid | **Blink dash** | His `dash()` hook makes the dash an instant **teleport** instead of a glide: he blinks a fixed distance ahead (`dash_speed × dash_time` — same reach his normal dash would cover), via `move_and_collide` so he **stops at walls** and **passes through enemies**. A `blink_out` poof fires where he leaves, a `blink_in` poof where he arrives (both code-fired via `emitters.json`), plus a brief bright flash. A `_phase_walls` flag (default off) is the seam for a future buff that lets him blink *through* solid geometry. |
 
 Both latch on the frame the special *starts* and only if the character was
 airborne then — checking the state alone would also fire for a grounded special

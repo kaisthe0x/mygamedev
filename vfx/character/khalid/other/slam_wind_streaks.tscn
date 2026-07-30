@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://b5f56vndut81"]
+
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
+
+[sub_resource type="Curve" id="Curve_streak"]
+_data = [Vector2(0, 0.29213488), 0.0, 0.0, 0, 0, Vector2(0.17590822, 0.1460675), -0.3887322, -0.3887322, 0, 0, Vector2(0.43785852, 0.05529952), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[node name="SlamWindStreaks" type="Node2D" unique_id=771130001]
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=771130002]
+z_index = -2
+amount = 400
+texture = ExtResource("1_dot")
+lifetime = 0.09999999999999999
+emission_shape = 1
+emission_sphere_radius = 13.49
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, -800)
+initial_velocity_min = 80.0
+initial_velocity_max = 131.9
+scale_amount_curve = SubResource("Curve_streak")
+color = Color(0.5137255, 0.08235294, 0.05882353, 1)
