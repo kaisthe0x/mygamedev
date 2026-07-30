@@ -15,6 +15,10 @@ extends Node2D
 
 ## false = a player strike (hits enemies); true = an enemy strike (hits the player).
 @export var hostile: bool = false
+## When true this box also hits its OWN team (allies), not just the opposing one -- e.g.
+## an enemy whose attacks can catch other enemies. Off by default; the box still never
+## hits its own source. See Combat.hurt_mask.
+@export var friendly_fire: bool = false
 
 @export_group("Visual")
 ## Seconds the strike stays on screen before it frees itself (a drawn slash's life). A
@@ -45,7 +49,7 @@ func _ready() -> void:
 	_hitbox = _find_hitbox()
 	if _hitbox != null:
 		_hitbox.collision_layer = Combat.hit_layer(hostile)
-		_hitbox.collision_mask = Combat.hurt_mask(hostile)
+		_hitbox.collision_mask = Combat.hurt_mask(hostile, friendly_fire)
 
 	var vis := _visuals()
 	if not vis.is_empty():

@@ -20,6 +20,9 @@ extends Node2D
 
 ## false = player shot (lives on L_PLAYER_HIT, scans enemy hurtboxes); true = enemy shot.
 @export var hostile: bool = false
+## When true the shot also hits its OWN team (allies), not just the opposing one -- e.g.
+## an enemy shot that can catch other enemies. Off by default; never hits its own source.
+@export var friendly_fire: bool = false
 
 @export_group("Motion")
 ## Travel speed (px/s). Used when homing; a straight shot moves by `velocity` instead.
@@ -86,7 +89,7 @@ func _ready() -> void:
 	var hb := _hitbox()
 	if hb != null:
 		hb.collision_layer = Combat.hit_layer(hostile)
-		hb.collision_mask = Combat.hurt_mask(hostile)
+		hb.collision_mask = Combat.hurt_mask(hostile, friendly_fire)
 		hb.source = source
 		hb.struck.connect(_on_struck)
 		hb.activate()  # a projectile leaves its box live for its whole flight

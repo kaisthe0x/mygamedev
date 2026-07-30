@@ -49,6 +49,11 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 @export var melee_range: float = 30.0
 ## Player within this -> ranged attack (when melee doesn't apply).
 @export var ranged_range: float = 300.0
+## Max vertical gap (px, feet-to-feet) for an attack to trigger. Both boxes are
+## horizontal, so a player on a different platform can never be hit -- without this the
+## enemy still swings/fires at someone directly below and just looks silly. Keep it under
+## the platform spacing so "roughly the same height" means "same ledge / jumping past".
+@export var attack_align_y: float = 40.0
 @export var attack_cooldown: float = 1.1
 @export var melee_damage: float = 12.0
 @export var ranged_damage: float = 8.0
@@ -81,6 +86,14 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## whoever wanders into range. Off by default -- most mobs just guard a spot.
 @export var aggro := false
 @export var aggro_range: float = 480.0
+## Get alerted when hurt: taking a hit makes this enemy detect + pursue the attacker for
+## `alert_duration` seconds even if it was outside its normal range (re-hits refresh it).
+## So a shot from off-screen won't go unanswered. 0 = never alerts.
+@export var alert_duration: float = 5.0
+## When true, THIS enemy's attacks can hit OTHER enemies too, not just the player (it
+## still never hits itself). Per-instance -- flag a single mob for chaos, not the whole
+## roster. The seam for enemies fighting each other.
+@export var friendly_fire := false
 ## Damage dealt by simply touching the player (0 = off), applied on an interval.
 @export var contact_damage: float = 0.0
 @export var contact_knockback: float = 120.0
@@ -114,6 +127,9 @@ var _scratch_full_cycle := false
 ## Player is in reach (attacking distance) -> we're in combat, so the idle
 ## between attacks holds a tense ready-stance instead of the patrol flourish.
 var _engaged := false
+## Seconds of "alerted" left after being hurt: while > 0 the enemy pursues the player
+## regardless of its normal detection range (see _act / _on_hurt).
+var _alert_left := 0.0
 var _hitstop_left := 0.0
 var _hitstop_dur := 0.0
 var _impacted := false  # this attack already fired its hit-stop
@@ -315,37 +331,40 @@ func _tick_contact(delta: float) -> void:
 
 func _act(delta: float) -> void:
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
+	_alert_left = maxf(_alert_left - delta, 0.0)
 
 	var player := _player()
 	if player != null:
 		var to_player := player.global_position.x - global_position.x
 		var dist: float = absf(to_player)
-		if _attack_cd <= 0.0:
+		# Attacks are horizontal, so we can only land one when the player is roughly at our
+		# height (see attack_align_y) -- otherwise don't swing/fire at all.
+		var aligned := absf(player.global_position.y - global_position.y) <= attack_align_y
+		if aligned and _attack_cd <= 0.0:
 			if _has_melee and dist <= melee_range:
 				_start_attack(State.MELEE, &"melee_attack", player)
 				return
 			if _has_ranged and dist <= ranged_range:
 				_start_attack(State.RANGE, &"range_attack", player)
 				return
-		# Aggro: pursue until close enough to attack -- but never off an edge.
-		# Otherwise just hold ground and face the player when they're in reach.
-		if aggro and dist <= aggro_range:
+		# Are we in combat? PURSUE = close in on the player from any height/range -- when
+		# aggressive by nature (aggro) or freshly hurt (alerted). HOLD = stand and face when
+		# they're on our level and in ranged reach. Neither -> fall through to patrol, so an
+		# enemy on a different platform keeps strolling instead of freezing.
+		var dir := int(sign(to_player))
+		var pursue := _alert_left > 0.0 or (aggro and dist <= aggro_range)
+		var hold := aligned and dist <= ranged_range
+		if pursue or hold:
 			_engaged = true
-			var dir := int(sign(to_player))
-			if dist > melee_range + 4.0 and _floor_ahead(dir):
+			# Chase toward the player (never off a ledge) unless we're already adjacent.
+			if pursue and dist > melee_range + 4.0 and _floor_ahead(dir):
 				velocity.x = dir * move_speed
 				_face(dir)
 				_set_state(State.STROLL)
 			else:
 				velocity.x = 0.0
-				_face(int(sign(to_player)))
+				_face(dir)
 				_set_state(State.IDLE)
-			return
-		if dist <= ranged_range:
-			_engaged = true
-			velocity.x = 0.0
-			_face(int(sign(to_player)))
-			_set_state(State.IDLE)
 			return
 
 	_engaged = false  # nobody in reach -> back to normal patrol/idle
@@ -439,6 +458,7 @@ func _on_anim_finished() -> void:
 func _spawn_melee_strike() -> void:
 	var strike := Strike.new()
 	strike.hostile = true
+	strike.friendly_fire = friendly_fire  # also catch other enemies, if flagged
 	strike.lifetime = 0.15
 	strike.source = self
 	var hb := Hitbox.new()
@@ -460,6 +480,7 @@ func _fire_projectile() -> void:
 	# look/damage are the `ranged_particle` scene + a Hitbox built from this enemy's tuning.
 	var proj := Projectile.new()
 	proj.hostile = true
+	proj.friendly_fire = friendly_fire  # also catch other enemies, if flagged
 	proj.homing = 0.0                # aim once / surge forward -- no steering
 	proj.rotate_to_heading = false   # visual authored blasting +x -> mirror, don't rotate
 	proj.source = self
@@ -517,6 +538,12 @@ func _on_hurt(hit: Hit) -> void:
 	health = maxf(health - hit.amount, 0.0)
 	_bar.set_ratio(health / max_health)
 	flash(_sprite)
+	# Getting hit alerts us: pursue the attacker for a while even if it struck from beyond
+	# our normal detection range, and snap to face where the blow came from.
+	if alert_duration > 0.0:
+		_alert_left = alert_duration
+		if hit.source is Node2D:
+			_face(int(sign((hit.source as Node2D).global_position.x - global_position.x)))
 	if health <= 0.0:
 		_die()
 		return

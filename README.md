@@ -49,14 +49,26 @@ tools/                Generator + verification scripts (not shipped)
 Bound to **physical** keycodes, so they stay in the same place on AZERTY/Dvorak.
 Rebind under `Project > Project Settings > Input Map`.
 
-**Facing follows the mouse.** Standing still, the character turns to look toward
-the cursor; every attack also snaps to face it, so clicks always strike toward the
-pointer. Walking (A/D) still faces the movement direction — that wins over the
-mouse while you move. Tuned by `_face_mouse()` / `MOUSE_FACE_DEADZONE` in
-`player.gd`.
+**Facing follows movement.** The character faces the direction it last moved
+(A/D or the stick), and **attacks/specials strike that way** — where the character
+is actually facing, controller-friendly. Standing still keeps the last facing; the
+mouse cursor does **not** steer facing or aim (a previous mouse-look experiment was
+removed). If you want cursor-aim back for keyboard+mouse without breaking controller
+play, the clean way is "last input device wins" — ask and I'll wire it.
 
 Q/E/Z/X live in `scripts/character_switcher.gd` — all the dev scaffolding is in
 that one file so it can be deleted in one go.
+
+**The test level is vertical.** `configs/level_config.gd` holds it as data —
+`PLATFORMS` (a tall zigzag tower of one-way platforms, each `[center_x, top_y,
+width]`) and `ROSTER` (the enemy spawn list). `character_switcher.gd` builds both in
+code (the `.tscn` stays minimal because the editor clobbers it) and its camera
+follows the player up, so there's **no height limit — add `PLATFORMS` rows to go
+higher**. Steps are ~70–95px apart, cleared with the jump + the generous air jumps.
+Fall off and you drop back to the ground floor (only leaving the world past the
+floor edges past `DEATH_Y` respawns you). The tower is capped by an **extra-long
+summit platform** (the last, very wide `PLATFORMS` row) packed with a ~40-enemy
+horde — so a handful contest the climb and the crowd waits at the top.
 
 ---
 
@@ -285,7 +297,7 @@ in the inspector.
 | Health | `max_health` 100 |
 | Movement | `run_speed` 160 & `jump_velocity` -330 (both **per character** — see below), `max_air_jumps` 1, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
 | Dash | `dash_speed` 420 (**per character** — see below), `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
-| Slam | `slam_speed` 1200, `slam_min_clearance` 50, `slam_hold_frame` 2, `slam_impact_distance` 30 |
+| Slam | `slam_speed` 1200, `slam_min_clearance` 50, `slam_hold_frame` 2, `slam_impact_distance` 30, `slam_min_drop` 120 / `slam_max_drop` 700 / `slam_max_damage_mult` 2.5 (drop-scaled damage) |
 | Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 | Juice | `land_min_fall_speed` 140, `land_predict_distance` 22 |
 
@@ -348,6 +360,14 @@ within `slam_impact_distance` (a downward ray, like the predictive land) it **re
 the sprite reappears and the remaining impact frames play into the ground, so the
 `burst` fires where it lands. A short slam never locks — it just plays through.
 Ends via `_on_animation_finished` → idle.
+
+*Damage scales with the plunge.* On release the player measures the drop (from the y
+where `SLAM` began to impact) and sets `_active_hit = {"damage_scale": mult}` —
+**1.0×** up to `slam_min_drop` (120px), lerping to `slam_max_damage_mult` (**2.5×**) at
+`slam_max_drop` (700px). The director *multiplies* the slam hitboxes' baked damage by it
+(a new `damage_scale` path in `_inject_tuning`, applied over `damage`), so **both**
+boxes scale while keeping their reach/impact ratio. It's the offensive mirror of
+Katalyst's fall-damage curve — slam from higher, hit harder.
 
 Slam **particles** are authored per character in `vfx/config/emitters.json` under the `slam`
 animation: a `sustained` wind-streak trail on the descent frames (`0–2`) and a `burst`
@@ -551,6 +571,12 @@ to hand-wire. Key traits:
 - **Behaviour:** patrols between its spawn point and `spawn + patrol_distance`,
   pausing `idle_time_min..max` seconds at each end. If the player enters
   `ranged_range` it engages — **melee** within `melee_range`, else **ranged**.
+- **Height-aware engagement (`attack_align_y`, default 40px):** both boxes are
+  horizontal, so an enemy only *engages* — attacks, holds, or (with `aggro`) chases —
+  when the player is roughly at its own height (feet-to-feet within the band). A
+  player on a platform above/below is treated as out of reach: the enemy **keeps
+  patrolling/strolling** instead of freezing to face someone it can't fight. Keep the
+  band under the platform spacing.
 - **Edge-aware:** a downward probe `edge_check_x` ahead of each foot stops it
   walking off ledges — it turns around on patrol and won't chase off a platform.
   So enemies can stroll on platforms safely.
@@ -559,14 +585,27 @@ to hand-wire. Key traits:
   export, so it's **per instance** — one enemy can be aggressive while another of
   the same type isn't (set it in the inspector on a placed `enemy.tscn`, or per
   entry in the spawner roster).
+- **`alert_duration`** (default **5s**): getting hit **alerts** the enemy — it then
+  detects and *pursues* the attacker for that long **regardless of its normal range**
+  (re-hits refresh it), so a shot from off-screen doesn't go unanswered. It still only
+  *lands* an attack when it's at your height (`attack_align_y`); alert just gets it
+  moving toward you. 0 = never alerts.
+- **`friendly_fire`** (default **off**): when on, **this** enemy's attacks also hit
+  *other* enemies, not just the player (it never hits itself — the Hitbox skips its own
+  `source`, and `Combat.hurt_mask` ORs in the ally hurt layer). **Per instance** — flag
+  one mob for chaos, not the roster. The seam for enemies fighting each other.
 - **`contact_damage`** (default **0 = off**): when set, touching the player
   deals it on `contact_interval`. Also per-instance.
 - **Ranged** fires a `projectile.gd` from `muzzle_offset` on the animation's
   hit frame (`hit_frames` metadata). Two `ranged_mode`s:
-  - `"aimed"` — flies toward the player's torso (Kebus' staff bolt).
-  - `"forward"` — surges straight ahead along the ground for `ranged_travel` px
-    then fizzles, hitting whatever it passes (Baghel's red energy). Tint via
-    `ranged_color`.
+  - `"aimed"` — points at the player's torso **the moment it fires** (Kebus' staff
+    bolt). The shot doesn't steer after that (`homing = 0` for enemies), but that
+    fire-time aim is what reads as "homing." **To stop enemies tracking you, set
+    `ranged_mode = "forward"`** (per instance / roster entry). Separately, `aggro`
+    (default off) is what makes an enemy *chase* — leave it off to have them guard.
+  - `"forward"` — surges straight ahead in the enemy's facing for `ranged_travel` px
+    then fizzles, hitting whatever it passes — ignores where you are (Baghel's red
+    energy). Tint via `ranged_color`.
   - **Look** — `ranged_particle` points at a particle scene (e.g.
     `vfx/enemy/baghel/attack/attack_ground_wave.tscn`, or Kebus'
     `vfx/enemy/kebus/attack/attack_bolt.tscn`) that the projectile instances as
@@ -619,8 +658,11 @@ to hand-wire. Key traits:
 ### Combat model (`scripts/combat/`)
 
 Damage flows **Hitbox → Hurtbox**, with teams enforced by physics layers (see
-`[layer_names]` in project.godot and `combat.gd`), so there's no friendly fire
-and no group checks:
+`[layer_names]` in project.godot and `combat.gd`), so by default there's no friendly
+fire and no group checks — a box scans only the opposing team's hurt layer. (Opt in
+per attacker with `friendly_fire`: `Combat.hurt_mask(hostile, true)` also scans its own
+team's layer, and the Hitbox skips its own `source` so it never hits itself. Used for
+the enemy `friendly_fire` flag above.)
 
 - **`Hurtbox`** (Area2D) receives hits and relays them via a `hurt` signal; the
   owner (player/enemy) turns that into `take_damage`.

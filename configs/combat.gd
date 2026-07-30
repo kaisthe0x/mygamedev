@@ -29,8 +29,15 @@ static func hit_layer(hostile: bool) -> int:
 	return L_ENEMY_HIT if hostile else L_PLAYER_HIT
 
 
-static func hurt_mask(hostile: bool) -> int:
-	return L_PLAYER_HURT if hostile else L_ENEMY_HURT
+## Which hurt layer(s) an attack box scans. Normally just the OPPOSING team's. With
+## `friendly_fire`, it also scans its OWN team's hurt layer, so the box can hit allies
+## too (the Hitbox still skips its own `source`, so the attacker never hits itself). Used
+## per-attacker (e.g. an enemy flagged to hurt other enemies) -- not a global toggle.
+static func hurt_mask(hostile: bool, friendly_fire := false) -> int:
+	var mask := L_PLAYER_HURT if hostile else L_ENEMY_HURT
+	if friendly_fire:
+		mask |= L_ENEMY_HURT if hostile else L_PLAYER_HURT
+	return mask
 
 
 # --- combat feel (shared by Player and Enemy hit reactions) -------------------

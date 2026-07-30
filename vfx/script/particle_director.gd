@@ -260,6 +260,11 @@ func _inject_tuning(node: Node2D, hitboxes: Array) -> void:
 	for hb in hitboxes:
 		if hit.has("damage"):
 			hb.damage = hit["damage"]
+		# Multiplier applied over the hitbox's own baked damage (the slam scales BOTH its
+		# boxes by plunge height this way, keeping their reach/impact ratio -- see
+		# Player._slam_release). Runs after `damage` so an explicit value can still be set.
+		if hit.has("damage_scale"):
+			hb.damage *= hit["damage_scale"]
 		if hit.has("knockback"):
 			hb.knockback = hit["knockback"]
 		if hit.has("stun"):

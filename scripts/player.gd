@@ -94,6 +94,13 @@ var health: float = 100.0:
 ## How far above the ground (px) a held slam releases its impact frames, so they play
 ## into the ground instead of in mid-air (like land_predict_distance for the slam).
 @export var slam_impact_distance: float = 30.0
+## Slam damage scales with how far it PLUNGED (from where you pressed slam to impact).
+## A drop <= `slam_min_drop` deals the scene's base damage (mult 1.0); at `slam_max_drop`
+## it reaches `slam_max_damage_mult`x, lerped between. Multiplies BOTH slam hitboxes, so
+## their reach/impact ratio is preserved. The offensive cousin of Katalyst's fall damage.
+@export var slam_min_drop: float = 120.0
+@export var slam_max_drop: float = 700.0
+@export var slam_max_damage_mult: float = 2.5
 
 @export_group("Juice")
 ## Minimum falling speed on touchdown to play the landing squash (characters
@@ -158,6 +165,9 @@ var _jump_launch: bool = false
 ## True once a slam has released its impact frames (near the ground), so the held
 ## descent doesn't re-lock and the sprite stays shown while the impact plays out.
 var _slam_impacting: bool = false
+## Feet-y at the moment the slam began, so the impact can scale damage by the plunge
+## distance (global_position.y - _slam_start_y at release). See _slam_release.
+var _slam_start_y: float = 0.0
 var _just_landed: bool = false
 ## Which combo segment we're on (index into the attack's hit-frame list).
 var _combo_step: int = 0
@@ -321,18 +331,6 @@ func get_facing() -> int:
 func fire_effect(anim: String, tilt: float = 0.0) -> void:
 	if _particles != null:
 		_particles.fire_effect(anim, tilt)
-
-
-## Turn to face the mouse cursor. Used when standing still and on every attack, so
-## you look and strike toward the pointer; a small dead zone around his own x stops
-## flip jitter when the cursor sits right on top of him. (Walking still faces the
-## movement direction -- that wins over the mouse.)
-const MOUSE_FACE_DEADZONE := 4.0
-
-func _face_mouse() -> void:
-	var dx := get_global_mouse_position().x - global_position.x
-	if absf(dx) > MOUSE_FACE_DEADZONE:
-		_facing = 1 if dx > 0.0 else -1
 
 
 ## Path to the current character's portrait, for HUD / character-select art.
@@ -595,7 +593,8 @@ func _process_normal(delta: float) -> void:
 		_facing = 1 if input > 0.0 else -1
 		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
 	else:
-		_face_mouse() # standing still: turn to look toward the cursor
+		# Standing still: keep facing the way we last moved (movement/controller drives
+		# facing, not the mouse), so an attack goes where the character is actually facing.
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
 	# Special: on the ground it's the character's special; in the AIR it becomes the
@@ -748,8 +747,7 @@ func _process_land(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
 		_state = State.RUN
 		return
-	_face_mouse() # standing after landing: look toward the cursor
-	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta)  # keep last facing when idle
 
 
 func _has_land() -> bool:
@@ -831,7 +829,6 @@ func _process_attack(delta: float) -> void:
 ## Commit to a special swing, clearing any light combo in progress. Shared by the
 ## normal/land states and by a light-attack cancel (see _process_attack).
 func _start_special() -> void:
-	_face_mouse() # aim the special toward the cursor
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
@@ -878,10 +875,16 @@ func _process_slam(delta: float) -> void:
 
 
 ## Release a held slam: show the sprite and resume playback so the impact frames run.
+## The impact is imminent, so lock in the plunge-scaled damage now -- the director reads
+## _active_hit when it fires the slam effect on the next frames and multiplies its
+## hitboxes by our `damage_scale`.
 func _slam_release() -> void:
 	_slam_impacting = true
 	_sprite.visible = true
 	_sprite.speed_scale = 1.0
+	var drop := global_position.y - _slam_start_y  # how far we plunged (px)
+	var t := clampf((drop - slam_min_drop) / maxf(slam_max_drop - slam_min_drop, 1.0), 0.0, 1.0)
+	_active_hit = {"damage_scale": lerpf(1.0, slam_max_damage_mult, t)}
 
 
 ## Sheet-relative -> emitted frame offset for `anim` (the generator drops the
@@ -925,7 +928,6 @@ func _advance_combo() -> void:
 			_start_flurry()
 		return
 
-	_face_mouse() # aim the swing toward the cursor, even mid-combo
 	var hits := _attack_hits()
 	if hits.is_empty():
 		return
@@ -953,7 +955,6 @@ func _advance_combo() -> void:
 ## the rate of the loop; _process_attack ends it when the button is released. Resolve the
 ## tuning once up front so each punch the director fires gets fed the same numbers.
 func _start_flurry() -> void:
-	_face_mouse() # aim the flurry toward the cursor
 	_buffered_special = false
 	_flurry = true
 	_active_hit = resolve_tuning(_current_attack, 0)
@@ -998,6 +999,7 @@ func _enter(state: State) -> void:
 			# Commit: kill horizontal drift and start the downward plunge now.
 			velocity = Vector2(0.0, slam_speed)
 			_slam_impacting = false  # fresh slam: not yet released into the impact
+			_slam_start_y = global_position.y  # measure the plunge from here for damage
 
 
 func _animation_for(state: State) -> StringName:
@@ -1071,4 +1073,5 @@ func _on_animation_finished() -> void:
 	# Light attack is a paused single frame; jump/fall loop or hold, so only dash, the
 	# special swing, and the (grounded) landing end on playback finishing.
 	if _state == State.DASH or _state == State.SPECIAL or _state == State.LAND or _state == State.SLAM:
+		_active_hit = {}  # the swing/slam already fired; don't let its tuning bleed onward
 		_enter(State.IDLE)

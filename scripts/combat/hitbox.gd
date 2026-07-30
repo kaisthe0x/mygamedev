@@ -67,6 +67,10 @@ func _on_area_entered(area: Area2D) -> void:
 	var box := area as Hurtbox
 	if box == null or box in _already_hit:
 		return
+	# Never hit our own source's hurtbox. Harmless normally (teams don't overlap), but
+	# with friendly fire an ally-scanning box would otherwise damage the attacker itself.
+	if source != null and box.get_parent() == source:
+		return
 	_already_hit.append(box)
 	var hit := Hit.new()
 	hit.amount = damage
