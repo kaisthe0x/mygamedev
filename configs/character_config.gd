@@ -60,3 +60,20 @@ const DASH_SPEEDS := {
 ## This character's dash speed, or DEFAULT_DASH_SPEED when it has no override.
 static func dash_speed(character: String) -> float:
 	return DASH_SPEEDS.get(character, DEFAULT_DASH_SPEED)
+
+
+## Per-character BLINK dash: true = the dash is an instant teleport (a blink -- vanish and
+## reappear `dash_speed * dash_time` ahead, with blink_out/blink_in poofs) instead of the
+## normal glide-lunge. Same reach either way; only the feel differs. Off (normal dash) for
+## anyone not listed here. Each blinker needs its own other/blink_in.tscn + blink_out.tscn
+## (fired via emitters.json). Flip a character on/off right here.
+const BLINK_DASH := {
+	"khalid": true,
+	"katalyst": true,
+}
+
+
+## Whether this character's dash is a blink (teleport), or DEFAULT (false = glide) when
+## it has no override.
+static func blink_dash(character: String) -> bool:
+	return BLINK_DASH.get(character, false)

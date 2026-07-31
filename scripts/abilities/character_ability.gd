@@ -24,15 +24,6 @@ func physics(_player: Player, _delta: float) -> void:
 	pass
 
 
-## Called the instant this character enters a dash, from `_enter(State.DASH)`, before
-## any lunge runs. Return `true` to take over the dash's MOVEMENT -- do the displacement
-## yourself here (e.g. an instant teleport via `player.move_and_collide`) and the player
-## skips its built-in lunge, still playing the dash animation + i-frames + cooldown as
-## the recovery. Return `false` (the default) to leave the normal glide-dash alone.
-func dash(_player: Player) -> bool:
-	return false
-
-
 ## Called once when this character's special reaches its strike frame (right
 ## as the melee hitbox fires). Use it for an on-strike special -- e.g. spawning an
 ## effect or projectile from code.

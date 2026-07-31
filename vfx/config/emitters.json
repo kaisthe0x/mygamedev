@@ -1,6 +1,21 @@
 {
   "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene's BASENAME, resolved by recursively indexing vfx/character/<character>/ plus vfx/shared/ -- so it resolves wherever the .tscn is filed, e.g. attack/chainsaw/, dash/default/, other/), node (OPTIONAL: one named child of a 'palette' scene to fire on its own -- list the same type with different node values to schedule different children at different frames, e.g. attack_finger_guns's Shot on [2,4] and ShotLast on [7]; omit for the whole scene as before), set (OPTIONAL: per-row property overrides so one scene covers several variants without a clone -- keys are 'ChildPath:property', empty path = the spawned node itself, and a 'res://...' value is loaded as a Resource, e.g. {\"Trail:texture\": \"res://...\"}), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left), boost (optional intensity MULTIPLIERS on the scene's own values so one type can be reused at different power levels: amount, speed, scale, lifetime; plus explosiveness which is absolute 0-1). clip_to_ground (optional bool on a burst: clamp its rectangular emission band and hitbox to the edges of the platform directly underfoot, so a ground blast doesn't spill past the ledge into open air).",
   "wayna": {
+    "blink_out": [
+      {
+        "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
+        "type": "blink_out",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
+    "blink_in": [
+      {
+        "type": "blink_in",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
     "death": [
       {
         "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
@@ -90,6 +105,21 @@
     ]
   },
   "lenbondosen": {
+    "blink_out": [
+      {
+        "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
+        "type": "blink_out",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
+    "blink_in": [
+      {
+        "type": "blink_in",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
     "death": [
       {
         "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
@@ -204,6 +234,21 @@
     ]
   },
   "katalyst": {
+    "blink_out": [
+      {
+        "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
+        "type": "blink_out",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
+    "blink_in": [
+      {
+        "type": "blink_in",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
     "death": [
       {
         "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
@@ -279,6 +324,21 @@
     ]
   },
   "feyke": {
+    "blink_out": [
+      {
+        "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
+        "type": "blink_out",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
+    "blink_in": [
+      {
+        "type": "blink_in",
+        "mode": "burst",
+        "pos": [0, -18]
+      }
+    ],
     "death": [
       {
         "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
@@ -425,7 +485,7 @@
     ],
     "blink_out": [
       {
-        "_comment": "Fired from code in khalid.gd dash() at the spot he leaves. Not a real anim, so it never auto-fires -- only the teleport triggers it.",
+        "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot he leaves, when BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
         "type": "blink_out",
         "mode": "burst",
         "pos": [0, -18]
@@ -433,7 +493,7 @@
     ],
     "blink_in": [
       {
-        "_comment": "Fired from code in khalid.gd dash() at the spot he arrives.",
+        "_comment": "Fired from code (player._do_blink) at the spot he arrives.",
         "type": "blink_in",
         "mode": "burst",
         "pos": [0, -18]

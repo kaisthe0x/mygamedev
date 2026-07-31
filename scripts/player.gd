@@ -147,9 +147,15 @@ var _dash_left: float = 0.0
 ## finish playing after the lunge is over.
 var _dash_anim_left: float = 0.0
 var _dash_cd: float = 0.0
-## True when the equipped ability took over this dash's movement (e.g. Khalid's
-## teleport). The lunge is skipped; the dash animation + i-frames + cooldown still run.
+## True when this dash is a blink (teleport) instead of the glide-lunge -- seeded per
+## character from CharacterConfig.BLINK_DASH on every character change. When set, the
+## lunge is skipped (the blink does the displacement); the dash animation + i-frames +
+## cooldown still run as the "materialize".
 var _dash_custom: bool = false
+var _blink_dash: bool = false
+## Blink stops at walls (move_and_collide). Flip true for a future "phase through walls"
+## buff -- same buff-seam idea as Katalyst's _weak_knees.
+var _blink_phase_walls: bool = false
 ## Airborne tracking, so a touchdown can trigger the landing squash.
 var _was_on_floor: bool = true
 var _fall_peak: float = 0.0 # fastest downward speed reached this airborne stretch
@@ -254,6 +260,7 @@ func _apply_character() -> void:
 	run_speed = CharacterConfig.run_speed(character)
 	jump_velocity = CharacterConfig.jump_velocity(character)
 	dash_speed = CharacterConfig.dash_speed(character)
+	_blink_dash = CharacterConfig.blink_dash(character)  # teleport-dash on/off per character
 	# The generator's canvas size changes whenever the art does, so derive the
 	# offset from the frames rather than baking it into the scene.
 	anchor_to_feet(sprite)
@@ -336,6 +343,26 @@ func get_facing() -> int:
 func fire_effect(anim: String, tilt: float = 0.0) -> void:
 	if _particles != null:
 		_particles.fire_effect(anim, tilt)
+
+
+## The blink (teleport) dash, used when this character has BLINK_DASH on. Vanish and
+## reappear `dash_speed * dash_time` ahead -- the SAME reach the glide-dash would cover,
+## just instant -- with a blink-out poof where we leave and a blink-in poof where we land,
+## plus a quick over-white flash. move_and_collide stops us at walls (enemies aren't on
+## our body mask, so we pass through them); _blink_phase_walls flips that for a future buff.
+## Called from _enter(State.DASH); _process_dash then skips the lunge and plays the tail.
+func _do_blink() -> void:
+	var motion := Vector2(dash_speed * dash_time * _facing, 0.0)
+	fire_effect("blink_out")  # poof at the spot we're leaving
+	if _blink_phase_walls:
+		global_position += motion
+	else:
+		move_and_collide(motion)
+	velocity.x = 0.0  # a teleport carries no momentum; the dash tail re-derives it
+	fire_effect("blink_in")  # poof where we arrive
+	# Brief over-white the world bloom picks up; cascades from the player to the sprite.
+	modulate = Color(2.2, 2.2, 2.2)
+	create_tween().tween_property(self, "modulate", Color(1, 1, 1), 0.18)
 
 
 ## Path to the current character's portrait, for HUD / character-select art.
@@ -1056,9 +1083,11 @@ func _enter(state: State) -> void:
 			if fps > 0.0:
 				var anim_time := frames.get_frame_count(&"dash") / fps
 				_sprite.speed_scale = anim_time / maxf(dash_anim_time, dash_time)
-			# Let the ability replace the dash's MOVEMENT (Khalid teleports). It does the
-			# displacement now; _process_dash then skips the lunge and just plays the tail.
-			_dash_custom = _ability != null and _ability.dash(self)
+			# Blink characters teleport instead of gliding: do the displacement now, then
+			# _process_dash skips the lunge and just plays the animation tail.
+			_dash_custom = _blink_dash
+			if _dash_custom:
+				_do_blink()
 		State.ATTACK:
 			velocity.x = 0.0
 		State.DEATH:

@@ -310,6 +310,19 @@ up, `dash` 420); **Katalyst runs a touch faster (250), jumps a touch higher (-37
 dashes a touch faster (500)**. The run *animation* cadence auto-scales to each
 character's speed, so faster runners don't foot-slide.
 
+**Blink dash (per character).** A character's dash can be a **blink** (instant teleport)
+instead of the glide-lunge — toggled per character in `CharacterConfig.BLINK_DASH`
+(`{"khalid": true}` today; anyone unlisted glides). When on, `_enter(State.DASH)` calls
+`Player._do_blink()`: it displaces `dash_speed × dash_time` ahead (the *same* reach the
+glide would cover, just instant) via `move_and_collide` so it **stops at walls** and
+**passes through enemies**, fires the character's own `other/blink_out.tscn` /
+`blink_in.tscn` poofs (`fire_effect`, tinted to their dash palette) and a brief bright
+flash. The lunge is skipped (`_dash_custom`) but the dash i-frames, cooldown, and
+animation still run as the "materialize". `_blink_phase_walls` (default off) is the buff
+seam to blink *through* walls. Every character has blink poofs ready, so flipping the
+flag is all it takes. (This was Khalid's ability hook; it's now this universal config so
+it works for characters that have no ability file.)
+
 **Dash lunge vs. animation.** The lunge (`dash_speed` for `dash_time`) is decoupled
 from the dash *animation*, which plays over `dash_anim_time`. When that's longer
 than the lunge, the character keeps its full snappy dash then settles to a stop
@@ -483,7 +496,6 @@ Two hooks, both optional:
 |---|---|---|
 | `setup(player)` | Once, on equip | One-off changes (`player.run_speed = 200`), resetting state |
 | `physics(player, delta)` | Every physics frame, **after** the state machine sets velocity and **before** `move_and_slide()` | Movement overrides — whatever you set here wins |
-| `dash(player) -> bool` | The instant a dash starts (`_enter(State.DASH)`), before any lunge | Replace the dash's *movement* (return `true` to take over — do the displacement yourself; the player skips the lunge but still runs the dash i-frames/cooldown/animation) |
 | `on_special_strike(player)` | The special's strike frame | Spawn a code-driven effect/projectile on connect |
 | `on_hurt(player, hit)` | Player takes a combat hit | React to damage — retaliation, defensive buff |
 | `on_land(player, fall_distance, fall_speed)` | Every touchdown | Fall damage, landing shockwaves (`fall_distance` = px dropped from the apex) |
@@ -505,7 +517,8 @@ do ACTION," and each character's file overrides only the hooks it cares about
 | Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (`emitters.json`) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
 | Katalyst | **Stomp** + **Weak knees** | A mid-air special becomes a downward drive (hangs for the wind-up, then plunges at `SLAM_SPEED`). And via `on_land`, **every** landing past `SAFE_FALL` (400px) deals fall damage scaled by drop distance × landing speed — a high enough fall can kill him (it's why he can't slam). A `_weak_knees` flag gates it, ready for a future "knee transplant" pickup to switch off. |
 | Wayna | **Inferno interrupt** | Not an ability script — her `special_inferno` is a channeled `Strike` (`emit_duration`) with `interrupt_on_hurt = true`, so taking a hit **cancels the fire** (stops emission + damage ticks, releases her held pose). The `on_hurt` ability hook stays free for any *other* reaction she gets later. |
-| Khalid | **Blink dash** | His `dash()` hook makes the dash an instant **teleport** instead of a glide: he blinks a fixed distance ahead (`dash_speed × dash_time` — same reach his normal dash would cover), via `move_and_collide` so he **stops at walls** and **passes through enemies**. A `blink_out` poof fires where he leaves, a `blink_in` poof where he arrives (both code-fired via `emitters.json`), plus a brief bright flash. A `_phase_walls` flag (default off) is the seam for a future buff that lets him blink *through* solid geometry. |
+Khalid used to carry the blink as an ability; it's now a **universal, per-character dash
+option** — see **Blink dash** below.
 
 Both latch on the frame the special *starts* and only if the character was
 airborne then — checking the state alone would also fire for a grounded special
