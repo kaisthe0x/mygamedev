@@ -356,8 +356,8 @@
         "_comment": "Auto-fires on the FIRST spawn-anim frame (the materialize), mirroring the death particle on its last. Uses this character's spawn/default/spawn_default.tscn (tinted to their dash palette).",
         "type": "spawn_default",
         "mode": "burst",
-        "frames": [1],
-        "pos": [0, -16]
+        "frames": [0, 1, 2, 3, 4, 5, 6, 7],
+        "pos": [0, -2]
       }
     ],
     "blink_out": [
@@ -398,12 +398,6 @@
         "mode": "sustained",
         "frames": "all",
         "pos": [-17, -17]
-      },
-      {
-        "type": "jump_default",
-        "mode": "burst",
-        "frames": [0],
-        "pos": [0, 0]
       }
     ],
     "jump": [

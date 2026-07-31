@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b3nmmpcl6a0y3"]
 
-[ext_resource type="Texture2D" uid="uid://dsaxyqgjl5wfo" path="res://vfx/character/feyke/shared/textures/smoke_texture_1.png" id="1_tbg8c"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_c82ew"]
 
 [sub_resource type="Gradient" id="Gradient_1lwrq"]
 offsets = PackedFloat32Array(0, 0.51097804)
@@ -14,9 +14,16 @@ width = 150
 _data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.10707457, 0.22471917), 0.0, 0.0, 0, 0, Vector2(0.1625239, 0.08294928), -0.3887322, -0.3887322, 0, 0, Vector2(0.24856597, 0.07834101), 0.0, 0.0, 0, 0, Vector2(0.43785852, 0.05529952), 0.0, 0.0, 0, 0]
 point_count = 5
 
-[sub_resource type="Curve" id="Curve_c82ew"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.08413002, 0.86175114), 0.0, 0.0, 0, 0, Vector2(0.14722754, 0.85253453), 0.0, 0.0, 0, 0, Vector2(0.2256214, 0.74654377), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.59447), 0.0, 0.0, 0, 0, Vector2(0.33843213, 0.49308753), 0.0, 0.0, 0, 0, Vector2(0.4416826, 0.47926265), 0.0, 0.0, 0, 0, Vector2(0.61950284, 0.13824886), 0.0, 0.0, 0, 0, Vector2(0.7170172, 0.04147458), 0.0, 0.0, 0, 0]
-point_count = 9
+[sub_resource type="Curve" id="Curve_tvvsc"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49026546, 1), 0.0, 0.0, 0, 0, Vector2(0.7044248, 0.6228814), 0.0, 0.0, 0, 0, Vector2(1, 0.05084753), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="Gradient" id="Gradient_dcieo"]
+colors = PackedColorArray(0.03764706, 0.03764706, 0.03137255, 1, 0.023529412, 0.023529412, 0.019607844, 0)
+
+[sub_resource type="Gradient" id="Gradient_73vcv"]
+offsets = PackedFloat32Array(0, 0)
+colors = PackedColorArray(0.023529412, 0.023529412, 0.019607844, 1, 0, 0, 0, 0.8509804)
 
 [node name="RunDefault" type="Node2D" unique_id=1959900955]
 
@@ -34,19 +41,36 @@ scale_amount_min = 0.2
 scale_amount_max = 0.5
 scale_amount_curve = SubResource("Curve_fwbju")
 
-[node name="Shmoke" type="CPUParticles2D" parent="." unique_id=1040128122]
-texture_filter = 1
-position = Vector2(16, 15.000001)
-scale = Vector2(-12.2143755, -0.3896922)
-amount = 70
-texture = ExtResource("1_tbg8c")
-lifetime = 0.7
-lifetime_randomness = 0.3
+[node name="Shmoke" type="Node2D" parent="." unique_id=1244526307]
+position = Vector2(19, 17)
+
+[node name="Flash" type="CPUParticles2D" parent="Shmoke" unique_id=1156840449]
+z_index = 1
+amount = 100
+texture = ExtResource("2_c82ew")
+lifetime = 0.3
 emission_shape = 3
-emission_rect_extents = Vector2(1, 1)
+emission_rect_extents = Vector2(15, 1)
 direction = Vector2(0, 0)
+spread = 0.0
 gravity = Vector2(0, 0)
-angle_min = -90.0
-scale_amount_min = 0.2
-scale_amount_max = 0.2
-scale_amount_curve = SubResource("Curve_c82ew")
+scale_amount_min = 0.35
+scale_amount_max = 0.6
+scale_amount_curve = SubResource("Curve_tvvsc")
+color = Color(0.05490196, 0.05882353, 0.0627451, 1)
+color_ramp = SubResource("Gradient_dcieo")
+
+[node name="Gather" type="CPUParticles2D" parent="Shmoke" unique_id=93983266]
+amount = 100
+texture = ExtResource("2_c82ew")
+lifetime = 0.6
+emission_shape = 3
+emission_rect_extents = Vector2(8, 1)
+direction = Vector2(0, 0)
+spread = 0.0
+gravity = Vector2(0, 0)
+scale_amount_min = 0.4
+scale_amount_max = 0.8
+scale_amount_curve = SubResource("Curve_tvvsc")
+color = Color(0.03529412, 0.03529412, 0.03137255, 1)
+color_ramp = SubResource("Gradient_73vcv")

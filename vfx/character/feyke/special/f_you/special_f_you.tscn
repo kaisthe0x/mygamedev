@@ -2,18 +2,19 @@
 
 [ext_resource type="Texture2D" uid="uid://dsaxyqgjl5wfo" path="res://vfx/character/feyke/shared/textures/smoke_texture_1.png" id="1_8fpq1"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_54c0n"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_ww7rx"]
 [ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="strike_root"]
 
 [sub_resource type="Curve" id="Curve_uashs"]
-_data = [Vector2(0, 0.15668201), 0.0, 0.0, 0, 0, Vector2(0.10707457, 0.22119814), 0.0, 0.0, 0, 0, Vector2(0.30210325, 0.10599077), 0.0, 0.0, 0, 0, Vector2(0.458891, 0.10599077), 0.0, 0.0, 0, 0]
-point_count = 4
+_data = [Vector2(0, 0.6516854), 0.0, 0.0, 0, 0, Vector2(0.12566371, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.29203537, 0.28089893), 0.0, 0.0, 0, 0, Vector2(0.46902654, 0.15730345), 0.0, 0.0, 0, 0, Vector2(0.6318584, 0), 0.0, 0.0, 0, 0]
+point_count = 5
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_heavy"]
 size = Vector2(252, 50)
 
 [sub_resource type="Curve" id="Curve_8fpq1"]
-_data = [Vector2(0.0038240924, 0.073732734), 0.0, 0.0, 0, 0, Vector2(0.24474189, 0.06912446), 0.0, 0.0, 0, 0, Vector2(0.749522, 0.059907794), 0.0, 0.0, 0, 0, Vector2(1, 0.0138248205), 0.0, 0.0, 0, 0]
-point_count = 4
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [node name="SpecialFYou" type="Node2D" unique_id=377016795]
 script = ExtResource("strike_root")
@@ -22,7 +23,7 @@ script = ExtResource("strike_root")
 z_index = -1
 position = Vector2(-4, 1)
 amount = 700
-texture = ExtResource("1_8fpq1")
+texture = ExtResource("2_ww7rx")
 lifetime = 0.5
 emission_shape = 3
 emission_rect_extents = Vector2(120, 1)
@@ -31,7 +32,10 @@ spread = 0.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 150.0
 initial_velocity_max = 250.75
+scale_amount_min = 4.0
+scale_amount_max = 4.0
 scale_amount_curve = SubResource("Curve_uashs")
+color = Color(0.003921569, 0.003921569, 0.003921569, 1)
 
 [node name="Hitbox" type="Area2D" parent="Smoke" unique_id=1495896596]
 position = Vector2(4, -1)
@@ -45,16 +49,19 @@ knockback = 150.0
 position = Vector2(-4, -25)
 shape = SubResource("RectangleShape2D_heavy")
 
-[node name="Leftover" type="CPUParticles2D" parent="." unique_id=2145401808]
+[node name="Leftover" type="CPUParticles2D" parent="Smoke" unique_id=2145401808]
 z_index = -1
-position = Vector2(-3, -23)
+position = Vector2(1, -24)
 amount = 200
 texture = ExtResource("1_8fpq1")
+lifetime = 0.3
 emission_shape = 3
 emission_rect_extents = Vector2(120, 30)
 direction = Vector2(0, -1)
-spread = 0.0
+spread = 29.27
 gravity = Vector2(0, 0)
 initial_velocity_min = 150.0
 initial_velocity_max = 250.75
+scale_amount_min = 0.3
+scale_amount_max = 0.3
 scale_amount_curve = SubResource("Curve_8fpq1")

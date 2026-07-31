@@ -1,55 +1,51 @@
 [gd_scene format=3 uid="uid://bsn77edwgq2sp"]
 
-; feyke's spawn (materialize) burst -- placeholder tinted to their dash palette.
-; Auto-fires on the FIRST spawn-anim frame (emitters.json), as they appear. Tweak freely.
-
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
 
-[sub_resource type="Gradient" id="Grad_gather"]
-offsets = PackedFloat32Array(0, 0.55, 1)
-colors = PackedColorArray(0.023529412, 0.023529412, 0.019607844, 1, 0.19215687, 0.18431373, 0.18431373, 0.85, 0.19215687, 0.18431373, 0.18431373, 0)
+[sub_resource type="Curve" id="Curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49026546, 1), 0.0, 0.0, 0, 0, Vector2(0.7044248, 0.6228814), 0.0, 0.0, 0, 0, Vector2(1, 0.05084753), 0.0, 0.0, 0, 0]
+point_count = 4
 
 [sub_resource type="Gradient" id="Grad_flash"]
-offsets = PackedFloat32Array(0, 1)
-colors = PackedColorArray(0.0376470592, 0.0376470592, 0.0313725504, 1, 0.023529412, 0.023529412, 0.019607844, 0)
+colors = PackedColorArray(0.03764706, 0.03764706, 0.03137255, 1, 0.023529412, 0.023529412, 0.019607844, 0)
 
-[sub_resource type="Curve" id="Curve_shrink"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 2
+[sub_resource type="Gradient" id="Grad_gather"]
+offsets = PackedFloat32Array(0, 0)
+colors = PackedColorArray(0.023529412, 0.023529412, 0.019607844, 1, 0, 0, 0, 0.8509804)
 
-[node name="SpawnDefault" type="Node2D"]
+[node name="SpawnDefault" type="Node2D" unique_id=1208498053]
 
-[node name="Flash" type="CPUParticles2D" parent="."]
+[node name="Flash" type="CPUParticles2D" parent="." unique_id=1046293589]
 z_index = 1
-amount = 24
-lifetime = 0.3
-explosiveness = 1.0
+amount = 100
 texture = ExtResource("1_dot")
-emission_shape = 1
-emission_sphere_radius = 6.0
-direction = Vector2(0, 0)
-spread = 180.0
+lifetime = 0.3
+emission_shape = 3
+emission_rect_extents = Vector2(15, 1)
+direction = Vector2(0, -1)
+spread = 0.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 110.0
-initial_velocity_max = 180.0
+initial_velocity_max = 238.82
 scale_amount_min = 0.35
 scale_amount_max = 0.6
 scale_amount_curve = SubResource("Curve_shrink")
+color = Color(0.05490196, 0.05882353, 0.0627451, 1)
 color_ramp = SubResource("Grad_flash")
 
-[node name="Gather" type="CPUParticles2D" parent="."]
-amount = 26
-lifetime = 0.6
-explosiveness = 0.85
+[node name="Gather" type="CPUParticles2D" parent="." unique_id=17201619]
+amount = 100
 texture = ExtResource("1_dot")
-emission_shape = 1
-emission_sphere_radius = 11.0
+lifetime = 0.6
+emission_shape = 3
+emission_rect_extents = Vector2(15, 1)
 direction = Vector2(0, -1)
-spread = 70.0
+spread = 0.0
 gravity = Vector2(0, -70)
 initial_velocity_min = 30.0
-initial_velocity_max = 75.0
+initial_velocity_max = 50.0
 scale_amount_min = 0.4
 scale_amount_max = 0.8
 scale_amount_curve = SubResource("Curve_shrink")
+color = Color(0.03529412, 0.03529412, 0.03137255, 1)
 color_ramp = SubResource("Grad_gather")
