@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" format=3 uid="uid://1l8hmwhn1efg"]
+[gd_resource type="SpriteFrames" load_steps=87 format=3 uid="uid://1l8hmwhn1efg"]
 
 [ext_resource type="Texture2D" uid="uid://dly53ppuw7ob5" path="res://sprites/characters/lenbondosen/lenbondosen_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://bevhsyglqv4pc" path="res://sprites/characters/lenbondosen/lenbondosen_run_frames.png" id="2_run"]
@@ -7,43 +7,174 @@
 [ext_resource type="Texture2D" uid="uid://cm156rnocny0" path="res://sprites/characters/lenbondosen/lenbondosen_land_frames.png" id="5_land"]
 [ext_resource type="Texture2D" uid="uid://d2qxxcorqk13w" path="res://sprites/characters/lenbondosen/lenbondosen_slam_frames.png" id="6_slam"]
 [ext_resource type="Texture2D" uid="uid://c7i5wq3hk46yr" path="res://sprites/characters/lenbondosen/lenbondosen_dash_frames.png" id="7_dash"]
-[ext_resource type="Texture2D" uid="uid://da0427pe7syxo" path="res://sprites/characters/lenbondosen/lenbondosen_attack_finger_guns_frames.png" id="8_attack_finger_guns"]
-[ext_resource type="Texture2D" uid="uid://bd88rmqyhe3vf" path="res://sprites/characters/lenbondosen/lenbondosen_special_mouth_blast_frames.png" id="9_special_mouth_blast"]
-[ext_resource type="Texture2D" uid="uid://i30dxfevap5n" path="res://sprites/characters/lenbondosen/lenbondosen_special_poison_raiser_frames.png" id="10_special_poison_raiser"]
+[ext_resource type="Texture2D" uid="uid://dicqla8c8x64e" path="res://sprites/characters/lenbondosen/lenbondosen_death_frames.png" id="8_death"]
+[ext_resource type="Texture2D" uid="uid://da0427pe7syxo" path="res://sprites/characters/lenbondosen/lenbondosen_attack_finger_guns_frames.png" id="9_attack_finger_guns"]
+[ext_resource type="Texture2D" uid="uid://bd88rmqyhe3vf" path="res://sprites/characters/lenbondosen/lenbondosen_special_mouth_blast_frames.png" id="10_special_mouth_blast"]
+[ext_resource type="Texture2D" uid="uid://i30dxfevap5n" path="res://sprites/characters/lenbondosen/lenbondosen_special_poison_raiser_frames.png" id="11_special_poison_raiser"]
 
-[sub_resource type="AtlasTexture" id="attack_finger_guns_1"]
-atlas = ExtResource("8_attack_finger_guns")
+[sub_resource type="AtlasTexture" id="idle_0"]
+atlas = ExtResource("1_idle")
+region = Rect2(0, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="idle_1"]
+atlas = ExtResource("1_idle")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_finger_guns_2"]
-atlas = ExtResource("8_attack_finger_guns")
+[sub_resource type="AtlasTexture" id="idle_2"]
+atlas = ExtResource("1_idle")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_finger_guns_3"]
-atlas = ExtResource("8_attack_finger_guns")
+[sub_resource type="AtlasTexture" id="idle_3"]
+atlas = ExtResource("1_idle")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_finger_guns_4"]
-atlas = ExtResource("8_attack_finger_guns")
+[sub_resource type="AtlasTexture" id="idle_4"]
+atlas = ExtResource("1_idle")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_finger_guns_5"]
-atlas = ExtResource("8_attack_finger_guns")
+[sub_resource type="AtlasTexture" id="idle_5"]
+atlas = ExtResource("1_idle")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_finger_guns_6"]
-atlas = ExtResource("8_attack_finger_guns")
+[sub_resource type="AtlasTexture" id="idle_6"]
+atlas = ExtResource("1_idle")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="attack_finger_guns_7"]
-atlas = ExtResource("8_attack_finger_guns")
+[sub_resource type="AtlasTexture" id="idle_7"]
+atlas = ExtResource("1_idle")
 region = Rect2(896, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_1"]
+atlas = ExtResource("2_run")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_2"]
+atlas = ExtResource("2_run")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_3"]
+atlas = ExtResource("2_run")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_4"]
+atlas = ExtResource("2_run")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_5"]
+atlas = ExtResource("2_run")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_6"]
+atlas = ExtResource("2_run")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_7"]
+atlas = ExtResource("2_run")
+region = Rect2(896, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="run_8"]
+atlas = ExtResource("2_run")
+region = Rect2(1024, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="jump_1"]
+atlas = ExtResource("3_jump")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="jump_2"]
+atlas = ExtResource("3_jump")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="jump_3"]
+atlas = ExtResource("3_jump")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="jump_4"]
+atlas = ExtResource("3_jump")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="jump_5"]
+atlas = ExtResource("3_jump")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="jump_6"]
+atlas = ExtResource("3_jump")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="fall_1"]
+atlas = ExtResource("4_fall")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="fall_2"]
+atlas = ExtResource("4_fall")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="fall_3"]
+atlas = ExtResource("4_fall")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="fall_4"]
+atlas = ExtResource("4_fall")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="land_1"]
+atlas = ExtResource("5_land")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="land_2"]
+atlas = ExtResource("5_land")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="slam_1"]
+atlas = ExtResource("6_slam")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="slam_2"]
+atlas = ExtResource("6_slam")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="slam_3"]
+atlas = ExtResource("6_slam")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="slam_4"]
+atlas = ExtResource("6_slam")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="slam_5"]
+atlas = ExtResource("6_slam")
+region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="dash_1"]
@@ -106,277 +237,287 @@ atlas = ExtResource("7_dash")
 region = Rect2(1536, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="fall_1"]
-atlas = ExtResource("4_fall")
+[sub_resource type="AtlasTexture" id="death_1"]
+atlas = ExtResource("8_death")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="fall_2"]
-atlas = ExtResource("4_fall")
+[sub_resource type="AtlasTexture" id="death_2"]
+atlas = ExtResource("8_death")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="fall_3"]
-atlas = ExtResource("4_fall")
+[sub_resource type="AtlasTexture" id="death_3"]
+atlas = ExtResource("8_death")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="fall_4"]
-atlas = ExtResource("4_fall")
+[sub_resource type="AtlasTexture" id="death_4"]
+atlas = ExtResource("8_death")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="idle_0"]
-atlas = ExtResource("1_idle")
-region = Rect2(0, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="idle_1"]
-atlas = ExtResource("1_idle")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="idle_2"]
-atlas = ExtResource("1_idle")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="idle_3"]
-atlas = ExtResource("1_idle")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="idle_4"]
-atlas = ExtResource("1_idle")
-region = Rect2(512, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="idle_5"]
-atlas = ExtResource("1_idle")
+[sub_resource type="AtlasTexture" id="death_5"]
+atlas = ExtResource("8_death")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="idle_6"]
-atlas = ExtResource("1_idle")
+[sub_resource type="AtlasTexture" id="death_6"]
+atlas = ExtResource("8_death")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="idle_7"]
-atlas = ExtResource("1_idle")
+[sub_resource type="AtlasTexture" id="death_7"]
+atlas = ExtResource("8_death")
 region = Rect2(896, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="jump_1"]
-atlas = ExtResource("3_jump")
+[sub_resource type="AtlasTexture" id="attack_finger_guns_1"]
+atlas = ExtResource("9_attack_finger_guns")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="jump_2"]
-atlas = ExtResource("3_jump")
+[sub_resource type="AtlasTexture" id="attack_finger_guns_2"]
+atlas = ExtResource("9_attack_finger_guns")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="jump_3"]
-atlas = ExtResource("3_jump")
+[sub_resource type="AtlasTexture" id="attack_finger_guns_3"]
+atlas = ExtResource("9_attack_finger_guns")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="jump_4"]
-atlas = ExtResource("3_jump")
+[sub_resource type="AtlasTexture" id="attack_finger_guns_4"]
+atlas = ExtResource("9_attack_finger_guns")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="jump_5"]
-atlas = ExtResource("3_jump")
+[sub_resource type="AtlasTexture" id="attack_finger_guns_5"]
+atlas = ExtResource("9_attack_finger_guns")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="jump_6"]
-atlas = ExtResource("3_jump")
+[sub_resource type="AtlasTexture" id="attack_finger_guns_6"]
+atlas = ExtResource("9_attack_finger_guns")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
-[sub_resource type="AtlasTexture" id="land_1"]
-atlas = ExtResource("5_land")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="land_2"]
-atlas = ExtResource("5_land")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_1"]
-atlas = ExtResource("2_run")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_2"]
-atlas = ExtResource("2_run")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_3"]
-atlas = ExtResource("2_run")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_4"]
-atlas = ExtResource("2_run")
-region = Rect2(512, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_5"]
-atlas = ExtResource("2_run")
-region = Rect2(640, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_6"]
-atlas = ExtResource("2_run")
-region = Rect2(768, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_7"]
-atlas = ExtResource("2_run")
+[sub_resource type="AtlasTexture" id="attack_finger_guns_7"]
+atlas = ExtResource("9_attack_finger_guns")
 region = Rect2(896, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="run_8"]
-atlas = ExtResource("2_run")
-region = Rect2(1024, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="slam_1"]
-atlas = ExtResource("6_slam")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="slam_2"]
-atlas = ExtResource("6_slam")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="slam_3"]
-atlas = ExtResource("6_slam")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="slam_4"]
-atlas = ExtResource("6_slam")
-region = Rect2(512, 0, 128, 80)
-margin = Rect2(1, 0, 2, 0)
-
-[sub_resource type="AtlasTexture" id="slam_5"]
-atlas = ExtResource("6_slam")
-region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_1"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_2"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_3"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_4"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_5"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_6"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_7"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(896, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_8"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(1024, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_mouth_blast_9"]
-atlas = ExtResource("9_special_mouth_blast")
+atlas = ExtResource("10_special_mouth_blast")
 region = Rect2(1152, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_poison_raiser_1"]
-atlas = ExtResource("10_special_poison_raiser")
+atlas = ExtResource("11_special_poison_raiser")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_poison_raiser_2"]
-atlas = ExtResource("10_special_poison_raiser")
+atlas = ExtResource("11_special_poison_raiser")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_poison_raiser_3"]
-atlas = ExtResource("10_special_poison_raiser")
+atlas = ExtResource("11_special_poison_raiser")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_poison_raiser_4"]
-atlas = ExtResource("10_special_poison_raiser")
+atlas = ExtResource("11_special_poison_raiser")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_poison_raiser_5"]
-atlas = ExtResource("10_special_poison_raiser")
+atlas = ExtResource("11_special_poison_raiser")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_poison_raiser_6"]
-atlas = ExtResource("10_special_poison_raiser")
+atlas = ExtResource("11_special_poison_raiser")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_poison_raiser_7"]
-atlas = ExtResource("10_special_poison_raiser")
+atlas = ExtResource("11_special_poison_raiser")
 region = Rect2(896, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [resource]
+metadata/hit_frames = {"attack_finger_guns": [1, 3, 6], "special_mouth_blast": [2, 5, 8], "special_poison_raiser": [3]}
+metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "fall": 1, "land": 1, "slam": 1, "dash": 1, "death": 1, "attack_finger_guns": 1, "special_mouth_blast": 1, "special_poison_raiser": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("attack_finger_guns_1")
+"texture": SubResource("idle_0")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_finger_guns_2")
+"texture": SubResource("idle_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_finger_guns_3")
+"texture": SubResource("idle_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_finger_guns_4")
+"texture": SubResource("idle_3")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_finger_guns_5")
+"texture": SubResource("idle_4")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_finger_guns_6")
+"texture": SubResource("idle_5")
 }, {
 "duration": 1.0,
-"texture": SubResource("attack_finger_guns_7")
+"texture": SubResource("idle_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_7")
 }],
-"loop": 0,
-"name": &"attack_finger_guns",
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("run_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("run_8")
+}],
+"loop": true,
+"name": &"run",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("jump_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("jump_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("jump_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("jump_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("jump_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("jump_6")
+}],
+"loop": false,
+"name": &"jump",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("fall_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("fall_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("fall_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("fall_4")
+}],
+"loop": true,
+"name": &"fall",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("land_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("land_2")
+}],
+"loop": false,
+"name": &"land",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("slam_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("slam_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("slam_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("slam_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("slam_5")
+}],
+"loop": false,
+"name": &"slam",
 "speed": 12.0
 }, {
 "frames": [{
@@ -416,137 +557,60 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("dash_12")
 }],
-"loop": 0,
+"loop": false,
 "name": &"dash",
 "speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("fall_1")
+"texture": SubResource("death_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("fall_2")
+"texture": SubResource("death_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("fall_3")
+"texture": SubResource("death_3")
 }, {
 "duration": 1.0,
-"texture": SubResource("fall_4")
+"texture": SubResource("death_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("death_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("death_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("death_7")
 }],
-"loop": 1,
-"name": &"fall",
-"speed": 10.0
+"loop": false,
+"name": &"death",
+"speed": 8.0
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("idle_0")
+"texture": SubResource("attack_finger_guns_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("idle_1")
+"texture": SubResource("attack_finger_guns_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("idle_2")
+"texture": SubResource("attack_finger_guns_3")
 }, {
 "duration": 1.0,
-"texture": SubResource("idle_3")
+"texture": SubResource("attack_finger_guns_4")
 }, {
 "duration": 1.0,
-"texture": SubResource("idle_4")
+"texture": SubResource("attack_finger_guns_5")
 }, {
 "duration": 1.0,
-"texture": SubResource("idle_5")
+"texture": SubResource("attack_finger_guns_6")
 }, {
 "duration": 1.0,
-"texture": SubResource("idle_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("idle_7")
+"texture": SubResource("attack_finger_guns_7")
 }],
-"loop": 1,
-"name": &"idle",
-"speed": 6.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("jump_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("jump_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("jump_3")
-}, {
-"duration": 1.0,
-"texture": SubResource("jump_4")
-}, {
-"duration": 1.0,
-"texture": SubResource("jump_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("jump_6")
-}],
-"loop": 0,
-"name": &"jump",
-"speed": 10.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("land_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("land_2")
-}],
-"loop": 0,
-"name": &"land",
-"speed": 12.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("run_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("run_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("run_3")
-}, {
-"duration": 1.0,
-"texture": SubResource("run_4")
-}, {
-"duration": 1.0,
-"texture": SubResource("run_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("run_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("run_7")
-}, {
-"duration": 1.0,
-"texture": SubResource("run_8")
-}],
-"loop": 1,
-"name": &"run",
-"speed": 10.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("slam_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("slam_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("slam_3")
-}, {
-"duration": 1.0,
-"texture": SubResource("slam_4")
-}, {
-"duration": 1.0,
-"texture": SubResource("slam_5")
-}],
-"loop": 0,
-"name": &"slam",
+"loop": false,
+"name": &"attack_finger_guns",
 "speed": 12.0
 }, {
 "frames": [{
@@ -577,7 +641,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("special_mouth_blast_9")
 }],
-"loop": 0,
+"loop": false,
 "name": &"special_mouth_blast",
 "speed": 10.0
 }, {
@@ -603,24 +667,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("special_poison_raiser_7")
 }],
-"loop": 0,
+"loop": false,
 "name": &"special_poison_raiser",
 "speed": 13.0
 }]
-metadata/hit_frames = {
-"attack_finger_guns": [1, 3, 6],
-"special_mouth_blast": [2, 5, 8],
-"special_poison_raiser": [3]
-}
-metadata/sheet_start = {
-"attack_finger_guns": 1,
-"dash": 1,
-"fall": 1,
-"idle": 0,
-"jump": 1,
-"land": 1,
-"run": 1,
-"slam": 1,
-"special_mouth_blast": 1,
-"special_poison_raiser": 1
-}

@@ -39,8 +39,18 @@ vfx/
                             enemy's `ranged_particle`, not the director index.
   shared/textures/          Cross-entity building blocks: pixel_ember.png, soft_dot.png
                             (used by enemies and several characters)
+  shared/particle_effects/  Cross-character effect scenes -- notably death_default.tscn,
+                            the DEFAULT death burst. The director searches
+                            character/<id>/ before shared/, so any character can drop its
+                            own death_default.tscn (e.g. death/default/) to override it.
   stage/                    Ambient / background stage effects
 ```
+
+**Death particle.** `death` is a real animation now, so its emitter auto-fires on the
+death-anim frames like `run`/`jump` — each character has a `"death"` entry in
+`emitters.json` pointing at `death_default` (resolved from `shared/particle_effects/`
+unless overridden per-character). The placeholder fires a burst on sheet frame 2; retune
+the frame/scene per character.
 
 **Naming rule.** A scene's basename is what `emitters.json` refers to, so keep it
 unique per character and role-named: `attack_chainsaw`, `run_default`,

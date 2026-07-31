@@ -126,7 +126,7 @@ var health: float = 100.0:
 ## (~34°). The puff leans opposite to horizontal travel; 0 = straight down. Tune to taste.
 const DOUBLE_JUMP_LEAN := 0.6
 
-enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL}
+enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH}
 
 var _state: State = State.IDLE
 var _facing: int = 1
@@ -164,6 +164,11 @@ var _air_jumps_used: int = 0
 var _jump_launch: bool = false
 ## True once a slam has released its impact frames (near the ground), so the held
 ## descent doesn't re-lock and the sprite stays shown while the impact plays out.
+## True from the killing blow until revive(): input is frozen, the hurtbox is off, and the
+## death animation plays. `_death_finished` flips once that animation reaches its end (it
+## then holds the last frame) -- the level waits for death_complete() before respawning.
+var _dead: bool = false
+var _death_finished: bool = false
 var _slam_impacting: bool = false
 ## Feet-y at the moment the slam began, so the impact can scale damage by the plunge
 ## distance (global_position.y - _slam_start_y at release). See _slam_release.
@@ -343,6 +348,8 @@ func portrait_path() -> String:
 func take_damage(amount: float) -> void:
 	health -= amount
 	flash(_sprite)
+	if health <= 0.0 and not _dead:
+		_die()
 
 
 ## Build the combat boxes and register on the "player" group so enemies find us.
@@ -388,6 +395,8 @@ func active_hit() -> Dictionary:
 ## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
 func _on_hurt(hit: Hit) -> void:
 	take_damage(hit.amount)
+	if _dead:
+		return  # the killing blow: death takes over -- no knockback/stun/reactions
 	# Per-character reaction to being hurt (retaliation, defensive buff, ...).
 	if _ability != null:
 		_ability.on_hurt(self, hit)
@@ -466,6 +475,60 @@ func heal(amount: float) -> void:
 	health += amount
 
 
+func is_dead() -> bool:
+	return _dead
+
+
+## True once the death animation has fully played out (and is now holding its last frame),
+## so the level knows it can respawn. See character_switcher.
+func death_complete() -> bool:
+	return _dead and _death_finished
+
+
+## The killing blow landed. Freeze into the DEATH state: kill any swing/channel, turn the
+## hurtbox off (no more hits), and play the death animation once -- the director fires the
+## `death` particle from emitters.json on its frames, like any other animation. The body
+## still falls to the ground (see _process_death); revive() clears all this on respawn.
+func _die() -> void:
+	if _dead:
+		return
+	_dead = true
+	_death_finished = false
+	_stun_left = 0.0
+	_combo_playing = false
+	_flurry = false
+	_hold_left = 0.0
+	if _channel != null and is_instance_valid(_channel):
+		_channel.cancel()
+	_channel = null
+	if _hurtbox != null:
+		_hurtbox.monitorable = false
+	if has_anim(&"death"):
+		_enter(State.DEATH)
+	else:
+		_death_finished = true  # no death sheet -> nothing to play; respawn at once
+
+
+## Dead: no input, just let the body settle to the ground while the death anim plays out.
+func _process_death(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+	if is_on_floor():
+		velocity.y = 0.0
+	else:
+		velocity.y += gravity * delta
+
+
+## Bring the player back to life at full health (the level repositions us). Undoes _die.
+func revive() -> void:
+	_dead = false
+	_death_finished = false
+	health = max_health
+	velocity = Vector2.ZERO
+	if _hurtbox != null:
+		_hurtbox.monitorable = true
+	_enter(State.IDLE)
+
+
 ## Switch to character `id` if it's a known one (swaps SpriteFrames + ability).
 func set_character(id: String) -> void:
 	if id in CharacterConfig.IDS:
@@ -506,7 +569,9 @@ func _physics_process(delta: float) -> void:
 		_air_jumps_used = 0 # refresh the double jump on every touchdown
 	_was_on_floor = on_floor
 
-	if _stun_left > 0.0:
+	if _state == State.DEATH:
+		_process_death(delta)  # highest priority: death overrides stun and everything else
+	elif _stun_left > 0.0:
 		_process_stun(delta)
 	elif _state == State.DASH:
 		_process_dash(delta)
@@ -532,7 +597,8 @@ func _physics_process(delta: float) -> void:
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
 	# i-frame window is unchanged by a longer dash_anim_time.
 	if _hurtbox != null:
-		_hurtbox.monitorable = not (_state == State.DASH and _dash_left > 0.0)
+		# Off while dead (no more hits) and during the dash i-frame window.
+		_hurtbox.monitorable = not _dead and not (_state == State.DASH and _dash_left > 0.0)
 
 	move_and_slide()
 	_update_animation(delta)
@@ -995,6 +1061,8 @@ func _enter(state: State) -> void:
 			_dash_custom = _ability != null and _ability.dash(self)
 		State.ATTACK:
 			velocity.x = 0.0
+		State.DEATH:
+			velocity.x = 0.0  # collapse in place; _process_death lets the body fall
 		State.SLAM:
 			# Commit: kill horizontal drift and start the downward plunge now.
 			velocity = Vector2(0.0, slam_speed)
@@ -1012,6 +1080,7 @@ func _animation_for(state: State) -> StringName:
 		State.SPECIAL: return _current_special.animation
 		State.LAND: return &"land"
 		State.SLAM: return &"slam"
+		State.DEATH: return &"death"
 		_: return &"idle"
 
 
@@ -1060,6 +1129,11 @@ func _loop_meta(key: StringName) -> int:
 
 
 func _on_animation_finished() -> void:
+	# Death played out: hold the final (dead) frame and tell the level it can respawn.
+	if _state == State.DEATH:
+		_sprite.pause()
+		_death_finished = true
+		return
 	# Jump's launch/rise is over: if we're still airborne, hand off to FALL (characters
 	# with a fall sheet; others just hold the last jump frame -- no fall state).
 	if _state == State.JUMP and not is_on_floor() and _has_fall():

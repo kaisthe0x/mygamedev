@@ -17,6 +17,12 @@ const CAM_TIGHTEN_START := 600.0
 const CAM_TIGHTEN_FULL := 1200.0
 ## The near-snap lerp weight the follow reaches at full tightness (1.0 = hard snap).
 const CAM_TIGHT_K := 0.9
+## Death flair: zoom (Camera2D.zoom -- bigger = more zoomed IN) at rest vs punched in on
+## death so the death animation reads, and how long the corpse holds (zoomed) after the
+## animation finishes before we respawn.
+const CAM_ZOOM_NORMAL := Vector2(1.5, 1.5)
+const CAM_ZOOM_DEATH := Vector2(2.25, 2.25)
+const DEATH_HOLD := 0.7
 # ---------------------------------------------------------------------------------
 
 @export var player_path: NodePath = ^"Player"
@@ -27,6 +33,10 @@ const CAM_TIGHT_K := 0.9
 
 @onready var _player: Player = get_node_or_null(player_path) as Player
 @onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
+
+var _dead_prev := false     ## edge-detect the death so the zoom-in fires once
+var _death_hold := 0.0      ## time the finished death pose holds (zoomed) before respawn
+var _cam_tween: Tween
 
 
 func _ready() -> void:
@@ -49,8 +59,12 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
-	# Fell into the void or was killed -> respawn at the safe start.
-	if _player.global_position.y > LevelConfig.DEATH_Y or _player.health <= 0.0:
+	# Died (HP hit 0): let the death animation play out, zoomed in, THEN respawn.
+	if _player.is_dead():
+		_handle_death(delta)
+		return
+	# Fell into the void (alive) -> instant reset at the safe start, no death anim.
+	if _player.global_position.y > LevelConfig.DEATH_Y:
 		_respawn_player()
 		return
 	# Follow the player so you can traverse across the platforms. Speed-adaptive: loose
@@ -67,14 +81,44 @@ func _physics_process(delta: float) -> void:
 		_camera.global_position = _camera.global_position.lerp(target, k)
 
 
+## Death flair: on the first frame of death, punch the camera in and start the hold; keep
+## the camera centred on the collapsing character; once the animation has fully played and
+## the hold elapses, respawn. Enemies already ignore a dead player (Enemy._player), so the
+## kill zone goes quiet while this plays.
+func _handle_death(delta: float) -> void:
+	if not _dead_prev:
+		_dead_prev = true
+		_death_hold = DEATH_HOLD
+		_zoom_to(CAM_ZOOM_DEATH, 0.45)
+	if _camera != null:
+		var target := _player.global_position + Vector2(0, -18)
+		_camera.global_position = _camera.global_position.lerp(target, 0.12)
+	if _player.death_complete():
+		_death_hold -= delta
+		if _death_hold <= 0.0:
+			_respawn_player()
+
+
+## Tween the camera zoom to `z` over `dur`, cancelling any in-flight zoom tween.
+func _zoom_to(z: Vector2, dur: float) -> void:
+	if _camera == null:
+		return
+	if _cam_tween != null and _cam_tween.is_valid():
+		_cam_tween.kill()
+	_cam_tween = _camera.create_tween()
+	_cam_tween.tween_property(_camera, "zoom", z, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
 ## Reset the player to the safe start, full health, and clear any bolts still in
-## the air so you aren't hit the instant you reappear.
+## the air so you aren't hit the instant you reappear. Also zooms back out (undoing the
+## death punch-in) and clears the death edge so the next death re-triggers the flair.
 func _respawn_player() -> void:
-	_player.velocity = Vector2.ZERO
-	_player.health = _player.max_health
+	_player.revive()  # full health, hurtbox back on, state -> idle (undoes _die)
+	_dead_prev = false
 	Nodes.place_at(_player, LevelConfig.SPAWN)
 	for proj in get_tree().get_nodes_in_group("projectiles"):
 		proj.queue_free()
+	_zoom_to(CAM_ZOOM_NORMAL, 0.3)
 	if _camera != null:
 		Nodes.place_at(_camera, LevelConfig.SPAWN + Vector2(0, -30))
 

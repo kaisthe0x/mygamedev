@@ -573,7 +573,12 @@ func _die() -> void:
 # --- helpers ----------------------------------------------------------------
 
 func _player() -> Node2D:
-	return get_tree().get_first_node_in_group("player") as Node2D
+	var p := get_tree().get_first_node_in_group("player") as Node2D
+	# A dead player is no target: enemies stop detecting/attacking and go back to patrol
+	# while the death anim + respawn play out.
+	if p != null and p.has_method("is_dead") and p.is_dead():
+		return null
+	return p
 
 
 func _face(dir: int) -> void:

@@ -79,9 +79,9 @@ This is the part worth understanding, because the source sheets are irregular.
 ### The problem
 
 Each character has up to several sheets (`idle`, `run`, `jump`, `fall`, `land`,
-`dash`, `slam`, `attack`, `special`) — `fall`, `land`, and `slam` are optional, so
-a character without that sheet just can't do it (the mechanic no-ops for them; see
-below). They are single-row grids, but nothing else is consistent:
+`dash`, `slam`, `attack`, `special`, `death`) — `fall`, `land`, `slam`, and `death` are
+optional, so a character without that sheet just can't do it (the mechanic no-ops for
+them; a character with no `death` sheet just respawns instantly — see below). They are single-row grids, but nothing else is consistent:
 
 - Frame counts vary (2-13+) between animations *and* between characters — the
   slicer (`frame_count`) auto-detects the count, up to a generous cap, so long
@@ -808,10 +808,19 @@ run's playback speed to actual ground speed (`speed / run_speed × run_anim_spee
 clamped), so the legs keep pace — busier when sprinting, slower when starting —
 instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
 (default 1.5) is the tuning knob.
-- **Respawn** — falling below `DEATH_Y` (into the void) or dropping to 0 health
-  puts the player back at `SPAWN` with full health, and clears in-flight
-  projectiles so you're not hit on reappear. No more force-restarting after a
-  fall.
+- **Death (0 HP)** — a lethal hit puts the player in the **`DEATH`** state (via
+  `_die()` from `take_damage`): input is frozen, the hurtbox turns **off**, any
+  swing/channel is cancelled, and the `death` animation plays once (then holds its last
+  frame — `_death_finished`). It fires the `death` particle from `emitters.json` on its
+  frames like any other anim. **Enemies stop attacking**: `Enemy._player()` returns
+  `null` for a dead player, so the zone goes quiet. The character_switcher waits for
+  `death_complete()` (+ a short `DEATH_HOLD`) before respawning via `revive()`.
+- **Death flair** — on death the camera **punches in** (`CAM_ZOOM_DEATH` 2.25 vs the
+  1.5 rest zoom, tweened) and centres tight on the collapsing character so the animation
+  reads; respawn zooms back out. Purely in `character_switcher` — tune/disable there.
+- **Respawn** — after the death plays out, or on falling below `DEATH_Y` (into the void,
+  which is an *instant* reset — no death anim), the player is back at `SPAWN` with full
+  health, in-flight projectiles cleared so you're not hit on reappear.
 - **Dev key `0`** clears and respawns the enemy roster to keep fighting.
 
 Move platforms/enemies into the level scene proper (drag `enemy.tscn` in) when

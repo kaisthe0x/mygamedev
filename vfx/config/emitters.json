@@ -1,6 +1,15 @@
 {
   "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene's BASENAME, resolved by recursively indexing vfx/character/<character>/ plus vfx/shared/ -- so it resolves wherever the .tscn is filed, e.g. attack/chainsaw/, dash/default/, other/), node (OPTIONAL: one named child of a 'palette' scene to fire on its own -- list the same type with different node values to schedule different children at different frames, e.g. attack_finger_guns's Shot on [2,4] and ShotLast on [7]; omit for the whole scene as before), set (OPTIONAL: per-row property overrides so one scene covers several variants without a clone -- keys are 'ChildPath:property', empty path = the spawned node itself, and a 'res://...' value is loaded as a Resource, e.g. {\"Trail:texture\": \"res://...\"}), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left), boost (optional intensity MULTIPLIERS on the scene's own values so one type can be reused at different power levels: amount, speed, scale, lifetime; plus explosiveness which is absolute 0-1). clip_to_ground (optional bool on a burst: clamp its rectangular emission band and hitbox to the edges of the platform directly underfoot, so a ground blast doesn't spill past the ledge into open air).",
   "wayna": {
+    "death": [
+      {
+        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "type": "death_default",
+        "mode": "burst",
+        "frames": [2],
+        "pos": [0, -16]
+      }
+    ],
     "run": [
       {
         "type": "run_default",
@@ -81,6 +90,15 @@
     ]
   },
   "lenbondosen": {
+    "death": [
+      {
+        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "type": "death_default",
+        "mode": "burst",
+        "frames": [2],
+        "pos": [0, -16]
+      }
+    ],
     "idle": [
       {
         "type": "special_ready",
@@ -186,6 +204,15 @@
     ]
   },
   "katalyst": {
+    "death": [
+      {
+        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "type": "death_default",
+        "mode": "burst",
+        "frames": [2],
+        "pos": [0, -16]
+      }
+    ],
     "idle": [
       {
         "type": "special_ready",
@@ -252,6 +279,15 @@
     ]
   },
   "feyke": {
+    "death": [
+      {
+        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "type": "death_default",
+        "mode": "burst",
+        "frames": [2],
+        "pos": [0, -16]
+      }
+    ],
     "idle": [
       {
         "type": "special_ready",
@@ -339,6 +375,15 @@
     ]
   },
   "khalid": {
+    "death": [
+      {
+        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "type": "death_default",
+        "mode": "burst",
+        "frames": [2],
+        "pos": [0, -16]
+      }
+    ],
     "run": [
       {
         "type": "run_default",
