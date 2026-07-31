@@ -38,17 +38,18 @@ vfx/
                             kebus/attack/attack_bolt.tscn). Loaded by PATH via the
                             enemy's `ranged_particle`, not the director index.
     death/default/           death burst, tinted to this character's palette
+    spawn/default/           spawn (materialize) burst, tinted to this character's palette
   shared/textures/          Cross-entity building blocks: pixel_ember.png, soft_dot.png
                             (used by enemies and several characters)
   stage/                    Ambient / background stage effects
 ```
 
-**Death particle.** `death` is a real animation now, so its emitter auto-fires on the
-death-anim frames like `run`/`jump`. Each character has its **own**
-`death/default/death_default.tscn` (colours pulled from that character's
-`dash/default/` palette) and a `"death"` entry in `emitters.json` firing a burst on the
-**last** death frame (so the poof lands as the pose settles). Retune the frame/scene per
-character.
+**Death + spawn particles.** `death` and `spawn` are real animations, so their emitters
+auto-fire on the anim frames like `run`/`jump`. Each character has its **own**
+`death/default/death_default.tscn` and `spawn/default/spawn_default.tscn` (colours pulled
+from that character's `dash/default/` palette). In `emitters.json`: `"death"` fires a
+burst on the **last** death frame (the poof lands as the pose dissolves), `"spawn"` on the
+**first** spawn frame (as the character materializes). Retune frame/scene per character.
 
 **Naming rule.** A scene's basename is what `emitters.json` refers to, so keep it
 unique per character and role-named: `attack_chainsaw`, `run_default`,

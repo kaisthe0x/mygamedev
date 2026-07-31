@@ -1,6 +1,15 @@
 {
   "_comment": "Frame-indexed 2D particle emitters. Keyed character -> animation -> list of emitters. Each emitter: type (a scene's BASENAME, resolved by recursively indexing vfx/character/<character>/ plus vfx/shared/ -- so it resolves wherever the .tscn is filed, e.g. attack/chainsaw/, dash/default/, other/), node (OPTIONAL: one named child of a 'palette' scene to fire on its own -- list the same type with different node values to schedule different children at different frames, e.g. attack_finger_guns's Shot on [2,4] and ShotLast on [7]; omit for the whole scene as before), set (OPTIONAL: per-row property overrides so one scene covers several variants without a clone -- keys are 'ChildPath:property', empty path = the spawned node itself, and a 'res://...' value is loaded as a Resource, e.g. {\"Trail:texture\": \"res://...\"}), mode ('sustained' emits while any listed frame is on screen; 'burst' spawns a one-shot each time a listed frame is entered), frames (SHEET-relative indices, same numbering as the generator's loop_from/hit_frames; the idle-reference frame 0 counts), pos ([x, y] pixel offset from the sprite origin at the feet, for facing right; auto-mirrored when facing left), boost (optional intensity MULTIPLIERS on the scene's own values so one type can be reused at different power levels: amount, speed, scale, lifetime; plus explosiveness which is absolute 0-1). clip_to_ground (optional bool on a burst: clamp its rectangular emission band and hitbox to the edges of the platform directly underfoot, so a ground blast doesn't spill past the ledge into open air).",
   "wayna": {
+    "spawn": [
+      {
+        "_comment": "Auto-fires on the FIRST spawn-anim frame (the materialize), mirroring the death particle on its last. Uses this character's spawn/default/spawn_default.tscn (tinted to their dash palette).",
+        "type": "spawn_default",
+        "mode": "burst",
+        "frames": [1],
+        "pos": [0, -16]
+      }
+    ],
     "blink_out": [
       {
         "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
@@ -105,6 +114,15 @@
     ]
   },
   "lenbondosen": {
+    "spawn": [
+      {
+        "_comment": "Auto-fires on the FIRST spawn-anim frame (the materialize), mirroring the death particle on its last. Uses this character's spawn/default/spawn_default.tscn (tinted to their dash palette).",
+        "type": "spawn_default",
+        "mode": "burst",
+        "frames": [1],
+        "pos": [0, -16]
+      }
+    ],
     "blink_out": [
       {
         "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
@@ -234,6 +252,15 @@
     ]
   },
   "katalyst": {
+    "spawn": [
+      {
+        "_comment": "Auto-fires on the FIRST spawn-anim frame (the materialize), mirroring the death particle on its last. Uses this character's spawn/default/spawn_default.tscn (tinted to their dash palette).",
+        "type": "spawn_default",
+        "mode": "burst",
+        "frames": [1],
+        "pos": [0, -16]
+      }
+    ],
     "blink_out": [
       {
         "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
@@ -324,6 +351,15 @@
     ]
   },
   "feyke": {
+    "spawn": [
+      {
+        "_comment": "Auto-fires on the FIRST spawn-anim frame (the materialize), mirroring the death particle on its last. Uses this character's spawn/default/spawn_default.tscn (tinted to their dash palette).",
+        "type": "spawn_default",
+        "mode": "burst",
+        "frames": [1],
+        "pos": [0, -16]
+      }
+    ],
     "blink_out": [
       {
         "_comment": "Fired from code (player._do_blink -> fire_effect) at the spot we leave, when this character's BLINK_DASH is on. Not a real anim, so it only fires on the blink.",
@@ -435,6 +471,15 @@
     ]
   },
   "khalid": {
+    "spawn": [
+      {
+        "_comment": "Auto-fires on the FIRST spawn-anim frame (the materialize), mirroring the death particle on its last. Uses this character's spawn/default/spawn_default.tscn (tinted to their dash palette).",
+        "type": "spawn_default",
+        "mode": "burst",
+        "frames": [1],
+        "pos": [0, -16]
+      }
+    ],
     "death": [
       {
         "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",

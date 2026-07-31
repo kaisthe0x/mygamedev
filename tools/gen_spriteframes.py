@@ -45,6 +45,7 @@ CHARACTER_ANIMS = {
     "attack": (12.0, False),
     "special": (10.0, False),
     "death": (10.0, False),  # plays once on death, then holds the last (dead) frame
+    "spawn": (10.0, False),  # plays once when the character (re)spawns, then hands to idle
 }
 ENEMY_ANIMS = {
     "idle": (6.0, True),

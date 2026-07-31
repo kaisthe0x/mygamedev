@@ -42,7 +42,6 @@ tools/                Generator + verification scripts (not shipped)
 | Shift | `dash` | Has a cooldown |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** (no air attacks) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
-| Q / E | `prev_character` / `next_character` | Dev only |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — clear + respawn all enemies |
 
@@ -56,8 +55,11 @@ mouse cursor does **not** steer facing or aim (a previous mouse-look experiment 
 removed). If you want cursor-aim back for keyboard+mouse without breaking controller
 play, the clean way is "last input device wins" — ask and I'll wire it.
 
-Q/E/Z/X live in `scripts/character_switcher.gd` — all the dev scaffolding is in
-that one file so it can be deleted in one go.
+**Which character you play is chosen in code.** In-game Q/E switching is **gone** — set
+the **`START_CHARACTER`** constant at the top of `scripts/character_switcher.gd` to any id
+in `CharacterConfig.IDS` (`feyke`/`katalyst`/`khalid`/`lenbondosen`/`wayna`). The game
+spawns that one character. The remaining dev keys (Z/X debug damage/heal, `0` respawn
+enemies) live in that same file — all the scaffolding in one place, deletable in one go.
 
 **The test level is vertical.** `configs/level_config.gd` holds it as data —
 `PLATFORMS` (a tall zigzag tower of one-way platforms, each `[center_x, top_y,
@@ -79,9 +81,10 @@ This is the part worth understanding, because the source sheets are irregular.
 ### The problem
 
 Each character has up to several sheets (`idle`, `run`, `jump`, `fall`, `land`,
-`dash`, `slam`, `attack`, `special`, `death`) — `fall`, `land`, `slam`, and `death` are
-optional, so a character without that sheet just can't do it (the mechanic no-ops for
-them; a character with no `death` sheet just respawns instantly — see below). They are single-row grids, but nothing else is consistent:
+`dash`, `slam`, `attack`, `special`, `death`, `spawn`) — `fall`, `land`, `slam`, `death`,
+and `spawn` are optional, so a character without that sheet just can't do it (the mechanic
+no-ops for them; no `death` sheet → respawn instantly, no `spawn` sheet → appear instantly
+— see below). They are single-row grids, but nothing else is consistent:
 
 - Frame counts vary (2-13+) between animations *and* between characters — the
   slicer (`frame_count`) auto-detects the count, up to a generous cap, so long
@@ -183,6 +186,8 @@ generator:
 | dash | 12 | no |
 | attack | 12 | no |
 | special | 10 | no |
+| death | 10 | no |
+| spawn | 10 | no |
 
 ### Per-character timing
 
@@ -289,8 +294,8 @@ and a matching case in `_animation_for()` in `player.gd`.
 ## Player
 
 `scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM`). Everything is tunable
-in the inspector.
+(`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM / DEATH / SPAWN`).
+Everything is tunable in the inspector.
 
 | Group | Key values |
 |---|---|
@@ -462,12 +467,10 @@ Katalyst's 13-frame transform-dash plays fully inside the 0.18s window. Grounded
 falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
 
-**API for other systems:** `take_damage()`, `heal()`, `is_alive()`,
-`set_character()`, `cycle_character()`, `portrait_path()`, and the
-`health_changed` / `character_changed` signals.
-
-> Health is deliberately bare — no damage sources, i-frames, or death handling
-> yet, because nothing can hurt you.
+**API for other systems:** `take_damage()`, `heal()`, `is_dead()`, `death_complete()`,
+`spawn()`, `revive()`, `set_character()`, `portrait_path()`, and the
+`health_changed` / `character_changed` signals. (Enemies deal real damage now; a lethal
+hit runs the full death → respawn → spawn lifecycle — see **Death** / **Spawn** below.)
 
 ---
 
@@ -837,6 +840,18 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
 - **Respawn** — after the death plays out, or on falling below `DEATH_Y` (into the void,
   which is an *instant* reset — no death anim), the player is back at `SPAWN` with full
   health, in-flight projectiles cleared so you're not hit on reappear.
+- **Spawn (materialize)** — every (re)spawn — the initial game start *and* every respawn —
+  enters the **`SPAWN`** state: input is frozen and the hurtbox is **off** (spawn
+  protection, so it always plays fully) while the `spawn` animation plays, auto-firing the
+  character's own `spawn/default/` particle (tinted to their dash palette) on its **first**
+  frame; `_on_animation_finished` hands off to idle. `Player.spawn()` drives it (called by
+  `character_switcher._ready` for the initial spawn and by `revive()` on respawn); a
+  character with no `spawn` sheet just drops straight to idle.
+- **Spawn flair** — the camera **zooms in** (`CAM_ZOOM_SPAWN`, same 2.25 as the death
+  punch-in) and centres on the materializing character while `SPAWN` plays, then **pulls
+  back out** to normal the instant it ends. Because the spawn and death zooms match, a
+  death → respawn → spawn stays smoothly zoomed the whole way and only reveals the level
+  once you have control. Also in `character_switcher` — tune/disable there.
 - **Dev key `0`** clears and respawns the enemy roster to keep fighting.
 
 Move platforms/enemies into the level scene proper (drag `enemy.tscn` in) when

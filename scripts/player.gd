@@ -126,7 +126,7 @@ var health: float = 100.0:
 ## (~34°). The puff leans opposite to horizontal travel; 0 = straight down. Tune to taste.
 const DOUBLE_JUMP_LEAN := 0.6
 
-enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH}
+enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPAWN}
 
 var _state: State = State.IDLE
 var _facing: int = 1
@@ -545,15 +545,37 @@ func _process_death(delta: float) -> void:
 		velocity.y += gravity * delta
 
 
-## Bring the player back to life at full health (the level repositions us). Undoes _die.
+## Spawning: no input, just settle onto the ground while the spawn (materialize) anim plays.
+func _process_spawn(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+	if is_on_floor():
+		velocity.y = 0.0
+	else:
+		velocity.y += gravity * delta
+
+
+## Bring the player back to life at full health (the level repositions us). Undoes _die,
+## then plays the spawn animation like a fresh spawn.
 func revive() -> void:
 	_dead = false
 	_death_finished = false
 	health = max_health
 	velocity = Vector2.ZERO
-	if _hurtbox != null:
-		_hurtbox.monitorable = true
-	_enter(State.IDLE)
+	spawn()
+
+
+## Play the spawn (materialize) animation, then hand off to idle -- input is frozen and the
+## hurtbox is off (spawn protection) until it finishes, so it always plays all the way out.
+## Used both on the initial spawn (character_switcher) and every respawn (revive). A
+## character with no `spawn` sheet just drops straight to idle.
+func spawn() -> void:
+	velocity = Vector2.ZERO
+	if has_anim(&"spawn"):
+		_enter(State.SPAWN)
+	else:
+		if _hurtbox != null:
+			_hurtbox.monitorable = true
+		_enter(State.IDLE)
 
 
 ## Switch to character `id` if it's a known one (swaps SpriteFrames + ability).
@@ -598,6 +620,8 @@ func _physics_process(delta: float) -> void:
 
 	if _state == State.DEATH:
 		_process_death(delta)  # highest priority: death overrides stun and everything else
+	elif _state == State.SPAWN:
+		_process_spawn(delta)  # materializing: frozen input until the spawn anim finishes
 	elif _stun_left > 0.0:
 		_process_stun(delta)
 	elif _state == State.DASH:
@@ -624,8 +648,10 @@ func _physics_process(delta: float) -> void:
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
 	# i-frame window is unchanged by a longer dash_anim_time.
 	if _hurtbox != null:
-		# Off while dead (no more hits) and during the dash i-frame window.
-		_hurtbox.monitorable = not _dead and not (_state == State.DASH and _dash_left > 0.0)
+		# Off while dead, while spawning (protection so the materialize plays out), and
+		# during the dash i-frame window.
+		_hurtbox.monitorable = not _dead and _state != State.SPAWN \
+			and not (_state == State.DASH and _dash_left > 0.0)
 
 	move_and_slide()
 	_update_animation(delta)
@@ -1092,6 +1118,8 @@ func _enter(state: State) -> void:
 			velocity.x = 0.0
 		State.DEATH:
 			velocity.x = 0.0  # collapse in place; _process_death lets the body fall
+		State.SPAWN:
+			velocity.x = 0.0  # materialize in place; _process_spawn lets the body settle
 		State.SLAM:
 			# Commit: kill horizontal drift and start the downward plunge now.
 			velocity = Vector2(0.0, slam_speed)
@@ -1110,6 +1138,7 @@ func _animation_for(state: State) -> StringName:
 		State.LAND: return &"land"
 		State.SLAM: return &"slam"
 		State.DEATH: return &"death"
+		State.SPAWN: return &"spawn"
 		_: return &"idle"
 
 
@@ -1164,6 +1193,10 @@ func _on_animation_finished() -> void:
 	if _state == State.DEATH:
 		_sprite.visible = false
 		_death_finished = true
+		return
+	# Spawn (materialize) finished: hand control back to idle (hurtbox re-arms via the gate).
+	if _state == State.SPAWN:
+		_enter(State.IDLE)
 		return
 	# Jump's launch/rise is over: if we're still airborne, hand off to FALL (characters
 	# with a fall sheet; others just hold the last jump frame -- no fall state).

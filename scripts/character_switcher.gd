@@ -23,7 +23,18 @@ const CAM_TIGHT_K := 0.9
 const CAM_ZOOM_NORMAL := Vector2(1.5, 1.5)
 const CAM_ZOOM_DEATH := Vector2(2.25, 2.25)
 const DEATH_HOLD := 0.7
+## Spawn flair: zoom in on the character while the spawn (materialize) animation plays,
+## then pull back to CAM_ZOOM_NORMAL the moment it finishes. Same value as the death punch-
+## in so a death -> respawn -> spawn stays smoothly zoomed the whole way through.
+const CAM_ZOOM_SPAWN := Vector2(2.25, 2.25)
 # ---------------------------------------------------------------------------------
+
+## ── WHICH CHARACTER YOU PLAY ──────────────────────────────────────────────────────
+## The game spawns this one character. Change this string to play a different one; valid
+## ids are in CharacterConfig.IDS ("feyke", "katalyst", "khalid", "lenbondosen", "wayna").
+## (In-game Q/E switching is gone -- pick here in code.)
+const START_CHARACTER := "katalyst"
+# ──────────────────────────────────────────────────────────────────────────────────
 
 @export var player_path: NodePath = ^"Player"
 @export var spawn_enemies := true
@@ -34,8 +45,9 @@ const DEATH_HOLD := 0.7
 @onready var _player: Player = get_node_or_null(player_path) as Player
 @onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
-var _dead_prev := false     ## edge-detect the death so the zoom-in fires once
-var _death_hold := 0.0      ## time the finished death pose holds (zoomed) before respawn
+var _dead_prev := false ## edge-detect the death so the zoom-in fires once
+var _death_hold := 0.0 ## time the finished death pose holds (zoomed) before respawn
+var _spawning := false ## true while the spawn anim plays -- camera zoomed in until it ends
 var _cam_tween: Tween
 
 
@@ -43,12 +55,11 @@ func _ready() -> void:
 	_add_glow()
 	_build_platforms()
 	if _player != null:
-		# Katalyst is the newest redesign -- start on him for testing. Q/E still
-		# cycle to the others (older art) if you want to compare.
-		_player.set_character("katalyst")
+		_player.set_character(START_CHARACTER)
 		Nodes.place_at(_player, LevelConfig.SPAWN)
 		if _camera != null:
-			Nodes.place_at(_camera, LevelConfig.SPAWN + Vector2(0, -30))  # start framed on spawn
+			Nodes.place_at(_camera, LevelConfig.SPAWN + Vector2(0, -30)) # start framed on spawn
+		_player.spawn() # play the materialize animation on the initial spawn too
 	if spawn_enemies:
 		_spawn_all()
 
@@ -63,10 +74,18 @@ func _physics_process(delta: float) -> void:
 	if _player.is_dead():
 		_handle_death(delta)
 		return
+	# Spawning (initial + every respawn): stay zoomed in on the materialize animation.
+	if _player.get_state() == Player.State.SPAWN:
+		_handle_spawn(delta)
+		return
 	# Fell into the void (alive) -> instant reset at the safe start, no death anim.
 	if _player.global_position.y > LevelConfig.DEATH_Y:
 		_respawn_player()
 		return
+	# Spawn just finished (any non-spawn state) -> pull the camera back out to normal, once.
+	if _spawning:
+		_spawning = false
+		_zoom_to(CAM_ZOOM_NORMAL, 0.4)
 	# Follow the player so you can traverse across the platforms. Speed-adaptive: loose
 	# and cinematic normally, but tightens toward a near-snap as vertical speed rises,
 	# so a fast fall / slam (~slam_speed) stays centred instead of trailing far behind.
@@ -99,6 +118,19 @@ func _handle_death(delta: float) -> void:
 			_respawn_player()
 
 
+## Spawn flair: punch the camera in on the first frame of the spawn and keep it centred on
+## the materializing character. The zoom-OUT fires from _physics_process the moment the
+## player leaves the SPAWN state (spawn anim done). A death -> respawn -> spawn stays zoomed
+## the whole way (CAM_ZOOM_SPAWN == CAM_ZOOM_DEATH), then pulls out here.
+func _handle_spawn(delta: float) -> void:
+	if not _spawning:
+		_spawning = true
+		_zoom_to(CAM_ZOOM_SPAWN, 0.35)
+	if _camera != null:
+		var target := _player.global_position + Vector2(0, -18)
+		_camera.global_position = _camera.global_position.lerp(target, 0.12)
+
+
 ## Tween the camera zoom to `z` over `dur`, cancelling any in-flight zoom tween.
 func _zoom_to(z: Vector2, dur: float) -> void:
 	if _camera == null:
@@ -113,12 +145,16 @@ func _zoom_to(z: Vector2, dur: float) -> void:
 ## the air so you aren't hit the instant you reappear. Also zooms back out (undoing the
 ## death punch-in) and clears the death edge so the next death re-triggers the flair.
 func _respawn_player() -> void:
-	_player.revive()  # full health, hurtbox back on, state -> idle (undoes _die)
+	_player.revive() # full health, hurtbox back on -> SPAWN (materialize) or idle (undoes _die)
 	_dead_prev = false
 	Nodes.place_at(_player, LevelConfig.SPAWN)
 	for proj in get_tree().get_nodes_in_group("projectiles"):
 		proj.queue_free()
-	_zoom_to(CAM_ZOOM_NORMAL, 0.3)
+	# The spawn animation (if any) keeps us zoomed and pulls out when it ends. A character
+	# with no spawn sheet skips straight to idle, so pull the camera back out here instead.
+	if _player.get_state() != Player.State.SPAWN:
+		_spawning = false
+		_zoom_to(CAM_ZOOM_NORMAL, 0.3)
 	if _camera != null:
 		Nodes.place_at(_camera, LevelConfig.SPAWN + Vector2(0, -30))
 
@@ -133,7 +169,7 @@ func _add_glow() -> void:
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	env.glow_intensity = 0.9
 	env.glow_bloom = 0.15
-	env.glow_hdr_threshold = 1.0  # only pixels brighter than 1.0 (HDR) bloom
+	env.glow_hdr_threshold = 1.0 # only pixels brighter than 1.0 (HDR) bloom
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -149,10 +185,10 @@ func _build_platform(center_x: float, top_y: float, width: float, height: float)
 	body.collision_layer = Combat.L_WORLD
 	body.collision_mask = 0
 	body.position = Vector2(center_x, top_y)
-	body.add_to_group("oneway_platform")  # so the player can drop through it (down+jump)
+	body.add_to_group("oneway_platform") # so the player can drop through it (down+jump)
 
-	var col := Shapes.make_box(Vector2(width, height), Vector2(0, height / 2.0))  # top sits at top_y
-	col.one_way_collision = true  # jump up through it, land on top
+	var col := Shapes.make_box(Vector2(width, height), Vector2(0, height / 2.0)) # top sits at top_y
+	col.one_way_collision = true # jump up through it, land on top
 	body.add_child(col)
 
 	var vis := ColorRect.new()
@@ -195,11 +231,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _player == null:
 		return
-	if event.is_action_pressed("prev_character"):
-		_player.cycle_character(-1)
-	elif event.is_action_pressed("next_character"):
-		_player.cycle_character(1)
-	elif event.is_action_pressed("debug_damage"):
+	# Q/E character switching is intentionally gone -- the played character is chosen in
+	# code via START_CHARACTER (top of this file). Debug damage/heal stay.
+	if event.is_action_pressed("debug_damage"):
 		_player.take_damage(12.0)
 	elif event.is_action_pressed("debug_heal"):
 		_player.heal(20.0)
