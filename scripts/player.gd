@@ -1129,9 +1129,11 @@ func _loop_meta(key: StringName) -> int:
 
 
 func _on_animation_finished() -> void:
-	# Death played out: hold the final (dead) frame and tell the level it can respawn.
+	# Death played out: HIDE the sprite (the death particle just fired on this last frame,
+	# so the character vanishes into the poof rather than the dead frame sitting there),
+	# and tell the level it can respawn. revive()/_enter restores visibility.
 	if _state == State.DEATH:
-		_sprite.pause()
+		_sprite.visible = false
 		_death_finished = true
 		return
 	# Jump's launch/rise is over: if we're still airborne, hand off to FALL (characters

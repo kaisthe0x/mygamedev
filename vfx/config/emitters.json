@@ -3,10 +3,10 @@
   "wayna": {
     "death": [
       {
-        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
         "type": "death_default",
         "mode": "burst",
-        "frames": [2],
+        "frames": [4],
         "pos": [0, -16]
       }
     ],
@@ -92,10 +92,10 @@
   "lenbondosen": {
     "death": [
       {
-        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
         "type": "death_default",
         "mode": "burst",
-        "frames": [2],
+        "frames": [7],
         "pos": [0, -16]
       }
     ],
@@ -206,10 +206,10 @@
   "katalyst": {
     "death": [
       {
-        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
         "type": "death_default",
         "mode": "burst",
-        "frames": [2],
+        "frames": [8],
         "pos": [0, -16]
       }
     ],
@@ -281,10 +281,10 @@
   "feyke": {
     "death": [
       {
-        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
         "type": "death_default",
         "mode": "burst",
-        "frames": [2],
+        "frames": [9],
         "pos": [0, -16]
       }
     ],
@@ -377,10 +377,10 @@
   "khalid": {
     "death": [
       {
-        "_comment": "Auto-fires on the death animation (a real anim now), like run/jump. Placeholder frame -- tweak per character. Resolves death_default.tscn from vfx/shared/ unless the character folder has its own.",
+        "_comment": "Auto-fires on the death animation's LAST frame (a real anim now), like run/jump. Uses this character's death/default/death_default.tscn (tinted to their dash palette).",
         "type": "death_default",
         "mode": "burst",
-        "frames": [2],
+        "frames": [7],
         "pos": [0, -16]
       }
     ],

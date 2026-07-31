@@ -810,9 +810,12 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
 (default 1.5) is the tuning knob.
 - **Death (0 HP)** — a lethal hit puts the player in the **`DEATH`** state (via
   `_die()` from `take_damage`): input is frozen, the hurtbox turns **off**, any
-  swing/channel is cancelled, and the `death` animation plays once (then holds its last
-  frame — `_death_finished`). It fires the `death` particle from `emitters.json` on its
-  frames like any other anim. **Enemies stop attacking**: `Enemy._player()` returns
+  swing/channel is cancelled, and the `death` animation plays once. It auto-fires the
+  character's own `death/default/` particle (tinted to their dash palette) from
+  `emitters.json` on the **last** death frame; then the **sprite hides**
+  (`_death_finished`) so the character *vanishes into that poof* instead of the dead
+  frame sitting there until respawn (`revive()`/`_enter` restores it). **Enemies stop
+  attacking**: `Enemy._player()` returns
   `null` for a dead player, so the zone goes quiet. The character_switcher waits for
   `death_complete()` (+ a short `DEATH_HOLD`) before respawning via `revive()`.
 - **Death flair** — on death the camera **punches in** (`CAM_ZOOM_DEATH` 2.25 vs the
