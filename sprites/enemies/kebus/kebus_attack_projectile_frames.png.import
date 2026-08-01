@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b3j1tgeahl4u0"
-path="res://.godot/imported/kebus_range_attack_frames.png-c4ef7dad2b49de6ee0839372d22282cf.ctex"
+uid="uid://cm0hl6xkk2mm4"
+path="res://.godot/imported/kebus_attack_projectile_frames.png-a0a2c61fc8a9ba93b63f5af7cc764766.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/kebus/kebus_range_attack_frames.png"
-dest_files=["res://.godot/imported/kebus_range_attack_frames.png-c4ef7dad2b49de6ee0839372d22282cf.ctex"]
+source_file="res://sprites/enemies/kebus/kebus_attack_projectile_frames.png"
+dest_files=["res://.godot/imported/kebus_attack_projectile_frames.png-a0a2c61fc8a9ba93b63f5af7cc764766.ctex"]
 
 [params]
 

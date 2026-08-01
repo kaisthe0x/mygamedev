@@ -16,6 +16,9 @@ extends Area2D
 ## Optional engulfing status overlay on the victim (a > 0 enables it).
 @export var status_color: Color = Color(0, 0, 0, 0)
 @export var status_time: float = 0.0
+## Marks hits from this box as ranged (a projectile). Projectile sets it on its box; melee
+## Strikes leave it false. Carried into the Hit so a victim can react by attack type.
+@export var ranged: bool = false
 ## Who fired this, passed along so the victim knocks back away from them.
 var source: Node = null
 
@@ -78,6 +81,7 @@ func _on_area_entered(area: Area2D) -> void:
 	hit.stun = stun
 	hit.status_color = status_color
 	hit.status_time = status_time if status_time > 0.0 else stun
+	hit.ranged = ranged
 	hit.source = source if source != null else owner
 	box.take_hit(hit)
 	struck.emit(box)

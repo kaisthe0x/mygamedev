@@ -215,12 +215,14 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
   loops his 2-8 raise-a-flame flourish forever until you press something.
 
 `loop_from` / `loop_to` exist because Godot's `loop` flag is all-or-nothing. The
-generator writes the (emitted) indices as resource metadata; `player.gd` jumps
-back to `loop_from` when the anim wraps (`_on_animation_looped`) or when it steps
-past `loop_to` (`_on_frame_changed`, on the render frame so nothing flashes).
-Wayna's run uses `loop_from`; Katalyst's idle uses both. They're sheet-relative
-(count the idle-ref frame 0), same numbering as `HIT_FRAMES`. Each character's
-idle can loop a different range — just author `loop_from`/`loop_to` per sheet.
+generator writes the (emitted) indices as resource metadata; **it doesn't set the loop
+flag** — the reader decides what to do with the range. For a **looping** anim `player.gd`
+jumps back to `loop_from` when the anim wraps (`_on_animation_looped`) or steps past
+`loop_to` (`_on_frame_changed`). For a **non-looping** anim an enemy uses `loop_from` as
+the frame a *re-played* attack restarts at (`Enemy._replay_from`), so a channel/rage's
+wind-up plays once — that's why they no longer require `loop=True`. Wayna's run uses
+`loop_from`; Katalyst's idle uses both; Nasen's rage attack uses it non-looping. They're
+sheet-relative (count the idle-ref frame 0), same numbering as `HIT_FRAMES`.
 
 Special attacks are tuned toward a ~0.5s feel: khalid `hold_last` 2.5 (few frames,
 so the last pose sits rather than the whole swing slowing) and lenbondosen 13 fps
@@ -285,6 +287,12 @@ things it assumes — and they **fail silently as misalignment, not as an error*
    float.
 3. **Single row.** Frame detection only divides horizontally.
 4. **Up to ~32 frames** (the `frame_count` cap), and the naming above.
+
+**Trailing blank frames are OK** (a sheet padded to a wider power-of-two than its real
+count — e.g. 7 death frames in an 8-slot 1024px sheet). `frame_count` keeps the frame
+width and trims the blank tail off playback. But an **interior** blank frame still breaks
+detection (it reads as a gap, not padding) and merges frames — keep gaps out of the
+middle.
 
 Adding a new *animation type* (`hurt`, `death`, ...) means one line in `ANIMS`
 and a matching case in `_animation_for()` in `player.gd`.
@@ -568,7 +576,7 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 ### Enemy sprites
 
 Enemies use the **same pipeline** as characters, just a different group and
-animation set (`idle`, `stroll`, `melee_attack`, `range_attack`). Source sheets
+animation set (`idle`, `stroll`, `attack`, `attack_projectile`, `death`). Source sheets
 live in `sprites/enemies/<id>/`; `gen_spriteframes.py` processes both groups (see
 `GROUPS` at the top) and writes `resources/enemies/<id>.tres`. Enemies share their
 own normalised canvas, independent of the character canvas. Same 128x80 + frame-0
@@ -581,12 +589,14 @@ can be dropped into a level and tuned in the inspector; the sprite, hurtbox,
 hitboxes and health bar are still built in code, so the scene has nothing fragile
 to hand-wire. Key traits:
 
-- **Capabilities are inferred from the art.** `melee_attack` / `range_attack`
-  animations present → that attack is enabled. An enemy with only one attack
-  just works; missing animations are simply never used.
+- **Capabilities are inferred from the art.** An `attack` sheet (a strike/melee) enables
+  the melee box; an `attack_projectile` sheet enables the ranged shot. An enemy with only
+  one — or, like a stationary sleeper, **no `stroll`** — just works; missing animations
+  are never used (a strollless enemy stands instead of patrolling).
 - **Behaviour:** patrols between its spawn point and `spawn + patrol_distance`,
   pausing `idle_time_min..max` seconds at each end. If the player enters
-  `ranged_range` it engages — **melee** within `melee_range`, else **ranged**.
+  `ranged_range` it engages — **melee** (the `attack` strike) within `melee_range`, else
+  **ranged** (the `attack_projectile` shot).
 - **Height-aware engagement (`attack_align_y`, default 40px):** both boxes are
   horizontal, so an enemy only *engages* — attacks, holds, or (with `aggro`) chases —
   when the player is roughly at its own height (feet-to-feet within the band). A
@@ -648,6 +658,12 @@ to hand-wire. Key traits:
     its trail fade out instead of popping.
 - **Melee** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
+- **`attack_loops`** (default **off**): when on, the melee `attack` **loops** while the
+  player stays in melee reach (a channel/flurry) instead of one swing per cooldown. Each
+  cycle re-plays from the anim's `loop_from` (`gen_spriteframes`), so a wind-up lead-in
+  plays once and only the strike cycle repeats; when the player leaves reach it ends with
+  the normal cooldown → idle. (Built on the same `_loop_from`/`_replay_from` helpers Nasen's
+  rage uses.)
 - **`idle_loop_from..idle_loop_to`** (optional): a resting-idle flourish — loops
   those emitted frames for `idle_loop_time` seconds, then plays one full idle
   cycle, and repeats (Baghel scratches his back). Disabled when `to <= from`.
@@ -663,6 +679,11 @@ to hand-wire. Key traits:
   default on (0.18 s / 2.5 px); set either to 0 to disable.
 - Carries its own **hurtbox**, **floating health bar + name**, and a **red
   hit-flash**. Attacks carry `*_knockback` / `*_stun` (see below).
+- **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
+  hits) and, if it has a `death` sheet, plays that animation once; `_on_anim_finished`
+  then fades the corpse out over 0.4s and frees it. An enemy with **no** `death` sheet
+  just does the straight fade (like before). `_has_death` is inferred from the art, same
+  as `_has_melee` / `_has_ranged` (Kebus and Baghel have death anims).
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
   stun, hitbox sizes/offsets, aggro, contact damage, and **`body_size` /
   `hurtbox_size`** (per-enemy colliders, so a bigger or smaller enemy fits its
@@ -670,6 +691,32 @@ to hand-wire. Key traits:
 
 > **Bosses are not Enemies.** They get their own scene/script so their move-sets
 > aren't constrained to melee/ranged. `Enemy` is for regular mobs.
+
+### Nasen — a sleeper (`scripts/enemies/nasen.gd`, `scenes/nasen.tscn`)
+
+A worked example of a **custom enemy that subclasses `Enemy`**: it reuses all the
+infrastructure (sprite / hurtbox / health-bar / hit-flash / death / hit-stop) and only
+overrides the AI (`_act`) and the attack/hurt hooks. He has **idle + attack + death, no
+stroll**, so he never patrols — he **sleeps in place**. When the player comes within
+`rage_zone` (and on his level) he wakes and **RAGES** (a new `Enemy.State`): the `attack`
+loops and, on its hit frame, a **ground AoE erupts around him** — a hostile `Strike` built
+in code with a wide centred hitbox plus a particle-only look
+(`vfx/enemy/nasen/attack/nasen_rage.tscn`, rising floor flames). Leave the zone and he
+keeps raging for `rage_linger` (2s) before dozing off.
+
+- **Melee stuns him, projectiles don't.** He reads the new **`Hit.ranged`** flag: a
+  strike (`ranged = false`) halts his rage for `rage_stun_time` (~1.5s), then he wakes and
+  starts over; a projectile (`ranged = true`) only chips his health. So **shooting him
+  from range is the safe way in** — melee is riskier but interrupts him.
+- **Wake once, then loop the yell.** His `attack` sheet is `[wake, yell, yell, yell]`. He
+  re-plays it each rage cycle, but on every cycle after the first it restarts at the anim's
+  **`loop_from`** (set in `gen_spriteframes`) — so the wake plays once and only the yell
+  repeats. That looping is a **reusable `Enemy` capability**, not nasen-specific:
+  `Enemy._loop_from(anim)` reads the generator's `loop_from` metadata and `_replay_from(anim,
+  frame)` re-plays skipping the lead-in — any enemy or subclass calls them; the caller just
+  decides *when* to loop (nasen: still raging; generic melee: player still in reach — see
+  `attack_loops`).
+- Spawned via the roster's **`scene`** key (below), not the default `enemy.tscn`.
 
 ### Combat model (`scripts/combat/`)
 
@@ -702,9 +749,11 @@ the enemy `friendly_fire` flag above.)
 ### On-hit effects — the `Hit` object
 
 An attack delivers a `Hit` (`scripts/combat/hit.gd`) — `amount`, `knockback`,
-`stun`, `source`, and an optional status overlay (`status_color` / `status_time`).
+`stun`, `source`, `ranged`, and an optional status overlay (`status_color` / `status_time`).
 A `Hitbox`/`Projectile` fills one in; the victim's `_on_hurt(hit)` applies it. Add
-a new effect field here and nothing else's signature changes.
+a new effect field here and nothing else's signature changes. **`ranged`** marks the hit as
+coming from a projectile (`Projectile` sets it on its box; melee `Strike`s leave it false),
+so a victim can react by attack type — e.g. nasen is stunned by melee but not projectiles.
 
 - **Enemy attacks** set their fields via exports: `melee_knockback/stun`,
   `ranged_knockback/stun`.
@@ -771,12 +820,12 @@ clobbering `level.tscn` while the editor holds it open:
   on the world layer, arranged as a rising staircase within one jump of each
   other (jump peak ~60px). One-way means you jump up *through* them and land on
   top. Overlapping steps make the hops forgiving.
-- **Enemies** — `_roster`, each a `{id, name, pos, ...overrides}` instanced from
-  `enemy.tscn`; any extra key sets an Enemy export (so one can be `aggro`, another
-  `ranged_mode: "forward"`, etc). Currently **one of each** so you can learn a
-  matchup without being swarmed: Kebus (melee + aimed ranged) strolls the ground,
-  and Baghel (ranged-only, forward ground surge, scratches his back at rest) waits
-  on the far-right ground. Add more rows to `_roster` to repopulate.
+- **Enemies** — `ROSTER` (in `LevelConfig`), each a `{id, name, pos, ...overrides}`
+  instanced from `enemy.tscn`; any extra key sets an Enemy export (so one can be `aggro`,
+  another `ranged_mode: "forward"`, etc). A **`scene`** key picks a *custom* enemy
+  scene/script instead of the generic one — e.g. `"scene": "res://scenes/nasen.tscn"` for
+  a Nasen sleeper (its own `enemy_id`/exports stand unless the entry overrides them). The
+  roster spans the vertical tower + summit horde; a few tower ledges are guarded by Nasen.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.

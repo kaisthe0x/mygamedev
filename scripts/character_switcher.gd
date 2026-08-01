@@ -206,16 +206,19 @@ func _spawn_all() -> void:
 
 
 func _spawn_enemy(entry: Dictionary) -> void:
-	var enemy: Enemy = ENEMY_SCENE.instantiate()
+	# `scene` picks a custom enemy scene/script (e.g. res://scenes/nasen.tscn); default is
+	# the generic enemy.tscn. Its own exports (enemy_id, etc.) stand unless the entry overrides.
+	var scene: PackedScene = load(entry["scene"]) if entry.has("scene") else ENEMY_SCENE
+	var enemy: Enemy = scene.instantiate()
 	# Apply every key except the spawner-only ones as an Enemy export.
 	for key in entry:
-		if key in ["pos", "name"]:
+		if key in ["pos", "name", "scene"]:
 			continue
 		if key == "id":
 			enemy.enemy_id = entry[key]
 		else:
 			enemy.set(key, entry[key])
-	enemy.display_name = entry.get("name", entry["id"])
+	enemy.display_name = entry.get("name", entry.get("id", enemy.display_name))
 	# Position BEFORE add_child so Enemy._ready() anchors its patrol on the real
 	# spawn point (the level sits at the origin, so local == global here).
 	enemy.position = entry.get("pos", Vector2.ZERO)

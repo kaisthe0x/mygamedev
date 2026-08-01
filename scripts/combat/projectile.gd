@@ -70,6 +70,9 @@ var _life := 0.0
 var _target: Node2D
 var _acquired := false
 var _dying := false  # true while the end animation plays out; travel + hits are off
+## The heading the shot launched with (its facing). A homing shot falls back to this and
+## flies straight if its target dies mid-flight, instead of drifting off on a stale curve.
+var _launch_dir := Vector2.RIGHT
 
 
 func _ready() -> void:
@@ -83,6 +86,7 @@ func _ready() -> void:
 		# the sign -- _orient() re-applies a mirror below if this shot mirrors rather than
 		# rotates.
 		_dir = Vector2(-1.0 if scale.x < 0.0 else 1.0, 0.0)
+	_launch_dir = _dir  # the straight-ahead heading a homing shot resumes if its target dies
 	scale.x = absf(scale.x) if not is_zero_approx(scale.x) else 1.0
 	_orient()
 
@@ -90,6 +94,7 @@ func _ready() -> void:
 	if hb != null:
 		hb.collision_layer = Combat.hit_layer(hostile)
 		hb.collision_mask = Combat.hurt_mask(hostile, friendly_fire)
+		hb.ranged = true  # flag every projectile hit as ranged (nasen etc. react by type)
 		hb.source = source
 		hb.struck.connect(_on_struck)
 		hb.activate()  # a projectile leaves its box live for its whole flight
@@ -123,6 +128,13 @@ func _physics_process(delta: float) -> void:
 				want.y = 0.0  # track a level/lower target, never steer upward
 			if want.length() > 0.01:
 				_dir = _dir.slerp(want.normalized(), clampf(homing * delta, 0.0, 1.0))
+		else:
+			# No target ahead (none found, or the one we were tracking just died) -> stop
+			# homing and fly straight along the launch heading. A trailing shot then keeps
+			# going and can hit an enemy behind the dead one, or expires -- instead of
+			# veering off on the stale mid-turn heading it had when the target vanished.
+			homing = 0.0
+			_dir = _launch_dir
 	if not can_fly_up and _dir.y < 0.0:
 		_dir = Vector2(_dir.x, 0.0)  # hard floor: never travel upward
 		_dir = _dir.normalized() if _dir.length() > 0.01 else Vector2.RIGHT
@@ -178,8 +190,9 @@ func _nearest_target_ahead() -> Node2D:
 		var to := aim.global_position - global_position
 		if to.x * facing <= 0.0:
 			continue  # behind us in x (wrong side of the aim direction)
-		if not can_fly_up and to.y < -vertical_reach:
-			continue  # overhead -- horizontal shots don't reach up
+		if not can_fly_up and absf(to.y) > vertical_reach:
+			continue  # off our level (above OR below) -- a horizontal shot stays on its row,
+			# so it won't lock onto someone a platform down just because they're closer in x
 		var d := absf(to.x)
 		if d < best_d:
 			best_d = d

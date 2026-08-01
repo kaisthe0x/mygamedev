@@ -609,7 +609,7 @@ animations = [{
 }],
 "loop": 0,
 "name": &"spawn",
-"speed": 7.0
+"speed": 10.0
 }, {
 "frames": [{
 "duration": 1.0,

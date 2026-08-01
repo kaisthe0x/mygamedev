@@ -2,9 +2,10 @@ class_name Enemy
 extends Combatant
 
 ## Reusable ground enemy. Shares the character sprite pipeline (idle / stroll /
-## melee_attack / range_attack) but each enemy only needs the animations it has:
-## melee/ranged are enabled automatically from whichever attack animations exist
-## in its SpriteFrames, so an enemy with just one attack works with no changes.
+## attack / attack_projectile) but each enemy only needs the animations it has: the
+## strike (`attack`) and projectile (`attack_projectile`) are enabled automatically from
+## whichever attack animations exist in its SpriteFrames, so an enemy with just one attack
+## (or no stroll, like a stationary sleeper) works with no changes.
 ##
 ## Behaviour: patrol between its spawn point and spawn+patrol_distance, pausing
 ## to idle at each end; if the player comes within ranged_range it attacks
@@ -55,6 +56,10 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## the platform spacing so "roughly the same height" means "same ledge / jumping past".
 @export var attack_align_y: float = 40.0
 @export var attack_cooldown: float = 1.1
+## When true the melee `attack` LOOPS while the player stays in melee reach (a channel /
+## flurry) instead of one swing per cooldown. It re-plays from the anim's `loop_from`
+## (gen_spriteframes), so a wind-up lead-in plays once and only the strike cycle repeats.
+@export var attack_loops := false
 @export var melee_damage: float = 12.0
 @export var ranged_damage: float = 8.0
 ## On-hit effects this enemy's attacks carry (0 = none).
@@ -106,13 +111,15 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## Peak jitter (px) of the shake during the hit-stop; decays to 0 over it.
 @export var attack_shake: float = 2.5
 
-enum State { IDLE, STROLL, MELEE, RANGE, STUN, DEAD }
+enum State { IDLE, STROLL, MELEE, RANGE, STUN, DEAD, RAGE }  # RAGE: nasen's sleeper AoE
 
 var health: float
 var _state: State = State.IDLE
 var _facing: int = -1  # enemies commonly face left toward a right-approaching player
 var _has_melee := false
 var _has_ranged := false
+var _has_death := false
+var _has_stroll := false
 var _attack_cd := 0.0
 var _attack_fired := false
 var _point_a := 0.0
@@ -158,8 +165,10 @@ func _ready() -> void:
 	add_child(_status)
 	_status.setup(_sprite)
 
-	_has_melee = _sprite.sprite_frames.has_animation(&"melee_attack")
-	_has_ranged = _sprite.sprite_frames.has_animation(&"range_attack")
+	_has_melee = _sprite.sprite_frames.has_animation(&"attack")
+	_has_ranged = _sprite.sprite_frames.has_animation(&"attack_projectile")
+	_has_death = _sprite.sprite_frames.has_animation(&"death")
+	_has_stroll = _sprite.sprite_frames.has_animation(&"stroll")
 
 	health = max_health
 	_bar.set_ratio(1.0)
@@ -172,7 +181,7 @@ func _ready() -> void:
 	_sprite.animation_finished.connect(_on_anim_finished)
 	_sprite.animation_looped.connect(_on_anim_looped)
 	_face(_facing)
-	_play(&"stroll")
+	_play(&"stroll" if _has_stroll else &"idle")  # a strollless enemy (sleeper) just idles
 
 
 # --- construction -----------------------------------------------------------
@@ -342,10 +351,10 @@ func _act(delta: float) -> void:
 		var aligned := absf(player.global_position.y - global_position.y) <= attack_align_y
 		if aligned and _attack_cd <= 0.0:
 			if _has_melee and dist <= melee_range:
-				_start_attack(State.MELEE, &"melee_attack", player)
+				_start_attack(State.MELEE, &"attack", player)
 				return
 			if _has_ranged and dist <= ranged_range:
-				_start_attack(State.RANGE, &"range_attack", player)
+				_start_attack(State.RANGE, &"attack_projectile", player)
 				return
 		# Are we in combat? PURSUE = close in on the player from any height/range -- when
 		# aggressive by nature (aggro) or freshly hurt (alerted). HOLD = stand and face when
@@ -407,7 +416,7 @@ func _start_attack(state: State, anim: StringName, player: Node2D) -> void:
 
 
 func _on_frame_changed() -> void:
-	if _state == State.MELEE and _sprite.frame in _hit_frames(&"melee_attack"):
+	if _state == State.MELEE and _sprite.frame in _hit_frames(&"attack"):
 		_spawn_melee_strike()
 		_begin_hitstop()
 	elif _state == State.RANGE and not _attack_fired and _sprite.frame >= _fire_frame():
@@ -432,8 +441,8 @@ func _begin_hitstop() -> void:
 func _end_hitstop() -> void:
 	_hitstop_left = 0.0
 	_sprite.position = Vector2.ZERO  # undo the shake
-	if _state == State.MELEE or _state == State.RANGE:
-		_sprite.play()  # let the swing follow through to its finish
+	if _state == State.MELEE or _state == State.RANGE or _state == State.RAGE:
+		_sprite.play()  # let the swing (or nasen's rage) follow through to its finish
 
 
 ## Decaying jitter over the hit-stop: strongest on impact, settling to nothing.
@@ -446,9 +455,46 @@ func _apply_shake() -> void:
 
 
 func _on_anim_finished() -> void:
+	if _state == State.DEAD:
+		_fade_and_free()  # death anim played out -> fade the corpse and remove it
+		return
+	# A looping melee keeps swinging while the player stays in reach, re-playing from its
+	# loop_from frame so the wind-up only plays once. Otherwise it's one-and-done.
+	if _state == State.MELEE and attack_loops and _in_melee_reach():
+		_attack_fired = false
+		_impacted = false
+		_replay_from(&"attack", _loop_from(&"attack"))
+		return
 	if _state == State.MELEE or _state == State.RANGE:
 		_attack_cd = attack_cooldown
 		_set_state(State.IDLE)
+
+
+## Emitted frame an animation's loop restarts at (from the generator's `loop_from`
+## metadata), or 0 if unset. Used by _replay_from so a re-played attack skips its lead-in.
+func _loop_from(anim: StringName) -> int:
+	return maxi(AnimMeta.loop_bound(_sprite.sprite_frames, anim, "loop_from"), 0)
+
+
+## Re-play `anim` from emitted frame `from`, skipping its lead-in, and resume to the end (so
+## _on_anim_finished can loop it again). The reusable half of a looping/channeled attack --
+## the caller decides WHEN to loop (Enemy: player in reach; Nasen: still raging).
+func _replay_from(anim: StringName, from: int) -> void:
+	if _sprite.animation != anim:
+		_sprite.play(anim)
+	var last := _sprite.sprite_frames.get_frame_count(anim) - 1
+	_sprite.set_frame_and_progress(clampi(from, 0, last), 0.0)
+	_sprite.play()
+
+
+## Is the player still within melee reach + on our level (the condition a looping melee
+## keeps swinging on)?
+func _in_melee_reach() -> bool:
+	var player := _player()
+	if player == null:
+		return false
+	var to := player.global_position - global_position
+	return absf(to.y) <= attack_align_y and absf(to.x) <= melee_range
 
 
 ## Spawn a hostile Strike for one melee swing -- the enemy counterpart to a player's
@@ -519,11 +565,11 @@ func _fire_projectile() -> void:
 
 func _fire_frame() -> int:
 	# Fire on the authored hit frame (hit_frames metadata), else mid-animation.
-	var hits := _hit_frames(&"range_attack")
+	var hits := _hit_frames(&"attack_projectile")
 	if not hits.is_empty():
 		return int(hits[0])
 	@warning_ignore("integer_division")
-	return maxi(1, _sprite.sprite_frames.get_frame_count(&"range_attack") / 2)
+	return maxi(1, _sprite.sprite_frames.get_frame_count(&"attack_projectile") / 2)
 
 
 func _hit_frames(anim: StringName) -> Array:
@@ -562,11 +608,21 @@ func _on_hurt(hit: Hit) -> void:
 ## Enter the DEAD state and stop receiving hits. The body stays for the death
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
-	_set_state(State.DEAD)
+	_set_state(State.DEAD)  # _physics_process bails on DEAD, so the AI stops here
 	_hurtbox.set_deferred("monitorable", false)
 	set_deferred("collision_layer", 0)
+	if _has_death:
+		_play(&"death")  # play it out; _on_anim_finished fades + frees when it ends
+	else:
+		_fade_and_free()  # no death sheet -> the old straight alpha-fade
+
+
+## Let the final (dead) pose sit a beat, then fade the corpse out and free. The graceful
+## tail of a death animation, or the whole thing for an enemy with no death sheet.
+func _fade_and_free() -> void:
 	var tw := create_tween()
-	tw.tween_property(_sprite, "modulate:a", 0.0, 0.4)
+	tw.tween_interval(0.4)  # hold the dead pose so the death reads before it clears
+	tw.tween_property(_sprite, "modulate:a", 0.0, 0.6)
 	tw.tween_callback(queue_free)
 
 
@@ -601,7 +657,7 @@ func _set_state(state: State) -> void:
 				_sprite.set_frame_and_progress(0, 0.0)
 				_sprite.pause()
 		State.STUN: _play(&"idle")
-		State.STROLL: _play(&"stroll")
+		State.STROLL: _play(&"stroll" if _has_stroll else &"idle")
 
 
 func _play(anim: StringName) -> void:

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b0woavumcp13i"
-path="res://.godot/imported/baghel_range_attack_frames.png-583e45435e9a538274c135852a0af556.ctex"
+uid="uid://b7sbcmpfh43nj"
+path="res://.godot/imported/baghel_death_frames.png-f49f4f1243704e071ea5e4372ab50f1f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/baghel/baghel_range_attack_frames.png"
-dest_files=["res://.godot/imported/baghel_range_attack_frames.png-583e45435e9a538274c135852a0af556.ctex"]
+source_file="res://sprites/enemies/baghel/baghel_death_frames.png"
+dest_files=["res://.godot/imported/baghel_death_frames.png-f49f4f1243704e071ea5e4372ab50f1f.ctex"]
 
 [params]
 

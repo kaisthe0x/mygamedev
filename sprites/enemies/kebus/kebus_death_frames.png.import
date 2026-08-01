@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://t2ag168cgpu0"
-path="res://.godot/imported/kebus_melee_attack_frames.png-027424af387c763a8376db47c62b15ea.ctex"
+uid="uid://bgrjlflisxkaj"
+path="res://.godot/imported/kebus_death_frames.png-7d033b2da552ec12695ed7ee53f3baed.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/kebus/kebus_melee_attack_frames.png"
-dest_files=["res://.godot/imported/kebus_melee_attack_frames.png-027424af387c763a8376db47c62b15ea.ctex"]
+source_file="res://sprites/enemies/kebus/kebus_death_frames.png"
+dest_files=["res://.godot/imported/kebus_death_frames.png-7d033b2da552ec12695ed7ee53f3baed.ctex"]
 
 [params]
 

@@ -81,11 +81,8 @@ const ROSTER := [
 		"muzzle_offset": Vector2(16, 1), "ranged_damage": 7.0,
 		"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0,
 		"idle_time_min": 5.0, "idle_time_max": 7.0},
-	{"id": "kebus", "name": "Kebus", "pos": Vector2(-160.0, -722.0),
-		"ranged_mode": "forward",  # fire straight ahead, not tracked at the player
-		"muzzle_offset": Vector2(18, -22),  # bolt leaves at body height (the aimed default, -46, sits above his head)
-		"ranged_hitbox_extents": Vector2(7, 10),  # cover the body so a same-level shot connects
-		"ranged_particle": "res://vfx/enemy/kebus/attack/attack_bolt.tscn"},
+	# A sleeper guarding this ledge -- dozes until you get close, then rages a ground AoE.
+	{"scene": "res://scenes/nasen.tscn", "name": "Nasen", "pos": Vector2(-160.0, -722.0)},
 	{"id": "baghel", "name": "Baghel", "pos": Vector2(110.0, -953.0),
 		"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0, "projectile_speed": 200.0,
 		"ranged_particle": "res://vfx/enemy/baghel/attack/attack_ground_wave.tscn",
@@ -98,18 +95,8 @@ const ROSTER := [
 		"muzzle_offset": Vector2(18, -22),  # bolt leaves at body height (the aimed default, -46, sits above his head)
 		"ranged_hitbox_extents": Vector2(7, 10),  # cover the body so a same-level shot connects
 		"ranged_particle": "res://vfx/enemy/kebus/attack/attack_bolt.tscn"},
-	{"id": "baghel", "name": "Baghel", "pos": Vector2(80.0, -1442.0),
-		"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0, "projectile_speed": 200.0,
-		"ranged_particle": "res://vfx/enemy/baghel/attack/attack_ground_wave.tscn",
-		"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9),
-		"muzzle_offset": Vector2(16, 1), "ranged_damage": 7.0,
-		"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0,
-		"idle_time_min": 5.0, "idle_time_max": 7.0},
-	{"id": "kebus", "name": "Kebus", "pos": Vector2(-220.0, -1700.0),
-		"ranged_mode": "forward",  # fire straight ahead, not tracked at the player
-		"muzzle_offset": Vector2(18, -22),  # bolt leaves at body height (the aimed default, -46, sits above his head)
-		"ranged_hitbox_extents": Vector2(7, 10),  # cover the body so a same-level shot connects
-		"ranged_particle": "res://vfx/enemy/kebus/attack/attack_bolt.tscn"},
+	{"scene": "res://scenes/nasen.tscn", "name": "Nasen", "pos": Vector2(80.0, -1442.0)},
+	{"scene": "res://scenes/nasen.tscn", "name": "Nasen", "pos": Vector2(-220.0, -1700.0)},
 	{"id": "baghel", "name": "Baghel", "pos": Vector2(190.0, -1931.0),
 		"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0, "projectile_speed": 200.0,
 		"ranged_particle": "res://vfx/enemy/baghel/attack/attack_ground_wave.tscn",

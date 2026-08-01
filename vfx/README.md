@@ -307,11 +307,16 @@ life. Facing is by travel direction: the shot rotates to its heading, so author 
 strip pointing **right**.
 
 **`Projectile` exports** (`scripts/combat/projectile.gd`): `speed`, `homing` (steer rate; 0 = fly
-straight), `max_range`, `acquire_range`. Targeting is **x-axis only**: it locks the
-nearest enemy *ahead in the facing/mouse direction*, ignores enemies overhead
-(`vertical_reach`), and **never steers upward**. Set `can_fly_up = true` to lift those
-limits. `impact_effect` (a `PackedScene`) spawns a one-shot effect at the point of
-contact when it hits, then self-frees; leave empty for none.
+straight), `max_range`, `acquire_range`. It locks the **nearest enemy ahead in the facing
+direction on the same level** — "same level" is a `±vertical_reach` band (default 40px, under
+the platform spacing), so a homing shot **won't dive at someone a platform below just
+because they're closer in x**; nearest is measured by horizontal distance among that band.
+Set `can_fly_up = true` to drop the band (and let it steer upward). If the target **dies
+mid-flight** (or none was ever in range), the shot **stops homing and flies straight along
+its launch heading** — so a trailing shot keeps going and can hit an enemy behind the dead
+one, or expires, instead of veering off on a stale curve. `impact_effect` (a `PackedScene`)
+spawns a one-shot effect at the point of contact when it hits, then self-frees; leave empty
+for none.
 
 **End / dissolve animation (`end_frames`).** So a shot that reaches `max_range`
 *without hitting anything* dissolves instead of blinking out, give it an `end_frames`

@@ -50,8 +50,9 @@ CHARACTER_ANIMS = {
 ENEMY_ANIMS = {
     "idle": (6.0, True),
     "stroll": (8.0, True),
-    "melee_attack": (12.0, False),
-    "range_attack": (10.0, False),
+    "attack": (12.0, False),  # a strike/melee (ground AoE, launch, front hit)
+    "attack_projectile": (10.0, False),  # launches a projectile (Kebus bolt, Baghel wave)
+    "death": (6.0, False),  # slow + graceful -- plays once on death, then the corpse fades
 }
 GROUPS = {
     "characters": CHARACTER_ANIMS,
@@ -87,9 +88,10 @@ def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
 #                the character retracts
 #   loop      -- force the animation's loop flag on/off, overriding the ANIMS default
 #                (e.g. a hold-to-repeat "flurry" attack that should cycle, not play once)
-#   loop_from -- for a looping animation, the sheet frame to restart from. Frames
-#                before it play once as an intro; the tail cycles forever.
-#                Emitted as resource metadata; player.gd honours it.
+#   loop_from -- the sheet frame a loop restarts at; frames before it play once as an
+#                intro. Written as metadata (does NOT set Godot's loop flag): player.gd
+#                clamps a LOOPING anim to it, and enemy.gd restarts a RE-PLAYED attack there
+#                (a channel/rage), so the lead-in only plays once. Works with loop on or off.
 #   loop_to   -- optional end of the loop (sheet frame, inclusive). Without it the
 #                loop runs to the last frame; with it the cycle is loop_from..loop_to
 #                and any frames past loop_to only ever show in the intro pass. Lets
@@ -120,6 +122,10 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Wayna
     ("wayna", "run"): {"fps": 4.0},
     ("wayna", "death"): {"fps": 8.0},
+    # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
+    # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
+    # plays only once. Enemy.gd honours loop_from for a re-played attack (see _replay_from).
+    ("nasen", "attack"): {"fps": 8.0, "loop_from": 2},
 }
 
 # Attack hit frames (sheet-relative). An attack combo plays one segment per
@@ -138,8 +144,9 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("lenbondosen", "special_poison_raiser"): [4],
     ("wayna", "attack_chainsaw"): [3, 4, 6],
     ("wayna", "special_inferno"): [3],
-    ("kebus", "melee_attack"): [3],
-    ("baghel", "range_attack"): [6],
+    ("kebus", "attack"): [3],
+    ("baghel", "attack_projectile"): [6],
+    ("nasen", "attack"): [2],  # the rage AoE erupts on this frame
 }
 
 # Per-frame duration multipliers, (char, anim) -> {sheet_frame: multiplier}. Each
@@ -182,19 +189,26 @@ def content_columns(alpha, w: int, h: int) -> list[bool]:
 
 
 def frame_count(cols: list[bool], w: int) -> int:
-    """Largest N dividing w such that every slice has content and no content
-    run straddles a slice boundary. The cap is generous (long combo/dash sheets
-    run well past a dozen frames); the content + straddle tests keep it from
-    over-slicing a shorter sheet."""
+    """Largest N (the SLOT count) dividing w such that no content run straddles a slice
+    boundary and every slice UP TO the last non-empty one has content. TRAILING empty
+    slices are allowed -- a sheet padded to a wider power-of-two than its real frame count
+    (e.g. 7 death frames in an 8-slot 1024px sheet) would otherwise fail the old "every
+    slice has content" test and fall back to merging pairs. The caller (Sheet) derives the
+    frame width from this and trims the blank trailing slots off playback. An INTERIOR
+    empty slice still rejects N (that's a real gap, not padding)."""
     best = 1
     for n in range(1, 33):
         if w % n:
             continue
         fw = w // n
-        if not all(any(cols[i * fw : (i + 1) * fw]) for i in range(n)):
-            continue
         if any(cols[i * fw - 1] and cols[i * fw] for i in range(1, n)):
+            continue  # a content run straddles a boundary -> wrong grid at this N
+        content = [any(cols[i * fw : (i + 1) * fw]) for i in range(n)]
+        if not any(content):
             continue
+        last = max(i for i, c in enumerate(content) if c)
+        if not all(content[: last + 1]):
+            continue  # an INTERIOR slice is empty -> not a clean frame grid at this N
         best = n
     return best
 
@@ -206,8 +220,14 @@ class Sheet:
         self.w, self.h = im.size
         alpha = im.getchannel("A").load()
         cols = content_columns(alpha, self.w, self.h)
-        self.n = frame_count(cols, self.w)
-        self.fw = self.w // self.n
+        slots = frame_count(cols, self.w)  # slot grid; may include trailing blank pad slots
+        self.fw = self.w // slots
+        # Playback frame count = the LEADING non-empty slots. A sheet padded to a wider
+        # power-of-two than its real frame count (kebus death: 7 frames in an 8-slot 1024px
+        # sheet) leaves blank trailing slots -- drop them so the animation doesn't slice
+        # (and play) empty frames off the end.
+        filled = [any(cols[i * self.fw : (i + 1) * self.fw]) for i in range(slots)]
+        self.n = (max(i for i, c in enumerate(filled) if c) + 1) if any(filled) else slots
         # Offset of frame 0's content centre from its frame centre, in pixels.
         # Rounded to a whole pixel so the art stays on the pixel grid.
         xs = [x for x in range(self.fw) if cols[x]]
@@ -349,13 +369,12 @@ def process_group(group: str, anims: dict) -> None:
                 total_dur += duration
                 frames.append(f'{{\n"duration": {duration},\n"texture": SubResource("{sid}")\n}}')
 
+            # loop_from / loop_to write metadata but DON'T force a Godot loop flag: a looping
+            # anim (player idle/run) clamps its cycle to the range, while a non-looping one
+            # (an enemy's channeled/rage attack) uses loop_from as the frame a code re-play
+            # restarts at -- so the lead-in plays once. See player.gd and enemy._replay_from.
             loop_from = int(tweak.get("loop_from", 0))
             if loop_from:
-                if not loop:
-                    raise SystemExit(
-                        f"{char}/{anim}: loop_from needs a looping animation; "
-                        f"set loop=True for '{anim}' in ANIMS"
-                    )
                 if not start <= loop_from < sheet.n:
                     raise SystemExit(
                         f"{char}/{anim}: loop_from={loop_from} out of range; sheet "
@@ -365,11 +384,6 @@ def process_group(group: str, anims: dict) -> None:
 
             loop_to = int(tweak.get("loop_to", 0))
             if loop_to:
-                if not loop:
-                    raise SystemExit(
-                        f"{char}/{anim}: loop_to needs a looping animation; "
-                        f"set loop=True for '{anim}' in ANIMS"
-                    )
                 if not loop_from <= loop_to < sheet.n:
                     raise SystemExit(
                         f"{char}/{anim}: loop_to={loop_to} out of range; must be "
@@ -396,7 +410,7 @@ def process_group(group: str, anims: dict) -> None:
             else:
                 hits = list(range(n_emitted))
             # Emit hit_frames for the player's light attack (always) and for any
-            # anim with an explicit entry (e.g. an enemy's melee_attack).
+            # anim with an explicit entry (e.g. an enemy's attack).
             if anim == "attack" or (char, anim) in HIT_FRAMES:
                 hit_points[anim] = hits
 

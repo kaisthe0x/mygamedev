@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cwugbv01q7ta0"]
+
+[ext_resource type="Script" path="res://scripts/enemies/nasen.gd" id="1_nasen"]
+
+[node name="Nasen" type="CharacterBody2D"]
+script = ExtResource("1_nasen")
+enemy_id = "nasen"
+display_name = "Nasen"
+max_health = 90.0
