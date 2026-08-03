@@ -272,6 +272,17 @@ ranged examples:
 - **Kebus** `attack/attack_bolt.tscn` — an aimed staff bolt: an ember-trail
   `CPUParticles2D` + a soft glow `Core`. (Was drawn procedurally before the merge; it's
   now an editable scene. An enemy with no `ranged_particle` gets no visual.)
+- **Mazab** (`ranged_mode = "lob"`) uses **two** scenes for its thrown bomb: the flying
+  object `attack/mazab_rock.tscn` (a steel-blue glowing `Core` + short dust trail, set as
+  `ranged_particle` — a `LobProjectile` spins it as it arcs) and the blast
+  `attack/mazab_explosion.tscn` (a one-shot radial shard burst + ground dust, set as
+  `lob_explosion_effect` — instanced inside the explosion `Strike`, not on the projectile).
+  A lob has **no in-flight hitbox**; only the explosion `Strike` deals damage.
+- **Ein** (the floating kamikaze, `scenes/ein.tscn`) uses **three** scenes, swapped by state
+  in `ein.gd`: `other/ein_patrol_trail.tscn` (gentle indigo wisps worn while drifting),
+  `attack/ein_attack_trail.tscn` (a hard cyan→red charge streak), and
+  `attack/ein_explosion.tscn` (the arrival burst, instanced inside the explosion `Strike`).
+  The trails are `local_coords = false` so they rake out behind the orb as it moves.
 
 ## Build tools
 

@@ -61,16 +61,16 @@ in `CharacterConfig.IDS` (`feyke`/`katalyst`/`khalid`/`lenbondosen`/`wayna`). Th
 spawns that one character. The remaining dev keys (Z/X debug damage/heal, `0` respawn
 enemies) live in that same file — all the scaffolding in one place, deletable in one go.
 
-**The test level is vertical.** `configs/level_config.gd` holds it as data —
-`PLATFORMS` (a tall zigzag tower of one-way platforms, each `[center_x, top_y,
-width]`) and `ROSTER` (the enemy spawn list). `character_switcher.gd` builds both in
-code (the `.tscn` stays minimal because the editor clobbers it) and its camera
-follows the player up, so there's **no height limit — add `PLATFORMS` rows to go
-higher**. Steps are ~70–95px apart, cleared with the jump + the generous air jumps.
-Fall off and you drop back to the ground floor (only leaving the world past the
-floor edges past `DEATH_Y` respawns you). The tower is capped by an **extra-long
-summit platform** (the last, very wide `PLATFORMS` row) packed with a ~40-enemy
-horde — so a handful contest the climb and the crowd waits at the top.
+**The test level is a small ground arena.** `configs/level_config.gd` holds it as data —
+`PLATFORMS` (a handful of **low** one-way platforms, each `[center_x, top_y, width]`) and
+`roster()` (the enemy spawn list). `character_switcher.gd` builds both in code (the `.tscn`
+stays minimal because the editor clobbers it) on top of `level.tscn`'s solid `Floor`. The
+old tall vertical-tower idea is **retired** — it's now a mostly-horizontal sparring ground
+with light verticality (highest platform ~270px up), pending real world art. Fall off a
+platform and you land back on the floor; only leaving the world past the floor edges below
+`DEATH_Y` respawns you. `roster()` is **~11 enemies** — a mixed pack (Kebus, Baghel, Mazab,
+Nasen, Ein) across the floor and platforms, built from shared kit dicts (`KEBUS`/`BAGHEL`/
+`MAZAB`) merged with each spawn's `{name, pos}` via `_mob()`, so a type's tuning lives once.
 
 ---
 
@@ -576,7 +576,7 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 ### Enemy sprites
 
 Enemies use the **same pipeline** as characters, just a different group and
-animation set (`idle`, `stroll`, `attack`, `attack_projectile`, `death`). Source sheets
+animation set (`idle`, `patrol`, `attack`, `attack_projectile`, `death`). Source sheets
 live in `sprites/enemies/<id>/`; `gen_spriteframes.py` processes both groups (see
 `GROUPS` at the top) and writes `resources/enemies/<id>.tres`. Enemies share their
 own normalised canvas, independent of the character canvas. Same 128x80 + frame-0
@@ -591,8 +591,8 @@ to hand-wire. Key traits:
 
 - **Capabilities are inferred from the art.** An `attack` sheet (a strike/melee) enables
   the melee box; an `attack_projectile` sheet enables the ranged shot. An enemy with only
-  one — or, like a stationary sleeper, **no `stroll`** — just works; missing animations
-  are never used (a strollless enemy stands instead of patrolling).
+  one — or, like a stationary sleeper, **no `patrol`** — just works; missing animations
+  are never used (a patrol-less enemy stands instead of patrolling).
 - **Behaviour:** patrols between its spawn point and `spawn + patrol_distance`,
   pausing `idle_time_min..max` seconds at each end. If the player enters
   `ranged_range` it engages — **melee** (the `attack` strike) within `melee_range`, else
@@ -601,11 +601,11 @@ to hand-wire. Key traits:
   horizontal, so an enemy only *engages* — attacks, holds, or (with `aggro`) chases —
   when the player is roughly at its own height (feet-to-feet within the band). A
   player on a platform above/below is treated as out of reach: the enemy **keeps
-  patrolling/strolling** instead of freezing to face someone it can't fight. Keep the
+  patrolling** instead of freezing to face someone it can't fight. Keep the
   band under the platform spacing.
 - **Edge-aware:** a downward probe `edge_check_x` ahead of each foot stops it
   walking off ledges — it turns around on patrol and won't chase off a platform.
-  So enemies can stroll on platforms safely.
+  So enemies can patrol on platforms safely.
 - **`aggro`** (default **off**): when on, it *chases* the player up to
   `aggro_range` instead of only fighting whoever wanders into range. It's an
   export, so it's **per instance** — one enemy can be aggressive while another of
@@ -622,16 +622,36 @@ to hand-wire. Key traits:
   one mob for chaos, not the roster. The seam for enemies fighting each other.
 - **`contact_damage`** (default **0 = off**): when set, touching the player
   deals it on `contact_interval`. Also per-instance.
-- **Ranged** fires a `projectile.gd` from `muzzle_offset` on the animation's
-  hit frame (`hit_frames` metadata). Two `ranged_mode`s:
-  - `"aimed"` — points at the player's torso **the moment it fires** (Kebus' staff
-    bolt). The shot doesn't steer after that (`homing = 0` for enemies), but that
-    fire-time aim is what reads as "homing." **To stop enemies tracking you, set
+- **Ranged** fires from `muzzle_offset` on the animation's hit frame (`hit_frames`
+  metadata). Three `ranged_mode`s:
+  - `"aimed"` — a `projectile.gd` that points at the player's torso **the moment it fires**
+    (Kebus' staff bolt). The shot doesn't steer after that (`homing = 0` for enemies), but
+    that fire-time aim is what reads as "homing." **To stop enemies tracking you, set
     `ranged_mode = "forward"`** (per instance / roster entry). Separately, `aggro`
     (default off) is what makes an enemy *chase* — leave it off to have them guard.
-  - `"forward"` — surges straight ahead in the enemy's facing for `ranged_travel` px
-    then fizzles, hitting whatever it passes — ignores where you are (Baghel's red
-    energy). Tint via `ranged_color`.
+  - `"forward"` — a `projectile.gd` that surges straight ahead in the enemy's facing for
+    `ranged_travel` px then fizzles, hitting whatever it passes — ignores where you are
+    (Baghel's red energy). Tint via `ranged_color`.
+  - `"lob"` — a **`LobProjectile`** (`scripts/combat/lob_projectile.gd`), a *thrown bomb*
+    (Mazab). It arcs out of the muzzle **aimed** at a spot next to the player (`lob_land_offset`,
+    biased toward the thrower), then **flies ballistically** until it lands on a real surface,
+    where it sits **harmless but blinking** for `lob_dwell` (~1s) and **explodes** into a wide
+    ground AoE. It deals **no damage in the air or on landing** — only the blast hurts, so it's
+    *dodgeable*: clear the landing spot before the timer ends. Three phases — **ARC** → **DWELL**
+    → **EXPLODE** (spawns a hostile `Strike`, the same AoE component nasen's rage / the
+    ground-breaker use, sized by `lob_explosion_extents` and using
+    `ranged_damage`/`ranged_knockback`/`ranged_stun`). Two things keep it honest:
+    - **`lob_arc_time`** only *solves the launch velocity* to aim the toss (arc height/angle);
+      it does **not** decide where it stops. The bomb keeps falling until it actually crosses an
+      **`L_WORLD`** surface **while descending** (a per-step ray, so it can't tunnel through a
+      thin ledge; one-way platforms are passed through on the way up) — so a player who steps
+      out from under it never leaves it hanging in mid-air.
+    - **`lob_max_life`** (default 3s) is the safety net: a bomb thrown over a ledge with nothing
+      below **detonates mid-air** (no dwell) when it elapses, rather than falling forever.
+
+    The thrown-object look is `ranged_particle` (Mazab's steel-blue `mazab_rock.tscn`, spun as
+    it tumbles); the blast look is `lob_explosion_effect` (`mazab_explosion.tscn`). Give Mazab a
+    wider `attack_align_y` so his arc can reach a player one platform up/down.
   - **Look** — `ranged_particle` points at a particle scene (e.g.
     `vfx/enemy/baghel/attack/attack_ground_wave.tscn`, or Kebus'
     `vfx/enemy/kebus/attack/attack_bolt.tscn`) that the projectile instances as
@@ -669,7 +689,7 @@ to hand-wire. Key traits:
   cycle, and repeats (Baghel scratches his back). Disabled when `to <= from`.
 - **Combat vs resting idle.** An `_engaged` flag tracks whether the player is in
   reach (attacking distance). While engaged, the between-attacks idle **holds the
-  first idle frame** as a tense ready-stance — no strolling or scratch flourish.
+  first idle frame** as a tense ready-stance — no patrolling or scratch flourish.
   The moment the player leaves reach `_engaged` clears and normal patrol/idle
   (and the flourish) resume on their own.
 - **Attack feel — hit-stop + shake.** On the impact frame (melee contact / the
@@ -680,10 +700,14 @@ to hand-wire. Key traits:
 - Carries its own **hurtbox**, **floating health bar + name**, and a **red
   hit-flash**. Attacks carry `*_knockback` / `*_stun` (see below).
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
-  hits) and, if it has a `death` sheet, plays that animation once; `_on_anim_finished`
-  then fades the corpse out over 0.4s and frees it. An enemy with **no** `death` sheet
-  just does the straight fade (like before). `_has_death` is inferred from the art, same
-  as `_has_melee` / `_has_ranged` (Kebus and Baghel have death anims).
+  hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
+  plays that animation once; `_on_anim_finished` then fades the corpse out over 0.4s and
+  frees it. An enemy with **no** `death` sheet just does the straight fade (like before).
+  Leaving the group the instant it dies matters for **homing**: the node lingers ~2s while
+  the death anim/fade plays, so a tracking shot re-checks `is_in_group("enemies")` every
+  frame (`projectile.gd::_target_alive()`) and **straightens onto its launch heading the
+  moment the target dies** instead of curving down into the fading corpse. `_has_death` is
+  inferred from the art, same as `_has_melee` / `_has_ranged` (Kebus and Baghel have death anims).
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
   stun, hitbox sizes/offsets, aggro, contact damage, and **`body_size` /
   `hurtbox_size`** (per-enemy colliders, so a bigger or smaller enemy fits its
@@ -697,7 +721,7 @@ to hand-wire. Key traits:
 A worked example of a **custom enemy that subclasses `Enemy`**: it reuses all the
 infrastructure (sprite / hurtbox / health-bar / hit-flash / death / hit-stop) and only
 overrides the AI (`_act`) and the attack/hurt hooks. He has **idle + attack + death, no
-stroll**, so he never patrols — he **sleeps in place**. When the player comes within
+patrol**, so he never patrols — he **sleeps in place**. When the player comes within
 `rage_zone` (and on his level) he wakes and **RAGES** (a new `Enemy.State`): the `attack`
 loops and, on its hit frame, a **ground AoE erupts around him** — a hostile `Strike` built
 in code with a wide centred hitbox plus a particle-only look
@@ -717,6 +741,30 @@ keeps raging for `rage_linger` (2s) before dozing off.
   decides *when* to loop (nasen: still raging; generic melee: player still in reach — see
   `attack_loops`).
 - Spawned via the roster's **`scene`** key (below), not the default `enemy.tscn`.
+
+### Ein — a floating kamikaze (`scripts/enemies/ein.gd`, `scenes/ein.tscn`)
+
+A second custom subclass, and the first that **floats**. Ein is an orb with a dagger in its
+eye. He overrides `Enemy`'s grounded `_physics_process` entirely — **no gravity, floor, or
+edge patrol** (he sets `collision_mask = 0` and moves by `global_position`, not
+`move_and_slide`) — while reusing the sprite/hurtbox/health-bar/hit-flash/death as usual. His
+loop:
+
+- **Patrol** — drifts between his patrol points with a gentle vertical **bob**, wearing a soft
+  particle trail (`patrol_trail`).
+- **Detect → lock → charge** — when the player enters `detect_range` (a radius), he **locks the
+  player's position at that instant** as a fixed target, swaps to the aggressive `attack_trail`,
+  and flies straight at that point in the **`CHARGE`** state (a new `Enemy.State`), the `attack`
+  (stab) anim **looping** the whole dive (`OVERRIDES` `("ein","attack"): loop`). He does **not**
+  re-track — dodging out of the way makes him miss.
+- **Erupt on arrival** — reaching the locked point (hit or miss) he **explodes**: a hostile
+  `Strike` (box hitbox from `explosion_*`, centred on the orb via `explosion_offset`, `ranged`)
+  plus the `ein_explosion.tscn` burst, then his **death burst** plays and he's gone.
+- **Killed first** — a lethal hit before he arrives (even before he ever detects you) just plays
+  the same death burst; no explosion. His `_on_hurt` takes damage + flashes but **never stuns or
+  knocks him back** — once diving he commits.
+- Trails are swapped by state (`_set_trail`) and freed on death; `ein_patrol_trail.tscn` lives
+  under `vfx/enemy/ein/other/`, the charge trail + blast under `vfx/enemy/ein/attack/`.
 
 ### Combat model (`scripts/combat/`)
 
@@ -817,15 +865,16 @@ through projectiles and attacks unharmed.
 clobbering `level.tscn` while the editor holds it open:
 
 - **Platforms** — `_platforms` `[center_x, top_y, width]`, one-way `StaticBody2D`s
-  on the world layer, arranged as a rising staircase within one jump of each
-  other (jump peak ~60px). One-way means you jump up *through* them and land on
-  top. Overlapping steps make the hops forgiving.
-- **Enemies** — `ROSTER` (in `LevelConfig`), each a `{id, name, pos, ...overrides}`
+  on the world layer — a handful of **low** ledges spread across the arena for light
+  verticality (no staircase to climb). One-way means you jump up *through* them and land on
+  top.
+- **Enemies** — `roster()` (in `LevelConfig`), each a `{id, name, pos, ...overrides}`
   instanced from `enemy.tscn`; any extra key sets an Enemy export (so one can be `aggro`,
   another `ranged_mode: "forward"`, etc). A **`scene`** key picks a *custom* enemy
-  scene/script instead of the generic one — e.g. `"scene": "res://scenes/nasen.tscn"` for
-  a Nasen sleeper (its own `enemy_id`/exports stand unless the entry overrides them). The
-  roster spans the vertical tower + summit horde; a few tower ledges are guarded by Nasen.
+  scene/script instead of the generic one — `"res://scenes/nasen.tscn"` (sleeper) or
+  `"res://scenes/ein.tscn"` (floating kamikaze); its own `enemy_id`/exports stand unless the
+  entry overrides them. ~11 enemies across the floor + platforms, built from the shared
+  `KEBUS`/`BAGHEL`/`MAZAB` kit dicts via `_mob(kit, {name, pos})`.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.

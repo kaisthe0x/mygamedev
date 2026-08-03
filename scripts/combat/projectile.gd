@@ -122,8 +122,9 @@ func _physics_process(delta: float) -> void:
 		if not _acquired:
 			_target = _nearest_target_ahead()
 			_acquired = true
-		if is_instance_valid(_target):
-			var want := _target.global_position - global_position
+		if _target_alive():
+			var aim := _aim_point(_target)
+			var want := (aim if aim != null else _target).global_position - global_position
 			if not can_fly_up and want.y < 0.0:
 				want.y = 0.0  # track a level/lower target, never steer upward
 			if want.length() > 0.01:
@@ -196,8 +197,18 @@ func _nearest_target_ahead() -> Node2D:
 		var d := absf(to.x)
 		if d < best_d:
 			best_d = d
-			best = aim
+			best = n  # the enemy itself (a group member), so _target_alive() can re-check it each frame
 	return best
+
+
+## Is the tracked target still a live target? It counts only while it's a valid node AND still
+## a member of its group. An enemy leaves the "enemies" group the instant it dies -- BEFORE its
+## death animation/fade frees the node (~2s later) -- so a tracking shot straightens the moment
+## the target dies instead of curving into the fading corpse (which sits lower, so the shot dived).
+func _target_alive() -> bool:
+	if not is_instance_valid(_target):
+		return false
+	return _target.is_in_group("player" if hostile else "enemies")
 
 
 ## What the shot homes to for `target`: its hurtbox's centre (the torso) so shots land

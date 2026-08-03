@@ -1,0 +1,39 @@
+[gd_scene load_steps=4 format=3 uid="uid://dmazabrock2026"]
+
+; Mazab's thrown bomb -- the steel-blue clod he hurls (sampled from the object in his
+; attack_projectile sheet). Used as Mazab's `ranged_particle` in configs/level_config.gd;
+; LobProjectile instances it as the flying object's look and spins it as it tumbles.
+; A soft glowing Core (the rock body) plus a short dust trail (local_coords=false, so it
+; streaks behind the arc). No hitbox -- a lob only hurts on its explosion (mazab_explosion).
+
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
+[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="2_ember"]
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.62, 0.74, 0.82, 0.8, 0.62, 0.74, 0.82, 0)
+
+[node name="MazabRock" type="Node2D"]
+
+[node name="Trail" type="CPUParticles2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_ember")
+emitting = true
+amount = 16
+lifetime = 0.3
+local_coords = false
+emission_shape = 1
+emission_sphere_radius = 2.5
+spread = 30.0
+gravity = Vector2(0, 60)
+initial_velocity_min = 4.0
+initial_velocity_max = 20.0
+scale_amount_min = 0.35
+scale_amount_max = 0.7
+color_ramp = SubResource("Gradient_trail")
+
+[node name="Core" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("1_dot")
+scale = Vector2(0.34, 0.28)
+self_modulate = Color(0.66, 0.79, 0.86, 1)

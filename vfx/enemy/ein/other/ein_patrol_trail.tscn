@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8einptr1trail"]
+
+; Ein's PATROL trail -- gentle indigo wisps that linger where the orb drifted. Worn while he
+; patrols (ein.gd::_set_trail, swapped for the harder attack trail on a charge). local_coords
+; = false so the puffs stay in world space and streak out behind him as he floats.
+
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
+
+[sub_resource type="Gradient" id="Grad_wisp"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.28, 0.13, 0.42, 0.65, 0.12, 0.06, 0.22, 0)
+
+[node name="EinPatrolTrail" type="CPUParticles2D"]
+texture_filter = 1
+texture = ExtResource("1_dot")
+emitting = true
+amount = 20
+lifetime = 0.6
+local_coords = false
+emission_shape = 1
+emission_sphere_radius = 4.0
+direction = Vector2(0, 0)
+spread = 45.0
+gravity = Vector2(0, -8)
+initial_velocity_min = 3.0
+initial_velocity_max = 14.0
+scale_amount_min = 0.4
+scale_amount_max = 0.85
+color_ramp = SubResource("Grad_wisp")

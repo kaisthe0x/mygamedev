@@ -57,7 +57,7 @@ var health: float = 100.0:
 ## Extra mid-air jumps after the ground jump (1 = a double jump). The ground jump is
 ## silent; each air jump re-boosts AND spawns the character's jump particles (a
 ## combat-capable burst -- see emitters.json "double_jump").
-@export var max_air_jumps: int = 10
+@export var max_air_jumps: int = 2
 @export var gravity: float = 900.0
 ## Falling faster than rising makes the arc feel less floaty.
 @export var fall_gravity_scale: float = 1.35

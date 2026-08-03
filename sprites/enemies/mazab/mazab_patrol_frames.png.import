@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5s7gpxexffc5"
-path="res://.godot/imported/baghel_stroll_frames.png-5a1fb3733b0be9954677125f4c4456f4.ctex"
+uid="uid://cjjdlksg1esd5"
+path="res://.godot/imported/mazab_patrol_frames.png-f9e7608763e0307d47e290b9939658ba.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/baghel/baghel_stroll_frames.png"
-dest_files=["res://.godot/imported/baghel_stroll_frames.png-5a1fb3733b0be9954677125f4c4456f4.ctex"]
+source_file="res://sprites/enemies/mazab/mazab_patrol_frames.png"
+dest_files=["res://.godot/imported/mazab_patrol_frames.png-f9e7608763e0307d47e290b9939658ba.ctex"]
 
 [params]
 

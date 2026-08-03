@@ -1,11 +1,11 @@
 class_name Enemy
 extends Combatant
 
-## Reusable ground enemy. Shares the character sprite pipeline (idle / stroll /
+## Reusable ground enemy. Shares the character sprite pipeline (idle / patrol /
 ## attack / attack_projectile) but each enemy only needs the animations it has: the
 ## strike (`attack`) and projectile (`attack_projectile`) are enabled automatically from
 ## whichever attack animations exist in its SpriteFrames, so an enemy with just one attack
-## (or no stroll, like a stationary sleeper) works with no changes.
+## (or no patrol, like a stationary sleeper) works with no changes.
 ##
 ## Behaviour: patrol between its spawn point and spawn+patrol_distance, pausing
 ## to idle at each end; if the player comes within ranged_range it attacks
@@ -32,7 +32,7 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 
 @export_group("Patrol")
 @export var move_speed: float = 40.0
-## How far it strolls from its spawn point before turning back.
+## How far it patrols from its spawn point before turning back.
 @export var patrol_distance: float = 90.0
 @export var idle_time_min: float = 2.0
 @export var idle_time_max: float = 3.0
@@ -76,15 +76,38 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## "aimed": projectile flies toward the player (Kebus' staff bolt).
 ## "forward": it surges straight ahead along the ground for `ranged_travel` px
 ## then fizzles, hitting whatever it passes (Baghel's ground energy).
-@export_enum("aimed", "forward") var ranged_mode := "aimed"
+## "lob": THROW a bomb in an arc that lands next to the player, dwells, then explodes
+## (Mazab). A LobProjectile, not a straight-line Projectile -- see the lob_* exports below;
+## the blast reuses ranged_damage/knockback/stun. Dodge by clearing the landing spot.
+@export_enum("aimed", "forward", "lob") var ranged_mode := "aimed"
 @export var ranged_travel: float = 100.0
 @export var ranged_color := Color(0.55, 1.0, 0.45)  # tints the built-in orb
-## Optional particle scene for the projectile's look (e.g. Baghel's ground wave).
-## Empty = the built-in orb. Edit these in the editor like any particle scene.
+## Optional particle scene for the projectile's look (e.g. Baghel's ground wave, or the
+## thrown object for a lob). Empty = the built-in orb. Edit these in the editor like any scene.
 @export_file("*.tscn") var ranged_particle := ""
 ## Projectile collider half-size + offset from its spawn point.
 @export var ranged_hitbox_extents := Vector2(5, 5)
 @export var ranged_hitbox_offset := Vector2.ZERO
+
+@export_subgroup("Lob (ranged_mode = lob)")
+## Seconds the thrown bomb is airborne (the arc). Its launch speed is solved to land on the
+## mark, so this shapes the arc height, not the distance.
+@export var lob_arc_time: float = 0.9
+## Downward accel on the thrown bomb (px/s^2) -- higher = tighter arc.
+@export var lob_gravity: float = 900.0
+## Seconds the landed bomb sits (blinking) before it explodes: the dodge window.
+@export var lob_dwell: float = 1.0
+## Seconds a thrown bomb stays airborne before it detonates MID-AIR if it never finds a
+## surface (thrown over a ledge). Otherwise it lands + dwells as normal.
+@export var lob_max_life: float = 3.0
+## Half-size of the explosion (a wide, short ground blast). Damage/knockback/stun reuse the
+## ranged_* values above.
+@export var lob_explosion_extents := Vector2(48, 26)
+## How far to the side of the player the bomb lands (px), biased toward the thrower so it
+## drops at their feet, not behind them.
+@export var lob_land_offset: float = 22.0
+## Particle-only scene for the blast look, instanced inside the explosion Strike.
+@export_file("*.tscn") var lob_explosion_effect := ""
 
 @export_group("Behaviour")
 ## When true, chases the player (up to aggro_range) instead of only attacking
@@ -111,7 +134,7 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## Peak jitter (px) of the shake during the hit-stop; decays to 0 over it.
 @export var attack_shake: float = 2.5
 
-enum State { IDLE, STROLL, MELEE, RANGE, STUN, DEAD, RAGE }  # RAGE: nasen's sleeper AoE
+enum State { IDLE, PATROL, MELEE, RANGE, STUN, DEAD, RAGE, CHARGE }  # RAGE: nasen; CHARGE: ein's dive
 
 var health: float
 var _state: State = State.IDLE
@@ -119,7 +142,7 @@ var _facing: int = -1  # enemies commonly face left toward a right-approaching p
 var _has_melee := false
 var _has_ranged := false
 var _has_death := false
-var _has_stroll := false
+var _has_patrol := false
 var _attack_cd := 0.0
 var _attack_fired := false
 var _point_a := 0.0
@@ -168,7 +191,7 @@ func _ready() -> void:
 	_has_melee = _sprite.sprite_frames.has_animation(&"attack")
 	_has_ranged = _sprite.sprite_frames.has_animation(&"attack_projectile")
 	_has_death = _sprite.sprite_frames.has_animation(&"death")
-	_has_stroll = _sprite.sprite_frames.has_animation(&"stroll")
+	_has_patrol = _sprite.sprite_frames.has_animation(&"patrol")
 
 	health = max_health
 	_bar.set_ratio(1.0)
@@ -181,7 +204,7 @@ func _ready() -> void:
 	_sprite.animation_finished.connect(_on_anim_finished)
 	_sprite.animation_looped.connect(_on_anim_looped)
 	_face(_facing)
-	_play(&"stroll" if _has_stroll else &"idle")  # a strollless enemy (sleeper) just idles
+	_play(&"patrol" if _has_patrol else &"idle")  # a patrolless enemy (sleeper) just idles
 
 
 # --- construction -----------------------------------------------------------
@@ -359,7 +382,7 @@ func _act(delta: float) -> void:
 		# Are we in combat? PURSUE = close in on the player from any height/range -- when
 		# aggressive by nature (aggro) or freshly hurt (alerted). HOLD = stand and face when
 		# they're on our level and in ranged reach. Neither -> fall through to patrol, so an
-		# enemy on a different platform keeps strolling instead of freezing.
+		# enemy on a different platform keeps patrolling instead of freezing.
 		var dir := int(sign(to_player))
 		var pursue := _alert_left > 0.0 or (aggro and dist <= aggro_range)
 		var hold := aligned and dist <= ranged_range
@@ -369,7 +392,7 @@ func _act(delta: float) -> void:
 			if pursue and dist > melee_range + 4.0 and _floor_ahead(dir):
 				velocity.x = dir * move_speed
 				_face(dir)
-				_set_state(State.STROLL)
+				_set_state(State.PATROL)
 			else:
 				velocity.x = 0.0
 				_face(dir)
@@ -400,7 +423,7 @@ func _patrol(delta: float) -> void:
 
 	velocity.x = dir * move_speed
 	_face(dir)
-	_set_state(State.STROLL)
+	_set_state(State.PATROL)
 
 
 # --- attacks ----------------------------------------------------------------
@@ -520,6 +543,9 @@ func _spawn_melee_strike() -> void:
 
 
 func _fire_projectile() -> void:
+	if ranged_mode == "lob":
+		_fire_lob()  # a thrown bomb (LobProjectile), not a straight-line shot
+		return
 	var muzzle := global_position + Vector2(muzzle_offset.x * _facing, muzzle_offset.y)
 	# One shared Projectile class for players AND enemies -- hostile = true puts it on
 	# the enemy-hit layer scanning player hurtboxes, homing = 0 flies straight, and the
@@ -561,6 +587,40 @@ func _fire_projectile() -> void:
 	# Nodes.place_at snaps it to the muzzle without physics-interpolation smear.
 	get_parent().add_child(proj)
 	Nodes.place_at(proj, muzzle)
+
+
+## Throw a lobbed bomb (ranged_mode = "lob"): a LobProjectile that arcs from the muzzle to a
+## spot NEXT TO the player, dwells, then explodes. The blast reuses this enemy's ranged_*
+## tuning; the thrown-object look is `ranged_particle`, the blast look `lob_explosion_effect`.
+func _fire_lob() -> void:
+	var muzzle := global_position + Vector2(muzzle_offset.x * _facing, muzzle_offset.y)
+	var lob := LobProjectile.new()
+	lob.hostile = true
+	lob.friendly_fire = friendly_fire
+	lob.source = self
+	lob.arc_time = lob_arc_time
+	lob.gravity = lob_gravity
+	lob.dwell_time = lob_dwell
+	lob.max_life = lob_max_life
+	lob.explosion_extents = lob_explosion_extents
+	lob.explosion_damage = ranged_damage
+	lob.explosion_knockback = ranged_knockback
+	lob.explosion_stun = ranged_stun
+	lob.explosion_effect = lob_explosion_effect
+	if not ranged_particle.is_empty():
+		lob.add_child((load(ranged_particle) as PackedScene).instantiate())
+
+	# Land it next to the player, biased toward us (so it drops at their feet, not behind).
+	# Fall back to a short toss ahead if the player vanished mid-throw.
+	var player := _player()
+	var land := muzzle + Vector2(_facing * 90.0, 30.0)
+	if player != null:
+		var side := -signf(player.global_position.x - global_position.x)
+		land = player.global_position + Vector2(side * lob_land_offset, 0.0)
+	lob.target = land
+
+	get_parent().add_child(lob)
+	Nodes.place_at(lob, muzzle)
 
 
 func _fire_frame() -> int:
@@ -609,6 +669,8 @@ func _on_hurt(hit: Hit) -> void:
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
 	_set_state(State.DEAD)  # _physics_process bails on DEAD, so the AI stops here
+	remove_from_group("enemies")  # stop being a homing target NOW -- the death anim/fade below
+	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse
 	_hurtbox.set_deferred("monitorable", false)
 	set_deferred("collision_layer", 0)
 	if _has_death:
@@ -657,7 +719,7 @@ func _set_state(state: State) -> void:
 				_sprite.set_frame_and_progress(0, 0.0)
 				_sprite.pause()
 		State.STUN: _play(&"idle")
-		State.STROLL: _play(&"stroll" if _has_stroll else &"idle")
+		State.PATROL: _play(&"patrol" if _has_patrol else &"idle")
 
 
 func _play(anim: StringName) -> void:

@@ -1,7 +1,7 @@
 class_name Nasen
 extends Enemy
 
-## Nasen: a stationary SLEEPER (idle only, no stroll). He dozes in place until the player
+## Nasen: a stationary SLEEPER (idle only, no patrol). He dozes in place until the player
 ## gets within `rage_zone`, then wakes and RAGES -- a ground AoE erupts around him (rising
 ## floor particles + a hitbox) on the attack's hit frame, and the attack loops. If the
 ## player dodges out of the zone he keeps raging for `rage_linger` more seconds, then dozes

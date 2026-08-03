@@ -1,0 +1,63 @@
+[gd_scene load_steps=5 format=3 uid="uid://dmazabblast2026"]
+
+; Mazab's bomb blast -- the AoE that erupts when a landed LobProjectile's dwell timer ends.
+; Instanced INSIDE the explosion Strike (scripts/combat/lob_projectile.gd::_explode), which
+; owns the hitbox + self-frees; this scene is the look only. Set as Mazab's
+; `lob_explosion_effect` in configs/level_config.gd. Steel-blue to match the thrown rock:
+; a fast radial shard burst + a low ground dust puff, both one-shot so they fire once.
+
+[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+
+[sub_resource type="Curve" id="Curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Grad_shard"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(0.9, 0.95, 1, 1, 0.62, 0.74, 0.82, 1, 0.4, 0.5, 0.6, 0)
+
+[sub_resource type="Gradient" id="Grad_dust"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.6, 0.7, 0.78, 0.8, 0.45, 0.55, 0.62, 0)
+
+[node name="MazabExplosion" type="Node2D"]
+
+[node name="Shards" type="CPUParticles2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_ember")
+emitting = true
+amount = 90
+one_shot = true
+explosiveness = 1.0
+lifetime = 0.4
+emission_shape = 1
+emission_sphere_radius = 6.0
+spread = 180.0
+gravity = Vector2(0, 620)
+initial_velocity_min = 140.0
+initial_velocity_max = 300.0
+scale_amount_min = 0.4
+scale_amount_max = 0.9
+scale_amount_curve = SubResource("Curve_shrink")
+color_ramp = SubResource("Grad_shard")
+
+[node name="Dust" type="CPUParticles2D" parent="."]
+z_index = -1
+texture = ExtResource("2_dot")
+emitting = true
+amount = 40
+one_shot = true
+explosiveness = 0.9
+lifetime = 0.55
+emission_shape = 3
+emission_rect_extents = Vector2(40, 3)
+direction = Vector2(0, -1)
+spread = 70.0
+gravity = Vector2(0, 90)
+initial_velocity_min = 30.0
+initial_velocity_max = 90.0
+scale_amount_min = 0.5
+scale_amount_max = 1.1
+scale_amount_curve = SubResource("Curve_shrink")
+color_ramp = SubResource("Grad_dust")

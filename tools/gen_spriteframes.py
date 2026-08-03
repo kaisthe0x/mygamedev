@@ -49,7 +49,7 @@ CHARACTER_ANIMS = {
 }
 ENEMY_ANIMS = {
     "idle": (6.0, True),
-    "stroll": (8.0, True),
+    "patrol": (8.0, True),  # walk cycle used while patrolling (was "stroll")
     "attack": (12.0, False),  # a strike/melee (ground AoE, launch, front hit)
     "attack_projectile": (10.0, False),  # launches a projectile (Kebus bolt, Baghel wave)
     "death": (6.0, False),  # slow + graceful -- plays once on death, then the corpse fades
@@ -126,6 +126,11 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
     # plays only once. Enemy.gd honours loop_from for a re-played attack (see _replay_from).
     ("nasen", "attack"): {"fps": 8.0, "loop_from": 2},
+    # Mazab (enemy): let the throw's release pose land before he retracts, so the lob reads.
+    ("mazab", "attack_projectile"): {"hold_last": 1.5},
+    # Ein (enemy): the stab loops for the whole charge (which lasts a variable dive time, not
+    # one anim cycle) -- ein.gd ends it by exploding on arrival, not on anim_finished.
+    ("ein", "attack"): {"loop": True},
 }
 
 # Attack hit frames (sheet-relative). An attack combo plays one segment per
@@ -147,6 +152,7 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("kebus", "attack"): [3],
     ("baghel", "attack_projectile"): [6],
     ("nasen", "attack"): [2],  # the rage AoE erupts on this frame
+    ("mazab", "attack_projectile"): [5],  # release frame -- the lobbed bomb leaves his hand here
 }
 
 # Per-frame duration multipliers, (char, anim) -> {sheet_frame: multiplier}. Each

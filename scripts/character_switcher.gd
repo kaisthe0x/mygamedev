@@ -33,7 +33,7 @@ const CAM_ZOOM_SPAWN := Vector2(2.25, 2.25)
 ## The game spawns this one character. Change this string to play a different one; valid
 ## ids are in CharacterConfig.IDS ("feyke", "katalyst", "khalid", "lenbondosen", "wayna").
 ## (In-game Q/E switching is gone -- pick here in code.)
-const START_CHARACTER := "feyke"
+const START_CHARACTER := "khalid"
 # ──────────────────────────────────────────────────────────────────────────────────
 
 @export var player_path: NodePath = ^"Player"
@@ -201,7 +201,7 @@ func _build_platform(center_x: float, top_y: float, width: float, height: float)
 
 
 func _spawn_all() -> void:
-	for entry in LevelConfig.ROSTER:
+	for entry in LevelConfig.roster():
 		_spawn_enemy(entry)
 
 
