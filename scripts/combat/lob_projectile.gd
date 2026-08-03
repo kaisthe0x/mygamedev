@@ -42,9 +42,12 @@ extends Node2D
 @export var explosion_damage := 16.0
 @export var explosion_knockback := 160.0
 @export var explosion_stun := 0.25
-## Particle-only scene for the blast look, instanced inside the explosion Strike. Empty = the
+## Particle-only scene for the blast look, instanced inside the explosion Strike. null = the
 ## Strike's own default flash.
-@export_file("*.tscn") var explosion_effect := ""
+@export var explosion_effect: PackedScene
+## Offset of the blast look within the explosion (from the Emitters config). Not facing-mirrored:
+## the bomb has left its thrower, so its facing is irrelevant here.
+@export var explosion_effect_pos := Vector2.ZERO
 
 ## Where to AIM the arc (world space). Set by the spawner (enemy: next to the player). It only
 ## shapes the toss -- the bomb lands on a real surface, not here. Vector2.INF = a short toss
@@ -144,23 +147,28 @@ func _explode() -> void:
 	if parent == null:
 		queue_free()
 		return
+	# The thrower may have DIED while the bomb flew/dwelled (a lob outlives its owner), leaving
+	# `source` a freed reference -- assigning that to a Node property errors. Drop it to null
+	# (knockback credit is just lost); the blast still fires.
+	var src: Node = source if is_instance_valid(source) else null
 	var strike := Strike.new()
 	strike.hostile = hostile
 	strike.friendly_fire = friendly_fire
 	strike.lifetime = 0.4
-	strike.source = source
+	strike.source = src
 	var hb := Hitbox.new()
 	hb.damage = explosion_damage
 	hb.knockback = explosion_knockback
 	hb.stun = explosion_stun
 	hb.ranged = true  # a thrown-bomb blast reads as ranged (nasen etc. react by hit type)
-	hb.source = source
+	hb.source = src
 	hb.add_child(Shapes.make_box(explosion_extents * 2.0, Vector2(0, -explosion_extents.y)))
 	strike.add_child(hb)
-	if not explosion_effect.is_empty():
-		var scn := load(explosion_effect) as PackedScene
-		if scn != null:
-			strike.add_child(scn.instantiate())
+	if explosion_effect != null:
+		var fx := explosion_effect.instantiate()
+		if fx is Node2D:
+			(fx as Node2D).position = explosion_effect_pos
+		strike.add_child(fx)
 	parent.add_child(strike)  # _ready: team layers + self-free timer
 	Nodes.place_at(strike, global_position)
 	hb.activate()

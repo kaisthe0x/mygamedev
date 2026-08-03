@@ -35,27 +35,24 @@ const PLATFORMS := [
 ##
 ## Roster: Kebus (melee + straight bolt), Baghel (ground surge), Mazab (lobbed bomb),
 ## Nasen (sleeper AoE, custom scene), Ein (floating kamikaze orb, custom scene).
+# Combat kits only. The particle LOOK + muzzle position for each of these live in
+# EmittersEnemies (vfx/config/emitters_enemies.gd), keyed by enemy_id (kebus/baghel/mazab ->
+# projectile, mazab -> explosion) -- one place for every enemy emitter -- so not here.
 const KEBUS := {
 	"ranged_mode": "forward",  # straight-ahead bolt, not tracked at the player
-	"muzzle_offset": Vector2(18, -22),  # bolt at body height (aimed default -46 sits above his head)
 	"ranged_hitbox_extents": Vector2(7, 10),
-	"ranged_particle": "res://vfx/enemy/kebus/attack/attack_bolt.tscn",
 }
 const BAGHEL := {
 	"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0, "projectile_speed": 200.0,
-	"ranged_particle": "res://vfx/enemy/baghel/attack/attack_ground_wave.tscn",
 	"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9),
-	"muzzle_offset": Vector2(16, 1), "ranged_damage": 7.0,
+	"ranged_damage": 7.0,
 	"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0,
 	"idle_time_min": 5.0, "idle_time_max": 7.0,
 }
 const MAZAB := {
 	"ranged_mode": "lob", "ranged_range": 260.0, "attack_align_y": 120.0, "attack_cooldown": 2.2,
-	"muzzle_offset": Vector2(18, -40),  # bomb leaves his raised hand
 	"ranged_damage": 16.0, "ranged_knockback": 160.0, "ranged_stun": 0.25,
 	"lob_arc_time": 0.9, "lob_dwell": 1.0, "lob_explosion_extents": Vector2(48, 26),
-	"ranged_particle": "res://vfx/enemy/mazab/attack/mazab_rock.tscn",
-	"lob_explosion_effect": "res://vfx/enemy/mazab/attack/mazab_explosion.tscn",
 }
 
 

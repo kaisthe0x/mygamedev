@@ -6,7 +6,7 @@ extends RefCounted
 ## configs/moves.gd (see Moves); the Player holds a current attack + current special
 ## and drives them through this.
 ##
-## Effects are frame-indexed: the ParticleDirector fires whatever emitters.json lists
+## Effects are frame-indexed: the ParticleDirector fires whatever the Emitters config lists
 ## under this move's `animation` name (a particle -- optionally carrying its own
 ## Hitbox). `effect` here is just the human label of what it uses.
 

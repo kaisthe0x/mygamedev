@@ -72,7 +72,9 @@ func _on_area_entered(area: Area2D) -> void:
 		return
 	# Never hit our own source's hurtbox. Harmless normally (teams don't overlap), but
 	# with friendly fire an ally-scanning box would otherwise damage the attacker itself.
-	if source != null and box.get_parent() == source:
+	# is_instance_valid, not != null: a shot outlives its firer, so `source` may be FREED --
+	# a freed ref isn't null, and assigning/dereferencing it later errors.
+	if is_instance_valid(source) and box.get_parent() == source:
 		return
 	_already_hit.append(box)
 	var hit := Hit.new()
@@ -82,6 +84,7 @@ func _on_area_entered(area: Area2D) -> void:
 	hit.status_color = status_color
 	hit.status_time = status_time if status_time > 0.0 else stun
 	hit.ranged = ranged
-	hit.source = source if source != null else owner
+	var credit: Node = source if is_instance_valid(source) else owner
+	hit.source = credit if is_instance_valid(credit) else null
 	box.take_hit(hit)
 	struck.emit(box)

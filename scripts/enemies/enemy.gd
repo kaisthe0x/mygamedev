@@ -70,8 +70,9 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## Melee hitbox placement in front of the body, and its half-size.
 @export var melee_hitbox_x: float = 20.0
 @export var melee_hitbox_extents := Vector2(16, 16)
-## Where a projectile leaves the enemy (forward, up), before facing mirror.
-@export var muzzle_offset := Vector2(20, -46)
+## Where a projectile leaves the enemy (forward, up), before facing mirror -- fallback when
+## the Emitters config gives no `projectile` pos for this enemy (that config IS the muzzle now).
+const DEFAULT_MUZZLE := Vector2(20, -46)
 @export var projectile_speed: float = 260.0
 ## "aimed": projectile flies toward the player (Kebus' staff bolt).
 ## "forward": it surges straight ahead along the ground for `ranged_travel` px
@@ -82,9 +83,9 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 @export_enum("aimed", "forward", "lob") var ranged_mode := "aimed"
 @export var ranged_travel: float = 100.0
 @export var ranged_color := Color(0.55, 1.0, 0.45)  # tints the built-in orb
-## Optional particle scene for the projectile's look (e.g. Baghel's ground wave, or the
-## thrown object for a lob). Empty = the built-in orb. Edit these in the editor like any scene.
-@export_file("*.tscn") var ranged_particle := ""
+## The projectile's visual scene (Baghel's wave, Kebus' bolt, Mazab's rock) is NOT set here --
+## it comes from the Emitters config (`<id> -> projectile -> scene`); empty there = the built-in
+## orb. Same for the lob blast (`<id> -> explosion -> scene`). One place for every enemy emitter.
 ## Projectile collider half-size + offset from its spawn point.
 @export var ranged_hitbox_extents := Vector2(5, 5)
 @export var ranged_hitbox_offset := Vector2.ZERO
@@ -106,8 +107,6 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 ## How far to the side of the player the bomb lands (px), biased toward the thrower so it
 ## drops at their feet, not behind them.
 @export var lob_land_offset: float = 22.0
-## Particle-only scene for the blast look, instanced inside the explosion Strike.
-@export_file("*.tscn") var lob_explosion_effect := ""
 
 @export_group("Behaviour")
 ## When true, chases the player (up to aggro_range) instead of only attacking
@@ -479,7 +478,7 @@ func _apply_shake() -> void:
 
 func _on_anim_finished() -> void:
 	if _state == State.DEAD:
-		_fade_and_free()  # death anim played out -> fade the corpse and remove it
+		queue_free()  # death anim played out in full -> vanish immediately (no lingering hold/fade)
 		return
 	# A looping melee keeps swinging while the player stays in reach, re-playing from its
 	# loop_from frame so the wind-up only plays once. Otherwise it's one-and-done.
@@ -491,6 +490,35 @@ func _on_anim_finished() -> void:
 	if _state == State.MELEE or _state == State.RANGE:
 		_attack_cd = attack_cooldown
 		_set_state(State.IDLE)
+
+
+## Emit offset for one of this enemy's particle effects, from vfx/config/the Emitters config
+## (keyed by enemy_id -> `effect`), MIRRORED by facing. `fallback` is the value hardcoded in the
+## script, used when the config has no `pos` for it. The enemy counterpart to the character
+## emitters `pos`; enemy effects are attached in code (a trail, a spawned blast), so there's no
+## frame scheduling -- just the position.
+func _vfx_pos(effect: String, fallback := Vector2.ZERO) -> Vector2:
+	var p: Vector2 = Emitters.enemy_effect(enemy_id, effect).get("pos", fallback)
+	return Vector2(p.x * _facing, p.y)
+
+
+## Preloaded scene this enemy emits for `effect` (Emitters), or null if none listed -- the
+## config is authoritative, so no entry = no emitter.
+func _vfx_scene(effect: String) -> PackedScene:
+	return Emitters.enemy_effect(enemy_id, effect).get("scene", null)
+
+
+## Instantiate this enemy's `effect` emitter (from config), positioned at its config offset
+## (mirrored by facing). Returns null when the config lists no scene for it -- so a deleted
+## config row simply produces no effect. The caller parents it (to the body, or a spawned Strike).
+func _make_vfx(effect: String) -> Node2D:
+	var scene := _vfx_scene(effect)
+	if scene == null:
+		return null
+	var node := scene.instantiate()
+	if node is Node2D:
+		(node as Node2D).position = _vfx_pos(effect)
+	return node as Node2D
 
 
 ## Emitted frame an animation's loop restarts at (from the generator's `loop_from`
@@ -546,18 +574,19 @@ func _fire_projectile() -> void:
 	if ranged_mode == "lob":
 		_fire_lob()  # a thrown bomb (LobProjectile), not a straight-line shot
 		return
-	var muzzle := global_position + Vector2(muzzle_offset.x * _facing, muzzle_offset.y)
-	# One shared Projectile class for players AND enemies -- hostile = true puts it on
-	# the enemy-hit layer scanning player hurtboxes, homing = 0 flies straight, and the
-	# look/damage are the `ranged_particle` scene + a Hitbox built from this enemy's tuning.
+	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE)  # config-driven launch point
+	# One shared Projectile class for players AND enemies -- hostile = true puts it on the
+	# enemy-hit layer scanning player hurtboxes, homing = 0 flies straight, and the look/damage
+	# are the `projectile` scene (the Emitters config) + a Hitbox built from this enemy's tuning.
 	var proj := Projectile.new()
 	proj.hostile = true
 	proj.friendly_fire = friendly_fire  # also catch other enemies, if flagged
 	proj.homing = 0.0                # aim once / surge forward -- no steering
 	proj.rotate_to_heading = false   # visual authored blasting +x -> mirror, don't rotate
 	proj.source = self
-	if not ranged_particle.is_empty():
-		proj.add_child((load(ranged_particle) as PackedScene).instantiate())
+	var vis := _vfx_scene("projectile")  # null -> the projectile's built-in orb fallback
+	if vis != null:
+		proj.add_child(vis.instantiate())
 
 	# The shot's damage box, sized from this enemy's ranged hitbox exports. The
 	# Projectile arms it and sets its team layers from `hostile` on _ready.
@@ -590,10 +619,11 @@ func _fire_projectile() -> void:
 
 
 ## Throw a lobbed bomb (ranged_mode = "lob"): a LobProjectile that arcs from the muzzle to a
-## spot NEXT TO the player, dwells, then explodes. The blast reuses this enemy's ranged_*
-## tuning; the thrown-object look is `ranged_particle`, the blast look `lob_explosion_effect`.
+## spot NEXT TO the player, dwells, then explodes. The blast reuses this enemy's ranged_* tuning;
+## the thrown-object look + blast look both come from the Emitters config (`projectile` /
+## `explosion`), like every enemy emitter.
 func _fire_lob() -> void:
-	var muzzle := global_position + Vector2(muzzle_offset.x * _facing, muzzle_offset.y)
+	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE)
 	var lob := LobProjectile.new()
 	lob.hostile = true
 	lob.friendly_fire = friendly_fire
@@ -606,9 +636,12 @@ func _fire_lob() -> void:
 	lob.explosion_damage = ranged_damage
 	lob.explosion_knockback = ranged_knockback
 	lob.explosion_stun = ranged_stun
-	lob.explosion_effect = lob_explosion_effect
-	if not ranged_particle.is_empty():
-		lob.add_child((load(ranged_particle) as PackedScene).instantiate())
+	lob.explosion_effect = _vfx_scene("explosion")  # blast look (config); null -> Strike's own flash
+	# detached from us at detonation, so raw pos (no facing mirror)
+	lob.explosion_effect_pos = Emitters.enemy_effect(enemy_id, "explosion").get("pos", Vector2.ZERO)
+	var vis := _vfx_scene("projectile")
+	if vis != null:
+		lob.add_child(vis.instantiate())
 
 	# Land it next to the player, biased toward us (so it drops at their feet, not behind).
 	# Fall back to a short toss ahead if the player vanished mid-throw.
@@ -674,9 +707,9 @@ func _die() -> void:
 	_hurtbox.set_deferred("monitorable", false)
 	set_deferred("collision_layer", 0)
 	if _has_death:
-		_play(&"death")  # play it out; _on_anim_finished fades + frees when it ends
+		_play(&"death")  # play it out; _on_anim_finished frees it the instant the anim ends
 	else:
-		_fade_and_free()  # no death sheet -> the old straight alpha-fade
+		_fade_and_free()  # no death sheet -> a straight alpha-fade (there's no anim to play out)
 
 
 ## Let the final (dead) pose sit a beat, then fade the corpse out and free. The graceful

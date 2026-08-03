@@ -5,88 +5,63 @@ extends Node2D
 ## frames, so VFX can be layered over the drawn sprites (e.g. embers on Wayna's
 ## flame) without baking them in.
 ##
-## Config: res://vfx/config/emitters.json, keyed
-##   character -> animation -> [ { type, mode, frames, pos } ]
-## - type   : a scene's BASENAME (without .tscn). It's resolved by recursively
-##            indexing vfx/character/<character>/ (any nesting -- attack/chainsaw/,
-##            dash/default/, other/, ...) plus the global vfx/shared/, so a type
-##            resolves wherever it's filed with no hardcoded folder list. Its root
-##            may be a single CPUParticles2D/GPUParticles2D, a Node2D bundling
-##            several as one attack, a Projectile, or a FlashEffect (a drawn slash).
+## Config: Emitters (vfx/config/emitters*.gd -- GDScript, not JSON), the CHARACTER table keyed
+##   id -> animation -> [ { scene, mode, frames, pos } ]
+## - scene  : the PACKED SCENE to emit, preload()ed in the table -- so a bad path is a PARSE
+##            error and every effect is resident before the game runs (no runtime load). Its
+##            root may be a single CPUParticles2D/GPUParticles2D, a Node2D bundling several as
+##            one attack, a Projectile, or a FlashEffect (a drawn slash).
 ## - mode   : "sustained" (emit while any listed frame is showing) or
 ##            "burst" (spawn a one-shot each time a listed frame is entered)
 ## - frames : SHEET-relative indices (same numbering as loop_from / hit_frames;
 ##            the idle-reference frame counts). Converted to emitted indices via
 ##            the SpriteFrames `sheet_start` metadata. Or the string "all" ->
 ##            every frame of the animation.
-## - pos    : [x, y] pixel offset from the sprite origin (the feet), for facing
-##            right; mirrored automatically when facing left. A composite (Node2D)
-##            root mirrors by flipping scale.x, so its child textures flip too;
-##            a single particle root mirrors direction/gravity, keeping its texture.
+## - pos    : an offset (Vector2) from the sprite origin (the feet), for facing right; mirrored
+##            automatically when facing left. A composite (Node2D) root mirrors by flipping
+##            scale.x, so its child textures flip too; a single particle root mirrors
+##            direction/gravity, keeping its texture.
+## - node/set/boost/clip_to_ground : optional (see Emitters + the row handlers below).
 ##
-## The director is a child of the player; emitter scenes use local_coords=false
-## so their particles trail in world space as the player moves. Add a new effect
-## by dropping a scene anywhere under vfx/character/<character>/ and an entry in
-## the JSON -- no code changes.
-
-const CONFIG_PATH := "res://vfx/config/emitters.json"
-## Roots the scene index. A character's own effects live under CHARACTER_DIR/<id>/;
-## cross-character building blocks live under SHARED_DIR.
-const CHARACTER_DIR := "res://vfx/character"
-const SHARED_DIR := "res://vfx/shared"
+## The director is a child of the player; emitter scenes use local_coords=false so their
+## particles trail in world space as the player moves. Add a new effect by dropping a scene
+## under vfx/character/<id>/ and a preload row in EmittersCharacters -- no code changes.
 
 var _sprite: AnimatedSprite2D
-var _config: Dictionary = {}
-## Current character id; scopes where a particle `type` is looked up.
-var _character: String = ""
-## Effect basename -> scene res:// path, rebuilt per character (see _build_index).
-var _index: Dictionary = {}
 ## One entry per sustained config row: {node, anim, frames: Array[int], pos}.
 var _sustained: Array[Dictionary] = []
-## One entry per burst config row: {anim, frames: Array[int], pos, type}.
+## One entry per burst config row: {anim, frames: Array[int], pos, scene}.
 var _bursts: Array[Dictionary] = []
 
 
-## Wire the director to a player sprite: load emitters.json and watch the sprite's
-## frame/animation changes to drive effects. Call once, then set_character().
+## Wire the director to a player sprite: watch the sprite's frame/animation changes to drive
+## effects. Call once, then set_character(). The emitter config is Emitters (preloaded GDScript,
+## no JSON, no runtime load) -- see vfx/config/emitters*.gd.
 func setup(sprite: AnimatedSprite2D) -> void:
 	_sprite = sprite
-	_load_config()
 	_sprite.frame_changed.connect(_refresh)
 	_sprite.animation_changed.connect(_refresh)
 
 
-func _load_config() -> void:
-	if not FileAccess.file_exists(CONFIG_PATH):
-		return
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(CONFIG_PATH))
-	if parsed is Dictionary:
-		_config = parsed
-	else:
-		push_warning("ParticleDirector: could not parse %s" % CONFIG_PATH)
-
-
 ## Rebuild the emitter set for a character. Called when the player swaps.
 func set_character(id: String) -> void:
-	_character = id
-	_build_index()
 	for entry in _sustained:
 		entry.node.queue_free()
 	_sustained.clear()
 	_bursts.clear()
 
-	var by_anim: Dictionary = _config.get(id, {})
+	var by_anim := Emitters.character(id)
 	for anim in by_anim:
 		if not (by_anim[anim] is Array):
 			continue
 		var start := _sheet_start(anim)
 		for row: Dictionary in by_anim[anim]:
 			var frames := _frames_for(anim, row.get("frames", []), start)
-			var pos := Vector2(row["pos"][0], row["pos"][1])
-			var type: String = row["type"]
+			var pos := row["pos"] as Vector2
+			var scene: PackedScene = row["scene"]
 			var boost: Dictionary = row.get("boost", {})
 			if row.get("mode", "burst") == "sustained":
-				var node := _spawn(type, row.get("node", ""))
+				var node := _spawn(scene, row.get("node", ""))
 				if node != null:
 					_apply_overrides(node, row.get("set", {}))
 					var emitters := _emitters_of(node)
@@ -104,7 +79,7 @@ func set_character(id: String) -> void:
 					})
 			else:
 				_bursts.append({
-					"anim": anim, "frames": frames, "pos": pos, "type": type,
+					"anim": anim, "frames": frames, "pos": pos, "scene": scene,
 					"node": row.get("node", ""), "set": row.get("set", {}),
 					"boost": boost, "clip_to_ground": row.get("clip_to_ground", false),
 				})
@@ -136,68 +111,27 @@ func _sheet_start(anim: String) -> int:
 	return 0
 
 
-## Build a basename -> scene-path index for the current character by recursively
-## walking vfx/character/<id>/ (any nesting: attack/chainsaw/, dash/default/,
-## other/, ...) plus the global vfx/shared/. An emitters.json `type` is just a
-## scene's basename, so it resolves wherever it's filed -- there's no folder list
-## to keep in sync as the layout grows.
-func _build_index() -> void:
-	_index.clear()
-	_index_dir("%s/%s" % [CHARACTER_DIR, _character])
-	_index_dir(SHARED_DIR)
-
-
-func _index_dir(dir_path: String) -> void:
-	var d := DirAccess.open(dir_path)
-	if d == null:
-		return
-	d.list_dir_begin()
-	var entry := d.get_next()
-	while entry != "":
-		if not entry.begins_with("."):
-			var full := dir_path.path_join(entry)
-			if d.current_is_dir():
-				_index_dir(full)
-			elif entry.ends_with(".tscn") or entry.ends_with(".tscn.remap"):
-				# Exported builds ship "<name>.tscn.remap" instead of the raw .tscn.
-				var scene := entry.trim_suffix(".remap")
-				var stem := scene.trim_suffix(".tscn")
-				var res_path := dir_path.path_join(scene)
-				if _index.has(stem) and _index[stem] != res_path:
-					push_warning("ParticleDirector: two effects named '%s' (%s and %s); using the first"
-						% [stem, _index[stem], res_path])
-				else:
-					_index[stem] = res_path
-		entry = d.get_next()
-	d.list_dir_end()
-
-
-## Spawn an effect scene by its indexed basename. Its root may be a single
-## CPUParticles2D/GPUParticles2D, OR a Node2D grouping several of them (a composite
-## attack).
+## Instantiate an effect from its preloaded scene (from Emitters). Its root may be a single
+## CPUParticles2D/GPUParticles2D, OR a Node2D grouping several of them (a composite attack).
 ##
-## `node_name` addresses ONE named child of a "palette" scene -- a scene that bundles
-## several independently-scheduled emitters (e.g. attack_finger_guns holds a `Shot`
-## and a `ShotLast`, each fired on its own frames). We instantiate the palette, lift
-## the named child out on its own, and drop the rest -- so listing the same palette
-## `type` with different `node`s fires different children at different frames. Empty
-## node_name = the whole scene (single or composite), as before.
+## `node_name` addresses ONE named child of a "palette" scene -- a scene that bundles several
+## independently-scheduled emitters (e.g. attack_finger_guns holds a `Shot` and a `ShotLast`,
+## each fired on its own frames). We instantiate the palette, lift the named child out on its
+## own, and drop the rest -- so listing the same palette `scene` with different `node`s fires
+## different children at different frames. Empty node_name = the whole scene.
 ##
-## Rejected only if it holds no particle emitters AND isn't a self-visual object:
-## a Projectile (which can carry an AnimatedSprite2D playing a drawn frame animation) or a
-## FlashEffect (a drawn slash that mirrors + frees itself). Those manage their own look.
-func _spawn(type: String, node_name := "") -> Node2D:
-	var path: String = _index.get(type, "")
-	if path.is_empty():
-		push_warning("ParticleDirector: no scene named '%s.tscn' under %s/%s or %s"
-			% [type, CHARACTER_DIR, _character, SHARED_DIR])
+## Rejected only if it holds no particle emitters AND isn't a self-visual object: a Projectile
+## (which can carry an AnimatedSprite2D playing a drawn frame animation) or a FlashEffect (a
+## drawn slash that mirrors + frees itself). Those manage their own look.
+func _spawn(scene: PackedScene, node_name := "") -> Node2D:
+	if scene == null:
 		return null
-	var root := (load(path) as PackedScene).instantiate()
+	var root := scene.instantiate()
 	var node := root as Node2D
 	if node_name != "":
 		var child := root.get_node_or_null(NodePath(node_name)) as Node2D
 		if child == null:
-			push_warning("ParticleDirector: palette %s has no child '%s'" % [path, node_name])
+			push_warning("ParticleDirector: palette %s has no child '%s'" % [scene.resource_path, node_name])
 			root.queue_free()
 			return null
 		root.remove_child(child)
@@ -205,7 +139,7 @@ func _spawn(type: String, node_name := "") -> Node2D:
 		root.queue_free()
 		node = child
 	if _emitters_of(node).is_empty() and not (node is Projectile) and not (node is Strike):
-		var where := path if node_name == "" else "%s -> %s" % [path, node_name]
+		var where := scene.resource_path if node_name == "" else "%s -> %s" % [scene.resource_path, node_name]
 		push_warning("ParticleDirector: %s has no CPUParticles2D/GPUParticles2D " % where
 			+ "(as its root or a child) and is not a Projectile/Strike, got %s" % node.get_class())
 		node.queue_free()
@@ -408,7 +342,7 @@ func fire_effect(anim: String, tilt: float = 0.0) -> void:
 
 
 func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
-	var node := _spawn(b.type, b.get("node", ""))
+	var node := _spawn(b.scene, b.get("node", ""))
 	if node == null:
 		return
 	_apply_overrides(node, b.get("set", {}))

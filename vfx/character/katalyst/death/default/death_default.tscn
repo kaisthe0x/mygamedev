@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://hctkp6bnkjom"]
 
 ; katalyst's death burst -- placeholder tinted to their dash palette (see dash/default).
-; Fires once on the LAST death-anim frame (emitters.json). Tweak freely.
+; Fires once on the LAST death-anim frame (the Emitters config). Tweak freely.
 
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
 

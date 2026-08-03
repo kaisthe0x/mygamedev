@@ -22,11 +22,11 @@ extends Enemy
 ## How long a melee hit halts his rage before he wakes back up and starts over.
 @export var rage_stun_time: float = 1.5
 ## The AoE that erupts around him each rage cycle: damage/knockback and the ground box's
-## half-size (centred on him), plus a particle-only scene for the look.
+## half-size (centred on him). The particle LOOK comes from the Emitters config (`nasen -> rage`),
+## like every enemy emitter -- not an export here.
 @export var rage_damage: float = 14.0
 @export var rage_knockback: float = 130.0
 @export var rage_extents := Vector2(52, 22)
-@export_file("*.tscn") var rage_effect := "res://vfx/enemy/nasen/attack/nasen_rage.tscn"
 
 var _rage_left := 0.0  ## seconds of rage remaining; refreshed while the player is in the zone
 
@@ -70,10 +70,11 @@ func _on_frame_changed() -> void:
 		_begin_hitstop()
 
 
-## The rage swing finished: loop it if still raging, else doze off. (DEAD still fades out.)
+## The rage swing finished: loop it if still raging, else doze off. (DEAD -> vanish once the
+## death anim has played out, matching the base.)
 func _on_anim_finished() -> void:
 	if _state == State.DEAD:
-		_fade_and_free()
+		queue_free()  # death anim done -> disappear immediately (no lingering hold/fade)
 		return
 	if _state == State.RAGE:
 		if _rage_left > 0.0:
@@ -117,9 +118,8 @@ func _spawn_rage_aoe() -> void:
 	hb.source = self
 	hb.add_child(Shapes.make_box(rage_extents * 2.0, Vector2(0, -rage_extents.y)))
 	strike.add_child(hb)
-	if not rage_effect.is_empty():
-		var scn := load(rage_effect) as PackedScene
-		if scn != null:
-			strike.add_child(scn.instantiate())
+	var fx := _make_vfx("rage")  # rage LOOK + emit point from the Emitters config (null if none)
+	if fx != null:
+		strike.add_child(fx)
 	add_child(strike)  # centred on nasen (his feet); Strike._ready sets team layers, frees itself
 	hb.activate()

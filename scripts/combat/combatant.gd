@@ -25,7 +25,9 @@ static func anchor_to_feet(sprite: AnimatedSprite2D) -> void:
 ## exactly level with us.
 func apply_knockback(hit: Hit, facing: int) -> float:
 	var stagger := hit.stun
-	if hit.knockback > 0.0 and hit.source != null:
+	# is_instance_valid, not != null: the attacker may have been freed after the hit was built
+	# (a shot that outlived its firer), and dereferencing a freed source below would crash.
+	if hit.knockback > 0.0 and is_instance_valid(hit.source):
 		var dir := signi(int(sign(global_position.x - (hit.source as Node2D).global_position.x)))
 		if dir == 0:
 			dir = -facing

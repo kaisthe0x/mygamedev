@@ -24,34 +24,59 @@ extends Enemy
 @export var bob_speed: float = 3.0
 
 @export_subgroup("Explosion")
-## The AoE that erupts on arrival: half-size (centred on the orb via `explosion_offset`),
-## damage/knockback/stun, and a particle-only scene for the blast look.
+## The AoE hitbox that erupts on arrival: half-size (centred on the orb via `explosion_offset`)
+## + damage/knockback/stun. The blast's LOOK is a particle scene from the Emitters config
+## (`ein -> explosion`), like every enemy emitter -- not an export here.
 @export var explosion_extents := Vector2(38, 32)
-## Nudge the blast up onto the orb's body (the sprite is feet-anchored, so origin is below it).
+## Nudge the blast HITBOX up onto the orb's body (the sprite is feet-anchored, so origin is
+## below it). The particle look has its own offset in the Emitters config.
 @export var explosion_offset := Vector2(0, -16)
 @export var explosion_damage: float = 18.0
 @export var explosion_knockback: float = 170.0
 @export var explosion_stun: float = 0.2
-@export_file("*.tscn") var explosion_effect := "res://vfx/enemy/ein/attack/ein_explosion.tscn"
 
-@export_subgroup("Trails")
-## Particle trail worn while patrolling (gentle) vs while charging (aggressive). Swapped by
-## state; freed on death.
-@export_file("*.tscn") var patrol_trail := "res://vfx/enemy/ein/other/ein_patrol_trail.tscn"
-@export_file("*.tscn") var attack_trail := "res://vfx/enemy/ein/attack/ein_attack_trail.tscn"
+# Trails + explosion LOOK live in the Emitters config (ein -> patrol_trail / attack_trail /
+# explosion): which scene, where it emits, and whether it exists at all. Delete a row there and
+# Ein stops wearing that trail -- no code change. (No patrol_trail row today = no patrol trail.)
 
 var _home_y := 0.0  ## the y he bobs around on patrol
 var _bob_t := 0.0
 var _charge_target := Vector2.ZERO  ## the LOCKED point he dives at (player's pos at detection)
 var _trail: Node
+var _contact: Area2D  ## body-sized detector; touching the player erupts him (see _build_contact_detector)
 
 
 func _ready() -> void:
 	super._ready()
 	collision_mask = 0  # float freely -- ignore terrain (we move by global_position, not slide)
 	_home_y = global_position.y
-	_set_trail(patrol_trail)
+	_build_contact_detector()
+	_set_trail("patrol_trail")
 	_set_state(State.PATROL)
+
+
+## A body-sized detector that erupts him the instant the player TOUCHES him -- patrolling or
+## charging, any contact sets him off. It's a bare Area2D (not a Hitbox): it deals no hit
+## itself, just triggers the eruption whose AoE does the damage, so there's no double-hit and
+## no spurious 0-damage flash. Dash i-frames turn the player's hurtbox off, so a dashing player
+## isn't detected here (nor caught by the blast) -- dashing through him is safe, as intended.
+func _build_contact_detector() -> void:
+	_contact = Area2D.new()
+	_contact.collision_layer = 0  # nothing needs to detect US; we only scan
+	_contact.collision_mask = Combat.L_PLAYER_HURT  # the player's hurtbox (off during a dash)
+	_contact.add_child(Shapes.make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
+	add_child(_contact)
+	_contact.area_entered.connect(_on_contact)
+
+
+func _on_contact(area: Area2D) -> void:
+	if _state == State.DEAD:
+		return  # already erupting -- don't double-fire
+	if area is Hurtbox:
+		# Touched the player (who can't be dashing -- their hurtbox is off then) -> erupt here.
+		# Deferred: we're inside the physics area-flush, where spawning the blast's hitbox
+		# (activate() flips monitoring) is illegal; run it right after the flush instead.
+		_arrive.call_deferred()
 
 
 ## Floating AI -- replaces Enemy's grounded loop entirely (no gravity, floor, or edge patrol).
@@ -83,7 +108,7 @@ func _float_patrol(delta: float) -> void:
 ## Lock the target and commit: attack anim (looping stab), aggressive trail, CHARGE state.
 func _begin_charge(target: Vector2) -> void:
 	_charge_target = target
-	_set_trail(attack_trail)
+	_set_trail("attack_trail")
 	_set_state(State.CHARGE)
 	_play(&"attack")
 	_face(int(signf(target.x - global_position.x)))
@@ -101,10 +126,12 @@ func _charge(delta: float) -> void:
 		_face(int(signf(step.x)))
 
 
-## Reached the locked point: AoE explosion + death burst.
+## Erupt: AoE explosion + death burst. Fired by reaching the locked point OR by contact.
 func _arrive() -> void:
+	if _state == State.DEAD:
+		return  # guard: contact + arrival could both land the same frame
 	_spawn_explosion()
-	_die()  # DEAD state + the death burst; our _die override frees the trail first
+	_die()  # DEAD state + the death burst; our _die override frees the trail + detector first
 
 
 ## A hit chips + flashes him; lethal -> death burst. No stun/knockback: once he's diving he
@@ -121,6 +148,8 @@ func _on_hurt(hit: Hit) -> void:
 
 func _die() -> void:
 	_set_trail("")  # stop trailing before the death burst
+	if _contact != null:
+		_contact.set_deferred("monitoring", false)  # stop detecting contact while the corpse fades
 	super._die()
 
 
@@ -140,26 +169,25 @@ func _spawn_explosion() -> void:
 	hb.source = self
 	hb.add_child(Shapes.make_box(explosion_extents * 2.0, explosion_offset))
 	strike.add_child(hb)
-	if not explosion_effect.is_empty():
-		var scn := load(explosion_effect) as PackedScene
-		if scn != null:
-			var fx := scn.instantiate()
-			if fx is Node2D:
-				(fx as Node2D).position = explosion_offset
-			strike.add_child(fx)
+	var fx := _make_vfx("explosion")  # blast LOOK from config (null if no scene listed)
+	if fx != null:
+		strike.add_child(fx)
 	get_parent().add_child(strike)  # live in the level, centred where the orb arrived
 	Nodes.place_at(strike, global_position)
 	hb.activate()
 
 
-## Swap the worn trail node: free the current one, instance `scene_path` (empty = none).
-func _set_trail(scene_path: String) -> void:
+## Wear the trail for `effect` (the Emitters config key: "patrol_trail" / "attack_trail"), or ""
+## to clear it. The scene + emit offset both come from the config, so a deleted config row = no
+## trail, no code change. The old trail is re-parented into the level and left to dissipate
+## (Nodes.retire_particles) rather than freed outright -- otherwise, when Ein dies and frees, his
+## trail (a child) and its still-airborne wisps would vanish with him instead of fading.
+func _set_trail(effect: String) -> void:
 	if _trail != null and is_instance_valid(_trail):
-		_trail.queue_free()
+		Nodes.retire_particles(_trail as Node2D, get_parent())
 	_trail = null
-	if scene_path.is_empty():
+	if effect.is_empty():
 		return
-	var scn := load(scene_path) as PackedScene
-	if scn != null:
-		_trail = scn.instantiate()
+	_trail = _make_vfx(effect)  # null when the config lists no scene for this effect
+	if _trail != null:
 		add_child(_trail)

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dex5l30y784uc"]
 
 ; wayna's spawn (materialize) burst -- placeholder tinted to their dash palette.
-; Auto-fires on the FIRST spawn-anim frame (emitters.json), as they appear. Tweak freely.
+; Auto-fires on the FIRST spawn-anim frame (the Emitters config), as they appear. Tweak freely.
 
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
 

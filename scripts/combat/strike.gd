@@ -43,6 +43,7 @@ var source: Node = null
 
 var _hitbox: Hitbox
 var _tick_timer: Timer  # the DoT re-pulse timer, if any (see _start_ticking)
+var _fading := false  # true once _fade_out has begun -- so it runs only once
 
 
 func _ready() -> void:
@@ -61,14 +62,17 @@ func _ready() -> void:
 				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 			tw.tween_property(v, "modulate:a", 0.0, lifetime).set_ease(Tween.EASE_IN)
 
-	# Free once everything's done. One-shot burst: max(slash lifetime, longest particle
-	# life). Timed emission (emit_duration > 0): the emission WINDOW plus the last
-	# particle's life, so a continuous stream isn't cut off mid-emit.
+	# End of the active window, THEN a graceful fade. `free_delay` is when the strike stops
+	# (same moment it used to free): the slash lifetime, or a timed emission's WINDOW plus the
+	# last particle's life so a continuous stream isn't cut mid-emit. At that point _fade_out
+	# stops damage + emission and lingers only for the live particles to finish -- so a
+	# continuous emitter DISSIPATES instead of popping. free_delay already covers particle life,
+	# so the hitbox's active window is unchanged.
 	var emit_window := maxf(emit_duration, 0.0)
 	var free_delay := maxf(lifetime, emit_window)
 	for em in _emitters():
 		free_delay = maxf(free_delay, emit_window + em.lifetime * (1.0 + em.lifetime_randomness))
-	get_tree().create_timer(free_delay).timeout.connect(queue_free)
+	get_tree().create_timer(free_delay).timeout.connect(_fade_out)
 
 
 ## Configure this strike from a resolved tuning dict (moves.gd via the player's resolve
@@ -140,10 +144,19 @@ func _start_ticking(interval: float) -> void:
 	_tick_timer = timer
 
 
-## Stop this effect NOW -- the caster's channel was interrupted (e.g. Wayna hit mid-
-## inferno). Halt emission, damage ticks, and the hitbox, then free once the live
-## particles fade so it dissipates instead of popping.
+## Stop this effect NOW -- the caster's channel was interrupted (e.g. Wayna hit mid-inferno).
+## Same graceful teardown as natural end-of-life.
 func cancel() -> void:
+	_fade_out()
+
+
+## Stop damaging + emitting, then free once the live particles fade -- so the effect DISSIPATES
+## instead of popping. Shared by natural end-of-life and cancel(); guarded so a cancel racing
+## the end-of-life timer only runs it once.
+func _fade_out() -> void:
+	if _fading:
+		return
+	_fading = true
 	if is_instance_valid(_tick_timer):
 		_tick_timer.stop()
 	if _hitbox != null:

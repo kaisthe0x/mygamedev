@@ -9,7 +9,7 @@ extends RefCounted
 ## `default_special` in that character's entry below. ===
 ##
 ## Each move entry: { animation (the SpriteFrames anim), effect (label of the
-## particle it fires via emitters.json, keyed by that animation), tuning (the
+## particle it fires via the Emitters config, keyed by that animation), tuning (the
 ## melee-hitbox ATTACKS-style dict, or an array per combo segment; 0 damage when the
 ## effect carries the hit). Characters not listed fall back to LEGACY -- one "attack"
 ## + one "special" from their generic attack/special sheets -- so they keep

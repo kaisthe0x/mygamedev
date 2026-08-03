@@ -15,7 +15,9 @@ or who fires them.
 ```
 vfx/
   config/
-    emitters.json          Frame-indexed particle config (hand-edited)
+    emitters.gd            Emitters — registry aggregating the two tables below
+    emitters_characters.gd EmittersCharacters.TABLE — per-character, frame-indexed (preload scenes)
+    emitters_enemies.gd    EmittersEnemies.TABLE — per-enemy, code-driven (preload scenes)
   script/
     particle_director.gd   ParticleDirector — watches the sprite, emits per frame
     build_particles.gd     Scaffold particle-type scenes (skips existing)
@@ -35,8 +37,8 @@ vfx/
     shared/textures/         static textures reused across THIS character's effects
                              (smoke, poison, sparks)
   enemy/<id>/attack/        Per-enemy attack scenes (baghel/attack/attack_ground_wave.tscn,
-                            kebus/attack/attack_bolt.tscn). Loaded by PATH via the
-                            enemy's `ranged_particle`, not the director index.
+                            kebus/attack/attack_bolt.tscn). Referenced (preloaded) from
+                            EmittersEnemies.TABLE by enemy_id, not the director's frame index.
     death/default/           death burst, tinted to this character's palette
     spawn/default/           spawn (materialize) burst, tinted to this character's palette
   shared/textures/          Cross-entity building blocks: pixel_ember.png, soft_dot.png
@@ -47,13 +49,14 @@ vfx/
 **Death + spawn particles.** `death` and `spawn` are real animations, so their emitters
 auto-fire on the anim frames like `run`/`jump`. Each character has its **own**
 `death/default/death_default.tscn` and `spawn/default/spawn_default.tscn` (colours pulled
-from that character's `dash/default/` palette). In `emitters.json`: `"death"` fires a
+from that character's `dash/default/` palette). In the `Emitters` config: `"death"` fires a
 burst on the **last** death frame (the poof lands as the pose dissolves), `"spawn"` on the
 **first** spawn frame (as the character materializes). Retune frame/scene per character.
 
-**Naming rule.** A scene's basename is what `emitters.json` refers to, so keep it
-unique per character and role-named: `attack_chainsaw`, `run_default`,
-`special_ready`. **Art that only one attack uses lives in that attack's folder**
+**Referencing a scene.** A row points at its scene by **`preload("res://…")`** in the
+`Emitters` table — validated at parse time, resident before the game runs (no runtime `load`).
+Keep scenes role-named (`attack_chainsaw`, `run_default`, `special_ready`) and organized:
+**art that only one attack uses lives in that attack's folder**
 (the chainsaw slashes sit in `wayna/attack/chainsaw/`); art reused across a
 character's effects goes in that character's `shared/textures/`; art reused across
 *entities* goes in the top-level `vfx/shared/textures/`.
@@ -63,7 +66,7 @@ character's effects goes in that character's `shared/textures/`; art reused acro
 Extra 2D particles layered over the drawn sprites — e.g. soft embers on top of
 Wayna's flame — driven entirely by data. `script/particle_director.gd` is a child of
 the player; it watches the sprite and emits at authored positions during authored
-frames. Adding an effect is a scene + a JSON line, no code.
+frames. Adding an effect is a scene + a table row, no code.
 
 **Three pieces:**
 
@@ -73,26 +76,19 @@ frames. Adding an effect is a scene + a JSON line, no code.
    AoE). A `Strike`/`Projectile` carries its own `Hitbox`, fed the hit's numbers from
    `configs/moves.gd` at spawn (see the damage section below) — nothing is baked here.
 
-   **How a `type` resolves.** On character swap the director recursively indexes
-   `vfx/character/<character>/` (**any** nesting — `attack/chainsaw/`, `dash/default/`,
-   `other/`, …) plus the global `vfx/shared/`, building a *basename → scene path* map.
-   A `type` in the JSON is just a scene's basename, so **it resolves wherever it's
-   filed** — there's no folder list to keep in sync as the layout grows. Names must be
-   unique within a character (the director warns on a collision and keeps the first).
-
-   | `type` | Resolves to |
-   |---|---|
-   | `attack_chainsaw` | `character/wayna/attack/chainsaw/attack_chainsaw.tscn` |
-   | `run_default` | `character/<char>/run/default/run_default.tscn` |
-   | `special_ready` | `character/<char>/other/special_ready.tscn` |
-   | `pixel_ember`-based scene in `vfx/shared/` | found via the shared fallback |
+   **How a scene is referenced.** A row names its scene with **`preload("res://…")`** in
+   `EmittersCharacters.TABLE` — so it's validated at parse time and resident before the game
+   runs (no runtime `load`, no folder-scan index). Reusable building blocks are declared once as
+   named consts and referenced across rows (e.g. `WIND_STREAKS`). Files still live under
+   `vfx/character/<id>/…` / `vfx/shared/` — that's just where they sit on disk; the table points
+   at them by path.
 
    `script/build_particles.gd` scaffolds a starter scene (it **skips files that
    already exist**, so it never clobbers editor tweaks); shared textures come from
    `script/gen_particle_textures.py`.
-2. **Config** — `config/emitters.json`, keyed
-   `character -> animation -> [ { type, node?, set?, mode, frames, pos } ]`:
-   - `type` — a scene whose root is a single `CPUParticles2D`/`GPUParticles2D`,
+2. **Config** — `EmittersCharacters.TABLE` (GDScript), keyed
+   `character -> animation -> [ { scene, node?, set?, mode, frames, pos } ]`:
+   - `scene` — a `preload`ed scene whose root is a single `CPUParticles2D`/`GPUParticles2D`,
      **or a `Node2D` bundling several** as one composite attack (the director drives
      all of them, and mirrors the composite by flipping `scale.x`, so its child
      positions flip too; a single-particle root mirrors `direction`/`gravity` instead,
@@ -105,7 +101,7 @@ frames. Adding an effect is a scene + a JSON line, no code.
      Wayna's `attack_chainsaw`). Layering separate scenes (several `{…}`) still works.
    - `node` — *optional* **palette addressing**. A "palette" scene bundles several
      *independently-scheduled* emitters as named children; `node` names the one this
-     row fires. List the **same `type`** with different `node`s to fire different
+     row fires. List the **same `scene`** with different `node`s to fire different
      children on different frames — e.g. `attack_finger_guns` holds a `Shot` (fired
      on `[2,4]`) and a `ShotLast` (a different-textured projectile, fired on `[7]`),
      each its own self-contained `Shot`/`Hitbox`. Omit `node` for the whole scene
@@ -116,9 +112,8 @@ frames. Adding an effect is a scene + a JSON line, no code.
      covers several variants without a clone per tweak. Keys are `"ChildPath:property"`
      (an empty path targets the spawned node itself); a `"res://…"` value is loaded
      as a `Resource`. E.g. `"set": { "Slash:texture": "res://…/slash_down.png" }`
-     shows a different crescent on one combo hit — no second scene. (Values are scalars
-     or `res://` resources; a JSON `[x,y]` is **not** a `Vector2`, so per-hit
-     position/scale offsets need a separate scene.)
+     shows a different crescent on one combo hit — no second scene. (Now that the table is
+     GDScript, a `set` value can be any literal — `Vector2`, a `preload`ed resource, a scalar.)
    - **Composite child positions** — in a `Node2D` composite, the director only
      positions the *root* (at `pos`); each child particle keeps the local position
      you authored inside the scene. So lay one child at the feet `(0,0)`, another
@@ -234,23 +229,39 @@ To get a trail *and* a straight plume, keep it off and give the particles enough
 > so effects read as pixel art. Keep new types in that style unless a soft glow is
 > genuinely wanted.
 
+### Effects DISSIPATE, they don't pop
+
+Two rules keep particle effects from vanishing mid-air (the abrupt cut you get if an emitter
+node is freed while its particles are still alive):
+
+- **A `Strike` fades itself out.** At end-of-life (`_fade_out`) it deactivates its hitbox and
+  sets `emitting = false`, then frees only after the longest particle `lifetime` — so a
+  **continuous** emitter tapers off instead of being cut. (A `one_shot` burst already fades on
+  its own; this also covers continuous ones, so you don't *have* to set `one_shot` for a burst,
+  though it's still the cleaner choice — all the particles at once, then gone.)
+- **An effect parented to a mob dies with the mob** unless you retire it. An enemy trail is a
+  *child* of the enemy, so when the enemy frees, the trail (and its airborne particles) go with
+  it. `Nodes.retire_particles(node, into)` fixes that: it re-parents the emitter into the level
+  (keeping its world position), stops emission, and frees it after the particles fade — so the
+  trail lingers and dissipates after its owner is gone. Ein's `_set_trail` uses it.
+
 ### Adding a new attack effect — where things plug in
 
 Pick the layer by *what the effect is*:
 
 | Goal | Add it to | Code? |
 |---|---|---|
-| A **visual** on chosen animation frames (spark, trail, drawn slash) | `vfx/config/emitters.json` (+ a scene under `vfx/character/<id>/…`) | none |
+| A **visual** on chosen animation frames (spark, trail, drawn slash) | `EmittersCharacters` (+ a scene under `vfx/character/<id>/…`) | none |
 | A hit's **damage / knockback / reach** | the move's `tuning` in `configs/moves.gd` | none |
 | A **thing spawned** on a hit, or custom behavior | a `CharacterAbility` script (`scripts/abilities/`) | small |
 
 1. **Frame-indexed particle (no code).** Make/obtain a scene under
    `vfx/character/<id>/<category>/<name>/<name>.tscn`, then register it in
-   `emitters.json`: `<id> → <animation> → [{type, mode ("sustained"|"burst"),
+   the `Emitters` config: `<id> → <animation> → [{type, mode ("sustained"|"burst"),
    frames (sheet-relative), pos ([x,y] from feet, auto-mirrored)}]`. Done.
 2. **Tune the hit (no code).** The move's `tuning` in `configs/moves.gd` — `damage`,
    `knockback`, `stun`, and hitbox `x`/`extents` (an array = one entry per combo
-   segment). The effect keys off the move's `animation` name in `emitters.json`.
+   segment). The effect keys off the move's `animation` name in the `Emitters` config.
 3. **Spawn something / new behavior (a `CharacterAbility`).** Create
    `scripts/abilities/<id>.gd` extending `CharacterAbility` (auto-equipped) and
    override a hook: `on_special_strike(player)` (the moment the special connects),
@@ -259,30 +270,55 @@ Pick the layer by *what the effect is*:
 
 ## Enemy attack VFX
 
-Enemy effects live under `vfx/enemy/<id>/attack/` and are loaded **by path**, not the
-director index: an enemy's `ranged_particle` (`configs/level_config.gd` roster, or an
-`enemy.tscn` inspector field) points at the scene. `enemy.gd` spawns a **hostile
-`Projectile`** (the same `scripts/combat/projectile.gd` players use — team via the
-`hostile` flag) and adds that scene as its visual + a `Hitbox` built from the enemy's
-ranged tuning. Enemy **melee** is a hostile **`Strike`** spawned the same way. Two
-ranged examples:
+Enemy effects live under `vfx/enemy/<id>/attack/` (and `…/other/`) and are loaded **by path**,
+not the director index. Which scene each enemy emits — and where — comes from
+**the `Emitters` config** (see below), keyed by `enemy_id`. `enemy.gd` reads the
+`projectile` entry and spawns a **hostile `Projectile`** (the same `scripts/combat/projectile.gd`
+players use — team via the `hostile` flag) with that scene as its visual + a `Hitbox` built from
+the enemy's ranged tuning; a `lob` reads `projectile` (the thrown object) and `explosion` (the
+blast). Enemy **melee** is a hostile **`Strike`** spawned the same way. Two ranged examples:
 
-- **Baghel** `attack/attack_ground_wave.tscn` — a `CPUParticles2D` ground surge (the
-  `forward` ranged mode, with a scorched `ground_trail`).
-- **Kebus** `attack/attack_bolt.tscn` — an aimed staff bolt: an ember-trail
-  `CPUParticles2D` + a soft glow `Core`. (Was drawn procedurally before the merge; it's
-  now an editable scene. An enemy with no `ranged_particle` gets no visual.)
-- **Mazab** (`ranged_mode = "lob"`) uses **two** scenes for its thrown bomb: the flying
-  object `attack/mazab_rock.tscn` (a steel-blue glowing `Core` + short dust trail, set as
-  `ranged_particle` — a `LobProjectile` spins it as it arcs) and the blast
-  `attack/mazab_explosion.tscn` (a one-shot radial shard burst + ground dust, set as
-  `lob_explosion_effect` — instanced inside the explosion `Strike`, not on the projectile).
-  A lob has **no in-flight hitbox**; only the explosion `Strike` deals damage.
-- **Ein** (the floating kamikaze, `scenes/ein.tscn`) uses **three** scenes, swapped by state
-  in `ein.gd`: `other/ein_patrol_trail.tscn` (gentle indigo wisps worn while drifting),
-  `attack/ein_attack_trail.tscn` (a hard cyan→red charge streak), and
-  `attack/ein_explosion.tscn` (the arrival burst, instanced inside the explosion `Strike`).
+(Every scene named below is wired through the `Emitters` config, not a script/roster field.)
+
+- **Baghel** `projectile` = `attack/attack_ground_wave.tscn` — a `CPUParticles2D` ground surge
+  (the `forward` ranged mode, with a scorched `ground_trail`).
+- **Kebus** `projectile` = `attack/attack_bolt.tscn` — an aimed staff bolt: an ember-trail
+  `CPUParticles2D` + a soft glow `Core`. (An enemy with no `projectile` scene gets the built-in orb.)
+- **Mazab** (`ranged_mode = "lob"`) uses **two** config entries for its thrown bomb: `projectile`
+  = `attack/mazab_rock.tscn` (a steel-blue glowing `Core` + short dust trail — a `LobProjectile`
+  spins it as it arcs) and `explosion` = `attack/mazab_explosion.tscn` (a one-shot radial shard
+  burst + ground dust, instanced inside the explosion `Strike`, not on the projectile). A lob has
+  **no in-flight hitbox**; only the explosion `Strike` deals damage.
+- **Ein** (the floating kamikaze, `scenes/ein.tscn`) has config entries `attack_trail` =
+  `attack/ein_attack_trail.tscn` (a hard cyan→red charge streak) and `explosion` =
+  `attack/ein_explosion.tscn` (the arrival burst, inside the explosion `Strike`). A
+  `patrol_trail` entry (a gentle drift trail under `other/`) is optional — omit it and he
+  patrols with no trail.
   The trails are `local_coords = false` so they rake out behind the orb as it moves.
+
+### Enemy emitters — `EmittersEnemies.TABLE` (THE one place)
+
+Every enemy's particle emitters live in one table, `vfx/config/emitters_enemies.gd` — the enemy
+counterpart to `EmittersCharacters`, but simpler: enemy effects are attached in **code** by
+state/event (a trail worn while patrolling, a blast on arrival, a projectile visual on the shot),
+not fired on animation frames, so there's **no frame scheduling** — only *which* scene and
+*where*. Keyed `enemy_id → effect → { "scene": preload("res://…"), "pos": Vector2(x, y) }`:
+
+- **`scene`** — the preloaded scene to emit. The table is **authoritative for presence**: delete a
+  row (or clear its `scene`) and the enemy **stops emitting it entirely** — no code change. (That's
+  why removing `ein → patrol_trail` actually removes the patrol trail.) An absent visual doesn't
+  stop combat — an AoE's hitbox or a projectile still fires, just with no particle look (a shot
+  with no scene falls back to the built-in orb).
+- **`pos`** — offset from the sprite origin at the feet, facing right; **auto-mirrored** on x by
+  facing. For a **projectile**, `pos` is the **muzzle** it launches from.
+
+The enemy reads it via `Enemy._vfx_scene(effect)` (a `PackedScene` or null) / `_vfx_pos(effect,
+fallback)` / `_make_vfx(effect)` (instantiate + position, or null if no scene) — all going through
+`Emitters.enemy_effect(id, effect)`. Effect keys today: `ein → attack_trail / explosion`, `nasen →
+rage`, `kebus/baghel → projectile`, `mazab → projectile / explosion`. Add an enemy or effect row
+to give it a look/position with **no code change**. (This owns the *visual*;
+an AoE's *hitbox* size/offset stays a combat `@export` like `explosion_offset` / `rage_extents` /
+`lob_explosion_extents`, and combat behavior like `ranged_mode` stays in the roster.)
 
 ## Build tools
 

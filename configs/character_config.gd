@@ -66,7 +66,7 @@ static func dash_speed(character: String) -> float:
 ## reappear `dash_speed * dash_time` ahead, with blink_out/blink_in poofs) instead of the
 ## normal glide-lunge. Same reach either way; only the feel differs. Off (normal dash) for
 ## anyone not listed here. Each blinker needs its own other/blink_in.tscn + blink_out.tscn
-## (fired via emitters.json). Flip a character on/off right here.
+## (fired via the Emitters config). Flip a character on/off right here.
 const BLINK_DASH := {
 	"khalid": true,
 	"katalyst": true,

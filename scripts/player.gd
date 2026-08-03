@@ -56,7 +56,7 @@ var health: float = 100.0:
 @export var jump_velocity: float = -330.0
 ## Extra mid-air jumps after the ground jump (1 = a double jump). The ground jump is
 ## silent; each air jump re-boosts AND spawns the character's jump particles (a
-## combat-capable burst -- see emitters.json "double_jump").
+## combat-capable burst -- see the Emitters config "double_jump").
 @export var max_air_jumps: int = 2
 @export var gravity: float = 900.0
 ## Falling faster than rising makes the arc feel less floaty.
@@ -80,14 +80,14 @@ var health: float = 100.0:
 @export_group("Slam")
 ## Downward plunge speed of an air-down ground slam (much faster than a normal
 ## fall, so it reads as a committed slam). Universal move; only characters with a
-## `slam` sheet can do it. Particles are authored per character in emitters.json.
+## `slam` sheet can do it. Particles are authored per character in the Emitters config.
 @export var slam_speed: float = 1200.0
 ## Minimum clear space (px) directly below the feet before an air slam is allowed --
 ## if the nearest platform straight down is closer than this, the slam press does
 ## nothing (no room to build a real plunge). Set 0 to always allow.
 @export var slam_min_clearance: float = 50.0
 ## The slam animation frame to LOCK on during a tall plunge -- the last descent frame,
-## just before the impact frames. Sheet-relative (same numbering as emitters.json), so
+## just before the impact frames. Sheet-relative (same numbering as the Emitters config), so
 ## with the wind streaks on 0-2 and the impact on 3-4, this is 2. While locked the
 ## sprite is hidden (only the wind-streak particles show).
 @export var slam_hold_frame: int = 2
@@ -337,7 +337,7 @@ func get_facing() -> int:
 	return _facing
 
 
-## Fire a code-triggered particle burst by its emitters.json key (a key that isn't a
+## Fire a code-triggered particle burst by its the Emitters config key (a key that isn't a
 ## real sprite animation, so it only ever fires from code -- e.g. "double_jump",
 ## Khalid's "blink_out"/"blink_in"). Anchored in the world at the player's current spot.
 func fire_effect(anim: String, tilt: float = 0.0) -> void:
@@ -514,7 +514,7 @@ func death_complete() -> bool:
 
 ## The killing blow landed. Freeze into the DEATH state: kill any swing/channel, turn the
 ## hurtbox off (no more hits), and play the death animation once -- the director fires the
-## `death` particle from emitters.json on its frames, like any other animation. The body
+## `death` particle from the Emitters config on its frames, like any other animation. The body
 ## still falls to the ground (see _process_death); revive() clears all this on respawn.
 func _die() -> void:
 	if _dead:
@@ -796,7 +796,7 @@ func _drop_through_platform() -> bool:
 
 ## A mid-air jump (the double jump). Re-boosts upward, replays the launch pose, and
 ## -- unlike the silent ground jump -- spawns the character's jump particles: a
-## code-triggered burst (combat-capable) under the "double_jump" key in emitters.json,
+## code-triggered burst (combat-capable) under the "double_jump" key in the Emitters config,
 ## fired here so only air jumps produce it. Guarded by _air_jumps_used < max_air_jumps.
 func _air_jump() -> void:
 	velocity.y = jump_velocity
@@ -1007,7 +1007,7 @@ func _slam_release() -> void:
 
 
 ## Sheet-relative -> emitted frame offset for `anim` (the generator drops the
-## idle-reference frame 0 from action anims). Matches the numbering in emitters.json.
+## idle-reference frame 0 from action anims). Matches the numbering in the Emitters config.
 func _sheet_start(anim: StringName) -> int:
 	var sf := _sprite.sprite_frames
 	if sf != null and sf.has_meta("sheet_start"):

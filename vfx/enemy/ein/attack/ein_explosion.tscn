@@ -1,50 +1,72 @@
-[gd_scene load_steps=5 format=3 uid="uid://c8einblast1fx"]
-
-; Ein's arrival blast -- the burst that erupts when his charge reaches the locked point
-; (ein.gd::_spawn_explosion). Instanced INSIDE the explosion Strike (which owns the hitbox +
-; self-frees); this is the look only. Matches the death-burst palette: a white core flash, a
-; magenta/purple + cyan shard burst radiating out. Both one-shot so they fire once.
+[gd_scene format=3 uid="uid://c8einblast1fx"]
 
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
-[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_xg5vw"]
 
 [sub_resource type="Curve" id="Curve_shrink"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
 
+[sub_resource type="Gradient" id="Gradient_chduu"]
+offsets = PackedFloat32Array(0, 0, 0, 1)
+colors = PackedColorArray(0.54901963, 0.21176471, 0.8156863, 1, 0.60784316, 0.3137255, 0.9019608, 1, 0.7451514, 0.5684909, 0.9333369, 0.64500004, 0.7373294, 0.60038817, 0.8782205, 0.58400005)
+
+[sub_resource type="Curve" id="Curve_7thtu"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_xg5vw"]
+offsets = PackedFloat32Array(0, 0, 0, 1)
+colors = PackedColorArray(0.007843138, 0.007843138, 0.011764706, 1, 0.16078432, 0.17254902, 0.21960784, 1, 0.14509805, 0.16078432, 0.1882353, 1, 0.18431373, 0.20392157, 0.2509804, 1)
+
 [sub_resource type="Gradient" id="Grad_shard"]
 offsets = PackedFloat32Array(0, 0.4, 1)
 colors = PackedColorArray(0.4, 0.9, 0.98, 1, 0.62, 0.16, 0.7, 1, 0.3, 0.05, 0.35, 0)
 
-[node name="EinExplosion" type="Node2D"]
+[node name="EinExplosion" type="Node2D" unique_id=216861655]
 
-[node name="Flash" type="CPUParticles2D" parent="."]
+[node name="Flash" type="CPUParticles2D" parent="." unique_id=1492585560]
 z_index = 1
-texture = ExtResource("2_dot")
-emitting = true
-amount = 14
-one_shot = true
-explosiveness = 1.0
-lifetime = 0.22
+amount = 100
+texture = SubResource("CanvasTexture_xg5vw")
+lifetime = 0.7
 emission_shape = 1
-emission_sphere_radius = 3.0
+emission_sphere_radius = 19.82
 spread = 180.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 10.0
 initial_velocity_max = 40.0
-scale_amount_min = 0.8
-scale_amount_max = 1.6
+scale_amount_min = 6.0
+scale_amount_max = 6.0
 scale_amount_curve = SubResource("Curve_shrink")
-color = Color(0.95, 0.97, 1, 0.9)
+color = Color(0.5897365, 0.00025441914, 0.5897323, 1)
+color_ramp = SubResource("Gradient_chduu")
 
-[node name="Shards" type="CPUParticles2D" parent="."]
+[node name="Flash2" type="CPUParticles2D" parent="." unique_id=687927936]
+z_index = 1
+amount = 100
+texture = SubResource("CanvasTexture_xg5vw")
+emission_shape = 1
+emission_sphere_radius = 32.36
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 10.0
+initial_velocity_max = 40.0
+scale_amount_min = 6.0
+scale_amount_max = 6.0
+scale_amount_curve = SubResource("Curve_7thtu")
+color = Color(0.09803922, 0.09411765, 0.14117648, 1)
+color_ramp = SubResource("Gradient_xg5vw")
+
+[node name="Shards" type="CPUParticles2D" parent="." unique_id=1864561913]
 texture_filter = 1
-texture = ExtResource("1_ember")
-emitting = true
+emitting = false
 amount = 80
+texture = ExtResource("1_ember")
+lifetime = 0.42
 one_shot = true
 explosiveness = 1.0
-lifetime = 0.42
 emission_shape = 1
 emission_sphere_radius = 4.0
 spread = 180.0

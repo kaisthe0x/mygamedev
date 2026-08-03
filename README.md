@@ -7,9 +7,12 @@ runtime.
 
 Main scene: `scenes/level.tscn`. Press F5 to run.
 
+**Game premise & the Lahm economy:** see [`docs/game-design.md`](docs/game-design.md) — the
+roguelite life-as-currency loop (harvest flesh, pay the exit toll, die and restart).
+
 > Potential names for the game:
 > - Index32
-> - Way of All Flesh
+> - Way of All Flesh (fits the flesh/*lahm* theme)
 
 ---
 
@@ -366,7 +369,7 @@ Each phase is **opt-in per character** by the presence of the `fall` / `land` sh
 **All five characters now have both.** (Khalid's full kit — movement VFX
 (run/jump/fall/dash/double-jump), a **ground slam** (`slam_default` + `slam_wind_streaks`),
 and his **Ground Breaker** special (an overhead-slam GROUND `Strike`, damage from
-`moves.gd`) — is wired in `emitters.json`, all in his red-teal-gold palette. Only his
+`moves.gd`) — is wired in the `Emitters` config, all in his red-teal-gold palette. Only his
 light **attack** still lacks an effect scene, so it deals no damage for now.)
 
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
@@ -380,7 +383,7 @@ grounded-only). Characters without a `slam` sheet can't slam (the air press no-o
 *Tall-plunge handling* — a long drop would finish the `slam` animation (firing its
 impact frames) **before** touchdown, so the impact particles would emit in mid-air.
 So while high, the animation **locks on its last descent frame** (`slam_hold_frame`,
-sheet-relative to match `emitters.json`) and the **sprite is hidden** — only the
+sheet-relative to match the `Emitters` config) and the **sprite is hidden** — only the
 sustained wind-streak particles show, reading as a fast blur. Once the ground is
 within `slam_impact_distance` (a downward ray, like the predictive land) it **releases**:
 the sprite reappears and the remaining impact frames play into the ground, so the
@@ -395,7 +398,7 @@ where `SLAM` began to impact) and sets `_active_hit = {"damage_scale": mult}` �
 boxes scale while keeping their reach/impact ratio. It's the offensive mirror of
 Katalyst's fall-damage curve — slam from higher, hit harder.
 
-Slam **particles** are authored per character in `vfx/config/emitters.json` under the `slam`
+Slam **particles** are authored per character in `EmittersCharacters` under the `slam`
 animation: a `sustained` wind-streak trail on the descent frames (`0–2`) and a `burst`
 on the impact frames (`3–4`). Keep those frame ranges consistent so `slam_hold_frame`
 (the last descent frame) lines up.
@@ -412,7 +415,7 @@ allowed in mid-air; the counter refreshes on every touchdown. The **ground jump 
 silent**; each **air jump** re-boosts *and* spawns the character's jump particles.
 Because the particle director is frame-indexed and can't tell a first jump from a
 second, the jump effect is a **code-triggered burst**: it's configured under a
-`double_jump` key in `emitters.json` (deliberately *not* a real sprite-animation
+`double_jump` key in the `Emitters` config (deliberately *not* a real sprite-animation
 name, so it never auto-fires on a frame), and `_air_jump()` fires it via
 `ParticleDirector.fire_effect("double_jump")`. That burst is combat-capable — give
 its scene a `Hitbox` and the air jump deals damage / applies a buff, same as any
@@ -437,7 +440,7 @@ Wayna's `chainsaw` is a 3-hit combo too. Feyke's `ring_kiss` is a single-hit sho
 **Attack styles (`Move.style`).** Most attacks are `"combo"` (the click-per-segment
 swing above). Khalid's `ora_ora` is a `"flurry"`: **hold** the attack button and the
 animation loops fast (marked `loop: true` in the generator `OVERRIDES`), its punch
-frames (2, 4 in `emitters.json`) firing the `attack_ora_ora` `Strike` on every pass —
+frames (2, 4 in the `Emitters` config) firing the `attack_ora_ora` `Strike` on every pass —
 so the hits come at the loop's rate, not per click. Releasing ends it back to idle; a
 buffered special still cancels it. `_advance_combo()` routes the first press to
 `_start_flurry()`, and `_process_attack()` holds it while `attack` is pressed. Per-punch
@@ -525,7 +528,7 @@ do ACTION," and each character's file overrides only the hooks it cares about
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (`emitters.json`) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
+| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (the `Emitters` config) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
 | Katalyst | **Stomp** + **Weak knees** | A mid-air special becomes a downward drive (hangs for the wind-up, then plunges at `SLAM_SPEED`). And via `on_land`, **every** landing past `SAFE_FALL` (400px) deals fall damage scaled by drop distance × landing speed — a high enough fall can kill him (it's why he can't slam). A `_weak_knees` flag gates it, ready for a future "knee transplant" pickup to switch off. |
 | Wayna | **Inferno interrupt** | Not an ability script — her `special_inferno` is a channeled `Strike` (`emit_duration`) with `interrupt_on_hurt = true`, so taking a hit **cancels the fire** (stops emission + damage ticks, releases her held pose). The `on_hurt` ability hook stays free for any *other* reaction she gets later. |
 Khalid used to carry the blink as an ability; it's now a **universal, per-character dash
@@ -558,13 +561,13 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
   emits authored types at authored frames. It resolves a type by recursively
   indexing `vfx/character/<char>/` + `vfx/shared/`, so a scene resolves wherever it's
   filed. Adding one = a scene under `vfx/character/<id>/…` + a line in
-  `vfx/config/emitters.json`, no code.
+  `EmittersCharacters`, no code.
 - **Drawn slashes:** a directional crescent that must mirror with facing is a
   **`Strike`** (`scripts/combat/strike.gd`) — a `Sprite2D`/`AnimatedSprite2D` + a
   `Hitbox` that grows/fades and self-frees, and covers melee slashes, blasts, and ground
   AoEs. Use it instead of a `CPUParticles2D` when the texture itself must h-flip (Wayna's
   chainsaw). Its projectile sibling is **`Projectile`** (`scripts/combat/projectile.gd`).
-- **Where to add an attack effect:** a visual → `vfx/config/emitters.json`; a hit's
+- **Where to add an attack effect:** a visual → `EmittersCharacters`; a hit's
   numbers → the move's `tuning` in `configs/moves.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
   `Local Coords`, per-child positioning) in [vfx/README.md](vfx/README.md).
@@ -622,8 +625,8 @@ to hand-wire. Key traits:
   one mob for chaos, not the roster. The seam for enemies fighting each other.
 - **`contact_damage`** (default **0 = off**): when set, touching the player
   deals it on `contact_interval`. Also per-instance.
-- **Ranged** fires from `muzzle_offset` on the animation's hit frame (`hit_frames`
-  metadata). Three `ranged_mode`s:
+- **Ranged** fires from the **muzzle** (the `Emitters` config `<id> → projectile → pos`) on the
+  animation's hit frame (`hit_frames` metadata). Three `ranged_mode`s:
   - `"aimed"` — a `projectile.gd` that points at the player's torso **the moment it fires**
     (Kebus' staff bolt). The shot doesn't steer after that (`homing = 0` for enemies), but
     that fire-time aim is what reads as "homing." **To stop enemies tracking you, set
@@ -649,21 +652,21 @@ to hand-wire. Key traits:
     - **`lob_max_life`** (default 3s) is the safety net: a bomb thrown over a ledge with nothing
       below **detonates mid-air** (no dwell) when it elapses, rather than falling forever.
 
-    The thrown-object look is `ranged_particle` (Mazab's steel-blue `mazab_rock.tscn`, spun as
-    it tumbles); the blast look is `lob_explosion_effect` (`mazab_explosion.tscn`). Give Mazab a
-    wider `attack_align_y` so his arc can reach a player one platform up/down.
-  - **Look** — `ranged_particle` points at a particle scene (e.g.
-    `vfx/enemy/baghel/attack/attack_ground_wave.tscn`, or Kebus'
-    `vfx/enemy/kebus/attack/attack_bolt.tscn`) that the projectile instances as
-    its visual, so you edit/preview it in the editor like any particle scene
+    The thrown-object look (Mazab's steel-blue `mazab_rock.tscn`, spun as it tumbles) and the
+    blast look (`mazab_explosion.tscn`) come from the `Emitters` config (`mazab → projectile /
+    explosion`), like every enemy emitter. Give Mazab a wider `attack_align_y` so his arc can
+    reach a player one platform up/down.
+  - **Look** — the projectile's particle scene comes from **the `Emitters` config**
+    (`<id> → projectile → scene`, e.g. Baghel's `attack_ground_wave.tscn`, Kebus' `attack_bolt.tscn`),
+    which the projectile instances as its visual — you edit/preview it in the editor like any scene
     (they're built `emitting = true`). Empty = a simple orb trail built in code (the
     `projectile.gd` fallback). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
     (a small box for a bolt, a tall slab rising from the ground for a wave).
     Baghel's wave is a **crest**: chunks kick up-and-forward out of a
     ground-hugging emission strip and arc back down under gravity while the
     projectile outruns them (`local_coords = off`), so they trail into a rolling
-    swell. Keep his `muzzle_offset.y` near 0 so the emission base sits on the
-    ground — a negative y lifts the whole wave off it.
+    swell. Keep his `projectile` `pos.y` (the muzzle, in the `Emitters` config) near 0 so the
+    emission base sits on the ground — a negative y lifts the whole wave off it.
   - **Ground trail** — a `"forward"` shot sets `proj.ground_trail`, so
     `projectile.gd` adds a second, code-built emitter that lays longer-lived red
     embers along the floor (`local_coords = off`, so they stay put as the shot
@@ -701,13 +704,14 @@ to hand-wire. Key traits:
   hit-flash**. Attacks carry `*_knockback` / `*_stun` (see below).
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
   hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
-  plays that animation once; `_on_anim_finished` then fades the corpse out over 0.4s and
-  frees it. An enemy with **no** `death` sheet just does the straight fade (like before).
-  Leaving the group the instant it dies matters for **homing**: the node lingers ~2s while
-  the death anim/fade plays, so a tracking shot re-checks `is_in_group("enemies")` every
-  frame (`projectile.gd::_target_alive()`) and **straightens onto its launch heading the
-  moment the target dies** instead of curving down into the fading corpse. `_has_death` is
-  inferred from the art, same as `_has_melee` / `_has_ranged` (Kebus and Baghel have death anims).
+  plays that animation once and **vanishes the instant it finishes** (`_on_anim_finished` →
+  `queue_free`) — the animation plays out in full with no lingering hold or fade on the last
+  frame. An enemy with **no** `death` sheet has no animation to play out, so it does a straight
+  alpha-fade instead (`_fade_and_free`). Leaving the group the instant it dies matters for
+  **homing**: the node lingers for the death anim's duration, so a tracking shot re-checks
+  `is_in_group("enemies")` every frame (`projectile.gd::_target_alive()`) and **straightens
+  onto its launch heading the moment the target dies** instead of curving down into the corpse.
+  `_has_death` is inferred from the art, same as `_has_melee` / `_has_ranged`.
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
   stun, hitbox sizes/offsets, aggro, contact damage, and **`body_size` /
   `hurtbox_size`** (per-enemy colliders, so a bigger or smaller enemy fits its
@@ -750,8 +754,8 @@ edge patrol** (he sets `collision_mask = 0` and moves by `global_position`, not
 `move_and_slide`) — while reusing the sprite/hurtbox/health-bar/hit-flash/death as usual. His
 loop:
 
-- **Patrol** — drifts between his patrol points with a gentle vertical **bob**, wearing a soft
-  particle trail (`patrol_trail`).
+- **Patrol** — drifts between his patrol points with a gentle vertical **bob**, wearing the
+  `patrol_trail` effect *if* one is configured (it's optional — see below).
 - **Detect → lock → charge** — when the player enters `detect_range` (a radius), he **locks the
   player's position at that instant** as a fixed target, swaps to the aggressive `attack_trail`,
   and flies straight at that point in the **`CHARGE`** state (a new `Enemy.State`), the `attack`
@@ -759,12 +763,26 @@ loop:
   re-track — dodging out of the way makes him miss.
 - **Erupt on arrival** — reaching the locked point (hit or miss) he **explodes**: a hostile
   `Strike` (box hitbox from `explosion_*`, centred on the orb via `explosion_offset`, `ranged`)
-  plus the `ein_explosion.tscn` burst, then his **death burst** plays and he's gone.
+  plus the `explosion` burst, then his **death burst** plays and he's gone.
+- **Erupt on contact (any time)** — a body-sized **contact detector** (`_build_contact_detector`,
+  a bare `Area2D` scanning `L_PLAYER_HURT`, not a Hitbox — no damage, no flash) erupts him the
+  instant the player *touches* him, patrolling or charging, so you can't just walk/jump into him
+  for free. It reuses the same `_arrive()` eruption (deferred out of the physics area-flush so
+  spawning the blast's hitbox is legal); the blast's AoE does the damage, catching the
+  point-blank player. **A dash passes through safely** — the player's hurtbox is `monitorable =
+  false` during the dash lunge, so the detector never sees them and the blast can't hit them.
 - **Killed first** — a lethal hit before he arrives (even before he ever detects you) just plays
   the same death burst; no explosion. His `_on_hurt` takes damage + flashes but **never stuns or
   knocks him back** — once diving he commits.
-- Trails are swapped by state (`_set_trail`) and freed on death; `ein_patrol_trail.tscn` lives
-  under `vfx/enemy/ein/other/`, the charge trail + blast under `vfx/enemy/ein/attack/`.
+- Trails are swapped by state (`_set_trail`). When a trail is swapped or Ein dies it's **retired,
+  not culled** — `Nodes.retire_particles` re-parents it into the level and stops it emitting so
+  its airborne wisps **dissipate** rather than vanishing with him (a child emitter would otherwise
+  be freed along with its owner).
+- **Which** scene each effect emits, **where**, and **whether it exists** are all config, not
+  code: **the `Emitters` config** (`ein → patrol_trail / attack_trail / explosion →
+  {scene, pos}`), read via `Enemy._vfx_scene` / `_vfx_pos` / `_make_vfx`. It's **authoritative** —
+  delete a row and that emitter is gone (so Ein ships with **no** `patrol_trail` row = no patrol
+  trail). One file controls every enemy's emitters; see `vfx/README.md`.
 
 ### Combat model (`scripts/combat/`)
 
@@ -844,7 +862,7 @@ lunge/armor. An **empty** `tuning` means "the effect scene carries its own numbe
 (finger_guns, whose two shots have different damage one dict can't express).
 
 - `light` combos stay segment-per-click; each segment resolves its own tuning, so the
-  three rope-dart hits keep different reach + damage. A combo's emitters.json frames must
+  three rope-dart hits keep different reach + damage. A combo's the Emitters config frames must
   match its `HIT_FRAMES` (one effect spawn per segment).
 - The move's **`kind`** (`Combat.AttackKind`: MELEE / BLAST / GROUND / PROJECTILE) is
   descriptive metadata for the future move-select / build UI — it does **not** drive
@@ -926,7 +944,7 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
   `_die()` from `take_damage`): input is frozen, the hurtbox turns **off**, any
   swing/channel is cancelled, and the `death` animation plays once. It auto-fires the
   character's own `death/default/` particle (tinted to their dash palette) from
-  `emitters.json` on the **last** death frame; then the **sprite hides**
+  the `Emitters` config on the **last** death frame; then the **sprite hides**
   (`_death_finished`) so the character *vanishes into that poof* instead of the dead
   frame sitting there until respawn (`revive()`/`_enter` restores it). **Enemies stop
   attacking**: `Enemy._player()` returns

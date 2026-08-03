@@ -7,8 +7,8 @@
 ; it flies) plus a soft glow Core sprite. Set as Kebus' ranged_particle in
 ; configs/level_config.gd; projectile.gd instances it as the shot's `visual`.
 
-[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
-[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
 
 [sub_resource type="Gradient" id="Gradient_bolt"]
 offsets = PackedFloat32Array(0, 1)
