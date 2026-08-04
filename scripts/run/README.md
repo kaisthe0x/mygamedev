@@ -17,6 +17,15 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 | `exit_gate.gd` (`ExitGate`) | The exit door (an `Area2D`): detects the player, shows/greens/reds by affordability, reports `touched`. RunManager owns the decision. |
 | `reward_ui.gd` (`RewardUI`) | The pick-a-reward popup (pauses the game, emits `chosen(id)`). |
 
+**Terrain look** (the tiled art skin): `RunManager` paints the floor + platforms with the 32px
+tileset as positioned sprites over the (unchanged) colliders — `_paint_surface` stamps a surface
+row + optional fill rows, `_scatter_plants` sprinkles ground plants, `_place_trees` drops tree
+props behind. Art + cell roles live in [`configs/terrain.gd`](../../configs/terrain.gd) (`Terrain`),
+files in `assets/terrain/`. Missing sheet → flat-colour fallback. This is the **visual-only** first
+pass (collision/feel identical); grid-aligned hand-painted level scenes are the natural next phase.
+To hand-paint tiles yourself there's a real TileSet (`resources/terrain/stage1_terrain.tres`) + a
+sandbox scene (`scenes/tile_paint.tscn`) — see [`docs/painting-levels.md`](../../docs/painting-levels.md).
+
 Related, but not in this folder:
 - **Player HP + lahm** live on the `Player` (`scripts/player.gd`) as **two independent pools**:
   `health` (damage hits this only; heals ONLY via rewards) and `lahm` (a currency in blocks of 50,

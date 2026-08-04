@@ -47,7 +47,7 @@ var health: float = 100.0:
 ## lahm and lahm NEVER heals HP -- the only heal is a reward. `lahm_cap` (raised by rewards) is
 ## the ceiling in lahm; blocks = lahm_cap / LAHM_PER_BLOCK. See docs/game-design.md.
 const LAHM_PER_BLOCK := 50.0   ## one HUD "block" of lahm
-const LAHM_DECAY := 15.0       ## lahm rot, per second (flat, independent of how much you hold)
+const LAHM_DECAY := 5.0       ## lahm rot, per second (flat, independent of how much you hold)
 @export var lahm_cap: float = 500.0:  # 10 blocks
 	set(value):
 		lahm_cap = maxf(value, 0.0)

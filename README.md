@@ -73,7 +73,9 @@ the next escalating wave refills, so a level ends only when you pay the exit and
 0 HP and the whole run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
 loop — lives in one folder, [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s
 root; `Levels` / `EnemyKits` / `Rewards` are the data). The `.tscn` stays minimal because the editor
-clobbers it, so the level content is built in code from that data.
+clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset
+skin ([`configs/terrain.gd`](configs/terrain.gd)) stamped as sprites over the colliders — tiled
+neon terrain, ground plants, tree props — art in `assets/terrain/`, gameplay unchanged.
 
 ---
 

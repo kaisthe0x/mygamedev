@@ -50,6 +50,7 @@ var _cam_tween: Tween
 func _ready() -> void:
 	_add_glow()
 	_build_bg()
+	_build_floor()
 	if _player != null:
 		_player.set_character(START_CHARACTER)
 	_build_level(0)
@@ -96,9 +97,14 @@ func _build_level(index: int) -> void:
 	add_child(_content)
 
 	var lv := Levels.get_level(_level_index)
-	_bg.color = lv["bg"]
+	# Opaque tint normally; a translucent mood tint when a background image is showing under it.
+	var tint: Color = lv["bg"]
+	if Terrain.background_texture() != null:
+		tint.a = Terrain.BACKGROUND.get("tint_alpha", 0.4)
+	_bg.color = tint
 	_player_spawn = lv["player_spawn"]
 
+	_place_trees()  # background tree props (behind the terrain), varied per level
 	for p in lv["platforms"]:
 		_build_platform(p[0], p[1], p[2], 14.0)
 
@@ -114,6 +120,10 @@ func _build_level(index: int) -> void:
 		Nodes.place_at(_player, _player_spawn)
 
 
+const TERRAIN_Z := -5    ## terrain tiles: behind the player/enemies (z 0)
+const PLANT_Z := -4      ## plants sit just in front of the terrain, still behind actors
+const TREE_Z := -15      ## trees: background props, behind the terrain
+
 func _build_platform(center_x: float, top_y: float, width: float, height: float) -> void:
 	var body := StaticBody2D.new()
 	body.collision_layer = Combat.L_WORLD
@@ -123,12 +133,89 @@ func _build_platform(center_x: float, top_y: float, width: float, height: float)
 	var col := Shapes.make_box(Vector2(width, height), Vector2(0, height / 2.0))
 	col.one_way_collision = true
 	body.add_child(col)
-	var vis := ColorRect.new()
-	vis.color = Color(0.22, 0.23, 0.30)
-	vis.position = Vector2(-width / 2.0, 0)
-	vis.size = Vector2(width, height)
-	body.add_child(vis)
+	# Visual only (collision is the thin collider above): one row of surface tiles, top-aligned,
+	# hanging a full 32px below for depth. Plus a plant or two along the ledge.
+	_paint_surface(body, Vector2(-width / 2.0, 0), width, 0)
+	_scatter_plants(body, Vector2(-width / 2.0, 0), width, 0.35)
 	_content.add_child(body)
+
+
+# --- terrain painting (visual skin over the colliders) ----------------------
+
+## Stamp 32px tiles across a surface `width` px wide from local `origin` (its TOP-LEFT). The top
+## row is surface tiles; `fill_rows` extra rows below use body tiles (depth / ground mass). Visual
+## only. Exact fit: the last column is a clipped partial so terrain never overhangs the ledge.
+## Falls back to a flat ColorRect if the sheet is missing.
+func _paint_surface(parent: Node, origin: Vector2, width: float, fill_rows: int) -> void:
+	var sheet := Terrain.sheet()
+	if sheet == null:
+		var r := ColorRect.new()
+		r.color = Terrain.PLATFORM_FALLBACK
+		r.position = origin
+		r.size = Vector2(width, maxf(Terrain.TILE, (fill_rows + 1) * Terrain.TILE))
+		r.z_index = TERRAIN_Z
+		parent.add_child(r)
+		return
+	var t := Terrain.TILE
+	var full := int(width / t)
+	var rem := width - full * t
+	var cols := full + (1 if rem > 2.0 else 0)
+	for row in fill_rows + 1:
+		var cells: Array[Vector2i] = Terrain.TOP_CELLS if row == 0 else Terrain.FILL_CELLS
+		for col in cols:
+			var cell: Vector2i = cells[(col + row) % cells.size()]  # vary the art across the run
+			var w: float = t if col < full else rem
+			var spr := Sprite2D.new()
+			var at := Terrain.cell_texture(sheet, cell)
+			if w < t:
+				at.region = Rect2(at.region.position, Vector2(w, t))  # clip the partial edge column
+			spr.texture = at
+			spr.centered = false
+			spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			spr.position = origin + Vector2(col * t, row * t)
+			spr.z_index = TERRAIN_Z
+			parent.add_child(spr)
+
+
+## Sprinkle ground plants along a surface top (`origin` top-left, `width` wide). `density` ~ plants
+## per tile. Deterministic-ish variety; mushrooms are rarer. No-op without the plants sheet.
+func _scatter_plants(parent: Node, origin: Vector2, width: float, density: float) -> void:
+	var ps := Terrain.plants_sheet()
+	if ps == null:
+		return
+	var slots := int(width / Terrain.TILE)
+	for i in slots:
+		if randf() > density:
+			continue
+		var cell: Vector2i = Terrain.MUSHROOM_CELL if randf() < 0.2 \
+			else Terrain.PLANT_CELLS[randi() % Terrain.PLANT_CELLS.size()]
+		var spr := Sprite2D.new()
+		spr.texture = Terrain.cell_texture(ps, cell)
+		spr.centered = false
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		# bottom of the plant sits on the surface top (origin.y); jitter x within its tile slot.
+		spr.position = origin + Vector2(i * Terrain.TILE + randf() * 6.0, -Terrain.TILE)
+		spr.z_index = PLANT_Z
+		parent.add_child(spr)
+
+
+## Place a couple of tree props in the background, standing on the floor. Varied per level so the
+## worlds don't look identical. No-op without tree art.
+func _place_trees() -> void:
+	if Terrain.tree_texture(0) == null:
+		return
+	var spots := [-360.0, 240.0, -80.0]
+	for i in mini(2, spots.size()):
+		var tex := Terrain.tree_texture(_level_index + i)
+		if tex == null:
+			continue
+		var spr := Sprite2D.new()
+		spr.texture = tex
+		spr.centered = false
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		spr.position = Vector2(spots[i] - tex.get_width() / 2.0, -tex.get_height())  # base on the floor (y=0)
+		spr.z_index = TREE_Z
+		_content.add_child(spr)
 
 
 # --- spawning + waves -------------------------------------------------------
@@ -279,10 +366,40 @@ func _build_bg() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = -100  # behind everything
 	add_child(layer)
+	# Optional background IMAGE, stretched to fill, behind the per-level colour tint. Drop
+	# assets/terrain/background.png to use it; without it, the tint is just opaque (as before).
+	var bg_tex := Terrain.background_texture()
+	if bg_tex != null:
+		var img := TextureRect.new()
+		img.texture = bg_tex
+		img.set_anchors_preset(Control.PRESET_FULL_RECT)
+		img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		img.stretch_mode = TextureRect.STRETCH_SCALE
+		img.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(img)
 	_bg = ColorRect.new()
 	_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(_bg)
+	layer.add_child(_bg)  # per-level tint on top (translucent over an image -- see _build_level)
+
+
+## Skin the floor (from level.tscn's Floor): hide the placeholder ColorRect and tile the surface,
+## with a couple of fill rows below for a solid ground mass, plus plants along the top.
+func _build_floor() -> void:
+	var floor_body := get_node_or_null("Floor")
+	if floor_body == null:
+		return
+	var shape := floor_body.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape == null or not (shape.shape is RectangleShape2D):
+		return
+	var size: Vector2 = (shape.shape as RectangleShape2D).size
+	var top_left := shape.position - size / 2.0  # collider centre -> top-left
+	var old := floor_body.get_node_or_null("ColorRect")
+	if old != null:
+		old.visible = false  # keep the node (scene-owned) but hand the look to the skin
+	_paint_surface(floor_body, top_left, size.x, 2)  # surface + 2 fill rows of ground
+	_scatter_plants(floor_body, top_left, size.x, 0.4)
 
 
 func _add_glow() -> void:

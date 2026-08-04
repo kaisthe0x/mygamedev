@@ -19,7 +19,8 @@ globally as `X.MEMBER` (e.g. `Combat.L_WORLD`, `Moves.CATALOG`). Nothing here ru
 | `combat.gd` | `Combat` | Collision-layer bitmask table (`L_*`, mirrors project.godot) + shared hit-reaction feel (`KNOCKBACK_POP`, `MIN_STAGGER`, `STRIKE_ACTIVE`, `HIT_FLASH`, `HIT_FLASH_TIME`) |
 | `move.gd` | `Move` | One attack/special: its animation, effect, hit `tuning`, and `attack_kind` (the `Combat.AttackKind` taxonomy label for the future build UI). A tiny data class built from the catalog. |
 | `moves.gd` | `Moves` | `CATALOG` — every character's named **attacks + specials** and the **default** of each. The `tuning` numbers are the SINGLE source of an attack's hit (the director feeds them into the effect's own Hitbox — see the root README's *Player attacks* section). **Edit `default_attack` / `default_special` here to change what a character uses.** A character with an empty pool (Wayna's specials) has none yet; `get_move` returns null. |
-| `character_config.gd` | `CharacterConfig` | The player roster `IDS` + the per-id resource path templates (`FRAMES_PATH`, `PORTRAIT_PATH`, `ABILITY_PATH`) + per-character `RUN_SPEEDS` / `JUMP_VELOCITIES` / `DASH_SPEEDS` / `BLINK_DASH` |
+| `character_config.gd` | `CharacterConfig` | The player roster `IDS` + the per-id resource path templates (`FRAMES_PATH`, `PORTRAIT_PATH`, `ABILITY_PATH`) + per-character `RUN_SPEEDS` / `JUMP_VELOCITIES` / `DASH_SPEEDS` / `BLINK_DASH` / `GLOW_COLORS` |
+| `terrain.gd` | `Terrain` | The level **art skin**: the 32px tileset sheet + which atlas cells are surface vs fill tiles, ground-plant + tree props, and the background image. `RunManager` stamps these as sprites over the colliders (`_paint_surface`) — see [`scripts/run/`](../scripts/run/README.md). Drop art in `assets/terrain/`. |
 
 ## What deliberately stays OUT of here
 

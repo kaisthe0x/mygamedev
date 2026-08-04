@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_kiss"]
-size = Vector2(14.431738, 20)
+size = Vector2(24, 20)
 
 [node name="AttackChainsaw" type="Node2D" unique_id=890394430]
 rotation = -0.30770043
@@ -22,6 +22,7 @@ stun = 2.0
 status_color = Color(0.90683234, 0, 0, 0.75900006)
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=2024332018]
-position = Vector2(3.5205603, -0.14290464)
-scale = Vector2(2.190307, 0.7770767)
+position = Vector2(14.672709, 0.5169225)
+rotation = -0.0048982333
+scale = Vector2(2.190307, 0.7770768)
 shape = SubResource("RectangleShape2D_kiss")
