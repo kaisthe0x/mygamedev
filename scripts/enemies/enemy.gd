@@ -20,7 +20,10 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 
 ## Emitted once when this enemy dies, carrying the lahm it pays out (its HP value). The run
 ## manager awards it to the player and counts the kill toward clearing the wave.
-signal died(lahm_value: float)
+signal died  ## this enemy died -- RunManager counts it toward clearing the arena (wave refill)
+## Emitted every time this enemy takes damage: (actual HP removed, the attacker). RunManager
+## pays the player lahm = damage they dealt (the harvest is per-hit now, not a lump on kill).
+signal damaged(amount: float, source: Node)
 
 @export var enemy_id: String = "kebus"
 @export var display_name: String = "Kebus"
@@ -678,7 +681,9 @@ func _hit_frames(anim: StringName) -> Array:
 func _on_hurt(hit: Hit) -> void:
 	if _state == State.DEAD:
 		return
+	var before := health
 	health = maxf(health - hit.amount, 0.0)
+	damaged.emit(before - health, hit.source)  # harvest = actual HP removed (overkill isn't paid)
 	_bar.set_ratio(health / max_health)
 	flash(_sprite)
 	# Getting hit alerts us: pursue the attacker for a while even if it struck from beyond
@@ -706,7 +711,7 @@ func _on_hurt(hit: Hit) -> void:
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
 	_set_state(State.DEAD)  # _physics_process bails on DEAD, so the AI stops here
-	died.emit(max_health)  # pay out lahm = this enemy's HP value + count the kill (run manager)
+	died.emit()  # count the kill (run manager wave refill); lahm was already paid per-hit via `damaged`
 	remove_from_group("enemies")  # stop being a homing target NOW -- the death anim/fade below
 	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse
 	_hurtbox.set_deferred("monitorable", false)

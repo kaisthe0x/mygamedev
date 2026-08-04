@@ -10,7 +10,7 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 
 | File | What it is |
 |---|---|
-| `run_manager.gd` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, awards lahm on kills, runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
+| `run_manager.gd` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, **awards lahm per point of damage dealt**, runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
 | `levels.gd` (`Levels`) | **The 5 levels, as data** — per level: look (`bg`), `platforms`, `player_spawn`, `exit_pos`, `exit_cost`, `start` enemies, and escalating `waves`. Edit here to change *what a level is*. |
 | `enemies.gd` (`EnemyKits`) | **The enemy roster** — one named kit per type (combat tuning + which scene), plus a `Tier` for wave-building. Levels reference these by name. Edit here to change *who* the enemies are. |
 | `rewards.gd` (`Rewards`) | **The reward pool** — `pool()` (id/name/desc) + `apply(id, player)` (the effect). Add a row + a case to add a reward. |
@@ -18,39 +18,47 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 | `reward_ui.gd` (`RewardUI`) | The pick-a-reward popup (pauses the game, emits `chosen(id)`). |
 
 Related, but not in this folder:
-- **Player life/lahm** lives on the `Player` (`scripts/player.gd`): one `life` value, shown as HP
-  (`min(life,100)`) + `lahm` (overflow, capped by `lahm_cap`). `gain_life` / `spend_life` /
-  `can_afford` / `take_damage` (lahm-first) / `begin_run`. Rewards buff it (`damage_mult`, etc.).
-- **The lahm bar** is built in `scripts/hud.gd` next to the HP bar (flesh-crimson).
-- **Enemies** emit `died(lahm_value)` (their HP) in `Enemy._die` — RunManager awards it.
+- **Player HP + lahm** live on the `Player` (`scripts/player.gd`) as **two independent pools**:
+  `health` (damage hits this only; heals ONLY via rewards) and `lahm` (a currency in blocks of 50,
+  capped by `lahm_cap`, that **rots at `LAHM_DECAY` 15/sec**). API: `gain_lahm` (per damage dealt) /
+  `spend_lahm` / `can_afford` / `take_damage` (HP only) / `heal` / `begin_run`. Rewards buff it.
+- **The lahm block meter** is built in `scripts/hud.gd` next to the HP bar (crimson cells).
+- **Enemies** emit `damaged(amount, source)` on every hit (→ RunManager pays lahm) and a bare
+  `died` in `Enemy._die` (→ wave counting only). See `scripts/enemies/enemy.gd`.
 - **Spawn puff**: `vfx/spawn/enemy_spawn.tscn` (fired at each wave spawn spot).
 
 ## The loop (per level)
 
 1. `RunManager._build_level(i)` sets the `bg`, builds `platforms` + the `ExitGate`, and spawns the
    `start` enemies. Player is placed at `player_spawn`.
-2. Every enemy killed → `died` → `gain_life(its HP)` as lahm, and `_alive--`.
+2. Damaging an enemy → `damaged(amount, source)` → `gain_lahm(amount)` (per point dealt). Meanwhile
+   lahm **rots at 15/sec**, so building blocks is a race. Killing an enemy → `died` → `_alive--`.
 3. When `_alive` hits 0 the arena is clear → **the next wave spawns** (with a puff at each spot).
    Past the last defined wave, the **last one repeats** — pressure never stops. The level does
    *not* end by clearing.
-4. Walk into the exit with `life ≥ cost` → pay the toll → **pick a reward** → next level (life
-   **carries over**). Can't afford it? The door is red; keep farming.
-5. **Death** (life hits 0) → the whole run restarts at level 1 via `Player.begin_run` (buffs
-   cleared, 100 HP / 0 lahm). Finishing level 5 loops back for now (a win screen is a TODO).
+4. Walk into the exit with `lahm ≥ cost` → pay the toll (lahm only, HP untouched) → **pick a reward**
+   (the only heal source) → next level (lahm **carries over**, still rotting). Can't afford it? The
+   door is red; keep farming. Affordability flickers as lahm decays — buffer up and rush it.
+5. **Death** (HP hits 0) → the whole run restarts at level 1 via `Player.begin_run` (buffs cleared,
+   100 HP / 0 lahm). Finishing level 5 loops back for now (a win screen is a TODO).
 
 ## Tuning cheatsheet
 
 - **Make a level harder/easier** → its `start`/`waves` in `levels.gd` (more strong-tier enemies,
-  more per wave) and its `exit_cost`.
-- **Change an enemy's stats** → its kit in `enemies.gd` (combat) — its lahm payout is just its HP.
-- **Add/'change a reward** → `rewards.gd` (`pool()` + `apply()`).
-- **Balance invariant** (from the design doc): a gate's `exit_cost` must stay **below** the
-  player's max life (`100 + lahm_cap`, base 500), or it's unpassable. Raise `lahm_cap` via the
-  `Deeper Gut` reward to keep deeper gates affordable.
+  more per wave) and its `exit_cost` (in lahm; blocks = cost/50).
+- **Change an enemy's stats** → its kit in `enemies.gd` (combat) — its total lahm payout is just its
+  HP (delivered as you damage it).
+- **Change the decay / block size** → `Player.LAHM_DECAY` (15/sec) and `LAHM_PER_BLOCK` (50).
+- **Add/change a reward** → `rewards.gd` (`pool()` + `apply()`). Keep a heal in the pool — it's the
+  only way to mend HP.
+- **Balance invariant**: `exit_cost` must stay **below** `lahm_cap` (base 500 = 10 blocks) with
+  headroom to build a buffer while it rots. Raise `lahm_cap` via the `Deeper Gut` (+2 blocks)
+  reward. And the real gate: player **damage/sec must beat 15 lahm/sec**, or no toll is reachable.
 
 ## Known template gaps (deliberate, for later)
 
 - Levels currently reuse a similar platform style; "different look" is just the `bg` tint so far.
 - Reward `apply` covers a handful of buffs; the special-vs-normal damage split is one `damage_mult`.
 - No win screen / meta-progression yet (finishing loops back to level 1).
-- Spawn cadence is "refill on full clear," not the timed/pressure spawner from the design doc §7.
+- Spawn cadence is "refill on full clear." The timed pressure the design doc wanted is now the
+  **lahm decay** (a race against the rot) rather than a spawn-rate ramp.

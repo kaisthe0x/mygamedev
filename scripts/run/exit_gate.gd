@@ -5,8 +5,9 @@ extends Area2D
 ## reports contact (`touched`); RunManager owns the decision (can they afford the toll?) and the
 ## transition, so all the run logic stays in one place. Built entirely in code by RunManager.
 ##
-## Cost is life (HP + lahm). See docs/game-design.md. The gate colours itself green when the
-## player can afford it, red when they can't — a clear "is the door open?" read.
+## Cost is LAHM, shown in blocks (50 lahm each). See docs/game-design.md. The gate colours itself
+## green when the player can afford it, red when they can't — a clear "is the door open?" read.
+## Because lahm rots, affordability flickers: build a buffer and rush the door.
 
 signal touched  ## the player body entered the gate
 
@@ -35,7 +36,7 @@ func setup(gate_cost: float) -> void:
 	_cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_cost_label.position = Vector2(-60, -SIZE.y - 26)
 	_cost_label.size = Vector2(120, 20)
-	_cost_label.text = "EXIT · %d" % roundi(cost)
+	_cost_label.text = "EXIT · %d ▮" % roundi(cost / Player.LAHM_PER_BLOCK)  # cost in blocks
 	add_child(_cost_label)
 
 	body_entered.connect(func(_b: Node) -> void: touched.emit())

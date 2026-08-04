@@ -40,12 +40,15 @@ var health: float = 100.0:
 		health = clamped
 		health_changed.emit(health, max_health)
 
-@export_group("Lahm (life economy)")
-## Banked life ABOVE full HP -- harvested from kills (an enemy's HP value), spent at exit gates.
-## Total life = health + lahm; damage/tolls eat lahm first, then HP. `lahm_cap` (raised by
-## rewards) is the overflow ceiling, so max total life = max_health + lahm_cap. See
-## docs/game-design.md.
-@export var lahm_cap: float = 400.0:
+@export_group("Lahm (harvested-flesh currency)")
+## Lahm is a SEPARATE resource from HP -- harvested flesh, measured in BLOCKS (50 lahm each).
+## Gained by DAMAGING enemies (1 lahm per point of damage dealt), spent at exit gates, and it
+## ROTS: it drains at LAHM_DECAY/sec, floored at 0, so you must farm-and-go. Damage NEVER touches
+## lahm and lahm NEVER heals HP -- the only heal is a reward. `lahm_cap` (raised by rewards) is
+## the ceiling in lahm; blocks = lahm_cap / LAHM_PER_BLOCK. See docs/game-design.md.
+const LAHM_PER_BLOCK := 50.0   ## one HUD "block" of lahm
+const LAHM_DECAY := 15.0       ## lahm rot, per second (flat, independent of how much you hold)
+@export var lahm_cap: float = 500.0:  # 10 blocks
 	set(value):
 		lahm_cap = maxf(value, 0.0)
 		lahm = minf(lahm, lahm_cap)
@@ -60,7 +63,7 @@ var lahm: float = 0.0:
 
 ## Run-reward buffs applied on top of the character's base. `damage_mult` scales every hit
 ## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
-const BASE_LAHM_CAP := 400.0
+const BASE_LAHM_CAP := 500.0
 const BASE_MAX_HEALTH := 100.0
 const BASE_AIR_JUMPS := 2
 var damage_mult: float = 1.0
@@ -416,48 +419,39 @@ func portrait_path() -> String:
 	return CharacterConfig.PORTRAIT_PATH % (character.substr(0, 1).to_upper() + character.substr(1))
 
 
-## Subtract `amount` from the life pool -- banked lahm first, then HP -- and flash the hit
-## tell. The setters clamp and emit for the HUD. Death when HP hits 0 (lahm already spent).
+## Damage hits HP ONLY -- lahm is not a shield (that's the whole point of the rework). Flash the
+## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
-	var from_lahm := minf(lahm, amount)
-	lahm -= from_lahm
-	health -= (amount - from_lahm)
+	health -= amount
 	flash(_sprite)
 	if health <= 0.0 and not _dead:
 		_die()
 
 
-## Total life = current HP + banked lahm. What an exit gate is measured against.
-func total_life() -> float:
-	return health + lahm
+## Restore HP (capped at max_health). The ONLY way to heal -- rewards call this. Never from lahm.
+func heal(amount: float) -> void:
+	health = minf(health + amount, max_health)
 
 
-## True if `cost` life could be paid AND leave the player alive (> cost, not >=).
+## True if the exit toll `cost` (in lahm) is affordable right now. Paying never touches HP,
+## so `>=` is safe -- no survival margin needed.
 func can_afford(cost: float) -> bool:
-	return total_life() > cost
+	return lahm >= cost
 
 
-## Harvest `amount` life from a kill: fill HP toward max first, bank the overflow as lahm
-## (capped at lahm_cap). This is how killing an enemy pays out its HP value as lahm.
-func gain_life(amount: float) -> void:
+## Harvest lahm from damage dealt to an enemy (1 lahm per point). The setter caps at lahm_cap.
+func gain_lahm(amount: float) -> void:
 	if amount <= 0.0:
 		return
-	var room := max_health - health
-	if amount <= room:
-		health += amount
-	else:
-		health = max_health
-		lahm += amount - room
+	lahm += amount
 
 
-## Spend `cost` life at an exit gate -- lahm first, then HP. Returns false (and spends nothing)
-## if it isn't affordable (would not leave the player alive). See docs/game-design.md.
-func spend_life(cost: float) -> bool:
+## Spend `cost` lahm at an exit gate. Returns false (spends nothing) if unaffordable. Lahm only --
+## HP is untouched. See docs/game-design.md.
+func spend_lahm(cost: float) -> bool:
 	if not can_afford(cost):
 		return false
-	var from_lahm := minf(lahm, cost)
-	lahm -= from_lahm
-	health -= (cost - from_lahm)
+	lahm -= cost
 	return true
 
 
@@ -655,6 +649,11 @@ func set_character(id: String) -> void:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
+
+	# Lahm rots away (the time pressure). Only while alive and past the spawn-in grace; a paused
+	# tree (reward popup) stops _physics_process entirely, so decay pauses there for free.
+	if not _dead and _state != State.SPAWN and lahm > 0.0:
+		lahm -= LAHM_DECAY * delta
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 	_armor_left = maxf(_armor_left - delta, 0.0)

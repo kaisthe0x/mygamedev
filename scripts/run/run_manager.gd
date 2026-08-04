@@ -143,6 +143,7 @@ func _spawn_group(specs: Array, with_fx: bool) -> void:
 		var enemy := _spawn_enemy(spec["kit"], pos)
 		if enemy != null:
 			enemy.died.connect(_on_enemy_died)
+			enemy.damaged.connect(_on_enemy_damaged)  # harvest lahm per point of damage dealt
 			_alive += 1
 
 
@@ -170,10 +171,15 @@ func _spawn_fx(pos: Vector2) -> void:
 			fx.queue_free())
 
 
-## An enemy died: pay out its lahm and, once the arena is empty, refill the next wave.
-func _on_enemy_died(lahm_value: float) -> void:
-	if _player != null:
-		_player.gain_life(lahm_value)
+## Lahm harvest: the player banks lahm equal to the damage they deal (per hit). Only the
+## player's own hits pay -- ignore enemy-on-enemy or contact damage credited to other sources.
+func _on_enemy_damaged(amount: float, source: Node) -> void:
+	if _player != null and source == _player:
+		_player.gain_lahm(amount)
+
+
+## An enemy died: once the arena is empty, refill the next wave. (Lahm was paid per-hit above.)
+func _on_enemy_died() -> void:
 	_alive -= 1
 	if _alive <= 0 and not _transitioning:
 		_spawn_next_wave()
@@ -195,9 +201,9 @@ func _on_gate_touched() -> void:
 		return
 	if _player.can_afford(_gate.cost):
 		_transitioning = true
-		_player.spend_life(_gate.cost)
+		_player.spend_lahm(_gate.cost)
 		_offer_reward()
-	# else: not enough life -- the gate stays red; keep farming.
+	# else: not enough lahm -- the gate stays red; keep farming.
 
 
 func _offer_reward() -> void:
@@ -301,4 +307,4 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_damage"):
 		_player.take_damage(12.0)
 	elif event.is_action_pressed("debug_heal"):
-		_player.gain_life(20.0)
+		_player.gain_lahm(Player.LAHM_PER_BLOCK)  # +1 lahm block (test the meter / exit toll)

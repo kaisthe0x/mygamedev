@@ -65,10 +65,12 @@ play, the clean way is "last input device wins" — ask and I'll wire it.
 debug damage/heal, `0` rebuild-level) live in that same file.
 
 **The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). You drop
-into low, mostly-horizontal **arena levels** that spawn enemies to overwhelm you; killing them
-harvests **lahm** (banked life). Each level's **exit gate** costs life to pass; clear the arena and
-the next escalating wave refills, so a level ends only when you pay the exit and pick a reward. Die
-and the whole run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
+into low, mostly-horizontal **arena levels** that spawn enemies to overwhelm you; **damaging** them
+harvests **lahm** — a currency shown in blocks (50 each) that **rots at 15/sec**, so you farm in
+bursts and can't camp. **HP is separate**: damage hits it only, and it heals *only* from rewards.
+Each level's **exit gate** costs a number of lahm blocks to pass (HP untouched); clear the arena and
+the next escalating wave refills, so a level ends only when you pay the exit and pick a reward. Take
+0 HP and the whole run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
 loop — lives in one folder, [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s
 root; `Levels` / `EnemyKits` / `Rewards` are the data). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data.
@@ -476,11 +478,12 @@ Katalyst's 13-frame transform-dash plays fully inside the 0.18s window. Grounded
 falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
 
-**API for other systems:** `take_damage()`, `gain_life()` / `spend_life()` / `can_afford()` /
-`total_life()` (the lahm economy — see [`docs/game-design.md`](docs/game-design.md)), `begin_run()`,
-`is_dead()`, `death_complete()`, `spawn()`, `set_character()`, `portrait_path()`, and the
-`health_changed` / `lahm_changed` / `character_changed` signals. (Enemies deal real damage; a lethal
-hit runs the full death lifecycle — see **Death** / **Spawn** below.)
+**API for other systems:** `take_damage()` (HP only) / `heal()` (the only HP restore), `gain_lahm()`
+(per point of damage dealt) / `spend_lahm()` / `can_afford()` (the lahm currency — see
+[`docs/game-design.md`](docs/game-design.md)), `begin_run()`, `is_dead()`, `death_complete()`,
+`spawn()`, `set_character()`, `portrait_path()`, and the `health_changed` / `lahm_changed` /
+`character_changed` signals. Lahm rots each frame (`LAHM_DECAY`) and never shields HP. (Enemies deal
+real damage; a lethal hit runs the full death lifecycle — see **Death** / **Spawn** below.)
 
 ---
 
