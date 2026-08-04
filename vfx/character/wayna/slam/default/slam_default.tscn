@@ -39,6 +39,7 @@ gravity = Vector2(0, 0)
 scale_amount_curve = SubResource("Curve_cel51")
 
 [node name="Hitbox" type="Area2D" parent="Reach" unique_id=1643934347]
+position = Vector2(0, -2)
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_0cgka")

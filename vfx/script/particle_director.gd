@@ -271,7 +271,11 @@ func _apply_overrides(node: Node2D, overrides: Dictionary) -> void:
 func _capture(node: Node2D) -> Dictionary:
 	if node is CPUParticles2D:
 		return {"dir": node.direction, "grav": node.gravity}
-	return {}
+	# The authored (right-facing) root rotation, so the scale.x mirror below can also
+	# mirror the rotation. Without it, flipping scale.x reflects across the node's OWN
+	# tilted axis instead of world-vertical, so any child rotation stops cancelling and
+	# the whole effect skews (e.g. Wayna's chainsaw hitbox angling down facing left).
+	return {"rot": node.rotation}
 
 
 ## Mirror the whole effect horizontally, not just its position: emission
@@ -291,8 +295,11 @@ func _face(node: Node2D, base: Dictionary, pos: Vector2, m: float) -> void:
 		# GPUParticles2D keeps these on a shared ParticleProcessMaterial, which we
 		# must not mutate; flipping the node's scale is the safe approximation, and for
 		# a composite (or a FlashEffect slash) it mirrors child positions/textures + the
-		# emission velocity.
+		# emission velocity. Mirror the authored rotation too (negate for a left flip) so
+		# the reflection is across world-vertical, not the node's own tilted axis --
+		# otherwise a rotated root skews when flipped (idempotent: base.rot is authored).
 		node.scale.x = m
+		node.rotation = float(base.get("rot", node.rotation)) * m
 
 
 func _refresh() -> void:

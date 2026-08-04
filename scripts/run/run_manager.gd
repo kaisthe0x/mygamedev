@@ -14,7 +14,7 @@ const REWARDS_OFFERED := 3
 const DEATH_Y := 320.0
 
 ## ── Which character you play (in-game switching is gone; pick here). ────────────────
-const START_CHARACTER := "khalid"
+const START_CHARACTER := "wayna"
 
 # Camera follow (speed-adaptive) — carried over from the old switcher.
 const CAM_FOLLOW_BASE := 0.002
