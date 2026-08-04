@@ -2,8 +2,8 @@
 
 ; Mazab's bomb blast -- the AoE that erupts when a landed LobProjectile's dwell timer ends.
 ; Instanced INSIDE the explosion Strike (scripts/combat/lob_projectile.gd::_explode), which
-; owns the hitbox + self-frees; this scene is the look only. Set as Mazab's
-; `lob_explosion_effect` in configs/level_config.gd. Steel-blue to match the thrown rock:
+; owns the hitbox + self-frees; this scene is the look only. It's Mazab's "explosion" scene in
+; EmittersEnemies (vfx/config/emitters_enemies.gd). Steel-blue to match the thrown rock:
 ; a fast radial shard burst + a low ground dust puff, both one-shot so they fire once.
 
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]

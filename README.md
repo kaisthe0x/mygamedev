@@ -26,7 +26,8 @@ vfx/                  All visual effects -- particles + drawn slashes (see vfx/R
 resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
-scripts/              player, hud, character_switcher
+scripts/              player, hud
+scripts/run/          the roguelite run: levels, waves, lahm economy, exit+rewards (see scripts/run/README.md)
 scripts/abilities/    Per-character abilities, named <character_id>.gd
 scripts/combat/       Hurtbox, hitbox, combatant base, health bar (constants -> configs/combat.gd)
 scripts/enemies/      Enemy base + projectile
@@ -46,7 +47,7 @@ tools/                Generator + verification scripts (not shipped)
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** (no air attacks) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
-| 0 | `debug_respawn` | Dev only — clear + respawn all enemies |
+| 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
 
 Bound to **physical** keycodes, so they stay in the same place on AZERTY/Dvorak.
 Rebind under `Project > Project Settings > Input Map`.
@@ -58,22 +59,19 @@ mouse cursor does **not** steer facing or aim (a previous mouse-look experiment 
 removed). If you want cursor-aim back for keyboard+mouse without breaking controller
 play, the clean way is "last input device wins" — ask and I'll wire it.
 
-**Which character you play is chosen in code.** In-game Q/E switching is **gone** — set
-the **`START_CHARACTER`** constant at the top of `scripts/character_switcher.gd` to any id
-in `CharacterConfig.IDS` (`feyke`/`katalyst`/`khalid`/`lenbondosen`/`wayna`). The game
-spawns that one character. The remaining dev keys (Z/X debug damage/heal, `0` respawn
-enemies) live in that same file — all the scaffolding in one place, deletable in one go.
+**Which character you play is chosen in code.** In-game Q/E switching is **gone** — set the
+**`START_CHARACTER`** constant near the top of `scripts/run/run_manager.gd` to any id in
+`CharacterConfig.IDS` (`feyke`/`katalyst`/`khalid`/`lenbondosen`/`wayna`). The dev keys (Z/X
+debug damage/heal, `0` rebuild-level) live in that same file.
 
-**The test level is a small ground arena.** `configs/level_config.gd` holds it as data —
-`PLATFORMS` (a handful of **low** one-way platforms, each `[center_x, top_y, width]`) and
-`roster()` (the enemy spawn list). `character_switcher.gd` builds both in code (the `.tscn`
-stays minimal because the editor clobbers it) on top of `level.tscn`'s solid `Floor`. The
-old tall vertical-tower idea is **retired** — it's now a mostly-horizontal sparring ground
-with light verticality (highest platform ~270px up), pending real world art. Fall off a
-platform and you land back on the floor; only leaving the world past the floor edges below
-`DEATH_Y` respawns you. `roster()` is **~11 enemies** — a mixed pack (Kebus, Baghel, Mazab,
-Nasen, Ein) across the floor and platforms, built from shared kit dicts (`KEBUS`/`BAGHEL`/
-`MAZAB`) merged with each spawn's `{name, pos}` via `_mob()`, so a type's tuning lives once.
+**The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). You drop
+into low, mostly-horizontal **arena levels** that spawn enemies to overwhelm you; killing them
+harvests **lahm** (banked life). Each level's **exit gate** costs life to pass; clear the arena and
+the next escalating wave refills, so a level ends only when you pay the exit and pick a reward. Die
+and the whole run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
+loop — lives in one folder, [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s
+root; `Levels` / `EnemyKits` / `Rewards` are the data). The `.tscn` stays minimal because the editor
+clobbers it, so the level content is built in code from that data.
 
 ---
 
@@ -478,10 +476,11 @@ Katalyst's 13-frame transform-dash plays fully inside the 0.18s window. Grounded
 falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
 
-**API for other systems:** `take_damage()`, `heal()`, `is_dead()`, `death_complete()`,
-`spawn()`, `revive()`, `set_character()`, `portrait_path()`, and the
-`health_changed` / `character_changed` signals. (Enemies deal real damage now; a lethal
-hit runs the full death → respawn → spawn lifecycle — see **Death** / **Spawn** below.)
+**API for other systems:** `take_damage()`, `gain_life()` / `spend_life()` / `can_afford()` /
+`total_life()` (the lahm economy — see [`docs/game-design.md`](docs/game-design.md)), `begin_run()`,
+`is_dead()`, `death_complete()`, `spawn()`, `set_character()`, `portrait_path()`, and the
+`health_changed` / `lahm_changed` / `character_changed` signals. (Enemies deal real damage; a lethal
+hit runs the full death lifecycle — see **Death** / **Spawn** below.)
 
 ---
 
@@ -528,7 +527,7 @@ do ACTION," and each character's file overrides only the hooks it cares about
 
 | Character | Ability | Effect |
 |---|---|---|
-| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (the `Emitters` config) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. (He previously had an *Energy Beam*, plus *Hangtime* and *Sprint* — all removed; the laser system is gone project-wide.) |
+| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (the `Emitters` config) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. |
 | Katalyst | **Stomp** + **Weak knees** | A mid-air special becomes a downward drive (hangs for the wind-up, then plunges at `SLAM_SPEED`). And via `on_land`, **every** landing past `SAFE_FALL` (400px) deals fall damage scaled by drop distance × landing speed — a high enough fall can kill him (it's why he can't slam). A `_weak_knees` flag gates it, ready for a future "knee transplant" pickup to switch off. |
 | Wayna | **Inferno interrupt** | Not an ability script — her `special_inferno` is a channeled `Strike` (`emit_duration`) with `interrupt_on_hurt = true`, so taking a hit **cancels the fire** (stops emission + damage ticks, releases her held pose). The `on_hurt` ability hook stays free for any *other* reaction she gets later. |
 Khalid used to carry the blink as an ability; it's now a **universal, per-character dash
@@ -877,22 +876,20 @@ Dashing is **invulnerable** — the player's hurtbox stops being detectable for 
 dash's duration (`_hurtbox.monitorable` is off while in `DASH`), so you can dash
 through projectiles and attacks unharmed.
 
-### Spawning & the test level
+### Spawning & the run
 
-`character_switcher.gd` (the level script) builds everything in code, to avoid
-clobbering `level.tscn` while the editor holds it open:
+`scripts/run/run_manager.gd` (`RunManager`, the level-scene root) builds each level in code
+from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds it open. See
+[`scripts/run/README.md`](scripts/run/README.md) for the full loop; the build basics:
 
-- **Platforms** — `_platforms` `[center_x, top_y, width]`, one-way `StaticBody2D`s
-  on the world layer — a handful of **low** ledges spread across the arena for light
-  verticality (no staircase to climb). One-way means you jump up *through* them and land on
-  top.
-- **Enemies** — `roster()` (in `LevelConfig`), each a `{id, name, pos, ...overrides}`
-  instanced from `enemy.tscn`; any extra key sets an Enemy export (so one can be `aggro`,
-  another `ranged_mode: "forward"`, etc). A **`scene`** key picks a *custom* enemy
-  scene/script instead of the generic one — `"res://scenes/nasen.tscn"` (sleeper) or
-  `"res://scenes/ein.tscn"` (floating kamikaze); its own `enemy_id`/exports stand unless the
-  entry overrides them. ~11 enemies across the floor + platforms, built from the shared
-  `KEBUS`/`BAGHEL`/`MAZAB` kit dicts via `_mob(kit, {name, pos})`.
+- **Platforms** — per level `[center_x, top_y, width]`, one-way `StaticBody2D`s on the world
+  layer — a handful of **low** ledges (no staircase to climb). One-way means you jump up
+  *through* them and land on top.
+- **Enemies** — each level's `start` + escalating `waves` are `{kit, pos}` specs. A **kit**
+  (`EnemyKits.KEBUS`, …) is either an `id` (built from the generic `enemy.tscn` with that
+  `enemy_id`) or a `scene` (a custom enemy — `nasen.tscn` sleeper, `ein.tscn` kamikaze), plus
+  any Enemy `@export` overrides. `RunManager._spawn_enemy` applies them; the enemy's `died`
+  signal pays out lahm and counts toward clearing the arena.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.
@@ -946,32 +943,31 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
   character's own `death/default/` particle (tinted to their dash palette) from
   the `Emitters` config on the **last** death frame; then the **sprite hides**
   (`_death_finished`) so the character *vanishes into that poof* instead of the dead
-  frame sitting there until respawn (`revive()`/`_enter` restores it). **Enemies stop
+  frame sitting there until restart (`begin_run()`/`_enter` restores it). **Enemies stop
   attacking**: `Enemy._player()` returns
-  `null` for a dead player, so the zone goes quiet. The character_switcher waits for
-  `death_complete()` (+ a short `DEATH_HOLD`) before respawning via `revive()`.
+  `null` for a dead player, so the zone goes quiet. `RunManager` waits for
+  `death_complete()` (+ a short `DEATH_HOLD`), then **restarts the whole run** — rebuild level 1
+  + `Player.begin_run()` (full HP / 0 lahm, run-reward buffs cleared). Death is a real fail state
+  now (roguelite), not a free respawn.
 - **Death flair** — on death the camera **punches in** (`CAM_ZOOM_DEATH` 2.25 vs the
   1.5 rest zoom, tweened) and centres tight on the collapsing character so the animation
-  reads; respawn zooms back out. Purely in `character_switcher` — tune/disable there.
-- **Respawn** — after the death plays out, or on falling below `DEATH_Y` (into the void,
-  which is an *instant* reset — no death anim), the player is back at `SPAWN` with full
-  health, in-flight projectiles cleared so you're not hit on reappear.
+  reads; the restart zooms back out. Purely in `RunManager` — tune/disable there.
+- **Falling off** — dropping below `DEATH_Y` (alive) just **repositions** you to the level's
+  spawn point — no life lost, no death anim. Only a lethal *hit* ends the run.
 - **Spawn (materialize)** — every (re)spawn — the initial game start *and* every respawn —
   enters the **`SPAWN`** state: input is frozen and the hurtbox is **off** (spawn
   protection, so it always plays fully) while the `spawn` animation plays, auto-firing the
   character's own `spawn/default/` particle (tinted to their dash palette) on its **first**
   frame; `_on_animation_finished` hands off to idle. `Player.spawn()` drives it (called by
-  `character_switcher._ready` for the initial spawn and by `revive()` on respawn); a
+  `RunManager._ready` for the initial spawn and by `begin_run()` on a run restart); a
   character with no `spawn` sheet just drops straight to idle.
 - **Spawn flair** — the camera **zooms in** (`CAM_ZOOM_SPAWN`, same 2.25 as the death
   punch-in) and centres on the materializing character while `SPAWN` plays, then **pulls
   back out** to normal the instant it ends. Because the spawn and death zooms match, a
   death → respawn → spawn stays smoothly zoomed the whole way and only reveals the level
-  once you have control. Also in `character_switcher` — tune/disable there.
-- **Dev key `0`** clears and respawns the enemy roster to keep fighting.
-
-Move platforms/enemies into the level scene proper (drag `enemy.tscn` in) when
-convenient — this is scaffolding to test jump + attack + traversal.
+  once you have control. Also in `RunManager` — tune/disable there.
+- **Dev key `0`** rebuilds the current level fresh (`RunManager._build_level`) — a quick way
+  to reset the arena while iterating.
 
 ---
 

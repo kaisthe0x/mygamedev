@@ -7,6 +7,11 @@
 
 Status legend: **[CONFIRMED]** decided · **[OPEN]** still to tune/decide.
 
+> **Built so far (vertical slice):** the full loop is playable — 5 data-driven levels, the
+> life/lahm economy + HUD bar, kills paying lahm, wave-refill-on-clear, the exit toll, and the
+> reward pick. Code + data live in [`scripts/run/`](../scripts/run/README.md) (one folder). Press
+> F5. Numbers are placeholders to tune.
+
 ---
 
 ## 1. The one-line premise
@@ -66,13 +71,15 @@ Notes:
 
 ---
 
-## 4. The level & the exit gate  **[CONFIRMED]**
+## 4. The level & the exit gate  **[CONFIRMED / BUILT]**
 
-- A level is an **arena that spawns enemies continuously to overwhelm you** — it is *not*
-  a fixed pack to clear. (This supersedes the earlier "clear all enemies → exit" idea; the
-  old wave "budget" becomes **spawn cadence / how hard it presses**, not a finish line.)
+- A level is an **arena that keeps refilling**: it opens with a `start` pack, and **every time
+  you clear all enemies, the next escalating wave spawns** (a puff marks each spot). Past the
+  last authored wave, the hardest one repeats — so it never truly clears. (The fully-continuous
+  timed-pressure variant is a later option; §7.6.)
 - The **exit is a toll gate** priced in life (lahm/HP). You may leave **whenever you want**,
   as long as `life >= gate_cost`. Passing subtracts the cost; you carry the remainder forward.
+  The gate reads **green when affordable, red when not**.
 - **Every gate always grants a reward** (see §5).
 - Leaving is the *only* way to complete a level. There is no "clear" state — the arena would
   bury you eventually; the skill is knowing **when to cash out**.

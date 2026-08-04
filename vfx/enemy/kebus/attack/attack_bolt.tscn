@@ -1,26 +1,16 @@
-[gd_scene load_steps=4 format=3 uid="uid://dkebusbolt2026"]
-
-; Kebus' staff bolt -- the little green orb his ranged attack lobs at the player.
-; Was drawn procedurally in scripts/enemies/projectile.gd (the visual=null fallback);
-; extracted here so it lives with the other attack VFX and is editable in-engine.
-; A CPUParticles2D ember trail (local_coords=false, so it streaks behind the shot as
-; it flies) plus a soft glow Core sprite. Set as Kebus' ranged_particle in
-; configs/level_config.gd; projectile.gd instances it as the shot's `visual`.
+[gd_scene format=3 uid="uid://bhmon1bg7m30"]
 
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
 
 [sub_resource type="Gradient" id="Gradient_bolt"]
-offsets = PackedFloat32Array(0, 1)
 colors = PackedColorArray(0.55, 1, 0.45, 1, 0.55, 1, 0.45, 0)
 
-[node name="Bolt" type="CPUParticles2D"]
+[node name="Bolt" type="CPUParticles2D" unique_id=86089438]
 texture_filter = 1
-texture = ExtResource("1_ember")
-emitting = true
 amount = 18
+texture = ExtResource("1_ember")
 lifetime = 0.35
-local_coords = false
 emission_shape = 1
 emission_sphere_radius = 2.0
 spread = 25.0
@@ -30,8 +20,8 @@ scale_amount_min = 0.4
 scale_amount_max = 0.8
 color_ramp = SubResource("Gradient_bolt")
 
-[node name="Core" type="Sprite2D" parent="."]
-z_index = 1
-texture = ExtResource("2_dot")
-scale = Vector2(0.25, 0.25)
+[node name="Core" type="Sprite2D" parent="." unique_id=1574883286]
 self_modulate = Color(0.7, 1, 0.65, 1)
+z_index = 1
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_dot")

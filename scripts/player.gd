@@ -7,10 +7,13 @@ class_name Player
 ## Every character shares the same animation set and the same normalised sprite
 ## canvas (see tools/gen_spriteframes.py), so switching is just swapping the
 ## SpriteFrames resource -- no per-character offsets or colliders needed.
-## Pick one in the inspector, or call set_character() / cycle_character().
+## Pick one in the inspector, or call set_character(). The played character is chosen in
+## RunManager (START_CHARACTER); in-game switching is gone.
 
 ## Emitted on every health change, and once on ready so UI can seed itself.
 signal health_changed(current: float, maximum: float)
+## Emitted on every lahm (banked-life) change, and once on ready so the HUD can seed itself.
+signal lahm_changed(current: float, maximum: float)
 ## Emitted when the active character changes, for portrait/name displays.
 signal character_changed(id: String)
 
@@ -36,6 +39,48 @@ var health: float = 100.0:
 			return
 		health = clamped
 		health_changed.emit(health, max_health)
+
+@export_group("Lahm (life economy)")
+## Banked life ABOVE full HP -- harvested from kills (an enemy's HP value), spent at exit gates.
+## Total life = health + lahm; damage/tolls eat lahm first, then HP. `lahm_cap` (raised by
+## rewards) is the overflow ceiling, so max total life = max_health + lahm_cap. See
+## docs/game-design.md.
+@export var lahm_cap: float = 400.0:
+	set(value):
+		lahm_cap = maxf(value, 0.0)
+		lahm = minf(lahm, lahm_cap)
+
+var lahm: float = 0.0:
+	set(value):
+		var clamped := clampf(value, 0.0, lahm_cap)
+		if is_equal_approx(clamped, lahm):
+			return
+		lahm = clamped
+		lahm_changed.emit(lahm, lahm_cap)
+
+## Run-reward buffs applied on top of the character's base. `damage_mult` scales every hit
+## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
+const BASE_LAHM_CAP := 400.0
+const BASE_MAX_HEALTH := 100.0
+const BASE_AIR_JUMPS := 2
+var damage_mult: float = 1.0
+
+
+## Start a BRAND-NEW run: clear every run-reward buff back to base, re-apply the character's base
+## stats, refill to 100 HP / 0 lahm, and play the spawn-in. Called by RunManager on death-restart
+## and on run completion. (Per-level transitions do NOT call this -- life carries over there.)
+func begin_run() -> void:
+	_dead = false
+	_death_finished = false
+	damage_mult = 1.0
+	lahm_cap = BASE_LAHM_CAP
+	max_air_jumps = BASE_AIR_JUMPS
+	max_health = BASE_MAX_HEALTH
+	_apply_character()  # re-applies run_speed / jump / dash / blink from CharacterConfig
+	health = max_health
+	lahm = 0.0
+	velocity = Vector2.ZERO
+	spawn()
 
 @export_group("Movement")
 ## The current character's run speed (px/s). Seeded per character on every character
@@ -170,7 +215,7 @@ var _air_jumps_used: int = 0
 var _jump_launch: bool = false
 ## True once a slam has released its impact frames (near the ground), so the held
 ## descent doesn't re-lock and the sprite stays shown while the impact plays out.
-## True from the killing blow until revive(): input is frozen, the hurtbox is off, and the
+## True from the killing blow until begin_run(): input is frozen, the hurtbox is off, and the
 ## death animation plays. `_death_finished` flips once that animation reaches its end (it
 ## then holds the last frame) -- the level waits for death_complete() before respawning.
 var _dead: bool = false
@@ -238,6 +283,7 @@ func _ready() -> void:
 	# Seed listeners that connected before _ready (the setters stay silent when
 	# the value doesn't actually change, so the HUD would otherwise start blank).
 	health_changed.emit(health, max_health)
+	lahm_changed.emit(lahm, lahm_cap)
 	character_changed.emit(character)
 
 
@@ -370,13 +416,49 @@ func portrait_path() -> String:
 	return CharacterConfig.PORTRAIT_PATH % (character.substr(0, 1).to_upper() + character.substr(1))
 
 
-## Subtract `amount` from health and flash the hit tell. The health setter clamps
-## and emits health_changed for the HUD.
+## Subtract `amount` from the life pool -- banked lahm first, then HP -- and flash the hit
+## tell. The setters clamp and emit for the HUD. Death when HP hits 0 (lahm already spent).
 func take_damage(amount: float) -> void:
-	health -= amount
+	var from_lahm := minf(lahm, amount)
+	lahm -= from_lahm
+	health -= (amount - from_lahm)
 	flash(_sprite)
 	if health <= 0.0 and not _dead:
 		_die()
+
+
+## Total life = current HP + banked lahm. What an exit gate is measured against.
+func total_life() -> float:
+	return health + lahm
+
+
+## True if `cost` life could be paid AND leave the player alive (> cost, not >=).
+func can_afford(cost: float) -> bool:
+	return total_life() > cost
+
+
+## Harvest `amount` life from a kill: fill HP toward max first, bank the overflow as lahm
+## (capped at lahm_cap). This is how killing an enemy pays out its HP value as lahm.
+func gain_life(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	var room := max_health - health
+	if amount <= room:
+		health += amount
+	else:
+		health = max_health
+		lahm += amount - room
+
+
+## Spend `cost` life at an exit gate -- lahm first, then HP. Returns false (and spends nothing)
+## if it isn't affordable (would not leave the player alive). See docs/game-design.md.
+func spend_life(cost: float) -> bool:
+	if not can_afford(cost):
+		return false
+	var from_lahm := minf(lahm, cost)
+	lahm -= from_lahm
+	health -= (cost - from_lahm)
+	return true
 
 
 ## Build the combat boxes and register on the "player" group so enemies find us.
@@ -406,10 +488,11 @@ func _build_combat() -> void:
 ## (damage x1.3, +reach, hits twice, ...) so every attack becomes buffable without
 ## re-plumbing. Set into _active_hit at segment/special start; read by the director.
 func resolve_tuning(move: Move, seg: int = 0) -> Dictionary:
-	var base: Dictionary = move.segment(seg)
-	# <-- buff/item/event modifiers fold in here later (base is copied so nothing mutates
-	# the catalog). For now the effective hit IS the base.
-	return base.duplicate()
+	var base: Dictionary = move.segment(seg).duplicate()  # copy: never mutate the catalog
+	# Buff/item/event modifiers fold in here. `damage_mult` is a run reward ("+X% damage").
+	if not is_equal_approx(damage_mult, 1.0) and base.has("damage"):
+		base["damage"] = float(base["damage"]) * damage_mult
+	return base
 
 
 ## The resolved tuning of the attack currently swinging, for the ParticleDirector to
@@ -497,17 +580,12 @@ func _special_strike_frame() -> int:
 	return _sprite.sprite_frames.get_frame_count(_current_special.animation) / 2
 
 
-## Add `amount` to health (setter clamps to max_health).
-func heal(amount: float) -> void:
-	health += amount
-
-
 func is_dead() -> bool:
 	return _dead
 
 
 ## True once the death animation has fully played out (and is now holding its last frame),
-## so the level knows it can respawn. See character_switcher.
+## so the level knows it can respawn. See run_manager (scripts/run/).
 func death_complete() -> bool:
 	return _dead and _death_finished
 
@@ -515,7 +593,7 @@ func death_complete() -> bool:
 ## The killing blow landed. Freeze into the DEATH state: kill any swing/channel, turn the
 ## hurtbox off (no more hits), and play the death animation once -- the director fires the
 ## `death` particle from the Emitters config on its frames, like any other animation. The body
-## still falls to the ground (see _process_death); revive() clears all this on respawn.
+## still falls to the ground (see _process_death); begin_run() clears all this on a run restart.
 func _die() -> void:
 	if _dead:
 		return
@@ -554,19 +632,9 @@ func _process_spawn(delta: float) -> void:
 		velocity.y += gravity * delta
 
 
-## Bring the player back to life at full health (the level repositions us). Undoes _die,
-## then plays the spawn animation like a fresh spawn.
-func revive() -> void:
-	_dead = false
-	_death_finished = false
-	health = max_health
-	velocity = Vector2.ZERO
-	spawn()
-
-
 ## Play the spawn (materialize) animation, then hand off to idle -- input is frozen and the
 ## hurtbox is off (spawn protection) until it finishes, so it always plays all the way out.
-## Used both on the initial spawn (character_switcher) and every respawn (revive). A
+## Used on the initial spawn and every run restart (RunManager -> begin_run). A
 ## character with no `spawn` sheet just drops straight to idle.
 func spawn() -> void:
 	velocity = Vector2.ZERO
@@ -582,12 +650,6 @@ func spawn() -> void:
 func set_character(id: String) -> void:
 	if id in CharacterConfig.IDS:
 		character = id
-
-
-## Step to the next/previous character in the roster, wrapping around.
-func cycle_character(step: int = 1) -> void:
-	var i := CharacterConfig.IDS.find(character)
-	set_character(CharacterConfig.IDS[wrapi(i + step, 0, CharacterConfig.IDS.size())])
 
 
 func _physics_process(delta: float) -> void:
@@ -1189,7 +1251,7 @@ func _loop_meta(key: StringName) -> int:
 func _on_animation_finished() -> void:
 	# Death played out: HIDE the sprite (the death particle just fired on this last frame,
 	# so the character vanishes into the poof rather than the dead frame sitting there),
-	# and tell the level it can respawn. revive()/_enter restores visibility.
+	# and tell the level it can respawn. begin_run()/_enter restores visibility.
 	if _state == State.DEATH:
 		_sprite.visible = false
 		_death_finished = true

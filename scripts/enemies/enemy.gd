@@ -18,6 +18,10 @@ extends Combatant
 
 const FRAMES_PATH := "res://resources/enemies/%s.tres"
 
+## Emitted once when this enemy dies, carrying the lahm it pays out (its HP value). The run
+## manager awards it to the player and counts the kill toward clearing the wave.
+signal died(lahm_value: float)
+
 @export var enemy_id: String = "kebus"
 @export var display_name: String = "Kebus"
 
@@ -702,6 +706,7 @@ func _on_hurt(hit: Hit) -> void:
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
 	_set_state(State.DEAD)  # _physics_process bails on DEAD, so the AI stops here
+	died.emit(max_health)  # pay out lahm = this enemy's HP value + count the kill (run manager)
 	remove_from_group("enemies")  # stop being a homing target NOW -- the death anim/fade below
 	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse
 	_hurtbox.set_deferred("monitorable", false)

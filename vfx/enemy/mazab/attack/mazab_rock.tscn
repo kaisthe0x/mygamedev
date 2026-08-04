@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://dmazabrock2026"]
 
 ; Mazab's thrown bomb -- the steel-blue clod he hurls (sampled from the object in his
-; attack_projectile sheet). Used as Mazab's `ranged_particle` in configs/level_config.gd;
+; attack_projectile sheet). Mazab's "projectile" scene in EmittersEnemies (vfx/config/emitters_enemies.gd);
 ; LobProjectile instances it as the flying object's look and spins it as it tumbles.
 ; A soft glowing Core (the rock body) plus a short dust trail (local_coords=false, so it
 ; streaks behind the arc). No hitbox -- a lob only hurts on its explosion (mazab_explosion).
