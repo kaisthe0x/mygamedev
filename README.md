@@ -251,10 +251,12 @@ with wind-up / in-between frames between the hits:
 
 | Character | Animation | `HIT_FRAMES` (sheet indices) |
 |---|---|---|
-| feyke | `attack_ring_kiss` | `[3]` — single-burst "kiss" shot |
+| feyke | `attack_slam_n_smoke` | `[3, 5, 7]` — ground burst, punch+smoke, bigger punch (his default) |
+| feyke | `attack_ring_kiss` | `[2]` — single-burst "kiss" shot (Elite swap) |
 | feyke | `special_f_you` | `[2]` |
 | katalyst | `attack_rope_dart_dance` | `[2, 6, 10]` — whip-reach, spin-AoE, finisher |
 | katalyst | `special_double_pierce` | `[3]` |
+| wayna | `attack_chainsaw` / `attack_bburn` / `attack_shotgun` | `all` / `[2]` / `[3]` — shred / lob / blast |
 | lenbondosen | `attack_finger_guns` | `[2, 4, 7]` — three shots |
 | lenbondosen | `special_mouth_blast` | `[3, 6, 9]` |
 | lenbondosen | `special_poison_raiser` | `[4]` |
@@ -438,8 +440,9 @@ next hit animate, then the sprite holds the hit frame for a short
 no entry treats every frame as a hit, so each click advances one frame.
 Lenbondosen and katalyst have authored multi-hit combos (three hits with smooth
 wind-up/in-between frames — katalyst's are whip-reach / spin-AoE / finisher);
-Wayna's `chainsaw` is a 3-hit combo too. Feyke's `ring_kiss` is a single-hit shot
-(one burst).
+Wayna's `chainsaw` and Feyke's default `slam_n_smoke` (ground burst → punch → bigger
+punch, smoke growing across the combo) are 3-hit combos too. Feyke's `ring_kiss` is a
+single-hit shot (one burst), now an Elite swap.
 
 **Attack styles (`Move.style`).** Most attacks are `"combo"` (the click-per-segment
 swing above). Khalid's `ora_ora` is a `"flurry"`: **hold** the attack button and the

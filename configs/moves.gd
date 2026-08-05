@@ -64,6 +64,9 @@ const CATALOG := {
 			# LobProjectile -- like Mazab's bomb, fed this damage; the director aims + launches it).
 			"bburn": {"animation": "attack_bburn", "effect": "attack_bburn", "kind": Combat.AttackKind.PROJECTILE,
 				"tier": "elite", "tuning": {"damage": 32, "knockback": 130, "stun": 0.3}},
+			# Shotgun: a BROKEN point-blank blast -- a wide forward Strike, one huge hit.
+			"shotgun": {"animation": "attack_shotgun", "effect": "attack_shotgun", "kind": Combat.AttackKind.BLAST,
+				"tier": "broken", "tuning": {"damage": 75, "knockback": 200, "stun": 0.3}},
 		},
 		# A burning field: 10 damage every 0.25s to whoever stands in the semi-circle while
 		# it emits (~2s). No per-tick knockback -- it's a burn, not a fling.
@@ -72,12 +75,21 @@ const CATALOG := {
 		"default_attack": "chainsaw", "default_special": "inferno",
 	},
 	"feyke": {
-		# Ring kiss: a homing "kiss" Projectile (attack_ring_kiss.tscn); f_you: a close blast.
-		"attacks": {"ring_kiss": {"animation": "attack_ring_kiss", "effect": "attack_ring_kiss", "kind": Combat.AttackKind.PROJECTILE,
-			"tuning": {"damage": 14, "knockback": 60}}},
+		# Slam & smoke: his DEFAULT 3-hit smoke combo (attack_slam_n_smoke.tscn) -- ground burst,
+		# punch + smoke, bigger punch + more smoke (hits on frames 3/5/7; each segment's damage
+		# feeds that hit's box). Ring kiss: a homing "kiss" Projectile, now an ELITE swap.
+		"attacks": {
+			"slam_n_smoke": {"animation": "attack_slam_n_smoke", "effect": "attack_slam_n_smoke", "kind": Combat.AttackKind.MELEE, "tuning": [
+				{"damage": 12},  # ground burst
+				{"damage": 14},  # punch + smoke
+				{"damage": 45},  # bigger punch + more smoke
+			]},
+			"ring_kiss": {"animation": "attack_ring_kiss", "effect": "attack_ring_kiss", "kind": Combat.AttackKind.PROJECTILE,
+				"tier": "elite", "tuning": {"damage": 14, "knockback": 60}},
+		},
 		"specials": {"f_you": {"animation": "special_f_you", "kind": Combat.AttackKind.BLAST, "tier": "elite",
 			"tuning": {"damage": 38, "knockback": 150}}},  # shape authored in special_f_you.tscn
-		"default_attack": "ring_kiss", "default_special": "f_you",
+		"default_attack": "slam_n_smoke", "default_special": "f_you",
 	},
 	"lenbondosen": {
 		"attacks": {

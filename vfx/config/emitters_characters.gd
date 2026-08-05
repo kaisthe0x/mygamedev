@@ -22,6 +22,7 @@ const TABLE := {
 		"double_jump": [{"scene": preload("res://vfx/character/wayna/jump/default/jump_default.tscn"), "mode": "burst", "pos": Vector2(0, -3)}],
 		"attack_chainsaw": [{"scene": preload("res://vfx/character/wayna/attack/chainsaw/attack_chainsaw.tscn"), "mode": "burst", "frames": "all", "pos": Vector2(0, -18)}],
 		"attack_bburn": [{"scene": preload("res://vfx/character/wayna/attack/bburn/attack_bburn.tscn"), "mode": "burst", "frames": [2], "pos": Vector2(14, -22)}],  # throw frame; missile launches from the hand
+		"attack_shotgun": [{"scene": preload("res://vfx/character/wayna/attack/shotgun/attack_shotgun.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(6, 0)}],  # point-blank blast on the muzzle-flash frame
 		"special_inferno": [{"scene": preload("res://vfx/character/wayna/special/inferno/special_inferno.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(0, 0)}],
 		"slam": [
 			{"scene": preload("res://vfx/character/wayna/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},
@@ -77,6 +78,13 @@ const TABLE := {
 		"dash": [{"scene": preload("res://vfx/character/feyke/dash/default/dash_default.tscn"), "mode": "sustained", "frames": "all", "pos": Vector2(0, -3)}],
 		"double_jump": [{"scene": preload("res://vfx/character/feyke/jump/default/jump_default.tscn"), "mode": "burst", "pos": Vector2(0, -3)}],
 		"attack_ring_kiss": [{"scene": preload("res://vfx/character/feyke/attack/ring_kiss/attack_ring_kiss.tscn"), "mode": "burst", "frames": [2], "pos": Vector2(16, -26)}],
+		# Slam & smoke: one DISTINCT hit-node per frame (the scene holds all three; each row fires one
+		# by name). Ground burst low/close, punch smoke forward, a big radial blast on the finisher.
+		"attack_slam_n_smoke": [
+			{"scene": preload("res://vfx/character/feyke/attack/slam_n_smoke/attack_slam_n_smoke.tscn"), "node": "GroundBurst", "mode": "burst", "frames": [3], "pos": Vector2(14, -4)},
+			{"scene": preload("res://vfx/character/feyke/attack/slam_n_smoke/attack_slam_n_smoke.tscn"), "node": "PunchSmoke", "mode": "burst", "frames": [5], "pos": Vector2(16, -14)},
+			{"scene": preload("res://vfx/character/feyke/attack/slam_n_smoke/attack_slam_n_smoke.tscn"), "node": "BigFinisher", "mode": "burst", "frames": [7], "pos": Vector2(18, -14)},
+		],
 		"special_f_you": [{"scene": preload("res://vfx/character/feyke/special/f_you/special_f_you.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(0, 0), "clip_to_ground": true}],
 		"slam": [
 			{"scene": preload("res://vfx/character/feyke/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},

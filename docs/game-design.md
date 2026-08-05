@@ -117,8 +117,9 @@ you can ever reach a toll — a weak build can't, and slowly dies. That's the fa
 - **[BUILT] Loadout swaps + tiers.** Every attack/special/movement has a **tier** —
   **Typical → Elite → Broken** ([`loadout.gd`](../configs/loadout.gd)). Characters start on their
   **Typical** defaults; when a category has more than one option, a gate can offer a **swap card**
-  (tier-badged) to trade up — e.g. Wayna's Elite **Bburn** attack, Lenny's Elite **Mouth Blast**
-  special. The swap system spans movements too (dash/run/jump/slam), which currently have only their
+  (tier-badged) to trade up — e.g. Wayna's Elite **Bburn** and Broken **Shotgun** attacks, Feyke's
+  Elite **Ring Kiss** (his default is now the Typical **Slam & Smoke** combo), Lenny's Elite
+  **Mouth Blast** special. The swap system spans movements too (dash/run/jump/slam), which currently have only their
   Typical baseline — add an `Elite`/`Broken` variant in `loadout.gd` (`MOVEMENT_EXTRAS`) or `moves.gd`
   and it's instantly offerable. Loadout resets to defaults on death (`begin_run`).
 - **[CONFIRMED] Death = permadeath.** The whole run ends; you start over from scratch

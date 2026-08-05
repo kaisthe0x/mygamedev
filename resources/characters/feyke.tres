@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=76 format=3 uid="uid://b5e37kb754rmc"]
+[gd_resource type="SpriteFrames" load_steps=84 format=3 uid="uid://b5e37kb754rmc"]
 
 [ext_resource type="Texture2D" uid="uid://bjis611ggmfsg" path="res://sprites/characters/feyke/feyke_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://cisbf240kbavi" path="res://sprites/characters/feyke/feyke_run_frames.png" id="2_run"]
@@ -10,7 +10,8 @@
 [ext_resource type="Texture2D" uid="uid://dukhl2akmn82s" path="res://sprites/characters/feyke/feyke_death_frames.png" id="8_death"]
 [ext_resource type="Texture2D" uid="uid://du4h8b5kjrqxr" path="res://sprites/characters/feyke/feyke_spawn_frames.png" id="9_spawn"]
 [ext_resource type="Texture2D" uid="uid://rqmpqx2fetrs" path="res://sprites/characters/feyke/feyke_attack_ring_kiss_frames.png" id="10_attack_ring_kiss"]
-[ext_resource type="Texture2D" uid="uid://dlake216y0irl" path="res://sprites/characters/feyke/feyke_special_f_you_frames.png" id="11_special_f_you"]
+[ext_resource type="Texture2D" uid="uid://ciyan80rpxuit" path="res://sprites/characters/feyke/feyke_attack_slam_n_smoke_frames.png" id="11_attack_slam_n_smoke"]
+[ext_resource type="Texture2D" uid="uid://dlake216y0irl" path="res://sprites/characters/feyke/feyke_special_f_you_frames.png" id="12_special_f_you"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -317,26 +318,61 @@ atlas = ExtResource("10_attack_ring_kiss")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
+[sub_resource type="AtlasTexture" id="attack_slam_n_smoke_1"]
+atlas = ExtResource("11_attack_slam_n_smoke")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_slam_n_smoke_2"]
+atlas = ExtResource("11_attack_slam_n_smoke")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_slam_n_smoke_3"]
+atlas = ExtResource("11_attack_slam_n_smoke")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_slam_n_smoke_4"]
+atlas = ExtResource("11_attack_slam_n_smoke")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_slam_n_smoke_5"]
+atlas = ExtResource("11_attack_slam_n_smoke")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_slam_n_smoke_6"]
+atlas = ExtResource("11_attack_slam_n_smoke")
+region = Rect2(768, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_slam_n_smoke_7"]
+atlas = ExtResource("11_attack_slam_n_smoke")
+region = Rect2(896, 0, 128, 80)
+margin = Rect2(1, 0, 2, 0)
+
 [sub_resource type="AtlasTexture" id="special_f_you_1"]
-atlas = ExtResource("11_special_f_you")
+atlas = ExtResource("12_special_f_you")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_f_you_2"]
-atlas = ExtResource("11_special_f_you")
+atlas = ExtResource("12_special_f_you")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_f_you_3"]
-atlas = ExtResource("11_special_f_you")
+atlas = ExtResource("12_special_f_you")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(1, 0, 2, 0)
 
 [resource]
 metadata/loop_from = {"idle": 1, "run": 1}
 metadata/loop_to = {"idle": 4, "run": 4}
-metadata/hit_frames = {"attack_ring_kiss": [1], "special_f_you": [1]}
-metadata/sheet_start = {"idle": 0, "run": 0, "jump": 1, "fall": 1, "land": 1, "slam": 1, "dash": 1, "death": 1, "spawn": 1, "attack_ring_kiss": 1, "special_f_you": 1}
+metadata/hit_frames = {"attack_ring_kiss": [1], "attack_slam_n_smoke": [2, 4, 6], "special_f_you": [1]}
+metadata/sheet_start = {"idle": 0, "run": 0, "jump": 1, "fall": 1, "land": 1, "slam": 1, "dash": 1, "death": 1, "spawn": 1, "attack_ring_kiss": 1, "attack_slam_n_smoke": 1, "special_f_you": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -569,6 +605,32 @@ animations = [{
 }],
 "loop": false,
 "name": &"attack_ring_kiss",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("attack_slam_n_smoke_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_slam_n_smoke_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_slam_n_smoke_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_slam_n_smoke_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_slam_n_smoke_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_slam_n_smoke_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_slam_n_smoke_7")
+}],
+"loop": false,
+"name": &"attack_slam_n_smoke",
 "speed": 12.0
 }, {
 "frames": [{

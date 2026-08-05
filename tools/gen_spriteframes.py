@@ -139,6 +139,7 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
 # click advances one frame -- the old snap feel). Emitted as resource metadata.
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("feyke", "attack_ring_kiss"): [2],
+    ("feyke", "attack_slam_n_smoke"): [3, 5, 7],  # ground burst, punch+smoke, bigger punch+smoke
     ("feyke", "special_f_you"): [2],
     ("khalid", "special_ground_breaker"): [6],
     ("katalyst", "attack_rope_dart_dance"): [2, 6, 10],
@@ -149,6 +150,7 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("lenbondosen", "special_poison_raiser"): [4],
     ("wayna", "attack_chainsaw"): [3, 4, 6],
     ("wayna", "attack_bburn"): [2],  # single throw: the missile releases on the wind-forward frame
+    ("wayna", "attack_shotgun"): [3],  # single blast on the muzzle-flash frame
     ("wayna", "special_inferno"): [3],
     ("kebus", "attack"): [3],
     ("baghel", "attack_projectile"): [6],
