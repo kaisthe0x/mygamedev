@@ -1,0 +1,45 @@
+[gd_scene load_steps=6 format=3 uid="uid://cwaynabburn01"]
+
+; Wayna's bburn missile -- a thrown LobProjectile (root) that arcs to the NEAREST enemy, dwells a
+; beat (dodge window), then erupts into wayna_blast. The director spawns this on the throw frame and
+; sets its target + explosion damage (from moves.gd) -- see ParticleDirector._launch_lob. hostile
+; stays false (a friendly bomb: it hurts enemies, not Wayna). Fiery Core + trail for her palette.
+
+[ext_resource type="Script" uid="uid://g0pjn2s25ywv" path="res://scripts/combat/lob_projectile.gd" id="1_lob"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="3_ember"]
+[ext_resource type="PackedScene" uid="uid://cwaynablast01" path="res://vfx/character/wayna/attack/bburn/wayna_blast.tscn" id="4_blast"]
+
+[sub_resource type="Gradient" id="Grad_trail"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 0.6, 0.1, 0.8, 0.85, 0.04, 0.11, 0)
+
+[node name="AttackBburn" type="Node2D"]
+script = ExtResource("1_lob")
+arc_time = 0.7
+dwell_time = 0.65
+explosion_extents = Vector2(46, 26)
+explosion_effect = ExtResource("4_blast")
+
+[node name="Trail" type="CPUParticles2D" parent="."]
+texture_filter = 1
+texture = ExtResource("3_ember")
+emitting = true
+amount = 20
+lifetime = 0.35
+local_coords = false
+emission_shape = 1
+emission_sphere_radius = 2.5
+spread = 30.0
+gravity = Vector2(0, 60)
+initial_velocity_min = 4.0
+initial_velocity_max = 20.0
+scale_amount_min = 0.4
+scale_amount_max = 0.8
+color_ramp = SubResource("Grad_trail")
+
+[node name="Core" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("2_dot")
+scale = Vector2(0.42, 0.36)
+self_modulate = Color(1.28, 0.06, 0.17, 1)

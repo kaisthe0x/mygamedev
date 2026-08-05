@@ -297,7 +297,7 @@ func _offer_reward() -> void:
 	var ui := RewardUI.new()
 	add_child(ui)
 	ui.chosen.connect(_on_reward_chosen)
-	ui.open(Rewards.offer(REWARDS_OFFERED))
+	ui.open(Rewards.offer(REWARDS_OFFERED, _player))
 
 
 func _on_reward_chosen(id: String) -> void:

@@ -39,8 +39,6 @@ scale_amount_curve = SubResource("Curve_uashs")
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_sebo5")
-damage = 50.0
-knockback = 150.0
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=795428265]
 position = Vector2(-2, -20.5)

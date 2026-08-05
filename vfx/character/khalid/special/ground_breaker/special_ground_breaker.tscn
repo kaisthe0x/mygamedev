@@ -60,9 +60,6 @@ color_ramp = SubResource("Grad_debris")
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("4_hitbox")
-damage = 50.0
-knockback = 200.0
-stun = 0.2
 status_color = Color(0.8235294, 0.7490196, 0.078431375, 1)
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=884210005]

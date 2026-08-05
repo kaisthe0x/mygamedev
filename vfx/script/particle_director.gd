@@ -353,6 +353,11 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	if node == null:
 		return
 	_apply_overrides(node, b.get("set", {}))
+	# A LobProjectile-rooted effect (Wayna's bburn) is thrown, not stamped: it arcs to the nearest
+	# enemy and manages its own explosion. Launch it and bail out of the normal burst flow.
+	if node is LobProjectile:
+		_launch_lob(node as LobProjectile, b, m)
+		return
 	var emitters := _emitters_of(node)
 	_face(node, _capture(node), b.pos, m)
 	# Optional lean: rotate the whole burst so its emission tilts (e.g. the double-jump
@@ -398,6 +403,44 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	# life; everything else is freed once its one-shot emitters finish and particles die.
 	if not (node is Projectile) and not (node is Strike):
 		_free_when_done(node, emitters)
+
+
+## Throw a player LobProjectile: aim it at the nearest enemy (a short forward toss if none),
+## feed its blast the move's damage (from moves.gd, like every other hitbox), and let it fly. The
+## bomb self-manages arc -> dwell -> explode; hostile stays false so it hurts enemies, not us.
+func _launch_lob(lob: LobProjectile, b: Dictionary, m: float) -> void:
+	var atk := _attacker()
+	lob.source = atk
+	if atk != null and atk.has_method("active_hit"):
+		var hit: Dictionary = atk.active_hit()
+		if hit.has("damage"):
+			lob.explosion_damage = hit["damage"]
+		if hit.has("knockback"):
+			lob.explosion_knockback = hit["knockback"]
+		if hit.has("stun"):
+			lob.explosion_stun = hit["stun"]
+	var muzzle := global_position + Vector2(b.pos.x * m, b.pos.y)
+	lob.target = _nearest_enemy_pos(muzzle, m)
+	var world := _world()
+	if world != null:
+		world.add_child(lob)
+	else:
+		add_child(lob)
+	Nodes.place_at(lob, muzzle)  # snap to the throwing point; _launch solves the arc next tick
+
+
+## World position of the nearest enemy to `from`, or a short toss ahead (facing `m`) if there are
+## none -- so bburn always goes somewhere sensible.
+func _nearest_enemy_pos(from: Vector2, m: float) -> Vector2:
+	var best := Vector2.INF
+	var best_d := INF
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e is Node2D:
+			var d := from.distance_squared_to((e as Node2D).global_position)
+			if d < best_d:
+				best_d = d
+				best = (e as Node2D).global_position
+	return best if best != Vector2.INF else from + Vector2(120.0 * m, 20.0)
 
 
 ## The left/right world x of the surface directly under `world_pos` -- a ray down

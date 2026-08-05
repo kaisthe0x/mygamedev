@@ -67,6 +67,9 @@ const BASE_LAHM_CAP := 500.0
 const BASE_MAX_HEALTH := 100.0
 const BASE_AIR_JUMPS := 2
 var damage_mult: float = 1.0
+## Run-speed multiplier from rewards (Fleetfoot), applied OVER the equipped run option's base so a
+## loadout swap doesn't wipe the buff. Reset by begin_run().
+var run_mult: float = 1.0
 
 
 ## Start a BRAND-NEW run: clear every run-reward buff back to base, re-apply the character's base
@@ -76,10 +79,12 @@ func begin_run() -> void:
 	_dead = false
 	_death_finished = false
 	damage_mult = 1.0
+	run_mult = 1.0
 	lahm_cap = BASE_LAHM_CAP
 	max_air_jumps = BASE_AIR_JUMPS
 	max_health = BASE_MAX_HEALTH
-	_apply_character()  # re-applies run_speed / jump / dash / blink from CharacterConfig
+	_loadout.clear()  # back to the character's default (Typical) moves + movement
+	_apply_character()  # re-applies moves + run/jump/dash/slam from the (now default) loadout
 	health = max_health
 	lahm = 0.0
 	velocity = Vector2.ZERO
@@ -183,6 +188,10 @@ var _facing: int = 1
 ## future UI hook). Seeded to the character's defaults on every character change.
 var _current_attack: Move
 var _current_special: Move
+## The equipped loadout: {category -> option_id} for attack/special/run/jump/dash/slam. Empty =
+## every category on its default (Typical). Rewards call equip() to swap one; begin_run() clears
+## it back to defaults. See configs/loadout.gd.
+var _loadout: Dictionary = {}
 ## The resolved per-hit tuning of the attack/special currently swinging -- damage,
 ## knockback, stun, reach, and the lunge / super-armor / multi-hit knobs. Set at
 ## segment/special start via resolve_tuning() (the buff seam), and read by the
@@ -300,16 +309,9 @@ func _apply_character() -> void:
 		push_warning("No SpriteFrames for character '%s' at %s" % [character, path])
 		return
 	sprite.sprite_frames = load(path)
-	# Seed this character's default attack + special from the Moves catalog (they
-	# drive which animation ATTACK/SPECIAL play and its hit tuning).
-	_current_attack = Moves.get_move(character, "attacks")
-	_current_special = Moves.get_move(character, "specials")
-	# Per-character movement feel (Katalyst runs a touch faster, jumps a touch higher,
-	# dashes a touch faster, etc.).
-	run_speed = CharacterConfig.run_speed(character)
-	jump_velocity = CharacterConfig.jump_velocity(character)
-	dash_speed = CharacterConfig.dash_speed(character)
-	_blink_dash = CharacterConfig.blink_dash(character)  # teleport-dash on/off per character
+	# Seed the attack/special + movement stats from the current LOADOUT (defaults until a
+	# reward swaps one in). This is the per-character feel + which moves are equipped.
+	_apply_loadout()
 	# The generator's canvas size changes whenever the art does, so derive the
 	# offset from the frames rather than baking it into the scene.
 	anchor_to_feet(sprite)
@@ -331,6 +333,53 @@ func _apply_character() -> void:
 	if _particles != null: # null during the initial _ready pass; set up just after
 		_particles.set_character(character)
 	character_changed.emit(character)
+
+
+# --- loadout (equipped moves + movement options) ----------------------------
+
+## Seed the current attack/special + movement stats from `_loadout` (defaults where unset). Called
+## on character change and after every equip(). Movement stats mirror the old per-character seeding
+## when the loadout is empty, so nothing changes until a reward swaps something.
+func _apply_loadout() -> void:
+	_current_attack = Moves.get_move(character, "attacks", _loadout.get("attack", ""))
+	_current_special = Moves.get_move(character, "specials", _loadout.get("special", ""))
+	for cat in Loadout.MOVEMENT_CATS:
+		_apply_movement(cat, _loadout.get(cat, "default"))
+
+
+## Apply one movement option's stats. Missing stats leave the current value (so a slam option with
+## no `speed` keeps the export default).
+func _apply_movement(category: String, option_id: String) -> void:
+	var o := Loadout.option(character, category, option_id)
+	match category:
+		"run":
+			if o.has("speed"): run_speed = o["speed"] * run_mult  # buff survives a swap
+		"jump":
+			if o.has("velocity"): jump_velocity = o["velocity"]
+		"dash":
+			if o.has("speed"): dash_speed = o["speed"]
+			if o.has("blink"): _blink_dash = o["blink"]
+		"slam":
+			if o.has("speed"): slam_speed = o["speed"]
+
+
+## Equip a loadout option in `category` (a reward swap). Re-seeds without a full character reset.
+func equip(category: String, option_id: String) -> void:
+	_loadout[category] = option_id
+	_apply_loadout()
+	if category == "attack" or category == "special":
+		character_changed.emit(character)  # nudge the HUD stats to redraw the new move/tier
+
+
+## The equipped option id in a category (default when unset), for the HUD / rewards.
+func loadout_id(category: String) -> String:
+	return _loadout.get(category, Loadout.default_id(character, category))
+
+
+## Swap options this character could be offered right now ([{category, option}]) -- categories with
+## more than one option, minus what's already equipped. Rewards builds swap cards from this.
+func loadout_choices() -> Array:
+	return Loadout.swap_choices(character, _loadout)
 
 
 ## Swap in the ability script named after this character, if one exists.

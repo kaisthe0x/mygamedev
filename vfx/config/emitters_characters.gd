@@ -20,7 +20,8 @@ const TABLE := {
 		"fall": [{"scene": preload("res://vfx/character/wayna/other/general_wind_streaks.tscn"), "mode": "sustained", "frames": "all", "pos": Vector2(0, 0)}],
 		"dash": [{"scene": preload("res://vfx/character/wayna/dash/default/dash_default.tscn"), "mode": "sustained", "frames": "all", "pos": Vector2(-12, -5)}],
 		"double_jump": [{"scene": preload("res://vfx/character/wayna/jump/default/jump_default.tscn"), "mode": "burst", "pos": Vector2(0, -3)}],
-		"attack_chainsaw": [{"scene": preload("res://vfx/character/wayna/attack/chainsaw/attack_chainsaw.tscn"), "mode": "burst", "frames": [3, 4], "pos": Vector2(3, -18)}],
+		"attack_chainsaw": [{"scene": preload("res://vfx/character/wayna/attack/chainsaw/attack_chainsaw.tscn"), "mode": "burst", "frames": "all", "pos": Vector2(0, -18)}],
+		"attack_bburn": [{"scene": preload("res://vfx/character/wayna/attack/bburn/attack_bburn.tscn"), "mode": "burst", "frames": [2], "pos": Vector2(14, -22)}],  # throw frame; missile launches from the hand
 		"special_inferno": [{"scene": preload("res://vfx/character/wayna/special/inferno/special_inferno.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(0, 0)}],
 		"slam": [
 			{"scene": preload("res://vfx/character/wayna/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},

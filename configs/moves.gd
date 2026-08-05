@@ -1,9 +1,10 @@
 class_name Moves
 extends RefCounted
 
-## The move catalog: every character's attacks + specials, and which of each is the
-## DEFAULT (until an in-game UI lets the player switch). The Player seeds its current
-## attack/special from these defaults on character change -- see Player.set_move().
+## The move catalog: every character's attacks + specials, each with a `tier`
+## (typical/elite/broken), and which of each is the DEFAULT. The Player seeds its current
+## attack/special from the equipped loadout (defaults until a gate SWAP reward trades one in --
+## see configs/loadout.gd + scripts/run/rewards.gd). Tag a move `"tier": "elite"` to rank it.
 ##
 ## === TO CHANGE A CHARACTER'S DEFAULT ATTACK / SPECIAL, edit `default_attack` /
 ## `default_special` in that character's entry below. ===
@@ -33,7 +34,7 @@ const CATALOG := {
 		# Ground breaker: an overhead slam that cracks the ground -- a GROUND-type Strike
 		# (special_ground_breaker.tscn) whose hitbox SHAPE is authored in the scene (no
 		# extents/x here), fed these numbers at spawn. His attack has no effect scene yet.
-		"specials": {"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND,
+		"specials": {"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND, "tier": "elite",
 			"tuning": {"damage": 40, "knockback": 160, "stun": 0.2}}},
 		"default_attack": "ora_ora", "default_special": "ground_breaker",
 	},
@@ -45,7 +46,7 @@ const CATALOG := {
 		]}},
 		# Numbers here; the hitbox SHAPE/position is authored in special_double_pierce.tscn
 		# (no extents/x, so the director doesn't override the scene box).
-		"specials": {"double_pierce": {"animation": "special_double_pierce", "kind": Combat.AttackKind.GROUND, "tuning":
+		"specials": {"double_pierce": {"animation": "special_double_pierce", "kind": Combat.AttackKind.GROUND, "tier": "elite", "tuning":
 			{"damage": 44, "knockback": 160, "stun": 0.18}}},
 		"default_attack": "rope_dart_dance", "default_special": "double_pierce",
 	},
@@ -53,8 +54,17 @@ const CATALOG := {
 		# Chainsaw: a forward energy-slash Strike (attack_chainsaw.tscn). Inferno: flames
 		# erupt around her (special_inferno.tscn, a fire-burst Strike). Both Hitboxes are
 		# fed these numbers at spawn; their shapes are authored in the scenes.
-		"attacks": {"chainsaw": {"animation": "attack_chainsaw", "effect": "attack_chainsaw", "kind": Combat.AttackKind.MELEE,
-			"tuning": {"damage": 25, "stun": 2.0, "color": Color(0.9068, 0, 0, 0.759)}}},
+		# MULTI-HIT: the effect fires on "frames": all (6 frames) for the continuous chainsaw look,
+		# so a full swing lands ~6 hits -> total ~= damage * 6. Keep per-hit small. (Fire on fewer
+		# frames in emitters_characters.gd if you want fewer, chunkier hits instead.)
+		"attacks": {
+			"chainsaw": {"animation": "attack_chainsaw", "effect": "attack_chainsaw", "kind": Combat.AttackKind.MELEE,
+				"tuning": {"damage": 7, "stun": 2.0, "color": Color(0.9068, 0, 0, 0.759)}},
+			# Bburn: a lobbed missile that arcs to the nearest enemy, dwells, then erupts (a player
+			# LobProjectile -- like Mazab's bomb, fed this damage; the director aims + launches it).
+			"bburn": {"animation": "attack_bburn", "effect": "attack_bburn", "kind": Combat.AttackKind.PROJECTILE,
+				"tier": "elite", "tuning": {"damage": 32, "knockback": 130, "stun": 0.3}},
+		},
 		# A burning field: 10 damage every 0.25s to whoever stands in the semi-circle while
 		# it emits (~2s). No per-tick knockback -- it's a burn, not a fling.
 		"specials": {"inferno": {"animation": "special_inferno", "effect": "special_inferno", "kind": Combat.AttackKind.BLAST,
@@ -65,7 +75,7 @@ const CATALOG := {
 		# Ring kiss: a homing "kiss" Projectile (attack_ring_kiss.tscn); f_you: a close blast.
 		"attacks": {"ring_kiss": {"animation": "attack_ring_kiss", "effect": "attack_ring_kiss", "kind": Combat.AttackKind.PROJECTILE,
 			"tuning": {"damage": 14, "knockback": 60}}},
-		"specials": {"f_you": {"animation": "special_f_you", "kind": Combat.AttackKind.BLAST,
+		"specials": {"f_you": {"animation": "special_f_you", "kind": Combat.AttackKind.BLAST, "tier": "elite",
 			"tuning": {"damage": 38, "knockback": 150}}},  # shape authored in special_f_you.tscn
 		"default_attack": "ring_kiss", "default_special": "f_you",
 	},
@@ -82,7 +92,7 @@ const CATALOG := {
 			# Shapes authored in the scenes; only numbers here.
 			"poison_raiser": {"animation": "special_poison_raiser", "effect": "special_poison_raiser", "kind": Combat.AttackKind.GROUND,
 				"tuning": {"damage": 30, "knockback": 150}},
-			"mouth_blast": {"animation": "special_mouth_blast", "effect": "special_mouth_blast", "kind": Combat.AttackKind.BLAST,
+			"mouth_blast": {"animation": "special_mouth_blast", "effect": "special_mouth_blast", "kind": Combat.AttackKind.BLAST, "tier": "elite",
 				"tuning": {"damage": 20}},
 		},
 		"default_attack": "finger_guns", # <- Lenny's default attack
@@ -110,6 +120,6 @@ static func get_move(character: String, kind: String, id := "") -> Move:
 	return Move.make("attack" if kind == "attacks" else "special", id, pool[id])
 
 
-## Ids of a character's available attacks / specials (for a future switch UI).
+## Ids of a character's available attacks / specials (Loadout builds swap options from these).
 static func ids(character: String, kind: String) -> Array:
 	return _entry(character).get(kind, {}).keys()

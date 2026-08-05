@@ -69,8 +69,10 @@ into low, mostly-horizontal **arena levels** that spawn enemies to overwhelm you
 harvests **lahm** — a currency shown in blocks (50 each) that **rots at 15/sec**, so you farm in
 bursts and can't camp. **HP is separate**: damage hits it only, and it heals *only* from rewards.
 Each level's **exit gate** costs a number of lahm blocks to pass (HP untouched); clear the arena and
-the next escalating wave refills, so a level ends only when you pay the exit and pick a reward. Take
-0 HP and the whole run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
+the next escalating wave refills, so a level ends only when you pay the exit and pick a reward —
+a stat buff, **or a loadout swap**: every attack/special/movement has a tier (**Typical → Elite →
+Broken**), and where a character has more than one option a gate can offer trading up (e.g. Wayna's
+Elite Bburn attack). See [`configs/loadout.gd`](configs/loadout.gd). Take 0 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
 loop — lives in one folder, [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s
 root; `Levels` / `EnemyKits` / `Rewards` are the data). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset

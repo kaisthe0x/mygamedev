@@ -291,7 +291,7 @@ func _move_line(label: String, m: Move) -> String:
 	if m == null:
 		return "%s: none" % label
 	var kind_name: String = Combat.AttackKind.keys()[m.attack_kind]
-	return "%s: %s [%s]  dmg %s" % [label, m.id, kind_name, _dmg(m)]
+	return "%s: %s [%s] %s  dmg %s" % [label, m.id, kind_name, Loadout.tier_label(m.tier), _dmg(m)]
 
 
 func _dmg(m: Move) -> String:

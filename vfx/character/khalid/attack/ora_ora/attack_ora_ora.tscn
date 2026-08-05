@@ -42,8 +42,6 @@ visible = false
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("3_hitbox")
-damage = 5.0
-knockback = 20.0
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=640990004]
 position = Vector2(4, 0)

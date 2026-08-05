@@ -41,7 +41,6 @@ scale = Vector2(0.9061724, -10.751774)
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_hitbox")
-damage = 25.0
 stun = 4.0
 status_color = Color(0.15170373, 0.8350781, 0.47079715, 0.711)
 

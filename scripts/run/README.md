@@ -13,7 +13,7 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 | `run_manager.gd` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, **awards lahm per point of damage dealt**, runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
 | `levels.gd` (`Levels`) | **The 5 levels, as data** — per level: look (`bg`), `platforms`, `player_spawn`, `exit_pos`, `exit_cost`, `start` enemies, and escalating `waves`. Edit here to change *what a level is*. |
 | `enemies.gd` (`EnemyKits`) | **The enemy roster** — one named kit per type (combat tuning + which scene), plus a `Tier` for wave-building. Levels reference these by name. Edit here to change *who* the enemies are. |
-| `rewards.gd` (`Rewards`) | **The reward pool** — `pool()` (id/name/desc) + `apply(id, player)` (the effect). Add a row + a case to add a reward. |
+| `rewards.gd` (`Rewards`) | **The reward pool** — stat rewards (`pool()` + `apply()`) **plus loadout-swap cards** generated from the character's `Loadout`: whenever a category (attack/special/movement) has >1 option, an "equip this (Tier)" card is offered (id `swap:<cat>:<opt>`). Tiers: Typical/Elite/Broken. |
 | `exit_gate.gd` (`ExitGate`) | The exit door (an `Area2D`): detects the player, shows/greens/reds by affordability, reports `touched`. RunManager owns the decision. |
 | `reward_ui.gd` (`RewardUI`) | The pick-a-reward popup (pauses the game, emits `chosen(id)`). |
 

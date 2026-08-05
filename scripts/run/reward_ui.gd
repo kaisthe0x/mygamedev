@@ -51,6 +51,24 @@ func open(rewards: Array) -> void:
 		var id: String = r["id"]
 		card.pressed.connect(func() -> void: _pick(id))
 		row.add_child(card)
+		# Loadout-swap cards carry a tier -- badge it + tint the border so Elite/Broken read at a glance.
+		if r.has("tier"):
+			var tcol: Color = Loadout.tier_color(r["tier"])
+			var badge := Label.new()
+			badge.text = Loadout.tier_label(r["tier"]).to_upper()
+			badge.add_theme_font_size_override("font_size", 12)
+			badge.add_theme_color_override("font_color", tcol)
+			badge.add_theme_color_override("font_outline_color", Color.BLACK)
+			badge.add_theme_constant_override("outline_size", 3)
+			badge.position = Vector2(8, 6)
+			card.add_child(badge)
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color(0.12, 0.12, 0.15, 0.96)
+			sb.set_border_width_all(2)
+			sb.border_color = tcol
+			sb.set_corner_radius_all(4)
+			card.add_theme_stylebox_override("normal", sb)
+			card.add_theme_stylebox_override("hover", sb)
 		if first == null:
 			first = card
 	if first != null:

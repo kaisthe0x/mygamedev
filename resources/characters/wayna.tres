@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=65 format=3 uid="uid://du4ye4nv8j3eq"]
+[gd_resource type="SpriteFrames" load_steps=69 format=3 uid="uid://du4ye4nv8j3eq"]
 
 [ext_resource type="Texture2D" uid="uid://bjfw5m0gbmffy" path="res://sprites/characters/wayna/wayna_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://kj61gbuxq3yb" path="res://sprites/characters/wayna/wayna_run_frames.png" id="2_run"]
@@ -9,8 +9,9 @@
 [ext_resource type="Texture2D" uid="uid://bbnouerbhixl0" path="res://sprites/characters/wayna/wayna_dash_frames.png" id="7_dash"]
 [ext_resource type="Texture2D" uid="uid://blcdpf3lsc68e" path="res://sprites/characters/wayna/wayna_death_frames.png" id="8_death"]
 [ext_resource type="Texture2D" uid="uid://dn6ulv6f0cand" path="res://sprites/characters/wayna/wayna_spawn_frames.png" id="9_spawn"]
-[ext_resource type="Texture2D" uid="uid://ca0xgmghuyqa2" path="res://sprites/characters/wayna/wayna_attack_chainsaw_frames.png" id="10_attack_chainsaw"]
-[ext_resource type="Texture2D" uid="uid://bhtdw2aet4jvg" path="res://sprites/characters/wayna/wayna_special_inferno_frames.png" id="11_special_inferno"]
+[ext_resource type="Texture2D" uid="uid://cqokdc0pqqmtg" path="res://sprites/characters/wayna/wayna_attack_bburn_frames.png" id="10_attack_bburn"]
+[ext_resource type="Texture2D" uid="uid://ca0xgmghuyqa2" path="res://sprites/characters/wayna/wayna_attack_chainsaw_frames.png" id="11_attack_chainsaw"]
+[ext_resource type="Texture2D" uid="uid://bhtdw2aet4jvg" path="res://sprites/characters/wayna/wayna_special_inferno_frames.png" id="12_special_inferno"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -227,59 +228,74 @@ atlas = ExtResource("9_spawn")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
+[sub_resource type="AtlasTexture" id="attack_bburn_1"]
+atlas = ExtResource("10_attack_bburn")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_bburn_2"]
+atlas = ExtResource("10_attack_bburn")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="attack_bburn_3"]
+atlas = ExtResource("10_attack_bburn")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(0, 0, 2, 0)
+
 [sub_resource type="AtlasTexture" id="attack_chainsaw_1"]
-atlas = ExtResource("10_attack_chainsaw")
+atlas = ExtResource("11_attack_chainsaw")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_chainsaw_2"]
-atlas = ExtResource("10_attack_chainsaw")
+atlas = ExtResource("11_attack_chainsaw")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_chainsaw_3"]
-atlas = ExtResource("10_attack_chainsaw")
+atlas = ExtResource("11_attack_chainsaw")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_chainsaw_4"]
-atlas = ExtResource("10_attack_chainsaw")
+atlas = ExtResource("11_attack_chainsaw")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_chainsaw_5"]
-atlas = ExtResource("10_attack_chainsaw")
+atlas = ExtResource("11_attack_chainsaw")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="attack_chainsaw_6"]
-atlas = ExtResource("10_attack_chainsaw")
+atlas = ExtResource("11_attack_chainsaw")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_inferno_1"]
-atlas = ExtResource("11_special_inferno")
+atlas = ExtResource("12_special_inferno")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_inferno_2"]
-atlas = ExtResource("11_special_inferno")
+atlas = ExtResource("12_special_inferno")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_inferno_3"]
-atlas = ExtResource("11_special_inferno")
+atlas = ExtResource("12_special_inferno")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [sub_resource type="AtlasTexture" id="special_inferno_4"]
-atlas = ExtResource("11_special_inferno")
+atlas = ExtResource("12_special_inferno")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(0, 0, 2, 0)
 
 [resource]
-metadata/hit_frames = {"attack_chainsaw": [2, 3, 5], "special_inferno": [2]}
-metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "fall": 1, "land": 1, "slam": 1, "dash": 1, "death": 1, "spawn": 1, "attack_chainsaw": 1, "special_inferno": 1}
+metadata/hit_frames = {"attack_bburn": [1], "attack_chainsaw": [2, 3, 5], "special_inferno": [2]}
+metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "fall": 1, "land": 1, "slam": 1, "dash": 1, "death": 1, "spawn": 1, "attack_bburn": 1, "attack_chainsaw": 1, "special_inferno": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -454,6 +470,20 @@ animations = [{
 "loop": false,
 "name": &"spawn",
 "speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("attack_bburn_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_bburn_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_bburn_3")
+}],
+"loop": false,
+"name": &"attack_bburn",
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,

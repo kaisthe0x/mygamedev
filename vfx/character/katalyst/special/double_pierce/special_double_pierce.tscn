@@ -80,9 +80,6 @@ visible = false
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_hitbox")
-damage = 35.0
-knockback = 45.0
-stun = 1.0
 status_color = Color(0.38431373, 0.19607843, 0.40784314, 1)
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=795428265]

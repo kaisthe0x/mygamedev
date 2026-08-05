@@ -23,6 +23,9 @@ var effect: String          ## what it fires (for reference); "" = none
 ## the animation loops rapidly, its punch frames firing the effect (hit) every pass;
 ## releasing ends it. Specials ignore this. See Player._advance_combo / _process_attack.
 var style: String = "combo"
+## Loadout tier: "typical" (the starter), "elite", or "broken" (rarest/strongest). Drives the
+## swap-reward filtering + the label the player sees. See configs/loadout.gd. Default "typical".
+var tier: String = "typical"
 ## Melee-hitbox tuning, same shape as an ATTACKS entry: damage / knockback / stun /
 ## color / x (forward reach) / extents (half-size). Unset fields fall back to the
 ## Player's exported defaults. May be a single dict, OR an ARRAY (one per combo
@@ -39,6 +42,7 @@ static func make(move_kind: String, move_id: String, d: Dictionary) -> Move:
 	m.animation = StringName(d.get("animation", "%s_%s" % [move_kind, move_id]))
 	m.effect = String(d.get("effect", ""))
 	m.style = String(d.get("style", "combo"))
+	m.tier = String(d.get("tier", "typical"))
 	m.tuning = d.get("tuning", {})
 	return m
 
