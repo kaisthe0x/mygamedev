@@ -2,7 +2,7 @@ class_name ParticleDirector
 extends Node2D
 
 ## Spawns 2D particle effects at authored positions during authored animation
-## frames, so VFX can be layered over the drawn sprites (e.g. embers on Wayna's
+## frames, so VFX can be layered over the drawn sprites (e.g. embers over a character's
 ## flame) without baking them in.
 ##
 ## Config: Emitters (vfx/config/emitters*.gd -- GDScript, not JSON), the CHARACTER table keyed
@@ -274,7 +274,7 @@ func _capture(node: Node2D) -> Dictionary:
 	# The authored (right-facing) root rotation, so the scale.x mirror below can also
 	# mirror the rotation. Without it, flipping scale.x reflects across the node's OWN
 	# tilted axis instead of world-vertical, so any child rotation stops cancelling and
-	# the whole effect skews (e.g. Wayna's chainsaw hitbox angling down facing left).
+	# the whole effect skews (e.g. a rotated hitbox angling down when facing left).
 	return {"rot": node.rotation}
 
 
@@ -353,7 +353,7 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	if node == null:
 		return
 	_apply_overrides(node, b.get("set", {}))
-	# A LobProjectile-rooted effect (Wayna's bburn) is thrown, not stamped: it arcs to the nearest
+	# A LobProjectile-rooted effect (a lobbed bomb) is thrown, not stamped: it arcs to the nearest
 	# enemy and manages its own explosion. Launch it and bail out of the normal burst flow.
 	if node is LobProjectile:
 		_launch_lob(node as LobProjectile, b, m)
@@ -367,7 +367,7 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	for em in emitters:
 		_boost(em, b.get("boost", {}))
 	# A Strike with emit_duration > 0 emits CONTINUOUSLY for that long (a held stream,
-	# e.g. Wayna's inferno); anything else is a one-shot burst. Set below, after placement.
+	# e.g. a burning field); anything else is a one-shot burst. Set below, after placement.
 	var emit_dur: float = node.emit_duration if node is Strike else 0.0
 	# A burst is a one-shot blast that belongs at the spot it fires -- NOT stuck to
 	# the player. Parented under him, the emitter and its hitbox would follow as he

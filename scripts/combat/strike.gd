@@ -34,7 +34,7 @@ extends Node2D
 ## striker's animation is HELD on its current frame (see apply_tuning -> hold_animation).
 @export var emit_duration: float = 0.0
 ## For a held/channeled effect (emit_duration > 0): whether the caster being HIT cancels
-## it -- the channel breaks (Wayna's inferno stops when she's damaged). Default true (the
+## it -- the channel breaks (a channeled effect stops when the caster is damaged). Default true (the
 ## norm). Set false for an uninterruptible channel. Ignored by non-channel strikes.
 @export var interrupt_on_hurt: bool = true
 
@@ -109,7 +109,7 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 	var hits: int = int(t.get("multi_hit", 1))
 	if hits > 1 and _hitbox != null:
 		_setup_multi_hit(hits)
-	# Hold the striker's pose while a timed emission plays out (Wayna frozen on the
+	# Hold the striker's pose while a timed emission plays out (the caster frozen on the
 	# inferno cast frame until the fire finishes) -- option A: the strike drives its wielder.
 	if emit_duration > 0.0 and source != null and source.has_method("hold_animation"):
 		source.hold_animation(emit_duration, self)  # pass self so the caster can cancel us
@@ -144,7 +144,7 @@ func _start_ticking(interval: float) -> void:
 	_tick_timer = timer
 
 
-## Stop this effect NOW -- the caster's channel was interrupted (e.g. Wayna hit mid-inferno).
+## Stop this effect NOW -- the caster's channel was interrupted (e.g. hit mid-channel).
 ## Same graceful teardown as natural end-of-life.
 func cancel() -> void:
 	_fade_out()

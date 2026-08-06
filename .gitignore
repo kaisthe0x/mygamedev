@@ -8,3 +8,7 @@ __pycache__/
 
 # Local dev tools venv (see scripts/setup-dev.sh)
 .devtools/
+
+# Parked characters (feyke/katalyst/lenbondosen/wayna) — moved out to keep this repo Khalid-only.
+# Kept locally for backup / migration to a separate repo; Godot skips it via playground/.gdignore.
+playground/

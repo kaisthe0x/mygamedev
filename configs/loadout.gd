@@ -28,7 +28,7 @@ const TIER_COLOR := {
 ## ALTERNATE movement options beyond each character's Typical baseline. Empty for now. Shape:
 ##   "<character>": { "<cat>": [ {"id","tier","name", <stats>}, ... ] }
 ## stats by category -- run/slam: "speed"; jump: "velocity"; dash: "speed" + "blink" (bool).
-## Example: "wayna": {"dash": [{"id":"emberstep","tier":"elite","name":"Emberstep","speed":560.0,"blink":true}]}
+## Example: "khalid": {"dash": [{"id":"emberstep","tier":"elite","name":"Emberstep","speed":560.0,"blink":true}]}
 const MOVEMENT_EXTRAS := {}
 
 

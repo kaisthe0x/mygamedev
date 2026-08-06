@@ -52,7 +52,7 @@ func deactivate() -> void:
 
 
 ## Re-deal to every Hurtbox CURRENTLY inside the box -- one pulse of a ticking / DoT
-## field (Wayna's inferno: 10 dmg every 0.25s while it burns). `area_entered` only fires
+## field (a burning field: e.g. 10 dmg every 0.25s while it burns). `area_entered` only fires
 ## on ENTER, so a target standing still in the box would never be hit again; this clears
 ## the per-hit memory and re-delivers to whoever's overlapping right now. Walk out and you
 ## stop taking it. No-op while the box is off.

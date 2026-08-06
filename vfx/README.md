@@ -26,8 +26,8 @@ vfx/
     # Projectile (a shot, player or enemy) -- live in scripts/combat/, with Hitbox.
   character/<id>/          Per-character effects, grouped by category:
     attack/<move>/           a named attack + the art ONLY it uses
-                             (wayna/attack/chainsaw/{attack_chainsaw.tscn, slash_*.png})
-    special/<move>/          a named special (lenbondosen/special/mouth_blast/…)
+                             (khalid/attack/ora_ora/attack_ora_ora.tscn)
+    special/<move>/          a named special (khalid/special/ground_breaker/…)
     dash/default/            movement effects, nested under a variant folder
     jump/default/            (default today; room for alt variants later)
     run/default/
@@ -57,14 +57,14 @@ burst on the **last** death frame (the poof lands as the pose dissolves), `"spaw
 `Emitters` table — validated at parse time, resident before the game runs (no runtime `load`).
 Keep scenes role-named (`attack_chainsaw`, `run_default`, `special_ready`) and organized:
 **art that only one attack uses lives in that attack's folder**
-(the chainsaw slashes sit in `wayna/attack/chainsaw/`); art reused across a
+(e.g. khalid's sit in `khalid/attack/ora_ora/`); art reused across a
 character's effects goes in that character's `shared/textures/`; art reused across
 *entities* goes in the top-level `vfx/shared/textures/`.
 
 ## Particles (frame-indexed VFX)
 
 Extra 2D particles layered over the drawn sprites — e.g. soft embers on top of
-Wayna's flame — driven entirely by data. `script/particle_director.gd` is a child of
+the character's effects — driven entirely by data. `script/particle_director.gd` is a child of
 the player; it watches the sprite and emits at authored positions during authored
 frames. Adding an effect is a scene + a table row, no code.
 
@@ -98,7 +98,7 @@ frames. Adding an effect is a scene + a table row, no code.
      bundling a `Sprite2D`/`AnimatedSprite2D` (which *do* mirror texture + rotation
      under the scale flip) + a `Hitbox`. It briefly grows+fades its visuals and frees
      itself, and the director accepts it and arms its hitbox like any burst (see
-     Wayna's `attack_chainsaw`). Layering separate scenes (several `{…}`) still works.
+     khalid's `attack_ora_ora`). Layering separate scenes (several `{…}`) still works.
    - `node` — *optional* **palette addressing**. A "palette" scene bundles several
      *independently-scheduled* emitters as named children; `node` names the one this
      row fires. List the **same `scene`** with different `node`s to fire different
@@ -165,7 +165,7 @@ frames. Adding an effect is a scene + a table row, no code.
    texture cleanly.)
 3. **Director** — instantiated by `player.gd` at runtime (not in the editor).
    Rebuilds its emitters (and its scene index) on character swap, so switching away
-   from Wayna removes her fire cleanly.
+   for a character removes its effects cleanly.
 
 ### Making an attack deal damage — a `Strike`/`Projectile` + its `Hitbox`
 
@@ -265,7 +265,7 @@ Pick the layer by *what the effect is*:
 3. **Spawn something / new behavior (a `CharacterAbility`).** Create
    `scripts/abilities/<id>.gd` extending `CharacterAbility` (auto-equipped) and
    override a hook: `on_special_strike(player)` (the moment the special connects),
-   `physics(player, delta)` (per-frame override, Katalyst's special), or
+   `physics(player, delta)` (a per-frame movement/attack override), or
    `setup(player)` (one-time on equip).
 
 ## Enemy attack VFX
@@ -338,7 +338,7 @@ and flying, say) instead of a particle emitter repeating one texture, build it a
 `Projectile` that carries an `AnimatedSprite2D`:
 
 1. Export the projectile as a **horizontal strip** named `<name>_anim.png` into the
-   attack's folder (e.g. `character/feyke/attack/ring_kiss/ring_kiss_anim.png`).
+   attack's folder (e.g. `character/khalid/attack/ora_ora/ora_ora_anim.png`).
    These drawn effect sheets are authored in the art repo.
 2. Run `godot --headless --script tools/gen_effect_frames.gd` — it finds every
    `*_anim.png` under `vfx/` and slices it (128px frames by default, or set a count

@@ -109,19 +109,6 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     ("khalid", "special_ground_breaker"): {"fps": 15.0, "hold_last": 1.6},
     ("khalid", "slam"): {"fps": 15.0, "hold_last": 1.6},
     ("khalid", "death"): {"fps": 7.0},
-    # Lenbondosen
-    ("lenbondosen", "special_poison_raiser"): {"fps": 13.0},
-    ("lenbondosen", "death"): {"fps": 8.0},
-    # Katalyst
-    ("katalyst", "idle"): {"loop_from": 2, "loop_to": 8},
-    ("katalyst", "death"): {"fps": 8.0},
-    # Feyke
-    ("feyke", "run"): {"fps": 4.0, "keep_first": True, "loop_from": 1, "loop_to": 4},
-    ("feyke", "idle"): {"loop_from": 1, "loop_to": 4},
-    ("feyke", "death"): {"fps": 8.0},
-    # Wayna
-    ("wayna", "run"): {"fps": 4.0},
-    ("wayna", "death"): {"fps": 8.0},
     # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
     # plays only once. Enemy.gd honours loop_from for a re-played attack (see _replay_from).
@@ -138,20 +125,7 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
 # smoothness. Any attack not listed treats every frame as its own hit (so each
 # click advances one frame -- the old snap feel). Emitted as resource metadata.
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
-    ("feyke", "attack_ring_kiss"): [2],
-    ("feyke", "attack_slam_n_smoke"): [3, 5, 7],  # ground burst, punch+smoke, bigger punch+smoke
-    ("feyke", "special_f_you"): [2],
     ("khalid", "special_ground_breaker"): [6],
-    ("katalyst", "attack_rope_dart_dance"): [2, 6, 10],
-    ("katalyst", "special_double_pierce"): [3],
-    ("lenbondosen", "attack"): [8, 12, 13],
-    ("lenbondosen", "attack_finger_guns"): [2, 4, 7],
-    ("lenbondosen", "special_mouth_blast"): [3, 6, 9],
-    ("lenbondosen", "special_poison_raiser"): [4],
-    ("wayna", "attack_chainsaw"): [3, 4, 6],
-    ("wayna", "attack_bburn"): [2],  # single throw: the missile releases on the wind-forward frame
-    ("wayna", "attack_shotgun"): [3],  # single blast on the muzzle-flash frame
-    ("wayna", "special_inferno"): [3],
     ("kebus", "attack"): [3],
     ("baghel", "attack_projectile"): [6],
     ("nasen", "attack"): [2],  # the rage AoE erupts on this frame
@@ -165,7 +139,7 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
 # HIT_FRAMES / loop_from. This is the general form of OVERRIDES' `hold_last` (which
 # is just "the last frame"); a value set here wins over hold_last for that frame.
 FRAME_DURATIONS: dict[tuple[str, str], dict[int, float]] = {
-    # e.g. ("katalyst", "attack_rope_dart_dance"): {6: 2.0, 10: 1.5}  # linger on the AoE + finisher
+    # e.g. ("some_char", "some_attack"): {2: 1.5}  # linger on those hit frames
 }
 
 

@@ -29,9 +29,9 @@ const FRAME_WIDTH := 128
 ##             animation) default to false so they play once and don't repeat. Set
 ##             explicitly here to override either default.
 const OVERRIDES := {
-	# Feyke's ring kiss FORMS (blob -> ring) then holds the ring as it flies.
-	"ring_kiss_anim": {"fps": 14.0, "loop": false},
-	"ring_kiss_end_anim": {"fps": 14.0},  # dissolve on expiry; loop defaults off (_end_anim)
+	# (example) a projectile whose art FORMS then holds a shape as it flies:
+	# "my_shot_anim": {"fps": 14.0, "loop": false},
+	# "my_shot_end_anim": {"fps": 14.0},  # dissolve on expiry; loop defaults off (_end_anim)
 }
 
 

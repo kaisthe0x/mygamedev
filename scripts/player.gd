@@ -20,7 +20,7 @@ signal character_changed(id: String)
 ## Character roster + resource-path templates live in CharacterConfig; per-character
 ## moves + tuning in the Moves catalog (configs/moves.gd).
 
-@export_enum("feyke", "katalyst", "khalid", "lenbondosen", "wayna")
+@export_enum("khalid")
 var character: String = "khalid":
 	set(value):
 		character = value
@@ -150,7 +150,7 @@ func begin_run() -> void:
 ## Slam damage scales with how far it PLUNGED (from where you pressed slam to impact).
 ## A drop <= `slam_min_drop` deals the scene's base damage (mult 1.0); at `slam_max_drop`
 ## it reaches `slam_max_damage_mult`x, lerped between. Multiplies BOTH slam hitboxes, so
-## their reach/impact ratio is preserved. The offensive cousin of Katalyst's fall damage.
+## their reach/impact ratio is preserved. The offensive cousin of a fall-damage ability.
 @export var slam_min_drop: float = 120.0
 @export var slam_max_drop: float = 700.0
 @export var slam_max_damage_mult: float = 2.5
@@ -211,13 +211,13 @@ var _dash_cd: float = 0.0
 var _dash_custom: bool = false
 var _blink_dash: bool = false
 ## Blink stops at walls (move_and_collide). Flip true for a future "phase through walls"
-## buff -- same buff-seam idea as Katalyst's _weak_knees.
+## buff -- same buff-seam idea as a per-character behavior flag.
 var _blink_phase_walls: bool = false
 ## Airborne tracking, so a touchdown can trigger the landing squash.
 var _was_on_floor: bool = true
 var _fall_peak: float = 0.0 # fastest downward speed reached this airborne stretch
 ## Highest point (min y) reached this airborne stretch, so a touchdown can report how far
-## he DROPPED (landing y - apex y) to the ability's on_land -- e.g. Katalyst's fall damage.
+## he DROPPED (landing y - apex y) to the ability's on_land -- e.g. a fall-damage ability.
 var _apex_y: float = 0.0
 ## Air jumps spent since leaving the ground; reset on touchdown (see _physics_process).
 var _air_jumps_used: int = 0
@@ -259,10 +259,10 @@ var _stun_left: float = 0.0
 ## Granted by a Strike's tuning via set_armor() (a future buff/heavy-attack property).
 var _armor_left: float = 0.0
 ## Time left the sprite is FROZEN on its current frame -- an attack/special holding its
-## pose while a timed effect plays (Wayna held on the inferno cast frame while the fire
+## pose while a timed effect plays (the caster held on the cast frame while the effect
 ## emits). Set by hold_animation(); the sprite resumes when it hits 0.
 var _hold_left: float = 0.0
-## The active held/channeled effect (Wayna's inferno) while its emission plays, so a hit
+## The active held/channeled effect while its emission plays, so a hit
 ## can break it (see _on_hurt). Null when nothing is being channeled.
 var _channel: Strike = null
 ## The current character's unique ability, or null if they have none.
@@ -403,7 +403,7 @@ func get_state() -> State:
 	return _state
 
 
-## The active attack / special Move (or null for a special-less character like Wayna),
+## The active attack / special Move (or null for a special-less character),
 ## for the HUD / debug panel / a future move-select UI.
 func current_attack() -> Move:
 	return _current_attack
@@ -553,7 +553,7 @@ func _on_hurt(hit: Hit) -> void:
 	# Per-character reaction to being hurt (retaliation, defensive buff, ...).
 	if _ability != null:
 		_ability.on_hurt(self, hit)
-	# A held/channeled effect (Wayna's inferno) breaks when she's hit, if it opts in --
+	# A held/channeled effect breaks when the caster is hit, if it opts in --
 	# stop it and release the pose-hold. Independent of the ability hook above.
 	if _channel != null and is_instance_valid(_channel) and _channel.interrupt_on_hurt:
 		_channel.cancel()
@@ -587,7 +587,7 @@ func set_armor(duration: float) -> void:
 
 ## Freeze the sprite on its current frame for `duration` seconds, then resume -- so an
 ## attack/special can HOLD its pose while a timed effect plays out (a Strike with
-## emit_duration calls this: Wayna stays on the inferno cast frame until the fire ends).
+## emit_duration calls this: the caster stays on the cast frame until the effect ends).
 ## The state machine keeps running (movement, gravity); only playback is paused, and the
 ## committed special won't end until its animation resumes and finishes.
 func hold_animation(duration: float, effect: Strike = null) -> void:
@@ -608,7 +608,7 @@ func _on_frame_changed() -> void:
 		return
 	# Bounded loop: when a looping animation has a `loop_to`, snap back to
 	# `loop_from` the moment playback steps past it, so the cycle stays inside the
-	# range (e.g. Katalyst's idle loops 2-8). Done here on the render frame it
+	# range (e.g. an idle that loops a mid-sheet range). Done here on the render frame it
 	# changes -- not in physics -- so the past-the-range frame never flashes.
 	var loop_to := _loop_meta(&"loop_to")
 	if loop_to >= 0 and _sprite.frame > loop_to:
@@ -1281,7 +1281,7 @@ func _update_animation(_delta: float) -> void:
 
 ## A looping animation can have an intro: `loop_from` metadata (written by the
 ## generator) marks the frame the cycle restarts at, so the lead-in plays once
-## and only the tail repeats. Wayna's run ignites over frames 0-3 then cycles 4-6.
+## and only the tail repeats. e.g. a run that ignites over frames 0-3 then cycles 4-6.
 ## (A bounded `loop_to` is enforced in _on_frame_changed; this catches the case
 ## where the loop runs all the way to the last frame and wraps naturally.)
 func _on_animation_looped() -> void:

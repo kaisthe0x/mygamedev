@@ -14,7 +14,7 @@ extends Node2D
 ##  - As a SCENE (player): the .tscn root is a Projectile with a `Hitbox` child + a
 ##    drawn AnimatedSprite2D or particle body. The ParticleDirector fires it as a burst
 ##    and reads facing from scale.x, with `homing` > 0 so it curves toward an enemy.
-##    (feyke ring_kiss, lenny finger_guns.)
+##    (a homing shot, a straight bolt.)
 ##  - In CODE (enemy): enemy.gd instantiates one, adds a `Hitbox` + a `visual` scene,
 ##    and sets `velocity`/params (`homing` 0 = straight line). (baghel wave, kebus bolt.)
 

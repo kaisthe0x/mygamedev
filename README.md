@@ -1,8 +1,9 @@
 # mygamedev
 
-A 2D pixel-art action platformer in **Godot 4.7**. One player controller drives
-any of five characters, which share an animation set and can be swapped at
-runtime.
+A 2D pixel-art action platformer in **Godot 4.7**. A character-agnostic player controller
+drives the playable character. This repo ships **Khalid only** — four other characters were
+parked in the gitignored `playground/` directory (for a future separate repo); the engine
+stays fully character-agnostic, so bringing one back is just its assets + data rows.
 
 
 Main scene: `scenes/level.tscn`. Press F5 to run.
@@ -61,7 +62,7 @@ play, the clean way is "last input device wins" — ask and I'll wire it.
 
 **Which character you play is chosen in code.** In-game Q/E switching is **gone** — set the
 **`START_CHARACTER`** constant near the top of `scripts/run/run_manager.gd` to any id in
-`CharacterConfig.IDS` (`feyke`/`katalyst`/`khalid`/`lenbondosen`/`wayna`). The dev keys (Z/X
+`CharacterConfig.IDS` (`khalid` — the others are parked in `playground/`). The dev keys (Z/X
 debug damage/heal, `0` rebuild-level) live in that same file.
 
 **The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). You drop
@@ -71,8 +72,7 @@ bursts and can't camp. **HP is separate**: damage hits it only, and it heals *on
 Each level's **exit gate** costs a number of lahm blocks to pass (HP untouched); clear the arena and
 the next escalating wave refills, so a level ends only when you pay the exit and pick a reward —
 a stat buff, **or a loadout swap**: every attack/special/movement has a tier (**Typical → Elite →
-Broken**), and where a character has more than one option a gate can offer trading up (e.g. Wayna's
-Elite Bburn attack). See [`configs/loadout.gd`](configs/loadout.gd). Take 0 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
+Broken**), and where a character has more than one option a gate can offer trading up (once a character has more than one option in a category). See [`configs/loadout.gd`](configs/loadout.gd). Take 0 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
 loop — lives in one folder, [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s
 root; `Levels` / `EnemyKits` / `Rewards` are the data). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset
@@ -95,9 +95,9 @@ no-ops for them; no `death` sheet → respawn instantly, no `spawn` sheet → ap
 
 - Frame counts vary (2-13+) between animations *and* between characters — the
   slicer (`frame_count`) auto-detects the count, up to a generous cap, so long
-  combo/dash sheets (Katalyst's 13-frame dash) work without configuration
+  combo/dash sheets (e.g. a 13-frame dash) work without configuration
 - Frame sizes vary wildly — khalid's idle is 32x32, his attack is 143x48
-- Some sheets have a constant horizontal padding bias (lenbondosen's dash sits
+- Some sheets have a constant horizontal padding bias (a dash can sit
   ~24px left of centre)
 
 Slicing them naively makes the character jump sideways and change height every
@@ -106,14 +106,14 @@ time the animation changes.
 ### The fix
 
 `tools/gen_spriteframes.py` analyses each sheet and normalises every frame onto
-one shared canvas (**currently 130x80**):
+one shared canvas (**currently 128x80**):
 
 - **Vertically** — the frame bottom becomes the canvas bottom. The sheets are
   foot-anchored, so this puts feet on a fixed line.
 - **Horizontally** — anchored on **frame 0**, the static idle-reference pose
   present at the start of every sheet (see "Frame 0" below). Its bounding box
   matches the idle pose, so anchoring on it aligns every animation to idle.
-  Anchoring on the average instead would let wayna's dash fire trail or an
+  Anchoring on the average instead would let a dash's fire trail or an
   attack's swing arc drag the body off-centre. Later frames keep their own
   offsets, so lunges still lunge.
 
@@ -129,7 +129,7 @@ Consequences worth knowing:
 - Frame indices in `OVERRIDES` / `HIT_FRAMES` are **sheet-relative** (they count
   frame 0); the generator subtracts 1 to get the emitted index the player sees.
 - An action sheet needs at least 2 frames (idle-ref + one real frame).
-- Anything tied to a specific played frame — e.g. katalyst's double_pierce `WIND_UP` —
+- Anything tied to a specific played frame — e.g. a special's `WIND_UP` —
   is expressed in emitted indices and must be retimed if the layout changes.
 
 Normalisation is stored as `AtlasTexture.margin`, so **no images are rewritten
@@ -139,7 +139,7 @@ Because every character lands on the same canvas, swapping is a one-line
 `sprite_frames` swap. No per-character offsets or colliders.
 
 **The canvas size is derived, not fixed** — it grows to fit the widest padded
-frame, so art changes can move it (156x71 -> 164x80 -> 130x80 so far).
+frame, so art changes can move it (156x71 -> 164x80 -> 128x80 so far).
 `player.gd` reads the frame size on load and sets the sprite offset from it
 (origin at the feet), so nothing has to be updated by hand when it moves.
 
@@ -150,9 +150,7 @@ still handles mixed sizes), but standardising means every sheet shares a grid.
 
 **Frame size alone doesn't shrink the canvas — centring does.** The canvas must
 be wide enough to hold every animation once frame 0 is aligned, so a sheet whose
-character sits off-centre in frame 0 forces padding on *every* character. After
-re-centring wayna and khalid the canvas is down to **130** — the last 2px is
-lenbondosen's frame 0 sitting 1px left, which is negligible.
+character sits off-centre in frame 0 forces padding on *every* character, so the canvas settles once each character's frame 0 is centred.
 
 So the rule for new art is both halves:
 
@@ -218,7 +216,7 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
 - **`loop_to`** — optional end of that loop (sheet frame, inclusive). Without it
   the cycle runs to the last frame; with it the loop is `loop_from..loop_to` and
   any frames past `loop_to` show only in the one-time intro pass. Lets a character
-  loop a **mid-sheet range** — e.g. Katalyst's idle plays 0-1 to settle in, then
+  loop a **mid-sheet range** — e.g. an idle plays 0-1 to settle in, then
   loops his 2-8 raise-a-flame flourish forever until you press something.
 
 `loop_from` / `loop_to` exist because Godot's `loop` flag is all-or-nothing. The
@@ -227,13 +225,12 @@ flag** — the reader decides what to do with the range. For a **looping** anim 
 jumps back to `loop_from` when the anim wraps (`_on_animation_looped`) or steps past
 `loop_to` (`_on_frame_changed`). For a **non-looping** anim an enemy uses `loop_from` as
 the frame a *re-played* attack restarts at (`Enemy._replay_from`), so a channel/rage's
-wind-up plays once — that's why they no longer require `loop=True`. Wayna's run uses
-`loop_from`; Katalyst's idle uses both; Nasen's rage attack uses it non-looping. They're
+wind-up plays once — that's why they no longer require `loop=True`. A run can use `loop_from`; an idle can use
+both; Nasen's rage attack (an enemy) uses it non-looping. They're
 sheet-relative (count the idle-ref frame 0), same numbering as `HIT_FRAMES`.
 
 Special attacks are tuned toward a ~0.5s feel: khalid `hold_last` 2.5 (few frames,
-so the last pose sits rather than the whole swing slowing) and lenbondosen 13 fps
-(too slow at 10). The generator prints resulting durations,
+so the last pose sits rather than the whole swing slowing). The generator prints resulting durations,
 marks overridden entries with `*`, notes loop ranges as `[loop N-M]` and hit
 frames as `[hits...]`.
 
@@ -249,17 +246,13 @@ for smoothness (see **Player → Attack combo**). Any attack not listed defaults
 Configured so far (keyed by the move's animation, since a character has several),
 with wind-up / in-between frames between the hits:
 
-| Character | Animation | `HIT_FRAMES` (sheet indices) |
+| Who | Animation | `HIT_FRAMES` (sheet indices) |
 |---|---|---|
-| feyke | `attack_slam_n_smoke` | `[3, 5, 7]` — ground burst, punch+smoke, bigger punch (his default) |
-| feyke | `attack_ring_kiss` | `[2]` — single-burst "kiss" shot (Elite swap) |
-| feyke | `special_f_you` | `[2]` |
-| katalyst | `attack_rope_dart_dance` | `[2, 6, 10]` — whip-reach, spin-AoE, finisher |
-| katalyst | `special_double_pierce` | `[3]` |
-| wayna | `attack_chainsaw` / `attack_bburn` / `attack_shotgun` | `all` / `[2]` / `[3]` — shred / lob / blast |
-| lenbondosen | `attack_finger_guns` | `[2, 4, 7]` — three shots |
-| lenbondosen | `special_mouth_blast` | `[3, 6, 9]` |
-| lenbondosen | `special_poison_raiser` | `[4]` |
+| khalid | `special_ground_breaker` | `[6]` — the overhead ground crack |
+| kebus (enemy) | `attack` | `[3]` |
+| baghel (enemy) | `attack_projectile` | `[6]` |
+| nasen (enemy) | `attack` | `[2]` — the rage AoE erupts here |
+| mazab (enemy) | `attack_projectile` | `[5]` — the lobbed bomb leaves his hand here |
 
 Specials list a strike frame the same way (keyed by the special's animation);
 without one the special lands on its middle frame.
@@ -328,8 +321,7 @@ seeded on every character change from `CharacterConfig.RUN_SPEEDS` /
 `JUMP_VELOCITIES` / `DASH_SPEEDS` (in `configs/character_config.gd`) — edit per-character
 values there, not on the Player node (the inspector value is overwritten on swap).
 Characters not listed use the `DEFAULT_*` values (`run` 160, `jump` -330 with negative =
-up, `dash` 420); **Katalyst runs a touch faster (250), jumps a touch higher (-370), and
-dashes a touch faster (500)**. The run *animation* cadence auto-scales to each
+up, `dash` 420); **Khalid runs a touch faster (230)**. The run *animation* cadence auto-scales to each
 character's speed, so faster runners don't foot-slide.
 
 **Blink dash (per character).** A character's dash can be a **blink** (instant teleport)
@@ -384,7 +376,7 @@ a normal fall, so it reads as committed). Like a special it's committed (no canc
 mid-plunge), and the `special` button is context-sensitive: **on the ground it does
 the character's special, in the air it slams** (attacks and specials are both
 grounded-only). Characters without a `slam` sheet can't slam (the air press no-ops);
-**Lenny and Feyke have `slam` sheets so far**.
+**Khalid has a `slam` sheet.**
 
 *Tall-plunge handling* — a long drop would finish the `slam` animation (firing its
 impact frames) **before** touchdown, so the impact particles would emit in mid-air.
@@ -402,7 +394,7 @@ where `SLAM` began to impact) and sets `_active_hit = {"damage_scale": mult}` �
 `slam_max_drop` (700px). The director *multiplies* the slam hitboxes' baked damage by it
 (a new `damage_scale` path in `_inject_tuning`, applied over `damage`), so **both**
 boxes scale while keeping their reach/impact ratio. It's the offensive mirror of
-Katalyst's fall-damage curve — slam from higher, hit harder.
+the slam-damage curve — slam from higher, hit harder.
 
 Slam **particles** are authored per character in `EmittersCharacters` under the `slam`
 animation: a `sustained` wind-streak trail on the descent frames (`0–2`) and a `burst`
@@ -438,11 +430,9 @@ next hit animate, then the sprite holds the hit frame for a short
 `attack_recovery` and hands control back to idle. Hit frames come from the
 `HIT_FRAMES` config via SpriteFrames metadata (`_attack_hits()`); an attack with
 no entry treats every frame as a hit, so each click advances one frame.
-Lenbondosen and katalyst have authored multi-hit combos (three hits with smooth
-wind-up/in-between frames — katalyst's are whip-reach / spin-AoE / finisher);
-Wayna's `chainsaw` and Feyke's default `slam_n_smoke` (ground burst → punch → bigger
-punch, smoke growing across the combo) are 3-hit combos too. Feyke's `ring_kiss` is a
-single-hit shot (one burst), now an Elite swap.
+The combo system supports multi-hit attacks — several hits on chosen frames, with wind-up /
+in-between frames animating between them (see `HIT_FRAMES`). Khalid's `ora_ora` isn't a combo
+but a **flurry** (below); single-hit attacks just list one hit frame.
 
 **Attack styles (`Move.style`).** Most attacks are `"combo"` (the click-per-segment
 swing above). Khalid's `ora_ora` is a `"flurry"`: **hold** the attack button and the
@@ -473,7 +463,7 @@ animation, roots the player, and ignores all input until it finishes. It also
 clears any light combo in progress (all three entry points go through
 `_start_special()`). The strike lands on the frame given by the
 `special` entry in `hit_frames` metadata (`_special_strike_frame()`) — e.g.
-Katalyst's lands on his blast frame — or, if a character didn't author one, on
+A special's lands on its authored strike frame — or, if none, on
 the middle frame as a default. Durations are hand-tuned per character — see
 **Per-character timing** above.
 
@@ -481,7 +471,7 @@ the middle frame as a default. Durations are hand-tuned per character — see
 clip the longer ones. Playback is stretched to fit instead (`speed_scale`
 derived from the anim length ÷ `dash_time`), which keeps dash *distance*
 identical for every character while always playing the full animation — so even
-Katalyst's 13-frame transform-dash plays fully inside the 0.18s window. Grounded dashes stay level; air dashes keep
+A 13-frame dash plays fully inside the 0.18s window. Grounded dashes stay level; air dashes keep
 falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
 
@@ -535,28 +525,15 @@ do ACTION," and each character's file overrides only the hooks it cares about
 
 ### Current abilities
 
-| Character | Ability | Effect |
-|---|---|---|
-| Lenbondosen ("Lenny") | **Energy Burst** | His special is a close-range ground blast: the `special_poison_raiser` `Strike` (the `Emitters` config) carries the hit, fed its damage from `configs/moves.gd`. His `on_special_strike` hook is a no-op. |
-| Katalyst | **Stomp** + **Weak knees** | A mid-air special becomes a downward drive (hangs for the wind-up, then plunges at `SLAM_SPEED`). And via `on_land`, **every** landing past `SAFE_FALL` (400px) deals fall damage scaled by drop distance × landing speed — a high enough fall can kill him (it's why he can't slam). A `_weak_knees` flag gates it, ready for a future "knee transplant" pickup to switch off. |
-| Wayna | **Inferno interrupt** | Not an ability script — her `special_inferno` is a channeled `Strike` (`emit_duration`) with `interrupt_on_hurt = true`, so taking a hit **cancels the fire** (stops emission + damage ticks, releases her held pose). The `on_hurt` ability hook stays free for any *other* reaction she gets later. |
+**None ship in this repo** — Khalid has no ability script; his moves are all data
+(`moves.gd`) + effect scenes. The `CharacterAbility` system above is fully wired, so
+dropping a `scripts/abilities/khalid.gd` (extending `CharacterAbility`) gives him a
+per-character hook (`on_special_strike` / `on_hurt` / `on_land` / `physics`). The parked
+characters in `playground/` had abilities — a fall-damage-on-land, a channeled special that
+cancels when hit — kept there as reference for what the hooks can do.
+
 Khalid used to carry the blink as an ability; it's now a **universal, per-character dash
 option** — see **Blink dash** below.
-
-Both latch on the frame the special *starts* and only if the character was
-airborne then — checking the state alone would also fire for a grounded special
-that walks off a ledge mid-swing.
-
-Katalyst's `WIND_UP` (0.1s) is timed to his animation: after the idle-ref frame
-is dropped the downward strike is emitted frame 1, which at 10 fps begins at
-0.1s, so the drop starts exactly as he swings. **Retime `WIND_UP` if his
-special fps or frame layout changes.**
-
-Known edge: the slam lasts only as long as the special animation, so it covers
-about 330px of fall (0.30s at 1100px/s after the wind-up). From higher than that
-the swing ends mid-air and he finishes the drop as a normal fall. Fine for
-typical platform heights; if it ever matters, have the ability keep driving
-`velocity.y` until `is_on_floor()` instead of stopping when the state ends.
 
 ---
 
@@ -574,8 +551,7 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 - **Drawn slashes:** a directional crescent that must mirror with facing is a
   **`Strike`** (`scripts/combat/strike.gd`) — a `Sprite2D`/`AnimatedSprite2D` + a
   `Hitbox` that grows/fades and self-frees, and covers melee slashes, blasts, and ground
-  AoEs. Use it instead of a `CPUParticles2D` when the texture itself must h-flip (Wayna's
-  chainsaw). Its projectile sibling is **`Projectile`** (`scripts/combat/projectile.gd`).
+  AoEs. Use it instead of a `CPUParticles2D` when the texture itself must h-flip (a directional drawn slash). Its projectile sibling is **`Projectile`** (`scripts/combat/projectile.gd`).
 - **Where to add an attack effect:** a visual → `EmittersCharacters`; a hit's
   numbers → the move's `tuning` in `configs/moves.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,

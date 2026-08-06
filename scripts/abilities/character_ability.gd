@@ -33,7 +33,7 @@ func on_special_strike(_player: Player) -> void:
 
 ## Called when this character takes a combat hit (right as it lands). React to being
 ## hurt -- a retaliation, a defensive buff, whatever. `hit` carries amount/knockback/
-## stun/source. A held/channeled effect (Wayna's inferno) is interrupted SEPARATELY via
+## stun/source. A held/channeled effect is interrupted SEPARATELY via
 ## the Strike's `interrupt_on_hurt`, so this hook stays free for anything else.
 func on_hurt(_player: Player, _hit: Hit) -> void:
 	pass
