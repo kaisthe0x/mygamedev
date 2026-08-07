@@ -120,8 +120,8 @@ you can ever reach a toll — a weak build can't, and slowly dies. That's the fa
   (tier-badged) to trade up. The swap system spans attacks, specials, and movements (dash/run/jump/
   slam). Give a character a second attack/special in `moves.gd` (with a `tier`), or a movement
   variant in `loadout.gd` (`MOVEMENT_EXTRAS`), and it's instantly offerable. Loadout resets to
-  defaults on death (`begin_run`). *(This repo ships **Khalid only** — his default is the `ora_ora` flurry, and a gate can offer his
-  Elite **Spear** combo as a swap.)*
+  defaults on death (`begin_run`). *(This repo ships **Khalid only**; he already has swaps a gate can offer — an alternate **attack**
+  (the `ora_ora` flurry vs the Elite `spear` combo) and an Elite **special** (`stay`, a 5s-stun blast).)*
 - **[CONFIRMED] Death = permadeath.** The whole run ends; you start over from scratch
   (roguelite). Meta-progression (exp, unlocks) persists across runs — details **[OPEN]**.
 

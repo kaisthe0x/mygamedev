@@ -12,6 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://cvo6weherngml" path="res://sprites/characters/khalid/khalid_attack_ora_ora_frames.png" id="10_attack_ora_ora"]
 [ext_resource type="Texture2D" uid="uid://dkyvjdmxgwfcr" path="res://sprites/characters/khalid/khalid_attack_spear_frames.png" id="11_attack_spear"]
 [ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="12_special_ground_breaker"]
+[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_stay_frames.png" id="13_special_stay"]
 
 [sub_resource type="AtlasTexture" id="attack_ora_ora_1"]
 atlas = ExtResource("10_attack_ora_ora")
@@ -349,6 +350,22 @@ region = Rect2(768, 0, 128, 80)
 atlas = ExtResource("12_special_ground_breaker")
 region = Rect2(896, 0, 128, 80)
 
+[sub_resource type="AtlasTexture" id="special_stay_1"]
+atlas = ExtResource("13_special_stay")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_stay_2"]
+atlas = ExtResource("13_special_stay")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_stay_3"]
+atlas = ExtResource("13_special_stay")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_stay_4"]
+atlas = ExtResource("13_special_stay")
+region = Rect2(512, 0, 128, 80)
+
 [resource]
 animations = [{
 "frames": [{
@@ -662,10 +679,28 @@ animations = [{
 "loop": 0,
 "name": &"special_ground_breaker",
 "speed": 15.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("special_stay_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("special_stay_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("special_stay_3")
+}, {
+"duration": 0.25,
+"texture": SubResource("special_stay_4")
+}],
+"loop": 0,
+"name": &"special_stay",
+"speed": 10.0
 }]
 metadata/hit_frames = {
 "attack_spear": [5, 8, 12],
-"special_ground_breaker": [1, 2, 3, 4, 5]
+"special_ground_breaker": [1, 2, 3, 4, 5],
+"special_stay": [0, 1, 2]
 }
 metadata/sheet_start = {
 "attack_ora_ora": 1,
@@ -679,5 +714,6 @@ metadata/sheet_start = {
 "run": 1,
 "slam": 1,
 "spawn": 1,
-"special_ground_breaker": 1
+"special_ground_breaker": 1,
+"special_stay": 1
 }

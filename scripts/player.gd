@@ -309,6 +309,10 @@ func _apply_character() -> void:
 		push_warning("No SpriteFrames for character '%s' at %s" % [character, path])
 		return
 	sprite.sprite_frames = load(path)
+	# Optional per-character sprite tint material -- e.g. Khalid's living-hair/metal shader. Convention:
+	# res://resources/<id>_tint.tres. Missing file = no material (plain sprite).
+	var mat_path := "res://resources/%s_tint.tres" % character
+	sprite.material = load(mat_path) if ResourceLoader.exists(mat_path) else null
 	# Seed the attack/special + movement stats from the current LOADOUT (defaults until a
 	# reward swaps one in). This is the per-character feel + which moves are equipped.
 	_apply_loadout()

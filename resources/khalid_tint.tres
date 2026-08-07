@@ -1,0 +1,23 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://ckhalidaura01"]
+
+[ext_resource type="Shader" uid="uid://b0s8xghevw2et" path="res://vfx/shaders/sprite_tint.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/intensity = 1.0
+shader_parameter/vibrancy = 0.80000001192093
+shader_parameter/flow_speed = 1.1
+shader_parameter/flow_amount = 0.6
+shader_parameter/glow = 0.30000001425
+shader_parameter/base_red = Color(1.7, 0.28, 0.26, 1)
+shader_parameter/accent_a = Color(1.3167306, 0, 0.24906379, 1)
+shader_parameter/accent_b = Color(0.8160211, 0, 0.24528553, 1)
+shader_parameter/key_val = 0.16
+shader_parameter/key_sat = 0.45
+shader_parameter/key_hue = 0.06
+shader_parameter/metal_amount = 1.0
+shader_parameter/metal_tint = Color(0, 1.3500061, 1.0758958, 1)
+shader_parameter/metal_glow = 1.5
+shader_parameter/metal_sat_max = 0.25
+shader_parameter/metal_val_min = 0.22
+shader_parameter/metal_val_max = 0.92

@@ -37,9 +37,15 @@ const CATALOG := {
 		},
 		# Ground breaker: an overhead slam that cracks the ground -- a GROUND-type Strike
 		# (special_ground_breaker.tscn) whose hitbox SHAPE is authored in the scene, fed these numbers.
-		"specials": {"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND,
-			"tuning": {"damage": 40, "knockback": 160, "stun": 0.2}}},
-		"default_attack": "ora_ora", "default_special": "ground_breaker",
+		"specials": {
+			"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND,
+				"tuning": {"damage": 40, "knockback": 160, "stun": 0.2}},
+			# Stay: a short blast -- little damage, but a long 5s STUN (knockback 0 so the enemy just
+			# freezes in place; the gold status overlay shows for the stun). A control/utility special.
+			"stay": {"animation": "special_stay", "effect": "special_stay", "kind": Combat.AttackKind.BLAST, "tier": "elite",
+				"tuning": {"damage": 4, "knockback": 0, "stun": 5.0, "color": Color(0.82, 0.75, 0.08, 0.8)}},
+		},
+		"default_attack": "spear", "default_special": "stay",
 	},
 }
 

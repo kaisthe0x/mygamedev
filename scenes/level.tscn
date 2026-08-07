@@ -13,6 +13,7 @@ script = ExtResource("2_switch")
 physics_interpolation_mode = 1
 position = Vector2(0, -60)
 scale = Vector2(1.4029833, 1.4555173)
+zoom = Vector2(6, 6)
 process_callback = 0
 
 [node name="Floor" type="StaticBody2D" parent="." unique_id=240657501]

@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://ckhalidstay01"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
+[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="4_ember"]
+
+[sub_resource type="Curve" id="Curve_l18u6"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49734512, 0.49438208), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Grad_spark"]
+offsets = PackedFloat32Array(0, 0.48824593)
+colors = PackedColorArray(0.9490196, 0.85882354, 0, 1, 1, 0, 0, 1)
+
+[sub_resource type="RectangleShape2D" id="box_blast"]
+size = Vector2(78, 42)
+
+[sub_resource type="Curve" id="Curve_pulse"]
+_data = [Vector2(0.040707964, 1), 0.0, 0.0, 0, 0, Vector2(0.5132744, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Grad_pulse"]
+offsets = PackedFloat32Array(0, 0.40144664, 0.89873415, 1)
+colors = PackedColorArray(0.73333335, 0.6784314, 0.14901961, 1, 0.9137255, 0.83137256, 0.34117648, 1, 0.9137255, 0.83137256, 0.34117648, 1, 0.5, 0.06, 0.05, 0)
+
+[node name="SpecialStay" type="Node2D" unique_id=1812704467]
+script = ExtResource("1_strike")
+
+[node name="Sparks" type="CPUParticles2D" parent="." unique_id=18112046]
+z_index = 1
+texture_filter = 1
+amount = 20
+texture = ExtResource("4_ember")
+lifetime = 0.4
+explosiveness = 1.0
+local_coords = true
+spread = 34.26
+gravity = Vector2(0, 120)
+initial_velocity_min = 120.0
+initial_velocity_max = 300.0
+scale_amount_min = 0.4
+scale_amount_curve = SubResource("Curve_l18u6")
+color_ramp = SubResource("Grad_spark")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1997403467]
+position = Vector2(29, -1)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1933370304]
+position = Vector2(4, 1)
+shape = SubResource("box_blast")
+
+[node name="Pulse" type="CPUParticles2D" parent="." unique_id=2135571563]
+z_index = -1
+texture_filter = 1
+position = Vector2(1, 0)
+amount = 10
+texture = ExtResource("4_ember")
+lifetime = 0.4
+explosiveness = 1.0
+local_coords = true
+emission_shape = 1
+emission_sphere_radius = 0.01
+spread = 23.67
+gravity = Vector2(0, 0)
+initial_velocity_min = 200.0
+initial_velocity_max = 200.0
+scale_amount_min = 1.2
+scale_amount_max = 2.0
+scale_amount_curve = SubResource("Curve_pulse")
+color_ramp = SubResource("Grad_pulse")

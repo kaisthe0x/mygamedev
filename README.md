@@ -256,6 +256,7 @@ with wind-up / in-between frames between the hits:
 |---|---|---|
 | khalid | `attack_spear` | `[6, 9, 13]` — thrust, thrust, big spinning finisher (his Elite swap) |
 | khalid | `special_ground_breaker` | `[6]` — the overhead ground crack |
+| khalid | `special_stay` | `[3]` — a short stun blast (little dmg, 5s stun) |
 | kebus (enemy) | `attack` | `[3]` |
 | baghel (enemy) | `attack_projectile` | `[6]` |
 | nasen (enemy) | `attack` | `[2]` — the rage AoE erupts here |
@@ -563,6 +564,43 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
   numbers → the move's `tuning` in `configs/moves.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
   `Local Coords`, per-child positioning) in [vfx/README.md](vfx/README.md).
+
+### Sprite tint shaders (Khalid's living hair)
+
+A character's sprite can carry a `canvas_item` shader for a permanent, animated
+tint. `player.gd`'s `_apply_character()` looks for `res://resources/<char>_tint.tres`
+after loading the SpriteFrames and, if present, assigns it as `sprite.material`
+(else clears it) — so it's pure convention, no per-character code.
+
+Khalid has one: `vfx/shaders/sprite_tint.gdshader` + `resources/khalid_tint.tres`.
+It has **two independent colour-keyed channels**, so each only touches the part you mean:
+
+**Hair channel** — keys the bright, saturated red hair pixels (his coat is a dull
+reddish-brown, keyed out by brightness/saturation), keeps their drawn shading, and
+drives them with a moving palette (a base colour + two accents flowing through). The
+palette is **HDR (>1.0)**, so those pixels clear the WorldEnvironment bloom's `1.0`
+threshold and glow like his particles. Knobs:
+- `intensity`/`vibrancy`/`glow` — strength, colour punch, bloom push.
+- `flow_speed`/`flow_amount` — how fast the colour moves, how much the accents bleed in.
+- `base_red`/`accent_a`/`accent_b` — the three palette colours (source_color). Set all
+  three to reds for a pure-red shimmer, or vary them for a multi-colour aura.
+- `key_val`/`key_sat`/`key_hue` — **the hair mask.** These are LOW thresholds
+  (a pixel must be *brighter than* `key_val`, etc.); **higher = more restrictive**,
+  and set too high the mask selects nothing and the effect vanishes. Ranges are
+  slider-clamped to keep them sane. Raise `key_val` if the coat starts shimmering.
+
+**Metal channel (shoes + gauntlets)** — keys the grey-ish metal (LOW saturation, mid
+brightness) and recolours it toward a tint. **Off by default** (`metal_amount = 0`), so
+it changes nothing until you raise it. Knobs:
+- `metal_amount` — 0 = untouched; raise to blend in the tint. `metal_tint` — the colour
+  (HDR to make it glow); `metal_glow` — bloom push.
+- `metal_sat_max` — metal is grey, so only pixels *less saturated* than this count (raise
+  if some of the metal is missed, lower if coloured cloth starts getting tinted).
+- `metal_val_min`/`metal_val_max` — brightness band; excludes dark outlines and near-white
+  highlights.
+
+> The shader + HDR bloom only fully render in the running game (F5) — a `--headless`
+> still shows the raw sprite, so tune it live, not from screenshots.
 
 ---
 
