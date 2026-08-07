@@ -34,6 +34,17 @@ const CATALOG := {
 				{"damage": 20, "knockback": 60}, # thrust
 				{"damage": 35, "knockback": 140}, # finisher (strongest)
 			]},
+			# Bakshen: a charged slash -- ~1s wind-up (see FRAME_DURATIONS), then one heavy hit on the
+			# last frame. Big single payoff; numbers below feed the attack_bakshen Strike's hitbox.
+			"bakshen": {"animation": "attack_bakshen", "effect": "attack_bakshen", "kind": Combat.AttackKind.MELEE, "tier": "elite",
+				"tuning": {"damage": 65, "knockback": 0, "stun": 0.0}},
+			# Cherry Shots: a two-shot laser volley -- a small bolt on frame 3, a bigger/stronger one on
+			# frame 7 (a 2-segment combo, one press each). PROJECTILE kind: the director spawns the
+			# ShotSmall / ShotBig Projectile nodes from attack_cherry_shots.tscn; damage per shot below.
+			"cherry_shots": {"animation": "attack_cherry_shots", "effect": "attack_cherry_shots", "kind": Combat.AttackKind.PROJECTILE, "tier": "elite", "tuning": [
+				{"damage": 22, "knockback": 40}, # small bolt (frame 3)
+				{"damage": 42, "knockback": 90}, # big bolt (frame 7, stronger)
+			]},
 		},
 		# Ground breaker: an overhead slam that cracks the ground -- a GROUND-type Strike
 		# (special_ground_breaker.tscn) whose hitbox SHAPE is authored in the scene, fed these numbers.
@@ -45,8 +56,13 @@ const CATALOG := {
 			# bubbling red stun effect (the stay pulse texture) for the stun. A control/utility special.
 			"stay": {"animation": "special_stay", "effect": "special_stay", "kind": Combat.AttackKind.BLAST, "tier": "elite",
 				"tuning": {"damage": 4, "knockback": 0, "stun": 5.0, "victim_effect": "res://vfx/status/stay_stun.tscn"}},
+			# Built Different: a self-buff, no damage. On cast Khalid gains `buff_time` seconds of
+			# IMMUNITY (invuln) + a `speed_mult` movement boost, wrapped in a red aura (`buff_effect`).
+			# The player reads these buff_* fields in _start_special; no enemy hitbox. A "broken" flex.
+			"built_different": {"animation": "special_built_different", "effect": "built_different", "kind": Combat.AttackKind.BLAST, "tier": "broken",
+				"tuning": {"buff_time": 4.0, "speed_mult": 1.8, "invuln": true, "buff_effect": "res://vfx/character/khalid/special/built_different/built_different.tscn"}},
 		},
-		"default_attack": "spear", "default_special": "stay",
+		"default_attack": "cherry_shots", "default_special": "built_different",
 	},
 }
 

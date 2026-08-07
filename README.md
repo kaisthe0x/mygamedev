@@ -210,7 +210,9 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
   `HIT_FRAMES`/`loop_from`. It's the general form of `hold_last` (which only
   targets the last frame); a value here wins over `hold_last` for that frame. Out-
   of-range indices are rejected. Godot stores it as each frame's `duration` in the
-  `.tres`, so it survives regeneration.
+  `.tres`, so it survives regeneration. **Making a frame last N seconds:** the frame
+  time is `multiplier / fps`, so set `multiplier = N * fps`. e.g. Khalid's `bakshen`
+  charges for 1s on its wind-up frame via `fps 10` + `FRAME_DURATIONS {1: 10.0}`.
 - **`loop_from`** — for a looping animation, the sheet frame the cycle restarts
   at. Frames before it play once as an intro; the tail repeats forever.
 - **`loop_to`** — optional end of that loop (sheet frame, inclusive). Without it
@@ -255,6 +257,8 @@ with wind-up / in-between frames between the hits:
 | Who | Animation | `HIT_FRAMES` (sheet indices) |
 |---|---|---|
 | khalid | `attack_spear` | `[6, 9, 13]` — thrust, thrust, big spinning finisher (his Elite swap) |
+| khalid | `attack_bakshen` | `[3]` — one charged slash on the last frame (~1s wind-up) |
+| khalid | `attack_cherry_shots` | `[3, 7]` — two laser Projectiles: small bolt, then a bigger one |
 | khalid | `special_ground_breaker` | `[6]` — the overhead ground crack |
 | khalid | `special_stay` | `[3]` — a short stun blast (little dmg, 5s stun) |
 | kebus (enemy) | `attack` | `[3]` |
@@ -930,6 +934,7 @@ Each move's `tuning` (a dict, or an ARRAY one-per-combo-segment):
 | `x` | hitbox forward reach (mirrors with facing) |
 | `extents` | hitbox half-size |
 | `lunge` / `super_armor` / `multi_hit` | `Strike` wielder-effects — dormant hooks the buff system will use |
+| `buff_time` / `speed_mult` / `invuln` / `buff_effect` | **self-buff special** fields (see below) |
 
 **How a hit reaches the box (and the buff seam):** on each segment/special start the
 player resolves the effective tuning via **`resolve_tuning(move, seg)`** into
@@ -946,6 +951,19 @@ lunge/armor. An **empty** `tuning` means "the effect scene carries its own numbe
 - The move's **`kind`** (`Combat.AttackKind`: MELEE / BLAST / GROUND / PROJECTILE) is
   descriptive metadata for the future move-select / build UI — it does **not** drive
   behavior.
+- **Self-buff specials** (no enemy hitbox): a special whose tuning carries `buff_time`
+  turns into a timed buff on the *caster* instead of an attack. `_start_special` calls
+  `apply_self_buff`, which grants `buff_time` seconds of `invuln` (the hurtbox stays off —
+  folded into the per-frame `monitorable` calc, same channel as dash i-frames) and a
+  `speed_mult` on `run_speed`, wrapped in the aura scene at `buff_effect` (parented to the
+  player, freed on expiry). It ticks down in `_physics_process` and clears on death /
+  run-restart. Khalid's **Built Different** (`built_different`) is the first: 4s of
+  immunity + 1.8× speed + a red aura, no damage. Add another by dropping the same fields
+  on any special.
+- **Projectile attacks** put `Projectile` nodes (not `Strike`s) in the effect scene; the
+  director world-parents them at the muzzle and reads facing from `scale.x` so they fly
+  off. Khalid's **Cherry Shots** fires two — `ShotSmall` on frame 3, `ShotBig` on frame 7
+  — each a red laser `Line2D` bolt with its own damage from the tuning array.
 - A character with **no effect scene** for an attack deals no damage (Khalid, for now);
   a character with an **empty specials pool** (`get_move` returns null) simply can't
   special — the button no-ops.

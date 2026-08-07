@@ -78,6 +78,7 @@ var run_mult: float = 1.0
 func begin_run() -> void:
 	_dead = false
 	_death_finished = false
+	_end_self_buff()  # drop any active buff before _apply_character reseeds run_speed
 	damage_mult = 1.0
 	run_mult = 1.0
 	lahm_cap = BASE_LAHM_CAP
@@ -267,6 +268,15 @@ var _hold_left: float = 0.0
 var _channel: Strike = null
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
+## Self-buff timer (e.g. Built Different: immunity + speed). While > 0 the buff is active;
+## a special sets it via _apply_self_buff from its tuning's buff_* fields. See _tick_self_buff.
+var _buff_left: float = 0.0
+## While the buff is active AND invuln, the hurtbox stays off (folded into _physics_process).
+var _buff_invuln: bool = false
+## run_speed saved before a speed buff scaled it, restored when the buff ends.
+var _buff_run_speed: float = 0.0
+## The attached aura VFX for the current buff (freed on expiry), or null.
+var _buff_aura: Node2D = null
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
 var _particles: ParticleDirector
 ## Combat boxes, built in code (like the particle director) to avoid a scene edit.
@@ -599,6 +609,56 @@ func set_armor(duration: float) -> void:
 	_armor_left = maxf(_armor_left, duration)
 
 
+## Turn ON a timed self-buff from a special's tuning (Built Different): `buff_time` seconds of
+## optional immunity (`invuln` -> the hurtbox stays off, folded into _physics_process) and a
+## `speed_mult` movement boost, wrapped in an optional aura scene (`buff_effect`, parented to us
+## and freed on expiry). Re-casting refreshes it cleanly. No-op when buff_time <= 0.
+func apply_self_buff(t: Dictionary) -> void:
+	var duration := float(t.get("buff_time", 0.0))
+	if duration <= 0.0:
+		return
+	_end_self_buff()  # clear any active buff first (restore speed, drop old aura) -> clean refresh
+	_buff_left = duration
+	_buff_invuln = bool(t.get("invuln", false))
+	var speed_mult := float(t.get("speed_mult", 1.0))
+	if not is_equal_approx(speed_mult, 1.0):
+		_buff_run_speed = run_speed
+		run_speed *= speed_mult
+	var aura_path := String(t.get("buff_effect", ""))
+	if aura_path != "" and ResourceLoader.exists(aura_path):
+		var ps: PackedScene = load(aura_path)
+		if ps != null:
+			_buff_aura = ps.instantiate() as Node2D
+			if _buff_aura != null:
+				add_child(_buff_aura)
+
+
+## Tick down the self-buff; end it (restore speed, drop aura, re-enable the hurtbox next frame)
+## when it runs out. Called every physics frame.
+func _tick_self_buff(delta: float) -> void:
+	if _buff_left <= 0.0:
+		return
+	_buff_left -= delta
+	if _buff_left <= 0.0:
+		_end_self_buff()
+
+
+## End the self-buff and undo its effects. The hurtbox re-enables on its own next frame
+## (_physics_process recomputes it once _buff_invuln is false).
+func _end_self_buff() -> void:
+	_buff_left = 0.0
+	_buff_invuln = false
+	if _buff_run_speed > 0.0:
+		run_speed = _buff_run_speed
+		_buff_run_speed = 0.0
+	if is_instance_valid(_buff_aura):
+		var aura := _buff_aura
+		var tw := create_tween()
+		tw.tween_property(aura, "modulate:a", 0.0, 0.3)
+		tw.tween_callback(aura.queue_free)
+	_buff_aura = null
+
+
 ## Freeze the sprite on its current frame for `duration` seconds, then resume -- so an
 ## attack/special can HOLD its pose while a timed effect plays out (a Strike with
 ## emit_duration calls this: the caster stays on the cast frame until the effect ends).
@@ -660,6 +720,7 @@ func _die() -> void:
 	_combo_playing = false
 	_flurry = false
 	_hold_left = 0.0
+	_end_self_buff()  # drop the buff aura + restore run_speed on death
 	if _channel != null and is_instance_valid(_channel):
 		_channel.cancel()
 	_channel = null
@@ -768,14 +829,17 @@ func _physics_process(delta: float) -> void:
 	if _ability != null:
 		_ability.physics(self, delta)
 
+	_tick_self_buff(delta)  # count down Built Different's immunity/speed; end it cleanly
+
 	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
 	# i-frame window is unchanged by a longer dash_anim_time.
 	if _hurtbox != null:
-		# Off while dead, while spawning (protection so the materialize plays out), and
-		# during the dash i-frame window.
+		# Off while dead, while spawning (protection so the materialize plays out), during the
+		# dash i-frame window, and while a Built-Different-style invuln buff is active.
 		_hurtbox.monitorable = not _dead and _state != State.SPAWN \
-			and not (_state == State.DASH and _dash_left > 0.0)
+			and not (_state == State.DASH and _dash_left > 0.0) \
+			and not _buff_invuln
 
 	move_and_slide()
 	_update_animation(delta)
@@ -1077,6 +1141,9 @@ func _start_special() -> void:
 	_combo_playing = false
 	_buffered_special = false
 	_active_hit = resolve_tuning(_current_special, 0)  # feed the special's Hitbox
+	# A buff special (Built Different) carries buff_* fields instead of hitting -- turn it on now.
+	if _current_special != null:
+		apply_self_buff(_current_special.segment(0))
 	_enter(State.SPECIAL)
 	# Force-restart the special animation from frame 0. Mashing special re-enters SPECIAL the
 	# same frame the previous one ended -- before _update_animation swaps the anim -- so the

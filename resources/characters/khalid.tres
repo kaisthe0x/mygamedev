@@ -9,77 +9,120 @@
 [ext_resource type="Texture2D" uid="uid://04rxewvprur2" path="res://sprites/characters/khalid/khalid_dash_frames.png" id="7_dash"]
 [ext_resource type="Texture2D" uid="uid://cutgwdvwgxj47" path="res://sprites/characters/khalid/khalid_death_frames.png" id="8_death"]
 [ext_resource type="Texture2D" uid="uid://di7unepxorcn3" path="res://sprites/characters/khalid/khalid_spawn_frames.png" id="9_spawn"]
-[ext_resource type="Texture2D" uid="uid://cvo6weherngml" path="res://sprites/characters/khalid/khalid_attack_ora_ora_frames.png" id="10_attack_ora_ora"]
-[ext_resource type="Texture2D" uid="uid://dkyvjdmxgwfcr" path="res://sprites/characters/khalid/khalid_attack_spear_frames.png" id="11_attack_spear"]
-[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="12_special_ground_breaker"]
-[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_stay_frames.png" id="13_special_stay"]
+[ext_resource type="Texture2D" uid="uid://cey1410tu7yeb" path="res://sprites/characters/khalid/khalid_attack_bakshen_frames.png" id="10_attack_bakshen"]
+[ext_resource type="Texture2D" uid="uid://cw6u3rgedaxn" path="res://sprites/characters/khalid/khalid_attack_cherry_shots_frames.png" id="11_attack_cherry_shots"]
+[ext_resource type="Texture2D" uid="uid://cvo6weherngml" path="res://sprites/characters/khalid/khalid_attack_ora_ora_frames.png" id="12_attack_ora_ora"]
+[ext_resource type="Texture2D" uid="uid://dkyvjdmxgwfcr" path="res://sprites/characters/khalid/khalid_attack_spear_frames.png" id="13_attack_spear"]
+[ext_resource type="Texture2D" uid="uid://bct86rb447ejl" path="res://sprites/characters/khalid/khalid_special_built_different_frames.png" id="14_special_built_different"]
+[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="15_special_ground_breaker"]
+[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_stay_frames.png" id="16_special_stay"]
+
+[sub_resource type="AtlasTexture" id="attack_bakshen_1"]
+atlas = ExtResource("10_attack_bakshen")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_bakshen_2"]
+atlas = ExtResource("10_attack_bakshen")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_bakshen_3"]
+atlas = ExtResource("10_attack_bakshen")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_cherry_shots_1"]
+atlas = ExtResource("11_attack_cherry_shots")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_cherry_shots_2"]
+atlas = ExtResource("11_attack_cherry_shots")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_cherry_shots_3"]
+atlas = ExtResource("11_attack_cherry_shots")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_cherry_shots_4"]
+atlas = ExtResource("11_attack_cherry_shots")
+region = Rect2(512, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_cherry_shots_5"]
+atlas = ExtResource("11_attack_cherry_shots")
+region = Rect2(640, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_cherry_shots_6"]
+atlas = ExtResource("11_attack_cherry_shots")
+region = Rect2(768, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="attack_cherry_shots_7"]
+atlas = ExtResource("11_attack_cherry_shots")
+region = Rect2(896, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_ora_ora_1"]
-atlas = ExtResource("10_attack_ora_ora")
+atlas = ExtResource("12_attack_ora_ora")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_ora_ora_2"]
-atlas = ExtResource("10_attack_ora_ora")
+atlas = ExtResource("12_attack_ora_ora")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_ora_ora_3"]
-atlas = ExtResource("10_attack_ora_ora")
+atlas = ExtResource("12_attack_ora_ora")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_ora_ora_4"]
-atlas = ExtResource("10_attack_ora_ora")
+atlas = ExtResource("12_attack_ora_ora")
 region = Rect2(512, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_1"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_2"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_3"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_4"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(512, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_5"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(640, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_6"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(768, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_7"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(896, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_8"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(1024, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_9"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(1152, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_10"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(1280, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_11"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(1408, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_12"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(1536, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="attack_spear_13"]
-atlas = ExtResource("11_attack_spear")
+atlas = ExtResource("13_attack_spear")
 region = Rect2(1664, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="dash_1"]
@@ -322,52 +365,100 @@ region = Rect2(1024, 0, 128, 80)
 atlas = ExtResource("9_spawn")
 region = Rect2(1152, 0, 128, 80)
 
+[sub_resource type="AtlasTexture" id="special_built_different_1"]
+atlas = ExtResource("14_special_built_different")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_built_different_2"]
+atlas = ExtResource("14_special_built_different")
+region = Rect2(256, 0, 128, 80)
+
 [sub_resource type="AtlasTexture" id="special_ground_breaker_1"]
-atlas = ExtResource("12_special_ground_breaker")
+atlas = ExtResource("15_special_ground_breaker")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_2"]
-atlas = ExtResource("12_special_ground_breaker")
+atlas = ExtResource("15_special_ground_breaker")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_3"]
-atlas = ExtResource("12_special_ground_breaker")
+atlas = ExtResource("15_special_ground_breaker")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_4"]
-atlas = ExtResource("12_special_ground_breaker")
+atlas = ExtResource("15_special_ground_breaker")
 region = Rect2(512, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_5"]
-atlas = ExtResource("12_special_ground_breaker")
+atlas = ExtResource("15_special_ground_breaker")
 region = Rect2(640, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_6"]
-atlas = ExtResource("12_special_ground_breaker")
+atlas = ExtResource("15_special_ground_breaker")
 region = Rect2(768, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_7"]
-atlas = ExtResource("12_special_ground_breaker")
+atlas = ExtResource("15_special_ground_breaker")
 region = Rect2(896, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_stay_1"]
-atlas = ExtResource("13_special_stay")
+atlas = ExtResource("16_special_stay")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_stay_2"]
-atlas = ExtResource("13_special_stay")
+atlas = ExtResource("16_special_stay")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_stay_3"]
-atlas = ExtResource("13_special_stay")
+atlas = ExtResource("16_special_stay")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_stay_4"]
-atlas = ExtResource("13_special_stay")
+atlas = ExtResource("16_special_stay")
 region = Rect2(512, 0, 128, 80)
 
 [resource]
 animations = [{
+"frames": [{
+"duration": 2.0,
+"texture": SubResource("attack_bakshen_1")
+}, {
+"duration": 0.25,
+"texture": SubResource("attack_bakshen_2")
+}, {
+"duration": 3.0,
+"texture": SubResource("attack_bakshen_3")
+}],
+"loop": 0,
+"name": &"attack_bakshen",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 0.25,
+"texture": SubResource("attack_cherry_shots_1")
+}, {
+"duration": 0.25,
+"texture": SubResource("attack_cherry_shots_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_cherry_shots_3")
+}, {
+"duration": 0.25,
+"texture": SubResource("attack_cherry_shots_4")
+}, {
+"duration": 0.25,
+"texture": SubResource("attack_cherry_shots_5")
+}, {
+"duration": 0.25,
+"texture": SubResource("attack_cherry_shots_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_cherry_shots_7")
+}],
+"loop": 0,
+"name": &"attack_cherry_shots",
+"speed": 12.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("attack_ora_ora_1")
@@ -655,6 +746,17 @@ animations = [{
 "speed": 10.0
 }, {
 "frames": [{
+"duration": 1.0,
+"texture": SubResource("special_built_different_1")
+}, {
+"duration": 3.0,
+"texture": SubResource("special_built_different_2")
+}],
+"loop": 0,
+"name": &"special_built_different",
+"speed": 8.0
+}, {
+"frames": [{
 "duration": 0.25,
 "texture": SubResource("special_ground_breaker_1")
 }, {
@@ -698,11 +800,15 @@ animations = [{
 "speed": 10.0
 }]
 metadata/hit_frames = {
+"attack_bakshen": [2],
+"attack_cherry_shots": [2, 6],
 "attack_spear": [5, 8, 12],
 "special_ground_breaker": [1, 2, 3, 4, 5],
 "special_stay": [0, 1, 2]
 }
 metadata/sheet_start = {
+"attack_bakshen": 1,
+"attack_cherry_shots": 1,
 "attack_ora_ora": 1,
 "attack_spear": 1,
 "dash": 1,
@@ -714,6 +820,7 @@ metadata/sheet_start = {
 "run": 1,
 "slam": 1,
 "spawn": 1,
+"special_built_different": 1,
 "special_ground_breaker": 1,
 "special_stay": 1
 }

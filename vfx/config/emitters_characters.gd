@@ -18,6 +18,13 @@ const TABLE := {
 		"blink_out": [ {"scene": preload("res://vfx/character/khalid/other/blink_out.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
 		"blink_in": [ {"scene": preload("res://vfx/character/khalid/other/blink_in.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
 		"attack_ora_ora": [ {"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2, 4], "pos": Vector2(23, -22)}],
+		# Bakshen: one big charged slash -- the Strike (its hitbox + red burst) fires on the last frame.
+		"attack_bakshen": [ {"scene": preload("res://vfx/character/khalid/attack/bakshen/attack_bakshen.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(0, -18)}],
+		# Cherry Shots: two laser Projectiles -- the small bolt launches on frame 3, the big one on frame 7.
+		"attack_cherry_shots": [
+			{"scene": preload("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots.tscn"), "node": "ShotSmall", "mode": "burst", "frames": [3], "pos": Vector2(16, -22)},
+			{"scene": preload("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots.tscn"), "node": "ShotBig", "mode": "burst", "frames": [7], "pos": Vector2(16, -22)},
+		],
 		# Spear: one DISTINCT hit-node per frame (thrust, thrust, big finisher). Each row fires one by name.
 		"attack_spear": [
 			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Thrust1", "mode": "burst", "frames": [6], "pos": Vector2(20, -18)},

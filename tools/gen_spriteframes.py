@@ -108,6 +108,12 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     ("khalid", "attack_ora_ora"): {"loop": True, "fps": 18.0},
     ("khalid", "special_ground_breaker"): {"fps": 15.0, "hold_last": 1.6},
     ("khalid", "slam"): {"fps": 15.0, "hold_last": 1.6},
+    # Bakshen: a charged slash. fps 10 so the per-frame math is clean (see FRAME_DURATIONS: the
+    # wind-up frame holds 1s); hold_last lets the final slash pose linger while its VFX plays.
+    ("khalid", "attack_bakshen"): {"fps": 10.0, "hold_last": 3.0},
+    # Built Different: a short flex that turns ON the self-buff (immunity + speed). hold_last lets
+    # the flex pose land; the buff itself lasts far longer (buff_time in moves.gd).
+    ("khalid", "special_built_different"): {"fps": 8.0, "hold_last": 3.0},
     ("khalid", "death"): {"fps": 7.0},
     # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
@@ -128,6 +134,11 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("khalid", "special_ground_breaker"): [2, 3, 4, 5, 6],
     ("khalid", "attack_spear"): [6, 9, 13],  # thrust, thrust, big spinning finisher (strongest)
     ("khalid", "special_stay"): [1, 2, 3],  # the short stun blast fires on the forward-thrust frame
+    ("khalid", "attack_bakshen"): [3],  # single charged hit on the last (slash) frame
+    ("khalid", "attack_cherry_shots"): [
+        3,
+        7,
+    ],  # two laser shots -- small on frame 3, big on frame 7
     ("kebus", "attack"): [3],
     ("baghel", "attack_projectile"): [6],
     ("nasen", "attack"): [2],  # the rage AoE erupts on this frame
@@ -142,6 +153,7 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
 # is just "the last frame"); a value set here wins over hold_last for that frame.
 FRAME_DURATIONS: dict[tuple[str, str], dict[int, float]] = {
     # e.g. ("some_char", "some_attack"): {2: 1.5}  # linger on those hit frames
+    ("khalid", "attack_bakshen"): {1: 2.0},  # wind-up frame holds 1 full second (10 x 1/10fps)
 }
 
 # Snappy swings: in a CHARACTER attack/special that has explicit HIT_FRAMES, the frames BETWEEN
