@@ -61,3 +61,39 @@ func hit_react(sprite: AnimatedSprite2D, damage: float) -> void:
 	_react_tw.tween_property(sprite, "scale", Vector2.ONE, dur) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)  # springy recover -> a little overshoot
 	_react_tw.tween_property(sprite, "modulate", Color.WHITE, dur).set_ease(Tween.EASE_OUT)
+
+
+## The body height a victim-VFX scene is authored against; `fit_h` scales the spawned
+## effect from this so one stun/shock scene engulfs enemies of any size.
+const VICTIM_VFX_REF_H := 34.0
+
+## Spawn a hit's custom VFX ON this body -- the dynamic per-attack hurt reaction. Parents
+## `scene` to us so it tracks our position, and frees it after `duration` with a fade
+## (0 = the scene is a one-shot that frees itself). Both Player and Enemy call this from
+## `_on_hurt`.
+##
+## POSITIONING is the scene's own job: the effect is parented at our origin, which is the
+## victim's FEET (sprites are feet-anchored). So the scene's ROOT position is an offset from
+## the feet -- y = 0 sits at the feet, negative y rises up the body. Author it in the scene
+## (e.g. stay_stun ~ (0,-17) to cover the torso; ground_breaker_stun ~ (0,0) to erupt from
+## the feet). `fit_h` (0 = none) scales the effect's SIZE to the victim; the position you
+## authored is left as-is.
+func spawn_victim_vfx(scene: PackedScene, duration: float, fit_h: float = 0.0) -> void:
+	if scene == null:
+		return
+	var fx := scene.instantiate()
+	add_child(fx)
+	if fit_h > 0.0 and fx is Node2D:
+		(fx as Node2D).scale = Vector2.ONE * (fit_h / VICTIM_VFX_REF_H)
+	if duration <= 0.0:
+		return  # a self-freeing one-shot (like a Strike / particle burst)
+	# Otherwise WE own its lifetime: after `duration`, fade it out then free.
+	get_tree().create_timer(duration).timeout.connect(func() -> void:
+		if not is_instance_valid(fx):
+			return
+		if fx is CanvasItem:
+			var tw := create_tween()
+			tw.tween_property(fx, "modulate:a", 0.0, 0.4)
+			tw.tween_callback(fx.queue_free)
+		else:
+			fx.queue_free())

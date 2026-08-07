@@ -96,6 +96,10 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 			_hitbox.status_color = t["color"]
 		if t.has("color") or t.has("stun"):
 			_hitbox.status_time = t.get("color_time", t.get("stun", 0.0))
+		# Dynamic per-attack victim VFX: a res:// scene path spawned on whoever this hits.
+		if t.has("victim_effect"):
+			_hitbox.victim_vfx = load(t["victim_effect"])
+			_hitbox.victim_vfx_time = t.get("victim_time", 0.0)  # 0 -> defaults to the stun/status window
 		_resize_hitbox(t)
 	# Wielder-effects act on the striker (option A): lunge shoves them forward, armor
 	# lets them shrug off stagger during the swing. No-op when the field/method is absent.

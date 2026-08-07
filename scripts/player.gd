@@ -581,6 +581,10 @@ func _on_hurt(hit: Hit) -> void:
 		_buffered_special = false
 	if hit.status_color.a > 0.0:
 		_status.show_for(hit.status_color, hit.status_time)
+	# Dynamic per-attack hurt VFX, same channel enemies use (a stun effect, a slam shock, ...).
+	# Placed by its own scene, relative to the player's feet (our origin).
+	if hit.victim_vfx != null:
+		spawn_victim_vfx(hit.victim_vfx, hit.victim_vfx_time)
 
 
 ## Shove the player forward along its facing -- a Strike's lunge (option A: the strike

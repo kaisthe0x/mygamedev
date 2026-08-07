@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://bsvij5d2kkrc7"]
+
+[ext_resource type="Texture2D" uid="uid://3875ryixpbhf" path="res://vfx/character/khalid/special/stay/stay_texture.png" id="1_gsprb"]
+
+[sub_resource type="Curve" id="Curve_pulse"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(0.9858407, 0.45762712), 0.0, 0.0, 0, 0, Vector2(0.99998, 1), 0.0, 0.0, 0, 0, Vector2(0.99999, 0.3370787), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="Gradient" id="Grad_jelly"]
+offsets = PackedFloat32Array(0, 0.25, 0.7, 1)
+colors = PackedColorArray(1.5, 0.1, 0.1, 0, 1.7, 0.18, 0.18, 0.55, 1.5, 0.12, 0.12, 0.45, 0.5, 0.04, 0.04, 0)
+
+[node name="StayStun" type="CPUParticles2D" unique_id=1329155854]
+z_index = 1
+texture_filter = 1
+position = Vector2(0, -17)
+amount = 4
+texture = ExtResource("1_gsprb")
+local_coords = true
+emission_shape = 1
+emission_sphere_radius = 1.0
+direction = Vector2(0, -1)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 20.0
+initial_velocity_max = 25.0
+scale_amount_min = 0.1
+scale_amount_max = 0.1
+scale_amount_curve = SubResource("Curve_pulse")
+color_ramp = SubResource("Grad_jelly")

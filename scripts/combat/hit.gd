@@ -17,3 +17,10 @@ var ranged: bool = false
 ## enables it; it lasts `status_time` seconds (defaults to the stun duration).
 var status_color: Color = Color(0, 0, 0, 0)
 var status_time: float = 0.0
+
+## Optional custom VFX scene spawned ON the victim when this hit lands -- the dynamic,
+## per-attack hurt reaction (a stun effect, a slam shock, a burn, ...). Null = none. It's
+## parented to the victim and freed after `victim_vfx_time` seconds (0 = the scene frees
+## itself, i.e. a one-shot burst). Set per attack via the move's `victim_effect` tuning.
+var victim_vfx: PackedScene = null
+var victim_vfx_time: float = 0.0

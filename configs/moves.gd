@@ -39,14 +39,14 @@ const CATALOG := {
 		# (special_ground_breaker.tscn) whose hitbox SHAPE is authored in the scene, fed these numbers.
 		"specials": {
 			"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND,
-				"tuning": {"damage": 40, "knockback": 160, "stun": 0.2}},
+				"tuning": {"damage": 40, "knockback": 160, "stun": 1.0, "victim_effect": "res://vfx/status/ground_breaker_stun.tscn"}},
 			# Stay: a short blast -- little damage, but a long 5s STUN (knockback 0 so the enemy just
-			# freezes in place). A red HDR status overlay (>1 so the bloom catches it) throbs over the
-			# frozen enemy so the stun reads at a glance. A control/utility special.
+			# freezes in place). Instead of a flat tint, `victim_effect` engulfs the frozen enemy in a
+			# bubbling red stun effect (the stay pulse texture) for the stun. A control/utility special.
 			"stay": {"animation": "special_stay", "effect": "special_stay", "kind": Combat.AttackKind.BLAST, "tier": "elite",
-				"tuning": {"damage": 4, "knockback": 0, "stun": 5.0, "color": Color(1.7, 0.12, 0.12, 0.9)}},
+				"tuning": {"damage": 4, "knockback": 0, "stun": 5.0, "victim_effect": "res://vfx/status/stay_stun.tscn"}},
 		},
-		"default_attack": "spear", "default_special": "stay",
+		"default_attack": "spear", "default_special": "ground_breaker",
 	},
 }
 

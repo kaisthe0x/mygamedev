@@ -695,15 +695,21 @@ func _on_hurt(hit: Hit) -> void:
 	if health <= 0.0:
 		_die()
 		return
+	# Dynamic per-attack hurt VFX (a stun effect, a slam shock, ...), placed by its own scene
+	# relative to our feet. fit_h scales it to this enemy's size.
+	if hit.victim_vfx != null:
+		spawn_victim_vfx(hit.victim_vfx, hit.victim_vfx_time, hurtbox_size.y)
 	# Knockback needs a brief stagger, or the AI overwrites the shove velocity next
 	# frame and nothing moves; a pure stun freezes for longer.
 	var stagger := apply_knockback(hit, _facing)
 	if stagger > 0.0:
 		_stun_left = stagger
 		_set_state(State.STUN)
-		# A tagged freeze holds the current pose (not idle) + shows the overlay.
-		if hit.status_color.a > 0.0:
+		# A tagged CONTROL stun (long) holds the current pose (not idle); a brief knockback
+		# stagger doesn't. The optional tint overlay shows on top if the hit set one.
+		if hit.stun >= Combat.CONTROL_STUN_MIN:
 			_sprite.pause()
+		if hit.status_color.a > 0.0:
 			_status.show_for(hit.status_color, hit.status_time)
 
 

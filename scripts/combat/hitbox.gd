@@ -16,6 +16,10 @@ extends Area2D
 ## Optional engulfing status overlay on the victim (a > 0 enables it).
 @export var status_color: Color = Color(0, 0, 0, 0)
 @export var status_time: float = 0.0
+## Optional custom VFX scene spawned on the victim on hit (a stun effect, a slam shock, ...).
+## Null = none. Lives for victim_vfx_time seconds (0 -> defaults to the status/stun duration).
+@export var victim_vfx: PackedScene = null
+@export var victim_vfx_time: float = 0.0
 ## Marks hits from this box as ranged (a projectile). Projectile sets it on its box; melee
 ## Strikes leave it false. Carried into the Hit so a victim can react by attack type.
 @export var ranged: bool = false
@@ -83,6 +87,9 @@ func _on_area_entered(area: Area2D) -> void:
 	hit.stun = stun
 	hit.status_color = status_color
 	hit.status_time = status_time if status_time > 0.0 else stun
+	hit.victim_vfx = victim_vfx
+	# Default the VFX lifetime to the status/stun window so e.g. a stun effect lasts the whole stun.
+	hit.victim_vfx_time = victim_vfx_time if victim_vfx_time > 0.0 else hit.status_time
 	hit.ranged = ranged
 	var credit: Node = source if is_instance_valid(source) else owner
 	hit.source = credit if is_instance_valid(credit) else null

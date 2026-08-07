@@ -884,10 +884,29 @@ so a victim can react by attack type — e.g. nasen is stunned by melee but not 
   `ranged_knockback/stun`.
 - A knockback always carries a short stagger, or the AI/input would overwrite the
   shove velocity the next frame and nothing would move.
-- **Freeze + overlay:** a `stun` of several seconds *is* a freeze; pair it with a
-  `status_color` and the victim is engulfed in that colour (`StatusOverlay`, an
-  additive tinted copy synced to the sprite) and its pose is paused for the
-  duration.
+- **Freeze:** a `stun` ≥ `Combat.CONTROL_STUN_MIN` (1s) is a tagged *control* stun —
+  the victim's pose is paused (frozen) instead of idling. Shorter stuns are just
+  knockback staggers.
+- **Two ways to dress a hit on the victim** (compose either/both):
+  - **`status_color` / `status_time`** — an additive tinted copy of the sprite
+    (`StatusOverlay`) that throbs over the victim for the duration. Cheap, code-only.
+  - **`victim_effect`** (a res:// **scene** path in the tuning) → `Hit.victim_vfx` — a
+    **custom VFX scene spawned on the victim**, the dynamic per-attack hurt reaction.
+    `Combatant.spawn_victim_vfx` parents it to the victim (so it tracks their position),
+    scales it to fit (`fit_h` / `VICTIM_VFX_REF_H`), and frees it after `victim_time`
+    (defaults to the stun/status window) with a fade — or, if that's 0, lets the scene
+    free itself (a one-shot burst). This is the extensible seam: a stun aura, a slam
+    shock, a burn, an ice crust — one scene each, no code per effect.
+    - **Positioning is the scene's job.** The effect is parented at the victim's
+      **origin = its feet** (sprites are feet-anchored), so the effect scene's ROOT
+      `position` is an offset from the feet: `y = 0` at the feet, **negative y up** the
+      body. Adjust it in the scene, not in code. Examples: `stay_stun.tscn` sits at
+      `(0, -17)` to engulf the torso; `ground_breaker_stun.tscn` sits at `(0, 0)` to
+      erupt from the feet. `fit_h` scales the effect's size; the authored position is
+      left as-is.
+    - Khalid's specials both use it — `res://vfx/status/stay_stun.tscn` (a bubbling red
+      column from the stay pulse texture) and `res://vfx/status/ground_breaker_stun.tscn`
+      (a burst up from the feet).
 
 ### Player attacks — `moves.gd` tuning + a spawned `Strike` / `Projectile`
 
