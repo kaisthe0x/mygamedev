@@ -9,12 +9,19 @@
 size = Vector2(36, 18)
 
 [sub_resource type="Curve" id="Curve_shrink"]
-_data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.96814156, 1), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Gradient" id="Grad_slash"]
 offsets = PackedFloat32Array(0, 0.5, 1)
 colors = PackedColorArray(1.4, 0.18, 0.16, 1, 0.77, 0.04, 0.04, 1, 0.3, 0.05, 0.04, 0)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_ka8yl"]
+load_path = "res://.godot/imported/pixel_ember.png-9667d2675ac316913c3d5799dae88bca.ctex"
+
+[sub_resource type="Curve" id="Curve_e65xe"]
+_data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="RectangleShape2D" id="box_thrust2"]
 size = Vector2(75, 30)
@@ -41,21 +48,34 @@ position = Vector2(18, 0)
 shape = SubResource("box_thrust1")
 
 [node name="Slash" type="CPUParticles2D" parent="Thrust1" unique_id=519902987]
-local_coords = true
 texture_filter = 1
-emitting = false
-amount = 22
+amount = 40
 texture = ExtResource("3_ember")
 lifetime = 0.3
-one_shot = true
 explosiveness = 1.0
-direction = Vector2(1, -0.15)
-spread = 26.0
-gravity = Vector2(0, 80)
-initial_velocity_min = 160.0
-initial_velocity_max = 320.0
+local_coords = true
+spread = 29.74
+gravity = Vector2(0, 0)
+initial_velocity_min = 320.0
+initial_velocity_max = 450.0
 scale_amount_min = 0.5
 scale_amount_curve = SubResource("Curve_shrink")
+color_ramp = SubResource("Grad_slash")
+
+[node name="Thrust" type="CPUParticles2D" parent="Thrust1" unique_id=713179970]
+texture_filter = 1
+position = Vector2(31, -1)
+amount = 40
+texture = SubResource("CompressedTexture2D_ka8yl")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, 0)
+spread = 8.56
+gravity = Vector2(0, 0)
+initial_velocity_min = 100.0
+initial_velocity_max = 250.0
+scale_amount_curve = SubResource("Curve_e65xe")
 color_ramp = SubResource("Grad_slash")
 
 [node name="Thrust2" type="Node2D" parent="." unique_id=1368286580]
@@ -71,7 +91,6 @@ position = Vector2(37.5, 1)
 shape = SubResource("box_thrust2")
 
 [node name="Slash" type="CPUParticles2D" parent="Thrust2" unique_id=377122896]
-local_coords = true
 texture_filter = 1
 emitting = false
 amount = 10
@@ -79,6 +98,7 @@ texture = ExtResource("4_ka8yl")
 lifetime = 0.34
 one_shot = true
 explosiveness = 1.0
+local_coords = true
 spread = 9.09
 gravity = Vector2(0, 0)
 initial_velocity_min = 300.0
@@ -102,14 +122,16 @@ position = Vector2(27, 2.5)
 shape = SubResource("box_finisher")
 
 [node name="Arc" type="CPUParticles2D" parent="Finisher" unique_id=299386311]
-local_coords = true
 z_index = -1
 texture_filter = 1
 rotation = 0.010459501
+emitting = false
 amount = 7
 texture = ExtResource("4_ka8yl")
 lifetime = 0.3
+one_shot = true
 explosiveness = 1.0
+local_coords = true
 emission_shape = 1
 emission_sphere_radius = 6.0
 spread = 0.0

@@ -1,14 +1,14 @@
 shader_type canvas_item;
 
 // Living sprite tint (recolours parts of a character by colour-keying, not by masks/regions).
-// TWO independent channels, each keyed on colour so they only touch the parts you mean:
-//   1. HAIR  -- the bright, saturated RED hair pixels (his coat is a dull reddish-brown, keyed out
-//      by brightness + saturation). Driven by a moving palette: a base colour with two accents
-//      flowing through it. Each pixel keeps its own drawn shading, so the hair looks the same shape
-//      -- just alive. Bright bits are pushed past 1.0 so the WorldEnvironment bloom gives it an aura.
-//   2. METAL -- the grey-ish metal (shoes + gauntlets): LOW-saturation, mid-brightness pixels,
-//      recoloured toward a tint. OFF by default (metal_amount = 0), so it changes nothing until you
-//      raise it. Everything not caught by either key is untouched. All uniforms are tunable.
+// FIVE independent channels, each keyed on colour so they only touch the parts you mean:
+//   1. HAIR  -- the bright, saturated RED hair. Driven by a moving palette (a base colour with two
+//      accents flowing through it), keeping each pixel's shading so it looks the same shape, just
+//      alive. Bright bits are pushed past 1.0 so the WorldEnvironment bloom gives it an aura.
+//   2. METAL -- the grey-ish metal (shoes + gauntlets): keyed on LOW saturation + mid brightness.
+//   3. COLLAR (yellow), 4. JACKET (brown coat), 5. SKIN (teal face) -- keyed by HUE band.
+// Channels 2-5 are OFF by default (their *_amount = 0), so nothing changes until you raise them.
+// Everything not caught by any key is untouched. All uniforms are tunable.
 
 // --- hair channel ---
 uniform float intensity : hint_range(0.0, 1.5) = 1.0;   // overall hair strength (0 = off)
@@ -35,12 +35,50 @@ uniform float metal_sat_max : hint_range(0.0, 0.6) = 0.25; // metal is GREY: onl
 uniform float metal_val_min : hint_range(0.0, 1.0) = 0.22; // ignore dark outlines below this brightness
 uniform float metal_val_max : hint_range(0.0, 1.0) = 0.92; // ignore near-white highlights above this brightness
 
+// --- three HUE-keyed regions: collar / jacket / skin ---
+// Each is OFF by default (amount = 0). A pixel counts if its hue is within *_hue_width of *_hue AND
+// it's not grey/near-black (a fixed saturation + brightness floor keeps them off the metal/outlines).
+// If a channel grabs too much, narrow *_hue_width; if it's off-target, nudge *_hue.
+group_uniforms collar;
+uniform float collar_amount : hint_range(0.0, 1.0) = 0.0;
+uniform vec3  collar_tint : source_color = vec3(2.0, 1.6, 0.1);       // vivid gold default
+uniform float collar_glow : hint_range(0.0, 1.5) = 0.3;
+uniform float collar_hue : hint_range(0.0, 1.0) = 0.167;             // ~60deg yellow
+uniform float collar_hue_width : hint_range(0.0, 0.2) = 0.05;
+group_uniforms jacket;
+uniform float jacket_amount : hint_range(0.0, 1.0) = 0.0;
+uniform vec3  jacket_tint : source_color = vec3(1.4, 0.1, 0.15);      // deep crimson default
+uniform float jacket_glow : hint_range(0.0, 1.5) = 0.2;
+uniform float jacket_hue : hint_range(0.0, 1.0) = 0.083;             // ~30deg brown/orange coat
+uniform float jacket_hue_width : hint_range(0.0, 0.2) = 0.05;
+group_uniforms skin;
+uniform float skin_amount : hint_range(0.0, 1.0) = 0.0;
+uniform vec3  skin_tint : source_color = vec3(0.1, 1.2, 1.0);         // bright teal default
+uniform float skin_glow : hint_range(0.0, 1.5) = 0.2;
+uniform float skin_hue : hint_range(0.0, 1.0) = 0.47;                // ~170deg teal face
+uniform float skin_hue_width : hint_range(0.0, 0.2) = 0.07;
+group_uniforms;
+
 vec3 rgb2hsv(vec3 c) {
 	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
 	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
 	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
 	float d = q.x - min(q.w, q.y);
 	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1e-10)), d / (q.x + 1e-10), q.x);
+}
+
+// Recolour pixels whose hue sits within hue_w of hue_c toward `tint`, keeping their drawn shading and
+// adding an additive HDR glow. Keys on the ORIGINAL hsv, so channels don't interfere with each other.
+vec3 tint_hue(vec3 col, vec3 hsv, float alpha, vec3 tint, float ch_glow, float amount, float hue_c, float hue_w) {
+	float hue_d = abs(hsv.x - hue_c);
+	hue_d = min(hue_d, 1.0 - hue_d);  // hue wraps at 0/1
+	float m = (1.0 - smoothstep(hue_w, hue_w + 0.04, hue_d))
+		* smoothstep(0.12, 0.20, hsv.y)   // saturation floor -> skip grey metal
+		* smoothstep(0.05, 0.11, hsv.z)   // brightness floor -> skip near-black outlines
+		* alpha * amount;
+	m = clamp(m, 0.0, 1.0);
+	vec3 c = tint * mix(0.5, 1.35, pow(hsv.z, 0.9));
+	return mix(col, c, m) + c * ch_glow * m;
 }
 
 void fragment() {
@@ -79,6 +117,11 @@ void fragment() {
 	vec3 metal = metal_tint * mix(0.5, 1.35, pow(hsv.z, 0.9));  // keep the metal's own light/shade
 	col = mix(col, metal, mm);
 	col += metal * metal_glow * mm;  // additive HDR aura -> real bloom, NOT diluted by the blend amount
+
+	// ---- COLLAR / JACKET / SKIN (hue-keyed, off unless their amount > 0) ----
+	col = tint_hue(col, hsv, tex.a, collar_tint, collar_glow, collar_amount, collar_hue, collar_hue_width);
+	col = tint_hue(col, hsv, tex.a, jacket_tint, jacket_glow, jacket_amount, jacket_hue, jacket_hue_width);
+	col = tint_hue(col, hsv, tex.a, skin_tint,   skin_glow,   skin_amount,   skin_hue,   skin_hue_width);
 
 	COLOR.rgb = col;
 	COLOR.a = tex.a;

@@ -565,7 +565,7 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
   `Local Coords`, per-child positioning) in [vfx/README.md](vfx/README.md).
 
-### Sprite tint shaders (Khalid's living hair)
+### Sprite tint shaders (Khalid's living hair + recolourable outfit)
 
 A character's sprite can carry a `canvas_item` shader for a permanent, animated
 tint. `player.gd`'s `_apply_character()` looks for `res://resources/<char>_tint.tres`
@@ -573,7 +573,8 @@ after loading the SpriteFrames and, if present, assigns it as `sprite.material`
 (else clears it) — so it's pure convention, no per-character code.
 
 Khalid has one: `vfx/shaders/sprite_tint.gdshader` + `resources/khalid_tint.tres`.
-It has **two independent colour-keyed channels**, so each only touches the part you mean:
+It has **five independent colour-keyed channels**, so each only touches the part you
+mean, and channels 2–5 are **off by default** (their `*_amount = 0`):
 
 **Hair channel** — keys the bright, saturated red hair pixels (his coat is a dull
 reddish-brown, keyed out by brightness/saturation), keeps their drawn shading, and
@@ -598,6 +599,17 @@ it changes nothing until you raise it. Knobs:
   if some of the metal is missed, lower if coloured cloth starts getting tinted).
 - `metal_val_min`/`metal_val_max` — brightness band; excludes dark outlines and near-white
   highlights.
+
+**Collar / Jacket / Skin channels (hue-keyed)** — three more channels, one per outfit
+region, keyed by **hue band** (collar = yellow ~60°, jacket = brown coat ~30°, skin =
+teal face ~170°). Grouped in the inspector under `collar` / `jacket` / `skin`. Each has:
+- `<region>_amount` — 0 = off (default); raise to blend the tint in. `<region>_tint` —
+  the colour (HDR to glow); `<region>_glow` — bloom push.
+- `<region>_hue` / `<region>_hue_width` — **the target.** `hue` is the centre hue
+  (0–1 = 0–360°), `hue_width` the tolerance. If a channel grabs neighbouring colours,
+  narrow `hue_width`; if it's off-target, nudge `hue`. A shared saturation + brightness
+  floor keeps all three off the grey metal and the black outlines. Note the gold collar
+  is only a few pixels per frame, so its effect is small by nature.
 
 > The shader + HDR bloom only fully render in the running game (F5) — a `--headless`
 > still shows the raw sprite, so tune it live, not from screenshots.
