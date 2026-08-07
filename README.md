@@ -857,10 +857,19 @@ the enemy `friendly_fire` flag above.)
 - **`Combatant`** (`scripts/combat/combatant.gd`) is the shared base for `Player`
   and `Enemy` (both `extends Combatant`, itself a `CharacterBody2D`). It holds the
   pieces they'd otherwise each reimplement: `anchor_to_feet` (sprite offset),
-  `make_box` (rect collider), `flash` (the red hit-tell), and `apply_knockback`
-  (turns a `Hit`'s knockback into a shove + returns the stagger time; the caller
-  applies its own stun state). Feel constants live on `Combat`: `KNOCKBACK_POP`,
-  `MIN_STAGGER`, `STRIKE_ACTIVE`.
+  `make_box` (rect collider), `apply_knockback` (turns a `Hit`'s knockback into a
+  shove + returns the stagger time), and two "took a hit" tells:
+  - `flash(sprite)` — the plain red modulate flash.
+  - **`hit_react(sprite, damage)`** — the punchy one enemies use: a white-hot HDR
+    flash (blooms) **plus a feet-anchored squash**, both scaled by damage. It fires
+    even at `knockback = 0`, so a flurry like ora_ora reads as impacts instead of a
+    flat tint. Squash uses `sprite.scale` (enemies flip via `flip_h`, so scale is
+    free); it re-punches cleanly on rapid hits. Feel constants live on `Combat`:
+    `KNOCKBACK_POP`, `MIN_STAGGER`, `STRIKE_ACTIVE`, `HIT_FLASH`, `HIT_FLASH_TIME`.
+- **`StatusOverlay`** (`scripts/combat/status_overlay.gd`) engulfs a stunned body in
+  an additive tint that mirrors its pose (frame/flip/offset/**scale**) and **throbs**
+  for visibility. Driven by a `Hit`'s `status_color` / `status_time`; Khalid's
+  `special_stay` sets a red HDR colour (`>1`, so the bloom makes the frozen enemy glow).
 
 ### On-hit effects — the `Hit` object
 

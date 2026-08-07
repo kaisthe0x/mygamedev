@@ -42,3 +42,22 @@ func flash(sprite: AnimatedSprite2D) -> void:
 	sprite.modulate = Combat.HIT_FLASH
 	var tw := create_tween()
 	tw.tween_property(sprite, "modulate", Color.WHITE, Combat.HIT_FLASH_TIME)
+
+
+var _react_tw: Tween
+
+## Punchy "took a hit" reaction: a white-hot HDR flash (blooms) + a feet-anchored
+## squash, both scaled by `damage`. Unlike knockback it fires even when knockback is
+## 0 (a flurry like ora_ora), so every hit reads as an impact instead of a flat tint.
+## Kills any in-flight reaction so rapid hits re-punch cleanly rather than fighting.
+func hit_react(sprite: AnimatedSprite2D, damage: float) -> void:
+	if is_instance_valid(_react_tw):
+		_react_tw.kill()
+	var punch := clampf(damage / 40.0, 0.14, 0.5)   # ora_ora ~0.19 .. ground_breaker 0.5
+	var dur := 0.18 + punch * 0.12
+	sprite.scale = Vector2(1.0 + punch, 1.0 - punch)  # squash: wider + shorter, pivots at the feet
+	sprite.modulate = Color(2.2, 0.9, 0.9)            # hot red-white pop, >1 so the bloom catches it
+	_react_tw = create_tween().set_parallel(true)
+	_react_tw.tween_property(sprite, "scale", Vector2.ONE, dur) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)  # springy recover -> a little overshoot
+	_react_tw.tween_property(sprite, "modulate", Color.WHITE, dur).set_ease(Tween.EASE_OUT)

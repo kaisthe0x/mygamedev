@@ -9,6 +9,8 @@ extends Node2D
 var _target: AnimatedSprite2D
 var _overlay: AnimatedSprite2D
 var _time: float = 0.0
+var _color: Color = Color.WHITE
+var _phase: float = 0.0
 
 
 ## Build the additive overlay sprite that mirrors `target`, hidden until show_for().
@@ -28,6 +30,8 @@ func setup(target: AnimatedSprite2D) -> void:
 func show_for(color: Color, duration: float) -> void:
 	if _target == null or duration <= 0.0:
 		return
+	_color = color
+	_phase = 0.0
 	_overlay.modulate = color
 	_time = duration
 	_overlay.visible = true
@@ -41,6 +45,9 @@ func _process(delta: float) -> void:
 		_overlay.visible = false
 		set_process(false)
 		return
+	# Throb the tint so an active status reads at a glance instead of a static wash.
+	_phase += delta
+	_overlay.modulate = _color * (0.68 + 0.32 * sin(_phase * 7.5))
 	_sync()
 
 
@@ -53,3 +60,4 @@ func _sync() -> void:
 	_overlay.flip_h = _target.flip_h
 	_overlay.centered = _target.centered
 	_overlay.offset = _target.offset
+	_overlay.scale = _target.scale  # track the hit-react squash so the tint deforms with the body

@@ -685,7 +685,7 @@ func _on_hurt(hit: Hit) -> void:
 	health = maxf(health - hit.amount, 0.0)
 	damaged.emit(before - health, hit.source)  # harvest = actual HP removed (overkill isn't paid)
 	_bar.set_ratio(health / max_health)
-	flash(_sprite)
+	hit_react(_sprite, hit.amount)
 	# Getting hit alerts us: pursue the attacker for a while even if it struck from beyond
 	# our normal detection range, and snap to face where the blow came from.
 	if alert_duration > 0.0:
