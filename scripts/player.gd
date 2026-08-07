@@ -567,8 +567,14 @@ func _on_hurt(hit: Hit) -> void:
 	var stagger := apply_knockback(hit, _facing) # shove + how long to stagger
 	if stagger > 0.0:
 		_stun_left = stagger
-		_combo_playing = false
 		_state = State.IDLE
+		# A stagger interrupts any swing -- clear ALL of its flags, or they leak into the new
+		# state. `_flurry` especially: left true, it never gets cleared (that only happens inside
+		# _process_attack, which no longer runs), so _advance_combo's `if not _flurry` guard blocks
+		# ora-ora forever after a hit lands mid-flurry.
+		_combo_playing = false
+		_flurry = false
+		_buffered_special = false
 	if hit.status_color.a > 0.0:
 		_status.show_for(hit.status_color, hit.status_time)
 
@@ -1064,6 +1070,15 @@ func _start_special() -> void:
 	_buffered_special = false
 	_active_hit = resolve_tuning(_current_special, 0)  # feed the special's Hitbox
 	_enter(State.SPECIAL)
+	# Force-restart the special animation from frame 0. Mashing special re-enters SPECIAL the
+	# same frame the previous one ended -- before _update_animation swaps the anim -- so the
+	# sprite is already ON this animation but STOPPED on its finished last frame. The
+	# name-equality check in _update_animation would then skip play() and we'd hang there
+	# forever (animation_finished never re-fires, so the committed state never exits). Restart
+	# explicitly so playback always runs and finishes.
+	if _sprite != null and _current_special != null and has_anim(_current_special.animation):
+		_sprite.play(_current_special.animation)
+		_sprite.set_frame_and_progress(0, 0.0)
 
 
 ## Unlike the light combo, a special swing is committed: it plays the whole

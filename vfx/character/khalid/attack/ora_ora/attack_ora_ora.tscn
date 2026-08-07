@@ -1,48 +1,92 @@
 [gd_scene format=3 uid="uid://b64mvp2rqfl12"]
 
 [ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
-[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+[ext_resource type="Texture2D" uid="uid://d4a7kiok3pfpu" path="res://vfx/character/khalid/attack/ora_ora/gauntlet1.png" id="2_ri72s"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hitbox"]
-
-[sub_resource type="Gradient" id="Grad_punch"]
-offsets = PackedFloat32Array(0, 0.5, 1)
-colors = PackedColorArray(1.8, 1.5, 0.35, 1, 0.9, 0.1, 0.08, 0.85, 0.5, 0.05, 0.04, 0)
+[ext_resource type="Texture2D" uid="uid://cdmf8du7wrmuj" path="res://vfx/character/khalid/attack/ora_ora/gauntlet.png" id="3_lohr8"]
 
 [sub_resource type="Curve" id="Curve_shrink"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.9504425, 0.8314607), 0.0, 0.0, 0, 0]
 point_count = 2
 
+[sub_resource type="Gradient" id="Grad_punch"]
+offsets = PackedFloat32Array(0, 0.62929475, 0.920434)
+colors = PackedColorArray(0.87058824, 0.16470589, 0.11764706, 1, 0.9, 0.1, 0.08, 0.85, 0.5267631, 0.05334539, 0.04267631, 0.056871593)
+
+[sub_resource type="Curve" id="Curve_lohr8"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49734512, 0.4788136), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_lohr8"]
+offsets = PackedFloat32Array(0, 0.36708862, 0.66907775, 0.7920434)
+colors = PackedColorArray(0.08235294, 0.5294118, 0.49019608, 1, 0.40777034, 0.04878322, 0.028896812, 1, 0.8235294, 0.7490196, 0.078431375, 1, 0.5267631, 0.05334539, 0.04267631, 0.056871593)
+
 [sub_resource type="RectangleShape2D" id="Shape_fist"]
-size = Vector2(30, 20)
+size = Vector2(39, 20)
 
 [node name="AttackOraOra" type="Node2D" unique_id=640990001]
 script = ExtResource("1_strike")
 lifetime = 0.13
 
 [node name="Punch" type="CPUParticles2D" parent="." unique_id=640990002]
-amount = 14
-texture = ExtResource("2_dot")
-lifetime = 0.18
-one_shot = true
+amount = 1
+texture = ExtResource("2_ri72s")
+lifetime = 0.09999999999999999
 explosiveness = 1.0
-emission_shape = 1
-emission_sphere_radius = 5.0
-direction = Vector2(1, 0)
-spread = 32.0
+local_coords = true
+emission_shape = 3
+emission_rect_extents = Vector2(1, 8)
+spread = 0.0
 gravity = Vector2(0, 0)
-initial_velocity_min = 120.0
-initial_velocity_max = 190.0
-scale_amount_min = 0.35
-scale_amount_max = 0.6
+damping_min = 40.0
+damping_max = 40.0
+scale_amount_min = 0.04
+scale_amount_max = 0.04
 scale_amount_curve = SubResource("Curve_shrink")
 color_ramp = SubResource("Grad_punch")
 
+[node name="Punch2" type="CPUParticles2D" parent="." unique_id=829629565]
+amount = 1
+texture = ExtResource("2_ri72s")
+lifetime = 0.09999999999999999
+explosiveness = 1.0
+local_coords = true
+emission_shape = 3
+emission_rect_extents = Vector2(1, 8)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 300.0
+initial_velocity_max = 300.0
+damping_min = 40.0
+damping_max = 40.0
+scale_amount_min = 0.04
+scale_amount_max = 0.04
+scale_amount_curve = SubResource("Curve_shrink")
+color_ramp = SubResource("Grad_punch")
+
+[node name="Particles" type="CPUParticles2D" parent="." unique_id=316522822]
+position = Vector2(-6, 0)
+amount = 5
+texture = ExtResource("3_lohr8")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+emission_shape = 3
+emission_rect_extents = Vector2(1, 6)
+spread = 43.6
+gravity = Vector2(0, 0)
+initial_velocity_min = 200.0
+initial_velocity_max = 250.0
+scale_amount_min = 0.01
+scale_amount_max = 0.03
+scale_amount_curve = SubResource("Curve_lohr8")
+color_ramp = SubResource("Gradient_lohr8")
+
 [node name="Hitbox" type="Area2D" parent="." unique_id=640990003]
-visible = false
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("3_hitbox")
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=640990004]
-position = Vector2(4, 0)
+position = Vector2(11.5, -2)
 shape = SubResource("Shape_fist")

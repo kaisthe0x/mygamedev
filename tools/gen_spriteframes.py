@@ -125,7 +125,8 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
 # smoothness. Any attack not listed treats every frame as its own hit (so each
 # click advances one frame -- the old snap feel). Emitted as resource metadata.
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
-    ("khalid", "special_ground_breaker"): [6],
+    ("khalid", "special_ground_breaker"): [2, 3, 4, 5, 6],
+    ("khalid", "attack_spear"): [6, 9, 13],  # thrust, thrust, big spinning finisher (strongest)
     ("kebus", "attack"): [3],
     ("baghel", "attack_projectile"): [6],
     ("nasen", "attack"): [2],  # the rage AoE erupts on this frame
@@ -141,6 +142,13 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
 FRAME_DURATIONS: dict[tuple[str, str], dict[int, float]] = {
     # e.g. ("some_char", "some_attack"): {2: 1.5}  # linger on those hit frames
 }
+
+# Snappy swings: in a CHARACTER attack/special that has explicit HIT_FRAMES, the frames BETWEEN
+# hits (the wind-up / in-between poses) play at this fraction of a hit frame's duration -- so the
+# swing snaps and only the hits (and any held finisher/recovery) linger. Applied automatically to
+# every attack_*/special_* with hit frames; per-frame FRAME_DURATIONS and an explicit hold_last
+# still override it. Enemies are untouched (their attack telegraphs stay readable).
+BETWEEN_HIT_MULT = 0.25
 
 
 def uid_for(png: Path) -> str:
@@ -304,6 +312,14 @@ def process_group(group: str, anims: dict) -> None:
             loop = bool(tweak.get("loop", loop))  # e.g. a held "flurry" attack that cycles
             hold_last = tweak.get("hold_last", 1.0)
             frame_durs = FRAME_DURATIONS.get((char, anim), {})
+            # Snappy rule: a character attack/special with explicit hit frames plays its NON-hit
+            # frames fast (BETWEEN_HIT_MULT). `anim_hits` is sheet-relative, like FRAME_DURATIONS.
+            anim_hits = HIT_FRAMES.get((char, anim))
+            snappy = (
+                group == "characters"
+                and (anim.startswith("attack") or anim.startswith("special"))
+                and anim_hits is not None
+            )
             res_id = f"{idx}_{anim}"
 
             # Drop the idle-reference frame 0 from action animations, so they start
@@ -348,7 +364,14 @@ def process_group(group: str, anims: dict) -> None:
                     f"margin = Rect2({pad_x}, {pad_y}, "
                     f"{canvas_w - sheet.fw}, {canvas_h - sheet.h})"
                 )
-                duration = frame_durs.get(i, hold_last if i == sheet.n - 1 else 1.0)
+                if i in frame_durs:
+                    duration = frame_durs[i]  # explicit per-frame override wins
+                elif i == sheet.n - 1 and hold_last != 1.0:
+                    duration = hold_last  # explicit hold of the final pose wins
+                elif snappy and i not in anim_hits:
+                    duration = BETWEEN_HIT_MULT  # non-hit frame -> fast wind-up / in-between
+                else:
+                    duration = 1.0  # a hit frame (or an anim the snappy rule doesn't touch)
                 total_dur += duration
                 frames.append(f'{{\n"duration": {duration},\n"texture": SubResource("{sid}")\n}}')
 

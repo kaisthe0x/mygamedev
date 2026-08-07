@@ -17,7 +17,13 @@ const TABLE := {
 		"double_jump": [{"scene": preload("res://vfx/character/khalid/jump/default/jump_default.tscn"), "mode": "burst", "pos": Vector2(0, -3)}],
 		"blink_out": [{"scene": preload("res://vfx/character/khalid/other/blink_out.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
 		"blink_in": [{"scene": preload("res://vfx/character/khalid/other/blink_in.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
-		"attack_ora_ora": [{"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2, 4], "pos": Vector2(20, -24)}],
+		"attack_ora_ora": [{"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2, 4], "pos": Vector2(23, -22)}],
+		# Spear: one DISTINCT hit-node per frame (thrust, thrust, big finisher). Each row fires one by name.
+		"attack_spear": [
+			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Thrust1", "mode": "burst", "frames": [6], "pos": Vector2(20, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Thrust2", "mode": "burst", "frames": [9], "pos": Vector2(22, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Finisher", "mode": "burst", "frames": [13], "pos": Vector2(10, -18)},
+		],
 		"special_ground_breaker": [{"scene": preload("res://vfx/character/khalid/special/ground_breaker/special_ground_breaker.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(0, 0), "clip_to_ground": true}],
 		"slam": [
 			{"scene": preload("res://vfx/character/khalid/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},

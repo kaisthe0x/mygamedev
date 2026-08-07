@@ -24,8 +24,17 @@ const CATALOG := {
 		# Ora ora: a rapid punch FLURRY -- hold attack and the animation loops fast, each punch frame
 		# firing the attack_ora_ora Strike (its fist Hitbox carries the hit, fed these numbers). Low
 		# per-punch damage/knockback -- the DPS comes from the rate.
-		"attacks": {"ora_ora": {"animation": "attack_ora_ora", "effect": "attack_ora_ora", "kind": Combat.AttackKind.MELEE,
-			"style": "flurry", "tuning": {"damage": 5, "knockback": 20}}},
+		"attacks": {
+			"ora_ora": {"animation": "attack_ora_ora", "effect": "attack_ora_ora", "kind": Combat.AttackKind.MELEE,
+				"style": "flurry", "tuning": {"damage": 15, "knockback": 0, "stun": 0.1, "extents": Vector2(32, 22)}},
+			# Spear: a committed 3-hit combo (hits 6/9/13) -- thrust, thrust, big spinning finisher
+			# (strongest). Each hit fires its own particle burst; damage per segment below.
+			"spear": {"animation": "attack_spear", "effect": "attack_spear", "kind": Combat.AttackKind.MELEE, "tier": "elite", "tuning": [
+				{"damage": 10, "knockback": 40}, # thrust
+				{"damage": 20, "knockback": 60}, # thrust
+				{"damage": 35, "knockback": 140}, # finisher (strongest)
+			]},
+		},
 		# Ground breaker: an overhead slam that cracks the ground -- a GROUND-type Strike
 		# (special_ground_breaker.tscn) whose hitbox SHAPE is authored in the scene, fed these numbers.
 		"specials": {"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND,

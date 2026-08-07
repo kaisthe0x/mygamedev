@@ -243,11 +243,18 @@ for smoothness (see **Player → Attack combo**). Any attack not listed defaults
 "every frame is a hit" — one frame per click, the older snap feel. Emitted as
 `metadata/hit_frames`, read by `player.gd`.
 
+**Snappy timing (automatic).** For any character `attack_*`/`special_*` with hit frames, the
+generator plays the **non-hit frames at `BETWEEN_HIT_MULT` (0.25×)** a hit frame's duration — so
+the wind-up/in-between poses snap and only the hits (and any `hold_last` finisher/recovery) linger.
+No per-attack config needed; per-frame `FRAME_DURATIONS` and an explicit `hold_last` still override
+it, and enemy telegraphs are left untouched.
+
 Configured so far (keyed by the move's animation, since a character has several),
 with wind-up / in-between frames between the hits:
 
 | Who | Animation | `HIT_FRAMES` (sheet indices) |
 |---|---|---|
+| khalid | `attack_spear` | `[6, 9, 13]` — thrust, thrust, big spinning finisher (his Elite swap) |
 | khalid | `special_ground_breaker` | `[6]` — the overhead ground crack |
 | kebus (enemy) | `attack` | `[3]` |
 | baghel (enemy) | `attack_projectile` | `[6]` |
