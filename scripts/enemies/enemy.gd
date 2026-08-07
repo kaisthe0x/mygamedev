@@ -703,12 +703,11 @@ func _on_hurt(hit: Hit) -> void:
 	# frame and nothing moves; a pure stun freezes for longer.
 	var stagger := apply_knockback(hit, _facing)
 	if stagger > 0.0:
-		_stun_left = stagger
-		_set_state(State.STUN)
-		# A tagged CONTROL stun (long) holds the current pose (not idle); a brief knockback
-		# stagger doesn't. The optional tint overlay shows on top if the hit set one.
-		if hit.stun >= Combat.CONTROL_STUN_MIN:
-			_sprite.pause()
+		# Never SHORTEN an existing stun: a follow-up jab on a long-stunned enemy would otherwise
+		# overwrite the 5s stay-stun with its own 0.18s stagger and wake them early. Take the max,
+		# so a hit can EXTEND a stun but never cut it short.
+		_stun_left = maxf(_stun_left, stagger)
+		_set_state(State.STUN)  # freezes the sprite on whatever frame it was on (see _set_state)
 		if hit.status_color.a > 0.0:
 			_status.show_for(hit.status_color, hit.status_time)
 
@@ -767,7 +766,7 @@ func _set_state(state: State) -> void:
 			if _engaged:  # combat: snap straight to the held ready-stance, no flicker
 				_sprite.set_frame_and_progress(0, 0.0)
 				_sprite.pause()
-		State.STUN: _play(&"idle")
+		State.STUN: _sprite.pause()  # freeze on the current frame -- don't snap to idle
 		State.PATROL: _play(&"patrol" if _has_patrol else &"idle")
 
 

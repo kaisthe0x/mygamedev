@@ -46,7 +46,7 @@ const CATALOG := {
 			"stay": {"animation": "special_stay", "effect": "special_stay", "kind": Combat.AttackKind.BLAST, "tier": "elite",
 				"tuning": {"damage": 4, "knockback": 0, "stun": 5.0, "victim_effect": "res://vfx/status/stay_stun.tscn"}},
 		},
-		"default_attack": "spear", "default_special": "ground_breaker",
+		"default_attack": "spear", "default_special": "stay",
 	},
 }
 

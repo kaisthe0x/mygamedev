@@ -49,9 +49,6 @@ const KNOCKBACK_POP := 0.25
 const MIN_STAGGER := 0.18
 ## How long a discrete melee strike's hitbox stays live for one swing.
 const STRIKE_ACTIVE := 0.12
-## A stun at least this long is a tagged CONTROL stun (e.g. special_stay): the victim
-## freezes its pose instead of idling. Shorter stuns are just knockback staggers.
-const CONTROL_STUN_MIN := 1.0
 ## Red tint a hit flashes, fading back over HIT_FLASH_TIME. Shared by every body's
 ## hit reaction (see Combatant.flash).
 const HIT_FLASH := Color(1.0, 0.4, 0.4)

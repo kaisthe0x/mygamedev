@@ -884,9 +884,10 @@ so a victim can react by attack type — e.g. nasen is stunned by melee but not 
   `ranged_knockback/stun`.
 - A knockback always carries a short stagger, or the AI/input would overwrite the
   shove velocity the next frame and nothing would move.
-- **Freeze:** a `stun` ≥ `Combat.CONTROL_STUN_MIN` (1s) is a tagged *control* stun —
-  the victim's pose is paused (frozen) instead of idling. Shorter stuns are just
-  knockback staggers.
+- **Freeze:** while stunned an enemy **pauses on whatever frame it was on** (it does not
+  snap to idle), resuming when the stun ends. A follow-up hit takes `maxf(remaining, new)`
+  of the stun times — it can *extend* a stun but never cut a long one short (so a jab on a
+  stay-stunned enemy won't wake it early).
 - **Two ways to dress a hit on the victim** (compose either/both):
   - **`status_color` / `status_time`** — an additive tinted copy of the sprite
     (`StatusOverlay`) that throbs over the victim for the duration. Cheap, code-only.
