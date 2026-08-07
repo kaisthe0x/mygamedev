@@ -25,7 +25,7 @@ const TABLE := {
 			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Finisher", "mode": "burst", "frames": [13], "pos": Vector2(10, -18)},
 		],
 		"special_ground_breaker": [ {"scene": preload("res://vfx/character/khalid/special/ground_breaker/special_ground_breaker.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(0, 0), "clip_to_ground": true}],
-		"special_stay": [ {"scene": preload("res://vfx/character/khalid/special/stay/special_stay.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(30, -20)}], # the stun blast fires on the forward-thrust frame
+		"special_stay": [ {"scene": preload("res://vfx/character/khalid/special/stay/special_stay.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(40, -20)}], # the stun blast fires on the forward-thrust frame
 		"slam": [
 			{"scene": preload("res://vfx/character/khalid/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},
 			{"scene": preload("res://vfx/character/khalid/slam/default/slam_default.tscn"), "mode": "burst", "frames": [3, 4], "pos": Vector2(0, 0), "clip_to_ground": true},

@@ -67,13 +67,20 @@ vec3 rgb2hsv(vec3 c) {
 	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1e-10)), d / (q.x + 1e-10), q.x);
 }
 
+// With viewport HDR 2D on, TEXTURE is sampled in LINEAR space -- so a mid grey reads ~0.21, not 0.5.
+// The outfit keys below are tuned to perceptual (sRGB) values, so convert back before keying.
+vec3 lin2srgb(vec3 c) {
+	c = max(c, vec3(0.0));
+	return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+}
+
 // Recolour pixels whose hue sits within hue_w of hue_c toward `tint`, keeping their drawn shading and
 // adding an additive HDR glow. Keys on the ORIGINAL hsv, so channels don't interfere with each other.
 vec3 tint_hue(vec3 col, vec3 hsv, float alpha, vec3 tint, float ch_glow, float amount, float hue_c, float hue_w) {
 	float hue_d = abs(hsv.x - hue_c);
 	hue_d = min(hue_d, 1.0 - hue_d);  // hue wraps at 0/1
 	float m = (1.0 - smoothstep(hue_w, hue_w + 0.04, hue_d))
-		* smoothstep(0.12, 0.20, hsv.y)   // saturation floor -> skip grey metal
+		* smoothstep(0.30, 0.40, hsv.y)   // saturation floor -> skip grey metal AND dull shadow-tones
 		* smoothstep(0.05, 0.11, hsv.z)   // brightness floor -> skip near-black outlines
 		* alpha * amount;
 	m = clamp(m, 0.0, 1.0);
@@ -83,7 +90,8 @@ vec3 tint_hue(vec3 col, vec3 hsv, float alpha, vec3 tint, float ch_glow, float a
 
 void fragment() {
 	vec4 tex = texture(TEXTURE, UV);
-	vec3 hsv = rgb2hsv(tex.rgb);
+	vec3 hsv = rgb2hsv(tex.rgb);          // linear -- the HAIR channel was tuned against this
+	vec3 khsv = rgb2hsv(lin2srgb(tex.rgb)); // sRGB/perceptual -- metal + collar/jacket/skin key on this
 	vec3 col = tex.rgb;
 
 	// ---- HAIR ----
@@ -109,19 +117,19 @@ void fragment() {
 	hair += hair * glow * smoothstep(0.3, 1.0, max(wg, wt));  // extra aura where colour flows
 	col = mix(col, hair, clamp(mask * intensity, 0.0, 1.0));
 
-	// ---- METAL (shoes + gauntlets) ----
-	float m_sat = 1.0 - smoothstep(metal_sat_max, metal_sat_max + 0.08, hsv.y);  // grey = low saturation
-	float m_val = smoothstep(metal_val_min - 0.04, metal_val_min + 0.04, hsv.z)
-		* (1.0 - smoothstep(metal_val_max - 0.04, metal_val_max + 0.04, hsv.z));
+	// ---- METAL (shoes + gauntlets) -- keyed on sRGB khsv ----
+	float m_sat = 1.0 - smoothstep(metal_sat_max, metal_sat_max + 0.08, khsv.y);  // grey = low saturation
+	float m_val = smoothstep(metal_val_min - 0.04, metal_val_min + 0.04, khsv.z)
+		* (1.0 - smoothstep(metal_val_max - 0.04, metal_val_max + 0.04, khsv.z));
 	float mm = clamp(m_sat * m_val * tex.a * metal_amount, 0.0, 1.0);
-	vec3 metal = metal_tint * mix(0.5, 1.35, pow(hsv.z, 0.9));  // keep the metal's own light/shade
+	vec3 metal = metal_tint * mix(0.5, 1.35, pow(khsv.z, 0.9));  // keep the metal's own light/shade
 	col = mix(col, metal, mm);
 	col += metal * metal_glow * mm;  // additive HDR aura -> real bloom, NOT diluted by the blend amount
 
-	// ---- COLLAR / JACKET / SKIN (hue-keyed, off unless their amount > 0) ----
-	col = tint_hue(col, hsv, tex.a, collar_tint, collar_glow, collar_amount, collar_hue, collar_hue_width);
-	col = tint_hue(col, hsv, tex.a, jacket_tint, jacket_glow, jacket_amount, jacket_hue, jacket_hue_width);
-	col = tint_hue(col, hsv, tex.a, skin_tint,   skin_glow,   skin_amount,   skin_hue,   skin_hue_width);
+	// ---- COLLAR / JACKET / SKIN (hue-keyed on sRGB khsv, off unless their amount > 0) ----
+	col = tint_hue(col, khsv, tex.a, collar_tint, collar_glow, collar_amount, collar_hue, collar_hue_width);
+	col = tint_hue(col, khsv, tex.a, jacket_tint, jacket_glow, jacket_amount, jacket_hue, jacket_hue_width);
+	col = tint_hue(col, khsv, tex.a, skin_tint,   skin_glow,   skin_amount,   skin_hue,   skin_hue_width);
 
 	COLOR.rgb = col;
 	COLOR.a = tex.a;

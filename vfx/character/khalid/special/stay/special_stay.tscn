@@ -16,8 +16,12 @@ colors = PackedColorArray(0.83137256, 0.79607844, 0.5372549, 1, 0.047058824, 0.6
 [sub_resource type="RectangleShape2D" id="box_blast"]
 size = Vector2(96, 45)
 
+[sub_resource type="Curve" id="Curve_wjpba"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49557522, 0.5169492), 0.0, 0.0, 0, 0, Vector2(0.9893806, 0.021186471), 0.0, 0.0, 0, 0]
+point_count = 3
+
 [sub_resource type="Gradient" id="Grad_pulse"]
-offsets = PackedFloat32Array(0, 0.40144664, 0.89873415, 1)
+offsets = PackedFloat32Array(0, 0.40144664, 0.63833636, 0.8028933)
 colors = PackedColorArray(0.7019608, 0.14117648, 0.14117648, 1, 0.78039217, 0.16078432, 0.16078432, 1, 0.78031605, 0.16007765, 0.16007765, 0.70500004, 0.5, 0.06, 0.05, 0)
 
 [node name="SpecialStay" type="Node2D" unique_id=1812704467]
@@ -45,6 +49,7 @@ position = Vector2(13, -3)
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_hb")
+status_color = Color(0.78039217, 0.16078432, 0.16078432, 1)
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1933370304]
 position = Vector2(10, 2.5)
@@ -55,9 +60,9 @@ z_index = -1
 texture_filter = 1
 position = Vector2(1, 0)
 rotation = 1.5563958
-amount = 3
+amount = 20
 texture = ExtResource("4_l18u6")
-lifetime = 0.4
+lifetime = 0.7
 explosiveness = 1.0
 local_coords = true
 emission_shape = 1
@@ -65,8 +70,9 @@ emission_sphere_radius = 0.01
 direction = Vector2(0, -1)
 spread = 0.0
 gravity = Vector2(0, 0)
-initial_velocity_min = 100.0
-initial_velocity_max = 200.0
-scale_amount_min = 0.1
+initial_velocity_min = 20.0
+initial_velocity_max = 150.0
+scale_amount_min = 0.15
 scale_amount_max = 0.15
+scale_amount_curve = SubResource("Curve_wjpba")
 color_ramp = SubResource("Grad_pulse")

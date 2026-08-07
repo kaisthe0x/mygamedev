@@ -608,8 +608,16 @@ teal face ~170°). Grouped in the inspector under `collar` / `jacket` / `skin`. 
 - `<region>_hue` / `<region>_hue_width` — **the target.** `hue` is the centre hue
   (0–1 = 0–360°), `hue_width` the tolerance. If a channel grabs neighbouring colours,
   narrow `hue_width`; if it's off-target, nudge `hue`. A shared saturation + brightness
-  floor keeps all three off the grey metal and the black outlines. Note the gold collar
-  is only a few pixels per frame, so its effect is small by nature.
+  floor keeps all three off the grey metal, the dull shadow-tones, and the black outlines.
+  Note the gold collar is only a few pixels per frame, so its effect is small by nature.
+
+**Colour space (important).** The project runs with `viewport/hdr_2d = true`, so a canvas
+shader samples `TEXTURE` in **linear** space — a mid grey reads ~0.21, not 0.5. The metal
+and collar/jacket/skin keys are therefore computed on an **sRGB-converted** copy (`khsv` in
+the shader, via `lin2srgb`), so their `*_val_*` / `*_sat_*` thresholds line up with what you
+see in a colour picker. (The hair key was tuned against the raw linear value and is left as
+such.) If you ever add a channel and its key only grabs the *brightest* pixels of a region,
+that's the linear-vs-sRGB trap — key it off `khsv`, not `hsv`.
 
 > The shader + HDR bloom only fully render in the running game (F5) — a `--headless`
 > still shows the raw sprite, so tune it live, not from screenshots.
