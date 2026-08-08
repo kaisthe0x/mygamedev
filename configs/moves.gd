@@ -56,13 +56,13 @@ const CATALOG := {
 			# bubbling red stun effect (the stay pulse texture) for the stun. A control/utility special.
 			"stay": {"animation": "special_stay", "effect": "special_stay", "kind": Combat.AttackKind.BLAST, "tier": "elite",
 				"tuning": {"damage": 4, "knockback": 0, "stun": 5.0, "victim_effect": "res://vfx/status/stay_stun.tscn"}},
-			# Built Different: a self-buff, no damage. On cast Khalid gains `buff_time` seconds of
-			# IMMUNITY (invuln) + a `speed_mult` movement boost, wrapped in a red aura (`buff_effect`).
-			# The player reads these buff_* fields in _start_special; no enemy hitbox. A "broken" flex.
-			"built_different": {"animation": "special_built_different", "effect": "built_different", "kind": Combat.AttackKind.BLAST, "tier": "broken",
-				"tuning": {"buff_time": 4.0, "speed_mult": 1.8, "invuln": true, "buff_effect": "res://vfx/character/khalid/special/built_different/built_different.tscn"}},
+			# special_default: the BASELINE special the player always starts with -- no damage, no extra
+			# effect. Its only job is the invincibility (Impervious) window + aura, which EVERY special
+			# now grants (Player.grant_special_invuln, fired on any cast). Others add THEIR effect on top.
+			"special_default": {"animation": "special_default", "effect": "special_default", "kind": Combat.AttackKind.BLAST, "tier": "typical",
+				"tuning": {}},
 		},
-		"default_attack": "bakshen", "default_special": "built_different",
+		"default_attack": "bakshen", "default_special": "special_default",
 	},
 }
 

@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://myex7w2fjfun"]
+
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_oak6a"]
+
+[sub_resource type="Curve" id="Curve_oak6a"]
+_limits = [-200.0, 200.0, 0.0, 1.0]
+_data = [Vector2(0, 200), 0.0, 0.0, 0, 0, Vector2(0.13619404, 133.6323), 0.0, 0.0, 0, 0, Vector2(0.3152985, -200), 0.0, 0.0, 0, 0, Vector2(0.73880595, -200), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="Curve" id="Curve_jq0bu"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_oak6a"]
+offsets = PackedFloat32Array(0.33015266, 0.83206105, 1)
+colors = PackedColorArray(0, 0, 0, 1, 0.14901961, 0, 0, 1, 1, 0.03529412, 0.1764706, 1)
+
+[node name="CrimsonVortex" type="Node2D" unique_id=2029558270]
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=765950689]
+amount = 200
+texture = ExtResource("1_oak6a")
+emission_shape = 1
+emission_sphere_radius = 32.77
+gravity = Vector2(0, 0)
+orbit_velocity_min = 175.0
+orbit_velocity_max = 200.0
+tangential_accel_min = 120.0
+tangential_accel_max = 120.0
+tangential_accel_curve = SubResource("Curve_oak6a")
+scale_amount_min = 0.5
+scale_amount_max = 0.5
+scale_amount_curve = SubResource("Curve_jq0bu")
+color_ramp = SubResource("Gradient_oak6a")

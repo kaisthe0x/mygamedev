@@ -1,15 +1,15 @@
 extends CanvasLayer
 
-## Portrait + HP bar + lahm BLOCK meter (+ a debug stats panel) for the active character.
+## Portrait + HP bar + ruh BLOCK meter (+ a debug stats panel) for the active character.
 ##
 ## Registered as an autoload, so it exists in every scene without being placed in one. It binds
 ## to whatever Player enters the tree and hides when there's none. The whole HUD is **built in
 ## code** (no scene containers) and anchored top-left, so it renders reliably regardless of
 ## window size / Godot scene-layout quirks.
 ##
-## Lahm shows as discrete BLOCKS (one per Player.LAHM_PER_BLOCK), not a raw number: N cells that
-## fill/drain partially. It updates straight from lahm_changed (which fires every frame as lahm
-## rots), so no smoothing tween -- the decay is already smooth.
+## Ruh shows as discrete BLOCKS (one per Player.RUH_PER_BLOCK), not a raw number: N cells that
+## fill/drain partially. It updates straight from ruh_changed (fires when a kill banks Ruh or a
+## cast spends it), so no smoothing tween needed.
 
 ## How quickly the HP bar slides toward a new value, in units per second.
 @export var drain_speed: float = 70.0
@@ -23,19 +23,19 @@ var _portrait: TextureRect
 var _name_label: Label
 var _bar: ProgressBar         ## HP
 var _value_label: Label
-var _lahm_area: Control       ## holds the block cells
-var _lahm_cells: Array = []   ## [{bg, fill}] -- one per lahm block, rebuilt when the cap changes
-var _lahm_cell_w: float = 0.0
-var _lahm_label: Label
+var _ruh_area: Control       ## holds the block cells
+var _ruh_cells: Array = []   ## [{bg, fill}] -- one per ruh block, rebuilt when the cap changes
+var _ruh_cell_w: float = 0.0
+var _ruh_label: Label
 var _levels_label: Label      ## levels cleared this run + the best-ever record
 var _controls: Label
 var _stats: PanelContainer
 var _stats_label: Label
 
-const LAHM_METER_SIZE := Vector2(248, 16)
-const LAHM_CELL_GAP := 3.0
-const LAHM_FILL := Color(0.80, 0.16, 0.20)    ## filled block: crimson
-const LAHM_EMPTY := Color(0.16, 0.08, 0.10, 0.9)  ## empty block slot
+const RUH_METER_SIZE := Vector2(248, 16)
+const RUH_CELL_GAP := 3.0
+const RUH_FILL := Color(0.80, 0.16, 0.20)    ## filled block: crimson
+const RUH_EMPTY := Color(0.16, 0.08, 0.10, 0.9)  ## empty block slot
 
 
 func _ready() -> void:
@@ -81,20 +81,20 @@ func _build_hud() -> void:
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
-	_lahm_area = Control.new()  # the block cells live here; rebuilt on cap change
-	_lahm_area.position = Vector2(info_x, 76)
-	_lahm_area.size = LAHM_METER_SIZE
-	_lahm_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(_lahm_area)
+	_ruh_area = Control.new()  # the block cells live here; rebuilt on cap change
+	_ruh_area.position = Vector2(info_x, 76)
+	_ruh_area.size = RUH_METER_SIZE
+	_ruh_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_ruh_area)
 
-	_lahm_label = _mk_label(Vector2(info_x + LAHM_METER_SIZE.x + 8, 74), 12, Color(0.95, 0.75, 0.8))
-	_lahm_label.size = Vector2(120, 18)
-	_lahm_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ruh_label = _mk_label(Vector2(info_x + RUH_METER_SIZE.x + 8, 74), 12, Color(0.95, 0.75, 0.8))
+	_ruh_label.size = Vector2(120, 18)
+	_ruh_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 	_levels_label = _mk_label(Vector2(info_x, 100), 15, Color(0.85, 0.72, 0.18))  # gold, like the frame
 
 	_controls = _mk_label(Vector2(16, 140), 12, Color(0.62, 0.62, 0.68))
-	_controls.text = "A/D move   Space jump   Shift dash   LMB attack   RMB special/slam   Z hurt   X +lahm   0 rebuild"
+	_controls.text = "A/D move   Space jump   Shift dash   LMB attack   RMB special/slam   Z hurt   X +ruh   0 rebuild"
 
 
 func _mk_label(pos: Vector2, font_size: int, col: Color) -> Label:
@@ -126,35 +126,35 @@ func _mk_bar(pos: Vector2, sz: Vector2, fill: Color) -> ProgressBar:
 	return b
 
 
-## (Re)build the block cells so there's one per lahm block (cap / LAHM_PER_BLOCK). Called when the
-## cap changes (a reward can raise it). Cells are laid out evenly across LAHM_METER_SIZE.
-func _build_lahm_meter(block_count: int) -> void:
-	for c in _lahm_area.get_children():
+## (Re)build the block cells so there's one per ruh block (cap / RUH_PER_BLOCK). Called when the
+## cap changes (a reward can raise it). Cells are laid out evenly across RUH_METER_SIZE.
+func _build_ruh_meter(block_count: int) -> void:
+	for c in _ruh_area.get_children():
 		c.queue_free()
-	_lahm_cells.clear()
+	_ruh_cells.clear()
 	block_count = maxi(block_count, 1)
-	_lahm_cell_w = (LAHM_METER_SIZE.x - LAHM_CELL_GAP * (block_count - 1)) / block_count
+	_ruh_cell_w = (RUH_METER_SIZE.x - RUH_CELL_GAP * (block_count - 1)) / block_count
 	for i in block_count:
-		var x := i * (_lahm_cell_w + LAHM_CELL_GAP)
+		var x := i * (_ruh_cell_w + RUH_CELL_GAP)
 		var bg := ColorRect.new()
 		bg.position = Vector2(x, 0)
-		bg.size = Vector2(_lahm_cell_w, LAHM_METER_SIZE.y)
-		bg.color = LAHM_EMPTY
-		_lahm_area.add_child(bg)
+		bg.size = Vector2(_ruh_cell_w, RUH_METER_SIZE.y)
+		bg.color = RUH_EMPTY
+		_ruh_area.add_child(bg)
 		var fill := ColorRect.new()
 		fill.position = Vector2(x, 0)
-		fill.size = Vector2(0, LAHM_METER_SIZE.y)  # width set per-frame from the lahm value
-		fill.color = LAHM_FILL
-		_lahm_area.add_child(fill)
-		_lahm_cells.append(fill)
+		fill.size = Vector2(0, RUH_METER_SIZE.y)  # width set per-frame from the ruh value
+		fill.color = RUH_FILL
+		_ruh_area.add_child(fill)
+		_ruh_cells.append(fill)
 
 
-## Fill each cell 0..1 by how much of its block the current lahm covers.
-func _update_lahm_meter(current: float) -> void:
-	var per := _player.LAHM_PER_BLOCK if _player != null else 50.0
-	for i in _lahm_cells.size():
+## Fill each cell 0..1 by how much of its block the current ruh covers.
+func _update_ruh_meter(current: float) -> void:
+	var per := _player.RUH_PER_BLOCK if _player != null else 50.0
+	for i in _ruh_cells.size():
 		var ratio: float = clampf(current / per - float(i), 0.0, 1.0)
-		(_lahm_cells[i] as ColorRect).size.x = _lahm_cell_w * ratio
+		(_ruh_cells[i] as ColorRect).size.x = _ruh_cell_w * ratio
 
 
 func _framed(bg: Color, border: Color) -> StyleBoxFlat:
@@ -192,11 +192,11 @@ func _bind(player: Player) -> void:
 	_player = player
 	_player.character_changed.connect(_on_character_changed)
 	_player.health_changed.connect(_on_health_changed)
-	_player.lahm_changed.connect(_on_lahm_changed)
+	_player.ruh_changed.connect(_on_ruh_changed)
 	_player.tree_exiting.connect(_unbind)
 	_on_character_changed(_player.character)
 	_on_health_changed(_player.health, _player.max_health)
-	_on_lahm_changed(_player.lahm, _player.lahm_cap)
+	_on_ruh_changed(_player.ruh, _player.ruh_cap)
 	_bar.value = _target
 	_set_shown(true)
 
@@ -205,7 +205,7 @@ func _unbind() -> void:
 	if _player != null and is_instance_valid(_player):
 		_player.character_changed.disconnect(_on_character_changed)
 		_player.health_changed.disconnect(_on_health_changed)
-		_player.lahm_changed.disconnect(_on_lahm_changed)
+		_player.ruh_changed.disconnect(_on_ruh_changed)
 		_player.tree_exiting.disconnect(_unbind)
 	_player = null
 	_set_shown(false)
@@ -243,13 +243,13 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	_value_label.text = "%d / %d" % [roundi(current), roundi(maximum)]
 
 
-func _on_lahm_changed(current: float, maximum: float) -> void:
-	var per := _player.LAHM_PER_BLOCK if _player != null else 50.0
+func _on_ruh_changed(current: float, maximum: float) -> void:
+	var per := _player.RUH_PER_BLOCK if _player != null else 50.0
 	var blocks := maxi(roundi(maximum / per), 1)
-	if blocks != _lahm_cells.size():
-		_build_lahm_meter(blocks)
-	_update_lahm_meter(current)
-	_lahm_label.text = "LAHM  %d ▮" % floori(current / per)
+	if blocks != _ruh_cells.size():
+		_build_ruh_meter(blocks)
+	_update_ruh_meter(current)
+	_ruh_label.text = "RUH  %d ▮" % floori(current / per)
 
 
 # --- debug stats panel (top-right) ------------------------------------------

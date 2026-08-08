@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bct86rb447ejl"
-path="res://.godot/imported/khalid_special_built_different_frames.png-f067063022e17bc63a2977862c2b4d03.ctex"
+path="res://.godot/imported/khalid_special_default_frames.png-2333315d73213912335b24e4bf11e61f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/khalid/khalid_special_built_different_frames.png"
-dest_files=["res://.godot/imported/khalid_special_built_different_frames.png-f067063022e17bc63a2977862c2b4d03.ctex"]
+source_file="res://sprites/characters/khalid/khalid_special_default_frames.png"
+dest_files=["res://.godot/imported/khalid_special_default_frames.png-2333315d73213912335b24e4bf11e61f.ctex"]
 
 [params]
 

@@ -100,6 +100,8 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 		if t.has("victim_effect"):
 			_hitbox.victim_vfx = load(t["victim_effect"])
 			_hitbox.victim_vfx_time = t.get("victim_time", 0.0)  # 0 -> defaults to the stun/status window
+		if t.has("from_special"):
+			_hitbox.from_special = t["from_special"]  # a special-kill doesn't refill Ruh
 		_resize_hitbox(t)
 	# Wielder-effects act on the striker (option A): lunge shoves them forward, armor
 	# lets them shrug off stagger during the swing. No-op when the field/method is absent.

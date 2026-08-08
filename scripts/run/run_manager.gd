@@ -2,8 +2,8 @@ class_name RunManager
 extends Node2D
 
 ## The roguelite run driver + the level.tscn root. Builds each arena level from Levels data,
-## drops in start enemies, refills an escalating WAVE every time the arena is cleared, awards
-## lahm on kills, runs the exit-gate toll + reward pick, advances levels, and restarts the whole
+## drops in start enemies, refills finite escalating BATCHES as the arena is cleared, banks Ruh on
+## kills, opens the exit once every batch is dead, runs the reward pick, advances levels, and restarts the whole
 ## run on death. Also owns the player spawn, camera follow, and death/spawn flair. See
 ## docs/game-design.md and scripts/run/README.md.
 
@@ -33,9 +33,14 @@ const DEATH_HOLD := 0.7
 
 var _level_index := 0
 var _cleared_this_run := 0  ## levels cleared (exits paid) so far this run -> HUD + the SaveData record
-var _wave_index := 0        ## next wave to spawn on clear (past the last -> repeats the last)
-var _alive := 0             ## enemies currently alive; hitting 0 spawns the next wave
+var _wave_index := 0        ## next enemy BATCH to spawn on clear (finite -- past the last, none)
+var _alive := 0             ## enemies currently alive; hitting 0 spawns the next batch (or clears)
+var _cleared := false       ## true once every batch is spawned AND dead -> the exit opens
+var _door_type := "health"  ## this level's reward-door type, rolled in _build_level
 var _transitioning := false ## true while the reward/level-change is mid-flight
+
+## The reward-door types one is rolled from per level (more coming: money, ally meeting point...).
+const DOOR_TYPES := ["health", "athletic", "attack", "special"]
 var _content: Node2D        ## per-level nodes (platforms, gate, enemies); freed on level change
 var _gate: ExitGate
 var _bg: ColorRect
@@ -59,14 +64,15 @@ func _ready() -> void:
 		_player.spawn()
 	if _camera != null:
 		Nodes.place_at(_camera, _player_spawn + Vector2(0, -30))
+	_choose_attack()  # run start: pick the attack that's locked in for this run
 
 
 func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
-	# Recolour the exit so the player can see at a glance whether they can afford it now.
+	# The exit is locked until the arena is cleared, then it opens.
 	if _gate != null and is_instance_valid(_gate):
-		_gate.reflect(_player.can_afford(_gate.cost))
+		_gate.reflect(_cleared)
 
 	if _player.is_dead():
 		_handle_death(delta)
@@ -91,6 +97,7 @@ func _build_level(index: int) -> void:
 	_level_index = clampi(index, 0, Levels.count() - 1)
 	_wave_index = 0
 	_alive = 0
+	_cleared = false
 	_transitioning = false
 	if _content != null and is_instance_valid(_content):
 		_content.queue_free()
@@ -109,8 +116,9 @@ func _build_level(index: int) -> void:
 	for p in lv["platforms"]:
 		_build_platform(p[0], p[1], p[2], 14.0)
 
+	_door_type = DOOR_TYPES[randi() % DOOR_TYPES.size()]  # one random reward door per level
 	_gate = ExitGate.new()
-	_gate.setup(lv["exit_cost"])
+	_gate.setup(_door_type)
 	_gate.position = lv["exit_pos"]
 	_gate.touched.connect(_on_gate_touched)
 	_content.add_child(_gate)
@@ -230,8 +238,8 @@ func _spawn_group(specs: Array, with_fx: bool) -> void:
 			_spawn_fx(pos)
 		var enemy := _spawn_enemy(spec["kit"], pos)
 		if enemy != null:
-			enemy.died.connect(_on_enemy_died)
-			enemy.damaged.connect(_on_enemy_damaged)  # harvest lahm per point of damage dealt
+			enemy.died.connect(_on_enemy_died.bind(enemy))
+			enemy.damaged.connect(_on_enemy_damaged)  # Leech reward: heal a fraction of damage dealt
 			_alive += 1
 
 
@@ -259,46 +267,49 @@ func _spawn_fx(pos: Vector2) -> void:
 			fx.queue_free())
 
 
-## Lahm harvest: the player banks lahm equal to the damage they deal (per hit). Only the
-## player's own hits pay -- ignore enemy-on-enemy or contact damage credited to other sources.
-func _on_enemy_damaged(amount: float, source: Node) -> void:
-	if _player != null and source == _player:
-		_player.gain_lahm(amount)
-
-
-## An enemy died: once the arena is empty, refill the next wave. (Lahm was paid per-hit above.)
-func _on_enemy_died() -> void:
+## An enemy died: bank Ruh (kills fill the special meter -- EXCEPT kills by the special itself, so
+## it can't self-loop Impervious), then either spawn the next batch or CLEAR the arena.
+func _on_enemy_died(enemy: Enemy) -> void:
 	_alive -= 1
-	if _alive <= 0 and not _transitioning:
-		_spawn_next_wave()
+	if _player != null and not enemy.last_hit_from_special:
+		_player.gain_ruh_on_kill()  # each non-special kill charges the Ruh (special) meter
+	if _alive <= 0 and not _transitioning and not _cleared:
+		if not _spawn_next_wave():
+			_cleared = true  # no more batches -> level cleared; the exit opens (see _physics_process)
 
 
-func _spawn_next_wave() -> void:
+## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --
+## no infinite refill), which is how a level ends: clear every batch and the exit opens.
+## Leech reward: heal the player a fraction of the damage THEY deal to an enemy. No-op at 0%.
+func _on_enemy_damaged(amount: float, source: Node) -> void:
+	if _player != null and source == _player and _player.lifesteal_frac > 0.0:
+		_player.heal(amount * _player.lifesteal_frac)
+
+
+func _spawn_next_wave() -> bool:
 	var waves: Array = Levels.get_level(_level_index)["waves"]
-	if waves.is_empty():
-		return
-	var wave: Array = waves[mini(_wave_index, waves.size() - 1)]  # past the last -> repeat it
+	if _wave_index >= waves.size():
+		return false
+	_spawn_group(waves[_wave_index], true)
 	_wave_index += 1
-	_spawn_group(wave, true)
+	return true
 
 
 # --- exit gate -> reward -> next level --------------------------------------
 
 func _on_gate_touched() -> void:
-	if _transitioning or _player == null:
+	# The door only works once the arena is cleared (all enemies dead). No toll.
+	if _transitioning or _player == null or not _cleared:
 		return
-	if _player.can_afford(_gate.cost):
-		_transitioning = true
-		_player.spend_lahm(_gate.cost)
-		_offer_reward()
-	# else: not enough lahm -- the gate stays red; keep farming.
+	_transitioning = true
+	_offer_reward()
 
 
 func _offer_reward() -> void:
 	var ui := RewardUI.new()
 	add_child(ui)
 	ui.chosen.connect(_on_reward_chosen)
-	ui.open(Rewards.offer(REWARDS_OFFERED, _player))
+	ui.open(Rewards.offer_for(_door_type, _player, REWARDS_OFFERED), _door_type)
 
 
 func _on_reward_chosen(id: String) -> void:
@@ -314,7 +325,7 @@ func _on_reward_chosen(id: String) -> void:
 
 
 ## Wipe the run and start over at level 1 (death or completion). Resets buffs + refills to
-## 100 HP / 0 lahm via Player.begin_run.
+## 100 HP / empty Ruh via Player.begin_run.
 func _restart_run() -> void:
 	# The run is ending (death or completion): bank its cleared count into the record, then reset.
 	SaveData.report_run(_cleared_this_run)
@@ -324,6 +335,17 @@ func _restart_run() -> void:
 	_build_level(0)
 	if _player != null:
 		_player.begin_run()
+		_choose_attack()  # every fresh run: re-pick the run-locked attack
+
+
+## Open the run-start attack picker; equip whatever the player chooses (locked for the run).
+func _choose_attack() -> void:
+	if _player == null:
+		return
+	var ui := AttackSelect.new()
+	add_child(ui)
+	ui.chosen.connect(func(id: String) -> void: _player.equip("attack", id))
+	ui.open(_player.character)
 
 
 # --- death / spawn / camera flair (from the old switcher) --------------------
@@ -433,4 +455,4 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_damage"):
 		_player.take_damage(12.0)
 	elif event.is_action_pressed("debug_heal"):
-		_player.gain_lahm(Player.LAHM_PER_BLOCK)  # +1 lahm block (test the meter / exit toll)
+		_player.ruh += Player.SPECIAL_COST  # +1 Ruh charge (test the special meter)

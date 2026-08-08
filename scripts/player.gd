@@ -12,8 +12,8 @@ class_name Player
 
 ## Emitted on every health change, and once on ready so UI can seed itself.
 signal health_changed(current: float, maximum: float)
-## Emitted on every lahm (banked-life) change, and once on ready so the HUD can seed itself.
-signal lahm_changed(current: float, maximum: float)
+## Emitted on every Ruh (special-meter) change, and once on ready so the HUD can seed itself.
+signal ruh_changed(current: float, maximum: float)
 ## Emitted when the active character changes, for portrait/name displays.
 signal character_changed(id: String)
 
@@ -40,54 +40,74 @@ var health: float = 100.0:
 		health = clamped
 		health_changed.emit(health, max_health)
 
-@export_group("Lahm (harvested-flesh currency)")
-## Lahm is a SEPARATE resource from HP -- harvested flesh, measured in BLOCKS (50 lahm each).
-## Gained by DAMAGING enemies (1 lahm per point of damage dealt), spent at exit gates, and it
-## ROTS: it drains at LAHM_DECAY/sec, floored at 0, so you must farm-and-go. Damage NEVER touches
-## lahm and lahm NEVER heals HP -- the only heal is a reward. `lahm_cap` (raised by rewards) is
-## the ceiling in lahm; blocks = lahm_cap / LAHM_PER_BLOCK. See docs/game-design.md.
-const LAHM_PER_BLOCK := 50.0   ## one HUD "block" of lahm
-const LAHM_DECAY := 5.0       ## lahm rot, per second (flat, independent of how much you hold)
-@export var lahm_cap: float = 500.0:  # 10 blocks
+@export_group("Ruh (special meter)")
+## Ruh is the SPECIAL meter -- the "spirit" you spend to cast a special. It fills by KILLING
+## enemies (RUH_PER_KILL each), never decays, and is measured in CHARGES/BLOCKS (RUH_PER_BLOCK
+## each). One special cast spends SPECIAL_COST (one full charge). `ruh_cap` (raised by rewards)
+## is the ceiling -- default one charge, so one cast empties it; a bigger cap banks more casts.
+const RUH_PER_BLOCK := 100.0   ## one HUD "block" = one special charge
+const RUH_PER_KILL := 25.0     ## Ruh gained per enemy killed (4 kills = 1 charge by default)
+const SPECIAL_COST := 100.0    ## Ruh a cast consumes to layer the Impervious effect on (= one block)
+const MAX_RUH_CAP := 500.0     ## hard ceiling: 5 charges (rewards raise ruh_cap up to here)
+## Short lag between special casts so a special (no longer Ruh-gated) can't be spammed.
+const SPECIAL_COOLDOWN := 0.6
+@export var ruh_cap: float = 100.0:  # 1 charge/block; rewards raise it toward MAX_RUH_CAP (5)
 	set(value):
-		lahm_cap = maxf(value, 0.0)
-		lahm = minf(lahm, lahm_cap)
+		ruh_cap = clampf(value, 0.0, MAX_RUH_CAP)
+		ruh = minf(ruh, ruh_cap)
 
-var lahm: float = 0.0:
+var ruh: float = 0.0:
 	set(value):
-		var clamped := clampf(value, 0.0, lahm_cap)
-		if is_equal_approx(clamped, lahm):
+		var clamped := clampf(value, 0.0, ruh_cap)
+		if is_equal_approx(clamped, ruh):
 			return
-		lahm = clamped
-		lahm_changed.emit(lahm, lahm_cap)
+		ruh = clamped
+		ruh_changed.emit(ruh, ruh_cap)
 
 ## Run-reward buffs applied on top of the character's base. `damage_mult` scales every hit
 ## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
-const BASE_LAHM_CAP := 500.0
+const BASE_RUH_CAP := 100.0  # 1 special charge
 const BASE_MAX_HEALTH := 100.0
 const BASE_AIR_JUMPS := 2
 var damage_mult: float = 1.0
 ## Run-speed multiplier from rewards (Fleetfoot), applied OVER the equipped run option's base so a
 ## loadout swap doesn't wipe the buff. Reset by begin_run().
 var run_mult: float = 1.0
+## --- reward buffs (all per-run, reset by begin_run). Placeholders: some fully wired, some just
+## stored for now (marked WIP) so the reward is selectable + tunable later. ---
+var damage_taken_mult: float = 1.0    ## Thick Hide: < 1 = take less damage (applied in take_damage)
+var slam_damage_mult: float = 1.0     ## Meteor: > 1 = harder slams (applied in _slam_release)
+var attack_reach_mult: float = 1.0    ## Long Arm: scales attack hitbox reach (resolve_tuning)
+var lifesteal_frac: float = 0.0       ## Leech: heal this fraction of damage dealt (RunManager)
+var attack_projectile_bonus: int = 0  ## Split Shot: +N projectiles -- WIP (stored, not yet spawned)
+var impervious_until_hit: bool = false ## Last Stand: invuln until hit -- WIP (stored)
+var special_radius_mult: float = 1.0  ## Wide Impact: scales special hit radius -- WIP for scene boxes
 
 
 ## Start a BRAND-NEW run: clear every run-reward buff back to base, re-apply the character's base
-## stats, refill to 100 HP / 0 lahm, and play the spawn-in. Called by RunManager on death-restart
+## stats, refill to 100 HP / 0 Ruh, and play the spawn-in. Called by RunManager on death-restart
 ## and on run completion. (Per-level transitions do NOT call this -- life carries over there.)
 func begin_run() -> void:
 	_dead = false
 	_death_finished = false
-	_end_self_buff()  # drop any active buff before _apply_character reseeds run_speed
+	_end_special_invuln()  # drop any active special invuln + aura on run restart
 	damage_mult = 1.0
 	run_mult = 1.0
-	lahm_cap = BASE_LAHM_CAP
+	damage_taken_mult = 1.0
+	slam_damage_mult = 1.0
+	attack_reach_mult = 1.0
+	lifesteal_frac = 0.0
+	attack_projectile_bonus = 0
+	impervious_until_hit = false
+	special_radius_mult = 1.0
+	special_invuln_bonus = 0.0
+	ruh_cap = BASE_RUH_CAP
 	max_air_jumps = BASE_AIR_JUMPS
 	max_health = BASE_MAX_HEALTH
 	_loadout.clear()  # back to the character's default (Typical) moves + movement
 	_apply_character()  # re-applies moves + run/jump/dash/slam from the (now default) loadout
 	health = max_health
-	lahm = 0.0
+	ruh = 0.0
 	velocity = Vector2.ZERO
 	spawn()
 
@@ -268,15 +288,20 @@ var _hold_left: float = 0.0
 var _channel: Strike = null
 ## The current character's unique ability, or null if they have none.
 var _ability: CharacterAbility
-## Self-buff timer (e.g. Built Different: immunity + speed). While > 0 the buff is active;
-## a special sets it via _apply_self_buff from its tuning's buff_* fields. See _tick_self_buff.
-var _buff_left: float = 0.0
-## While the buff is active AND invuln, the hurtbox stays off (folded into _physics_process).
-var _buff_invuln: bool = false
-## run_speed saved before a speed buff scaled it, restored when the buff ends.
-var _buff_run_speed: float = 0.0
-## The attached aura VFX for the current buff (freed on expiry), or null.
-var _buff_aura: Node2D = null
+## Universal SPECIAL invulnerability: EVERY special cast makes the player untouchable for a short
+## window (the Built Different effect, now baked into every special). While > 0 the hurtbox stays
+## off (folded into _physics_process). Reward buffs will extend it via `special_invuln_bonus`.
+var _special_invuln_left: float = 0.0
+## Extra invuln seconds from rewards (e.g. "+0.5s invuln"). Reset by begin_run.
+var special_invuln_bonus: float = 0.0
+## The red aura VFX shown while invuln (freed on expiry), or null.
+var _special_aura: Node2D = null
+## Countdown until the next special can fire (SPECIAL_COOLDOWN), so specials can't be spammed.
+var _special_cd: float = 0.0
+## Base seconds of Impervious (invuln) every special grants (before `special_invuln_bonus`).
+const SPECIAL_INVULN_TIME := 10.0
+## The shared "Impervious" aura every special engulfs the player in while invulnerable.
+const SPECIAL_AURA: PackedScene = preload("res://vfx/shared/impervious/impervious_aura.tscn")
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
 var _particles: ParticleDirector
 ## Combat boxes, built in code (like the particle director) to avoid a scene edit.
@@ -305,7 +330,7 @@ func _ready() -> void:
 	# Seed listeners that connected before _ready (the setters stay silent when
 	# the value doesn't actually change, so the HUD would otherwise start blank).
 	health_changed.emit(health, max_health)
-	lahm_changed.emit(lahm, lahm_cap)
+	ruh_changed.emit(ruh, ruh_cap)
 	character_changed.emit(character)
 
 
@@ -482,39 +507,35 @@ func portrait_path() -> String:
 	return CharacterConfig.PORTRAIT_PATH % (character.substr(0, 1).to_upper() + character.substr(1))
 
 
-## Damage hits HP ONLY -- lahm is not a shield (that's the whole point of the rework). Flash the
+## Damage hits HP ONLY -- Ruh is not a shield (that's the whole point of the rework). Flash the
 ## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
-	health -= amount
+	health -= amount * damage_taken_mult  # Thick Hide reward reduces this
 	flash(_sprite)
 	if health <= 0.0 and not _dead:
 		_die()
 
 
-## Restore HP (capped at max_health). The ONLY way to heal -- rewards call this. Never from lahm.
+## Restore HP (capped at max_health). The ONLY way to heal -- rewards call this. Never from Ruh.
 func heal(amount: float) -> void:
 	health = minf(health + amount, max_health)
 
 
-## True if the exit toll `cost` (in lahm) is affordable right now. Paying never touches HP,
-## so `>=` is safe -- no survival margin needed.
-func can_afford(cost: float) -> bool:
-	return lahm >= cost
+## True if there's enough Ruh to cast a special right now.
+func can_special() -> bool:
+	return ruh >= SPECIAL_COST
 
 
-## Harvest lahm from damage dealt to an enemy (1 lahm per point). The setter caps at lahm_cap.
-func gain_lahm(amount: float) -> void:
-	if amount <= 0.0:
-		return
-	lahm += amount
+## Bank Ruh for a kill. RunManager calls this on every enemy death. The setter caps at ruh_cap.
+func gain_ruh_on_kill() -> void:
+	ruh += RUH_PER_KILL
 
 
-## Spend `cost` lahm at an exit gate. Returns false (spends nothing) if unaffordable. Lahm only --
-## HP is untouched. See docs/game-design.md.
-func spend_lahm(cost: float) -> bool:
-	if not can_afford(cost):
+## Spend one special charge. Returns false (spends nothing) if there isn't enough Ruh.
+func spend_special() -> bool:
+	if not can_special():
 		return false
-	lahm -= cost
+	ruh -= SPECIAL_COST
 	return true
 
 
@@ -549,6 +570,13 @@ func resolve_tuning(move: Move, seg: int = 0) -> Dictionary:
 	# Buff/item/event modifiers fold in here. `damage_mult` is a run reward ("+X% damage").
 	if not is_equal_approx(damage_mult, 1.0) and base.has("damage"):
 		base["damage"] = float(base["damage"]) * damage_mult
+	# Long Arm reward scales reach for attacks that carry their hitbox size in tuning (ora_ora/bakshen);
+	# scene-authored boxes (spear/ground_breaker) are unaffected for now.
+	if not is_equal_approx(attack_reach_mult, 1.0):
+		if base.has("extents"):
+			base["extents"] = (base["extents"] as Vector2) * attack_reach_mult
+		if base.has("x"):
+			base["x"] = float(base["x"]) * attack_reach_mult
 	return base
 
 
@@ -613,50 +641,37 @@ func set_armor(duration: float) -> void:
 ## optional immunity (`invuln` -> the hurtbox stays off, folded into _physics_process) and a
 ## `speed_mult` movement boost, wrapped in an optional aura scene (`buff_effect`, parented to us
 ## and freed on expiry). Re-casting refreshes it cleanly. No-op when buff_time <= 0.
-func apply_self_buff(t: Dictionary) -> void:
-	var duration := float(t.get("buff_time", 0.0))
-	if duration <= 0.0:
+## Make the player invulnerable for the special window and engulf them in the shared aura. Called
+## by EVERY special cast (special_default has no other effect; the rest add this on top of theirs).
+func grant_special_invuln() -> void:
+	_end_special_invuln()  # clean refresh if re-cast within the window
+	_special_invuln_left = SPECIAL_INVULN_TIME + special_invuln_bonus
+	if SPECIAL_AURA != null:
+		_special_aura = SPECIAL_AURA.instantiate() as Node2D
+		if _special_aura != null:
+			add_child(_special_aura)
+
+
+## Tick down the special invuln; end it (drop the aura, re-enable the hurtbox next frame) at 0.
+## Called every physics frame.
+func _tick_special_invuln(delta: float) -> void:
+	if _special_invuln_left <= 0.0:
 		return
-	_end_self_buff()  # clear any active buff first (restore speed, drop old aura) -> clean refresh
-	_buff_left = duration
-	_buff_invuln = bool(t.get("invuln", false))
-	var speed_mult := float(t.get("speed_mult", 1.0))
-	if not is_equal_approx(speed_mult, 1.0):
-		_buff_run_speed = run_speed
-		run_speed *= speed_mult
-	var aura_path := String(t.get("buff_effect", ""))
-	if aura_path != "" and ResourceLoader.exists(aura_path):
-		var ps: PackedScene = load(aura_path)
-		if ps != null:
-			_buff_aura = ps.instantiate() as Node2D
-			if _buff_aura != null:
-				add_child(_buff_aura)
+	_special_invuln_left -= delta
+	if _special_invuln_left <= 0.0:
+		_end_special_invuln()
 
 
-## Tick down the self-buff; end it (restore speed, drop aura, re-enable the hurtbox next frame)
-## when it runs out. Called every physics frame.
-func _tick_self_buff(delta: float) -> void:
-	if _buff_left <= 0.0:
-		return
-	_buff_left -= delta
-	if _buff_left <= 0.0:
-		_end_self_buff()
-
-
-## End the self-buff and undo its effects. The hurtbox re-enables on its own next frame
-## (_physics_process recomputes it once _buff_invuln is false).
-func _end_self_buff() -> void:
-	_buff_left = 0.0
-	_buff_invuln = false
-	if _buff_run_speed > 0.0:
-		run_speed = _buff_run_speed
-		_buff_run_speed = 0.0
-	if is_instance_valid(_buff_aura):
-		var aura := _buff_aura
+## End the special invuln and drop its aura. The hurtbox re-enables on its own next frame
+## (_physics_process recomputes it once _special_invuln_left hits 0).
+func _end_special_invuln() -> void:
+	_special_invuln_left = 0.0
+	if is_instance_valid(_special_aura):
+		var aura := _special_aura
 		var tw := create_tween()
 		tw.tween_property(aura, "modulate:a", 0.0, 0.3)
 		tw.tween_callback(aura.queue_free)
-	_buff_aura = null
+	_special_aura = null
 
 
 ## Freeze the sprite on its current frame for `duration` seconds, then resume -- so an
@@ -720,7 +735,7 @@ func _die() -> void:
 	_combo_playing = false
 	_flurry = false
 	_hold_left = 0.0
-	_end_self_buff()  # drop the buff aura + restore run_speed on death
+	_end_special_invuln()  # drop the invuln aura on death
 	if _channel != null and is_instance_valid(_channel):
 		_channel.cancel()
 	_channel = null
@@ -774,12 +789,8 @@ func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 
-	# Lahm rots away (the time pressure). Only while alive and past the spawn-in grace; a paused
-	# tree (reward popup) stops _physics_process entirely, so decay pauses there for free.
-	if not _dead and _state != State.SPAWN and lahm > 0.0:
-		lahm -= LAHM_DECAY * delta
-
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
+	_special_cd = maxf(_special_cd - delta, 0.0)
 	_armor_left = maxf(_armor_left - delta, 0.0)
 	if _hold_left > 0.0:
 		_hold_left = maxf(_hold_left - delta, 0.0)
@@ -829,7 +840,7 @@ func _physics_process(delta: float) -> void:
 	if _ability != null:
 		_ability.physics(self, delta)
 
-	_tick_self_buff(delta)  # count down Built Different's immunity/speed; end it cleanly
+	_tick_special_invuln(delta)  # count down the special's invuln window; end it cleanly
 
 	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
@@ -839,7 +850,7 @@ func _physics_process(delta: float) -> void:
 		# dash i-frame window, and while a Built-Different-style invuln buff is active.
 		_hurtbox.monitorable = not _dead and _state != State.SPAWN \
 			and not (_state == State.DASH and _dash_left > 0.0) \
-			and not _buff_invuln
+			and not (_special_invuln_left > 0.0)
 
 	move_and_slide()
 	_update_animation(delta)
@@ -1136,14 +1147,26 @@ func _process_attack(delta: float) -> void:
 ## Commit to a special swing, clearing any light combo in progress. Shared by the
 ## normal/land states and by a light-attack cancel (see _process_attack).
 func _start_special() -> void:
+	if _special_cd > 0.0:
+		return  # short lag between specials (anti-spam)
+	var is_default := _current_special != null and _current_special.id == "special_default"
+	var has_ruh := can_special()
+	# The default special is ONLY the Impervious trigger -- pointless without Ruh, so it's gated.
+	# Every OTHER special always fires its own effect; Impervious is a bonus layered on IF you have Ruh.
+	if is_default and not has_ruh:
+		return
+	_special_cd = SPECIAL_COOLDOWN
+	if has_ruh:
+		spend_special()      # a charge buys the Impervious window (invuln + aura)
+		grant_special_invuln()
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
 	_buffered_special = false
 	_active_hit = resolve_tuning(_current_special, 0)  # feed the special's Hitbox
-	# A buff special (Built Different) carries buff_* fields instead of hitting -- turn it on now.
-	if _current_special != null:
-		apply_self_buff(_current_special.segment(0))
+	# Kills dealt BY the special don't refill Ruh -- otherwise you'd self-loop Impervious. A future
+	# buff can flip this. (Attacks/other kills still fill it; see RunManager._on_enemy_died.)
+	_active_hit["from_special"] = true
 	_enter(State.SPECIAL)
 	# Force-restart the special animation from frame 0. Mashing special re-enters SPECIAL the
 	# same frame the previous one ended -- before _update_animation swaps the anim -- so the
@@ -1203,7 +1226,7 @@ func _slam_release() -> void:
 	_sprite.speed_scale = 1.0
 	var drop := global_position.y - _slam_start_y  # how far we plunged (px)
 	var t := clampf((drop - slam_min_drop) / maxf(slam_max_drop - slam_min_drop, 1.0), 0.0, 1.0)
-	_active_hit = {"damage_scale": lerpf(1.0, slam_max_damage_mult, t)}
+	_active_hit = {"damage_scale": lerpf(1.0, slam_max_damage_mult, t) * slam_damage_mult}  # Meteor reward
 
 
 ## Sheet-relative -> emitted frame offset for `anim` (the generator drops the

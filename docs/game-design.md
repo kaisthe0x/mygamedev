@@ -1,158 +1,126 @@
-# Game Design — premise & the Lahm system
+# Game Design — premise, Ruh & the run loop
 
-> Living design doc. Captures the confirmed premise and the core economy. Numbers are
+> Living design doc. Captures the confirmed premise and the core systems. Numbers are
 > **starting points to tune**, not final. Working name candidate that fits the theme:
-> **"Way of All Flesh."** ("Lahm" = لحم, Arabic for *flesh / meat* — you harvest biomass
-> off the things you kill.)
+> **"Way of All Flesh."**
 
-Status legend: **[CONFIRMED]** decided · **[OPEN]** still to tune/decide.
+Status legend: **[CONFIRMED]** decided · **[OPEN]** still to tune/decide · **[WIP]** stored but not fully realised.
 
-> **Built so far (vertical slice):** the full loop is playable — 5 data-driven levels, the
-> **decoupled HP + lahm economy** (lahm as decaying blocks), damage-dealt paying lahm,
-> wave-refill-on-clear, the exit toll priced in blocks, and the reward pick. Code + data live in
-> [`scripts/run/`](../scripts/run/README.md) (one folder). Press F5. Numbers are placeholders to tune.
+> **Built so far (vertical slice):** the full loop is playable — 5 data-driven levels, **clear-on-kill**
+> arenas that spawn enemies in escalating batches, the **Ruh** special meter (fills by killing),
+> **Impervious** specials (invincibility), one **random typed reward door** per level, a run-start
+> **attack picker** (attack locked for the run), and per-run buffs. Code + data live in
+> [`scripts/run/`](../scripts/run/README.md) + [`configs/`](../configs/). Press F5.
+>
+> **History:** an earlier build used *Lahm* — life-as-currency that you farmed from damage and spent
+> on an exit toll, with a decay timer. That's been replaced by the Ruh / clear-on-kill model below.
+> (An optional passive **health-drain "Hard mode"** revives the time-pressure idea — see
+> [`future-enhancements-and-fixes.md`](future-enhancements-and-fixes.md).)
 
 ---
 
 ## 1. The one-line premise
 
-A roguelite arena crawler where **life is the currency.** You drop into levels that
-spawn enemies to overwhelm you, harvest their flesh (**lahm**) by killing them, and spend
-that same life-force to pass each level's **exit toll**. Stay to bank more (greedy, risky)
-or leave once you can afford the door (safe, less reward). Die and the run is over.
+A roguelite arena crawler. You drop into levels that spawn enemies in **batches**; **clear them all**
+and the exit opens. Killing charges your **Ruh** meter, which you spend on a **special** to become
+**Impervious** (briefly invincible). Each level's exit is a **random reward door** — Health, Athletic,
+Attack, or Special — that buffs your run. Your **attack is chosen at the start and locked**; only its
+power grows. Die and the run is over.
 
 ---
 
-## 2. Lahm & HP — the heart of it  **[CONFIRMED — reworked]**
-
-> **Design pivot.** Lahm used to be "HP above 100" — one pool. That let you tank hits and farm
-> the same lahm back as health forever: camp one level, never leave, never die. **Fixed** by making
-> lahm a *separate, decaying* resource. Now HP is your body and lahm is harvested fuel that **rots**.
+## 2. Ruh & HP  **[CONFIRMED]**
 
 **Two independent pools:**
 
 ```
-HP    : 0 .. max_health (100).  Damage hits HP ONLY. Heals ONLY from rewards. 0 HP -> run over.
-lahm  : 0 .. lahm_cap.  A currency, shown in BLOCKS (1 block = 50 lahm).
+HP   : 0 .. max_health (100). Damage hits HP ONLY. Heals ONLY from rewards. 0 HP -> run over.
+Ruh  : 0 .. ruh_cap.  The SPECIAL meter, shown in CHARGES/BLOCKS (1 block = RUH_PER_BLOCK = 100).
 ```
 
 | Event | Effect |
 |---|---|
-| **Deal damage to an enemy** | `lahm += damage_dealt` (1 lahm per point; capped at `lahm_cap`) |
-| **Lahm decay (always)** | `lahm -= 15/sec`, floored at 0 — flat, regardless of how much you hold |
-| **Take damage** | `HP -= amount`. **Lahm is not a shield.** No heal. |
-| **Pass an exit gate** | `lahm -= gate_cost`. HP untouched. |
+| **Kill an enemy** | `ruh += RUH_PER_KILL` (25 → 4 kills = 1 charge). **No decay.** |
+| **Kill *with the special*** | **no Ruh** — so the special can't self-loop its own Impervious (buffable later) |
+| **Cast a special (with Ruh)** | `ruh -= SPECIAL_COST` (one charge) → **Impervious** for `SPECIAL_INVULN_TIME` (10s) |
+| **Take damage** | `HP -= amount × damage_taken_mult`. Ruh untouched. |
 | **Death** | `HP <= 0` → **run over, start from scratch** |
 
-Notes:
-- **Lahm is per-damage, not per-kill.** Chipping a 60-HP enemy pays 60 lahm total, delivered as you
-  hit it. Overkill isn't paid (a 5-HP enemy hit for 25 gives 5). This makes the decay a *race*: your
-  damage-per-second must beat the 15/sec rot to build toward the toll.
-- **Decay = the time mechanic.** You can't take your time. Banking is pointless (it rots); you farm
-  a burst of blocks and rush the gate. Decay pauses only while the tree is paused (reward popup) and
-  during the spawn-in grace.
-- **The only heal is a reward** — so exiting (the only way to reach rewards) is also the only way to
-  mend. Camping earns nothing and slowly bleeds you to the endless waves. That's the pull forward.
-- **Lahm carries** between levels (the leftover after paying the toll) — but it keeps rotting, so in
-  practice you arrive near-empty and re-farm. The **run** starts at 100 HP / 0 lahm.
-- `lahm_cap` is raised by a reward (see §5); base **10 blocks (500)**, enough headroom above the
-  priciest gate to build a buffer before the door.
-
-**Worked examples** (decay ignored for clarity)
-- Run start: HP 100, lahm 0 (0 blocks).
-- Chip three 60-HP enemies to death: +180 lahm → 3.6 blocks (while ~15/sec drains).
-- Take 40 damage: HP 60, lahm unchanged. No way to heal it but a reward.
-- Reach a 6-block gate (300) with 6.4 blocks, walk in: pay 300 → 0.4 blocks left, HP intact, reward
-  offered (maybe a heal). Next level starts from there.
+- **Ruh fills by kills, never decays.** Default cap is **1 charge**; rewards raise it up to a hard
+  **max of 5** (`MAX_RUH_CAP`). One cast = one charge.
+- **The only heal is a reward.** Camping earns nothing and bleeds you to the batches; clearing +
+  taking a door is the only way to mend. That's the pull forward.
+- The **run** starts at 100 HP / empty Ruh (`Player.begin_run`). HP + `ruh_cap` carry between levels;
+  Ruh itself resets each level.
 
 ---
 
-## 3. Combat feel  **[CONFIRMED]**
+## 3. Specials & Impervious  **[CONFIRMED]**
 
-- **Enemies are beefy on purpose.** Floor of **≥ 25 HP** each, so a normal swing doesn't
-  delete them and the arena stays a grind you have to work. (Elites/bosses far higher.)
-- **Normal attacks chip** — several hits to down a basic enemy.
-- **Specials are heavy — most are one-shot kills** on basic enemies. So the rhythm is:
-  normals to grind + stay safe, specials to burst-harvest when the moment's right (specials
-  are gated by their own cost/cooldown, so you can't just special everything).
-- Because lahm = **damage you deal**, an enemy's full HP is its total lahm — so **tankier enemies
-  are worth more**, but they take longer to fell, which is exactly the tension against the decay:
-  the dangerous ones feed you the most *if* you can burst them before the rot eats your lead.
-
----
-
-## 4. The level & the exit gate  **[CONFIRMED / BUILT]**
-
-- A level is an **arena that keeps refilling**: it opens with a `start` pack, and **every time
-  you clear all enemies, the next escalating wave spawns** (a puff marks each spot). Past the
-  last authored wave, the hardest one repeats — so it never truly clears. (The fully-continuous
-  timed-pressure variant is a later option; §7.6.)
-- The **exit is a toll gate** priced in **lahm blocks**. You may leave whenever `lahm >= gate_cost`.
-  Passing subtracts the cost (HP untouched); the remainder carries (and keeps rotting). The gate
-  reads **green when affordable, red when not** — and because lahm decays, affordability *flickers*,
-  so you build a buffer and rush the door.
-- **Every gate always grants a reward** (see §5) — including the only source of healing.
-- Leaving is the *only* way to complete a level. There is no "clear" state — the arena refills
-  forever; the skill is **out-racing the decay to the toll, then cashing out**.
-
-**The affordability invariant [tuned]**
-`lahm_cap` must exceed `gate_cost` with headroom to build a buffer *and* walk to the gate while it
-rots. Current ramp — **base cap 10 blocks (500)**; gate costs **4 / 5 / 6 / 7 / 8 blocks**
-(200/250/300/350/400). The priciest gate (8) leaves 2 blocks of headroom; the `+2 blocks` reward
-(§5) keeps that comfortable as tolls rise. Your **damage-per-second vs 15 lahm/sec** decides whether
-you can ever reach a toll — a weak build can't, and slowly dies. That's the fail state working.
+- **`special_default`** is the baseline special everyone loads with — no damage, no effect. Its only
+  job is the Impervious window, so it *requires* Ruh (no Ruh → nothing happens).
+- **Other specials** (via the Special door) do their own thing — a ground crack, a stun blast — and
+  are **always usable** (a short cooldown stops spam). Impervious is a **bonus**: if you have Ruh when
+  you cast, a charge is spent to *also* go invincible; no Ruh → the effect fires without it.
+- **Impervious** = the hurtbox is off (same channel as dash i-frames) + the shared **Impervious aura**
+  ([`vfx/shared/impervious/`](../vfx/shared/impervious/)). Every special uses that one aura.
+- Wired in [`player.gd`](../scripts/player.gd) (`grant_special_invuln`, `_start_special`); the
+  no-refill twist rides a `from_special` flag through `Hit → Hitbox → Enemy → RunManager`.
 
 ---
 
-## 5. Run structure & rewards  (from earlier design talks)
+## 4. The level & the reward door  **[CONFIRMED / BUILT]**
 
-- **[CONFIRMED-ish] 3 stages**, each **~6–7 levels (± optional)**, each stage ending in a
-  **boss** (a scripted, smarter enemy — see the enemy/boss system).
-- **[CONFIRMED] Resting areas** between stages: choose character (locked after stage 1),
-  heal, and buy/apply buffs (with money / exp).
-- **[CONFIRMED] Every exit gate grants a reward.** Since HP now heals *only* here, the pool leads
-  with a **heal (Mend +40 HP)** and **+max HP** — the run's lifeline — plus **+damage** (farm lahm
-  faster), **+2 lahm blocks** (raise `lahm_cap`, keeps tolls affordable), **+air jump**, **+run
-  speed**. Built in [`rewards.gd`](../scripts/run/rewards.gd); money/exp meta rewards are later.
-- **[BUILT] Loadout swaps + tiers.** Every attack/special/movement has a **tier** —
-  **Typical → Elite → Broken** ([`loadout.gd`](../configs/loadout.gd)). Characters start on their
-  **Typical** defaults; when a category has more than one option, a gate can offer a **swap card**
-  (tier-badged) to trade up. The swap system spans attacks, specials, and movements (dash/run/jump/
-  slam). Give a character a second attack/special in `moves.gd` (with a `tier`), or a movement
-  variant in `loadout.gd` (`MOVEMENT_EXTRAS`), and it's instantly offerable. Loadout resets to
-  defaults on death (`begin_run`). *(This repo ships **Khalid only**; he already has swaps a gate can offer — an alternate **attack**
-  (the `ora_ora` flurry vs the Elite `spear` combo) and an Elite **special** (`stay`, a 5s-stun blast).)*
-- **[CONFIRMED] Death = permadeath.** The whole run ends; you start over from scratch
-  (roguelite). Meta-progression (exp, unlocks) persists across runs — details **[OPEN]**.
+- A level is an **arena cleared by killing**: it opens with a `start` batch, and each time the current
+  batch is wiped the **next (escalating) batch** spawns. Batches are **finite** — once the last is
+  cleared, the level is done and the **exit opens**. Total enemies = `start` + every wave, introduced
+  progressively (open ~4–5, ramp up). Data: [`levels.gd`](../scripts/run/levels.gd).
+- The exit is a **reward DOOR** with a **random type** rolled per level: **Health / Athletic / Attack /
+  Special**. It shows its **icon + label** (from the [`Icons`](../configs/icons.gd) registry), stays
+  red `LOCKED` until cleared, then opens in the type's colour. Walking in → **pick one** of that type's
+  rewards. [`exit_gate.gd`](../scripts/run/exit_gate.gd).
+- More door types are planned (**money** to buy buffs/outfits; an **ally meeting point**).
 
-**The central player decision (the knob we want them sweating over) [CONFIRMED]**
-Every moment in a level is: *bank more lahm (more buffer, but the arena keeps pressing and
-you risk dying with it all)*, **vs** *leave now (spend the toll, take the reward, reset the
-danger, but walk into the next level thinner)*. Greed vs. safety, priced in your own life.
+---
+
+## 5. Run structure, attacks & rewards  **[CONFIRMED / BUILT]**
+
+- **Attack is chosen at run start and LOCKED.** A scrollable **attack picker**
+  ([`attack_select.gd`](../scripts/run/attack_select.gd), built to scale to 12+) opens on every fresh
+  run; the chosen attack can't change mid-run — only get **buffed** (the Attack door).
+- **Specials CAN change** (the Special door offers change-special swaps) — but every special still
+  grants Impervious on top of its effect.
+- **Typed reward pools** ([`rewards.gd`](../scripts/run/rewards.gd)), all per-run (reset on death):
+  - **Health** — Mend (+HP), Second Skin (+max HP).
+  - **Athletic** — +air jump, +run speed, Thick Hide (−dmg taken), Meteor (+slam dmg).
+  - **Attack** — Long Arm (+reach), Bloodlust (+dmg), Leech (lifesteal), Split Shot (+proj) **[WIP]**.
+  - **Special** — Deeper Ruh (+1 charge), Fortitude (+Impervious time), Last Stand (invuln-till-hit)
+    **[WIP]**, Wide Impact (+radius) **[WIP]**, and change-special swaps.
+- Every attack / special / door / buff has an **icon** via [`Icons`](../configs/icons.gd) — temp art
+  now; swap a path there when real icons land, no UI changes.
+- **Death = permadeath.** The run ends and restarts from scratch; the best-ever *levels cleared* is
+  persisted (`SaveData`, shown on the HUD). Deeper meta-progression **[OPEN]**.
+- **[OPEN] Stages & resting areas** — grouping levels into stages, bosses, and between-stage rest
+  (choose character, spend money/exp) is still to build.
 
 ---
 
 ## 6. HUD  **[CONFIRMED / BUILT]**
 
-- **HP bar** + a **lahm BLOCK meter** beside it: discrete cells (one per block) that fill and drain
-  partially, so you read health and banked blocks at a glance and *see the rot* live. Not a raw
-  number — blocks, to match how you think about the toll.
-- The **exit gate shows its cost in blocks** (e.g. "EXIT · 6 ▮"), green/red by affordability, so the
-  target is always visible. Built in [`hud.gd`](../scripts/hud.gd) + [`exit_gate.gd`](../scripts/run/exit_gate.gd).
+- **HP bar** + a **Ruh charge meter** beside it (crimson cells, one per charge, fill as you kill), and
+  a **`LEVELS n · BEST n`** line (cleared this run + best-ever record). [`hud.gd`](../scripts/hud.gd).
+- The reward door shows its **type icon + label**, red `LOCKED` → its accent colour on clear.
 
 ---
 
 ## 7. Open questions / to decide  **[OPEN]**
 
-1. **Exact numbers** — base `lahm_cap`, gate cost curve, per-enemy HP/lahm values, special
-   costs/cooldowns. Tune against §4's invariant.
-2. **Currencies** — how do **lahm** (in-run life), **money** (gate reward, spent where?), and
-   **exp** (meta, buffs in resting areas) relate? Are money/exp per-run or persistent?
-3. ~~Pass-at-exactly-cost~~ **[RESOLVED]** — moot now: paying the toll spends lahm only and never
-   touches HP, so `lahm >= cost` is safe. No survival margin needed.
-4. **Death spiral** **[CONFIRMED — it's the decay]** — a low-damage build can't out-race the 15/sec
-   rot to any toll, bleeds to the waves, and dies. Legit fail state. Open: any soft telegraph
-   ("your damage can't beat the rot") or leave it raw? Currently raw.
-5. **Optional levels** — the "± optional levels depending on the run" — what gates those?
-6. **Spawn pacing** — cadence/scaling of the overwhelming spawn per level/stage (the reshaped
-   "wave" system).
+1. **Exact numbers** — `RUH_PER_KILL` / cost / cap, `SPECIAL_INVULN_TIME` (10s feels long?), cooldown,
+   per-enemy HP, batch sizes/pacing, buff values.
+2. **Modes** — Normal vs a **Hard "Attrition"** mode (passive HP drain, heal-on-kill) — see
+   [`future-enhancements-and-fixes.md`](future-enhancements-and-fixes.md). Names TBD.
+3. **Currencies / meta** — money (buy buffs/outfits) + exp/unlocks across runs — per-run or persistent?
+4. **Stages / bosses / resting areas** — structure above the single-level loop.
+5. **The WIP buffs** — realise Split Shot (multishot), Last Stand (invuln-till-hit), Wide Impact
+   (scene-hitbox radius) fully.
+6. **More door types** — money door, ally meeting point.

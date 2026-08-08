@@ -13,8 +13,9 @@ func _init() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep working while the tree is paused
 
 
-## Show a card per reward ({id, name, desc}) and pause the game until one is picked.
-func open(rewards: Array) -> void:
+## Show a card per reward ({id, name, desc}) and pause the game until one is picked. `door_type`
+## titles the popup (the reward category the player walked into).
+func open(rewards: Array, door_type := "") -> void:
 	get_tree().paused = true
 
 	var dim := ColorRect.new()
@@ -32,7 +33,7 @@ func open(rewards: Array) -> void:
 	center.add_child(col)
 
 	var title := Label.new()
-	title.text = "CHOOSE A REWARD"
+	title.text = "%s REWARD" % door_type.to_upper() if door_type != "" else "CHOOSE A REWARD"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 22)
 	col.add_child(title)
@@ -42,12 +43,16 @@ func open(rewards: Array) -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_child(row)
 
+	var card_w := 190.0
 	var first: Button = null
 	for r: Dictionary in rewards:
 		var card := Button.new()
-		card.custom_minimum_size = Vector2(190, 130)
-		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		card.text = "%s\n\n%s" % [r["name"], r["desc"]]
+		card.custom_minimum_size = Vector2(card_w, 150)
+		card.clip_contents = true
+		# Fixed-size icon (from the registry: a swap card names its own via icon_key, else a buff icon)
+		# over the name/desc -- so a large placeholder png can't balloon the card.
+		var tex: Texture2D = Icons.texture(r.get("icon_key", "buff:%s" % r["id"]))
+		card.add_child(AttackSelect.card_body(tex, "%s\n\n%s" % [r["name"], r["desc"]], card_w))
 		var id: String = r["id"]
 		card.pressed.connect(func() -> void: _pick(id))
 		row.add_child(card)

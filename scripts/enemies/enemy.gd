@@ -678,9 +678,15 @@ func _hit_frames(anim: StringName) -> Array:
 
 # --- damage / death ---------------------------------------------------------
 
+## True if the LAST hit taken came from the player's special -- RunManager reads it on death to
+## decide whether the kill refills Ruh (a special-kill does not).
+var last_hit_from_special := false
+
+
 func _on_hurt(hit: Hit) -> void:
 	if _state == State.DEAD:
 		return
+	last_hit_from_special = hit.from_special
 	var before := health
 	health = maxf(health - hit.amount, 0.0)
 	damaged.emit(before - health, hit.source)  # harvest = actual HP removed (overkill isn't paid)
@@ -716,7 +722,7 @@ func _on_hurt(hit: Hit) -> void:
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
 	_set_state(State.DEAD)  # _physics_process bails on DEAD, so the AI stops here
-	died.emit()  # count the kill (run manager wave refill); lahm was already paid per-hit via `damaged`
+	died.emit()  # count the kill (RunManager banks Ruh + tracks arena clear)
 	remove_from_group("enemies")  # stop being a homing target NOW -- the death anim/fade below
 	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse
 	_hurtbox.set_deferred("monitorable", false)

@@ -12,6 +12,9 @@ var source: Node = null        ## who dealt it (for knockback direction)
 ## True if this came from a Projectile (a ranged shot), false for a melee/Strike box. Lets
 ## a victim react differently to ranged vs melee -- e.g. nasen is only stunned by melee.
 var ranged: bool = false
+## True if this hit came from the player's SPECIAL. A kill by a special doesn't refill the Ruh
+## meter (RunManager checks this) -- so the special can't self-loop its own Impervious window.
+var from_special: bool = false
 
 ## Optional visual status: an engulfing overlay tint on the victim. `a > 0`
 ## enables it; it lasts `status_time` seconds (defaults to the stun duration).

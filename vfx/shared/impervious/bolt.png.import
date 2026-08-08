@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://lyostg2cnqsy"
-path="res://.godot/imported/bolt.png-0befb669fde21f37f1609879a2841d82.ctex"
+path="res://.godot/imported/bolt.png-973e2c26cec2fa35afe2eea5bc43ab6f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/character/khalid/special/built_different/bolt.png"
-dest_files=["res://.godot/imported/bolt.png-0befb669fde21f37f1609879a2841d82.ctex"]
+source_file="res://vfx/shared/impervious/bolt.png"
+dest_files=["res://.godot/imported/bolt.png-973e2c26cec2fa35afe2eea5bc43ab6f.ctex"]
 
 [params]
 

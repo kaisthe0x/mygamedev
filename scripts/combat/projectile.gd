@@ -170,6 +170,8 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 		hb.status_time = t.get("color_time", t.get("stun", 0.0))
 	if t.has("source"):
 		hb.source = t["source"]
+	if t.has("from_special"):
+		hb.from_special = t["from_special"]  # a special-kill doesn't refill Ruh
 
 
 ## Nearest target AHEAD in the facing x-direction, within acquire_range (measured on

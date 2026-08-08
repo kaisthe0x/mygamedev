@@ -1,20 +1,18 @@
-[gd_scene format=3 uid="uid://kgg3thvojfl6"]
+[gd_scene load_steps=4 format=3 uid="uid://kgg3thvojfl6"]
 
-[ext_resource type="PackedScene" uid="uid://2frwo0knhkgf" path="res://vfx/character/khalid/special/built_different/built_different_aura.tscn" id="1_mc5xt"]
-
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_mc5xt"]
-load_path = "res://.godot/imported/bolt.png-0befb669fde21f37f1609879a2841d82.ctex"
+[ext_resource type="PackedScene" uid="uid://2frwo0knhkgf" path="res://vfx/shared/impervious/impervious_shield.tscn" id="1_mc5xt"]
+[ext_resource type="Texture2D" uid="uid://lyostg2cnqsy" path="res://vfx/shared/impervious/bolt.png" id="2_bolt"]
 
 [sub_resource type="Curve" id="Curve_0t232"]
 _data = [Vector2(0, 0.28389835), 0.0, 0.0, 0, 0, Vector2(0.49911502, 0.1864407), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
-[node name="BuiltDifferent" type="Node2D" unique_id=1819817626]
+[node name="ImperviousAura" type="Node2D" unique_id=1819817626]
 
 [node name="Stripes" type="CPUParticles2D" parent="." unique_id=685047058]
 position = Vector2(0, -1)
 amount = 25
-texture = SubResource("CompressedTexture2D_mc5xt")
+texture = ExtResource("2_bolt")
 lifetime = 0.6
 emission_shape = 3
 emission_rect_extents = Vector2(12, 1)

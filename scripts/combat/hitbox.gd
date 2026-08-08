@@ -23,6 +23,9 @@ extends Area2D
 ## Marks hits from this box as ranged (a projectile). Projectile sets it on its box; melee
 ## Strikes leave it false. Carried into the Hit so a victim can react by attack type.
 @export var ranged: bool = false
+## Marks hits from this box as coming from the player's SPECIAL (set via tuning). Carried into
+## the Hit so a special-kill doesn't refill Ruh (see Player / RunManager).
+@export var from_special: bool = false
 ## Who fired this, passed along so the victim knocks back away from them.
 var source: Node = null
 
@@ -91,6 +94,7 @@ func _on_area_entered(area: Area2D) -> void:
 	# Default the VFX lifetime to the status/stun window so e.g. a stun effect lasts the whole stun.
 	hit.victim_vfx_time = victim_vfx_time if victim_vfx_time > 0.0 else hit.status_time
 	hit.ranged = ranged
+	hit.from_special = from_special
 	var credit: Node = source if is_instance_valid(source) else owner
 	hit.source = credit if is_instance_valid(credit) else null
 	box.take_hit(hit)

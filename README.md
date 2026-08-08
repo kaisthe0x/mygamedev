@@ -8,12 +8,14 @@ stays fully character-agnostic, so bringing one back is just its assets + data r
 
 Main scene: `scenes/level.tscn`. Press F5 to run.
 
-**Game premise & the Lahm economy:** see [`docs/game-design.md`](docs/game-design.md) — the
-roguelite life-as-currency loop (harvest flesh, pay the exit toll, die and restart).
+**Game premise & the run loop:** see [`docs/game-design.md`](docs/game-design.md) — a roguelite
+arena crawler: clear each level's enemy batches, spend the **Ruh** meter (filled by killing) on an
+**Impervious** special, and pick a buff at one random **reward door** per level. Attack is chosen at
+run start and locked; die and the run restarts.
 
 > Potential names for the game:
 > - Index32
-> - Way of All Flesh (fits the flesh/*lahm* theme)
+> - Way of All Flesh
 
 ---
 
@@ -28,7 +30,7 @@ resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
 scripts/              player, hud
-scripts/run/          the roguelite run: levels, waves, lahm economy, exit+rewards (see scripts/run/README.md)
+scripts/run/          the roguelite run: levels, batches, Ruh, reward doors, attack picker (see scripts/run/README.md)
 scripts/abilities/    Per-character abilities, named <character_id>.gd
 scripts/combat/       Hurtbox, hitbox, combatant base, health bar (constants -> configs/combat.gd)
 scripts/enemies/      Enemy base + projectile
@@ -65,16 +67,17 @@ play, the clean way is "last input device wins" — ask and I'll wire it.
 `CharacterConfig.IDS` (`khalid` — the others are parked in `playground/`). The dev keys (Z/X
 debug damage/heal, `0` rebuild-level) live in that same file.
 
-**The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). You drop
-into low, mostly-horizontal **arena levels** that spawn enemies to overwhelm you; **damaging** them
-harvests **lahm** — a currency shown in blocks (50 each) that **rots at 15/sec**, so you farm in
-bursts and can't camp. **HP is separate**: damage hits it only, and it heals *only* from rewards.
-Each level's **exit gate** costs a number of lahm blocks to pass (HP untouched); clear the arena and
-the next escalating wave refills, so a level ends only when you pay the exit and pick a reward —
-a stat buff, **or a loadout swap**: every attack/special/movement has a tier (**Typical → Elite →
-Broken**), and where a character has more than one option a gate can offer trading up (once a character has more than one option in a category). See [`configs/loadout.gd`](configs/loadout.gd). Take 0 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pool, the run
-loop — lives in one folder, [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s
-root; `Levels` / `EnemyKits` / `Rewards` are the data). The `.tscn` stays minimal because the editor
+**The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). At run start
+you **pick an attack** (locked for the run; scrollable picker built to scale to 12+). You drop into
+low, mostly-horizontal **arena levels** that spawn enemies in **escalating batches**; **killing** them
+charges **Ruh** — the special meter, shown in charges (100 each), no decay. Spend Ruh on a **special**
+to go **Impervious** (~10s invincible); every special grants it on top of its own effect (the baseline
+`special_default` is *only* that). **HP is separate**: damage hits it only, heals *only* from rewards.
+Clear every batch → the **reward door** opens (one random type per level: **Health / Athletic / Attack
+/ Special**, each iconned) → **pick one buff** → next level. Attacks are run-locked (only buffed);
+specials can be swapped at the Special door. Take 0 HP and the run restarts. All of this — the 5 levels,
+the enemy roster, the reward pools, the attack picker — lives in [`scripts/run/`](scripts/run/README.md)
+(`RunManager` is `level.tscn`'s root; `Levels` / `EnemyKits` / `Rewards` / `Icons` are the data). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset
 skin ([`configs/terrain.gd`](configs/terrain.gd)) stamped as sprites over the colliders — tiled
 neon terrain, ground plants, tree props — art in `assets/terrain/`, gameplay unchanged.
@@ -487,12 +490,13 @@ A 13-frame dash plays fully inside the 0.18s window. Grounded dashes stay level;
 falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
 
-**API for other systems:** `take_damage()` (HP only) / `heal()` (the only HP restore), `gain_lahm()`
-(per point of damage dealt) / `spend_lahm()` / `can_afford()` (the lahm currency — see
-[`docs/game-design.md`](docs/game-design.md)), `begin_run()`, `is_dead()`, `death_complete()`,
-`spawn()`, `set_character()`, `portrait_path()`, and the `health_changed` / `lahm_changed` /
-`character_changed` signals. Lahm rots each frame (`LAHM_DECAY`) and never shields HP. (Enemies deal
-real damage; a lethal hit runs the full death lifecycle — see **Death** / **Spawn** below.)
+**API for other systems:** `take_damage()` (HP only) / `heal()` (the only HP restore),
+`gain_ruh_on_kill()` / `can_special()` / `spend_special()` (the Ruh special meter — see
+[`docs/game-design.md`](docs/game-design.md)), `grant_special_invuln()` (the Impervious window every
+special grants), `begin_run()`, `is_dead()`, `death_complete()`, `spawn()`, `set_character()`,
+`portrait_path()`, and the `health_changed` / `ruh_changed` / `character_changed` signals. Ruh fills
+by killing (no decay) and is spent to cast a special; it never shields HP. (Enemies deal real damage;
+a lethal hit runs the full death lifecycle — see **Death** / **Spawn** below.)
 
 ---
 
@@ -987,7 +991,7 @@ from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds 
   (`EnemyKits.KEBUS`, …) is either an `id` (built from the generic `enemy.tscn` with that
   `enemy_id`) or a `scene` (a custom enemy — `nasen.tscn` sleeper, `ein.tscn` kamikaze), plus
   any Enemy `@export` overrides. `RunManager._spawn_enemy` applies them; the enemy's `died`
-  signal pays out lahm and counts toward clearing the arena.
+  signal banks Ruh (unless the kill was by the special) and counts toward clearing the arena.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.
@@ -1045,7 +1049,7 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
   attacking**: `Enemy._player()` returns
   `null` for a dead player, so the zone goes quiet. `RunManager` waits for
   `death_complete()` (+ a short `DEATH_HOLD`), then **restarts the whole run** — rebuild level 1
-  + `Player.begin_run()` (full HP / 0 lahm, run-reward buffs cleared). Death is a real fail state
+  + `Player.begin_run()` (full HP / empty Ruh, run-reward buffs cleared). Death is a real fail state
   now (roguelite), not a free respawn.
 - **Death flair** — on death the camera **punches in** (`CAM_ZOOM_DEATH` 2.25 vs the
   1.5 rest zoom, tweened) and centres tight on the collapsing character so the animation
@@ -1071,7 +1075,7 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
 
 ## HUD
 
-`scenes/hud.tscn` + `scripts/hud.gd` — portrait, name, health bar, lahm block
+`scenes/hud.tscn` + `scripts/hud.gd` — portrait, name, health bar, Ruh charge
 meter, and a **`LEVELS n · BEST n`** line (levels cleared this run + the best-ever
 record).
 

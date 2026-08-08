@@ -111,9 +111,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Bakshen: a charged slash. fps 10 so the per-frame math is clean (see FRAME_DURATIONS: the
     # wind-up frame holds 1s); hold_last lets the final slash pose linger while its VFX plays.
     ("khalid", "attack_bakshen"): {"fps": 10.0, "hold_last": 3.0},
-    # Built Different: a short flex that turns ON the self-buff (immunity + speed). hold_last lets
-    # the flex pose land; the buff itself lasts far longer (buff_time in moves.gd).
-    ("khalid", "special_built_different"): {"fps": 8.0, "hold_last": 3.0},
+    # Default special (special_default): a short flex. The invuln window it grants is UNIVERSAL to
+    # every special (Player.grant_special_invuln), not from here; hold_last just lands the pose.
+    ("khalid", "special_default"): {"fps": 8.0, "hold_last": 3.0},
     ("khalid", "death"): {"fps": 7.0},
     # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
