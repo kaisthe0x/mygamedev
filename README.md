@@ -1071,7 +1071,9 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
 
 ## HUD
 
-`scenes/hud.tscn` + `scripts/hud.gd` — portrait, name, and health bar.
+`scenes/hud.tscn` + `scripts/hud.gd` — portrait, name, health bar, lahm block
+meter, and a **`LEVELS n · BEST n`** line (levels cleared this run + the best-ever
+record).
 
 Registered as an **autoload** (`project.godot > [autoload]`), not placed in a
 scene. It finds whatever `Player` enters the tree via `get_tree().node_added`,
@@ -1079,6 +1081,19 @@ and hides itself when there is none, so menus and character-select screens stay
 clean. This also means no scene file holds a reference to it.
 
 It follows character swaps and health changes over signals — nothing polls.
+
+### Persistent record — `SaveData` (`scripts/save_data.gd`)
+
+The best-ever *levels cleared in one run* survives between sessions. `SaveData` is
+an all-static helper backed by a `ConfigFile` at `user://save.cfg`:
+- `RunManager` counts a level cleared when its exit is paid (`_on_reward_chosen`),
+  writing `SaveData.current_cleared`; on run end (death **or** completion, both via
+  `_restart_run`) it calls `SaveData.report_run(cleared)`, which persists a new best.
+- The HUD reads `SaveData.current_cleared` / `SaveData.levels_record()` each frame
+  (in-memory after the first load — no per-frame disk I/O).
+
+It's the first thing saved to disk; add future persisted stats as more keys in the
+same file.
 
 ---
 

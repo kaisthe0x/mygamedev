@@ -27,6 +27,7 @@ var _lahm_area: Control       ## holds the block cells
 var _lahm_cells: Array = []   ## [{bg, fill}] -- one per lahm block, rebuilt when the cap changes
 var _lahm_cell_w: float = 0.0
 var _lahm_label: Label
+var _levels_label: Label      ## levels cleared this run + the best-ever record
 var _controls: Label
 var _stats: PanelContainer
 var _stats_label: Label
@@ -89,6 +90,8 @@ func _build_hud() -> void:
 	_lahm_label = _mk_label(Vector2(info_x + LAHM_METER_SIZE.x + 8, 74), 12, Color(0.95, 0.75, 0.8))
 	_lahm_label.size = Vector2(120, 18)
 	_lahm_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+	_levels_label = _mk_label(Vector2(info_x, 100), 15, Color(0.85, 0.72, 0.18))  # gold, like the frame
 
 	_controls = _mk_label(Vector2(16, 140), 12, Color(0.62, 0.62, 0.68))
 	_controls.text = "A/D move   Space jump   Shift dash   LMB attack   RMB special/slam   Z hurt   X +lahm   0 rebuild"
@@ -223,6 +226,7 @@ func _process(delta: float) -> void:
 		return
 	if not is_equal_approx(_bar.value, _target):
 		_bar.value = move_toward(_bar.value, _target, drain_speed * delta)
+	_levels_label.text = "LEVELS  %d   ·   BEST %d" % [SaveData.current_cleared, SaveData.levels_record()]
 	_stats_label.text = _stats_text()
 
 

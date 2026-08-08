@@ -32,6 +32,7 @@ const DEATH_HOLD := 0.7
 @onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
 var _level_index := 0
+var _cleared_this_run := 0  ## levels cleared (exits paid) so far this run -> HUD + the SaveData record
 var _wave_index := 0        ## next wave to spawn on clear (past the last -> repeats the last)
 var _alive := 0             ## enemies currently alive; hitting 0 spawns the next wave
 var _transitioning := false ## true while the reward/level-change is mid-flight
@@ -302,6 +303,10 @@ func _offer_reward() -> void:
 
 func _on_reward_chosen(id: String) -> void:
 	Rewards.apply(id, _player)
+	# Paying the exit + taking the reward = this level is CLEARED. Count it (drives the HUD +
+	# feeds the best-ever record on run end).
+	_cleared_this_run += 1
+	SaveData.current_cleared = _cleared_this_run
 	if _level_index >= Levels.count() - 1:
 		_restart_run()  # run complete -> loop back to level 1 (template; a win screen later)
 	else:
@@ -311,6 +316,10 @@ func _on_reward_chosen(id: String) -> void:
 ## Wipe the run and start over at level 1 (death or completion). Resets buffs + refills to
 ## 100 HP / 0 lahm via Player.begin_run.
 func _restart_run() -> void:
+	# The run is ending (death or completion): bank its cleared count into the record, then reset.
+	SaveData.report_run(_cleared_this_run)
+	_cleared_this_run = 0
+	SaveData.current_cleared = 0
 	_dead_prev = false
 	_build_level(0)
 	if _player != null:
