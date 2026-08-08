@@ -2,27 +2,18 @@
 
 [ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
-[ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="3_ember"]
-[ext_resource type="Texture2D" uid="uid://0oxxr2ehomdo" path="res://vfx/character/khalid/attack/bakshen/bakshen.png" id="3_pqwr3"]
+[ext_resource type="Texture2D" uid="uid://cypphgyn0eo2d" path="res://vfx/shared/textures/blast1.png" id="3_1h32n"]
 
 [sub_resource type="RectangleShape2D" id="box_bakshen"]
-size = Vector2(66, 74)
-
-[sub_resource type="Curve" id="Curve_shrink"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49557522, 0.4938271), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 3
-
-[sub_resource type="Gradient" id="Grad_slash"]
-offsets = PackedFloat32Array(0, 0.48824593, 0.7305606, 0.8625678)
-colors = PackedColorArray(0.9187369, 0, 0, 1, 0.68855333, 0.1560686, 0.14560014, 1, 0.7490225, 0.050708726, 0.050708726, 0.386, 0.3, 0.04, 0.03, 0)
+size = Vector2(78, 74)
 
 [sub_resource type="Curve" id="Curve_1h32n"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49557522, 0.4938271), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="Gradient" id="Gradient_ci37t"]
-offsets = PackedFloat32Array(0)
-colors = PackedColorArray(1, 0.5105693, 0.44126564, 1)
+offsets = PackedFloat32Array(0.24848485, 0.6, 0.869697)
+colors = PackedColorArray(0.92168134, 0, 0, 1, 1, 0.798921, 0.06100855, 1, 0.96853024, 0, 0.017676307, 1)
 
 [node name="AttackBakshen" type="Node2D" unique_id=1458802916]
 z_index = 1
@@ -35,43 +26,26 @@ collision_mask = 16
 script = ExtResource("2_hb")
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1769435298]
-position = Vector2(11, -2)
+position = Vector2(17, -2)
 shape = SubResource("box_bakshen")
 
-[node name="Blast" type="CPUParticles2D" parent="." unique_id=905505705]
+[node name="Sparks" type="CPUParticles2D" parent="." unique_id=301395615]
+z_index = -1
 texture_filter = 1
-position = Vector2(1, 0)
-amount = 3
-texture = ExtResource("3_pqwr3")
-lifetime = 0.2
+position = Vector2(-1, -1)
+rotation = -0.04402093
+amount = 300
+texture = ExtResource("3_1h32n")
+lifetime = 0.4
 explosiveness = 1.0
 local_coords = true
-spread = 0.0
+spread = 38.38
 gravity = Vector2(0, 0)
-initial_velocity_min = 38.93
-initial_velocity_max = 362.35
-scale_amount_min = 0.2
-scale_amount_max = 0.2
-scale_amount_curve = SubResource("Curve_shrink")
-color = Color(1, 0, 0, 1)
-color_ramp = SubResource("Grad_slash")
-
-[node name="Blast2" type="CPUParticles2D" parent="." unique_id=301395615]
-texture_filter = 1
-position = Vector2(23, -3)
-amount = 175
-texture = ExtResource("3_ember")
-lifetime = 0.2
-local_coords = true
-emission_shape = 2
-emission_sphere_radius = 24.92
-direction = Vector2(-1, 0)
-spread = 37.37
-gravity = Vector2(0, 0)
-initial_velocity_min = 200.0
+initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.2
-scale_amount_max = 0.4
+angle_min = 90.0
+angle_max = 90.0
+scale_amount_min = 0.03
+scale_amount_max = 0.03
 scale_amount_curve = SubResource("Curve_1h32n")
-color = Color(0.7737411, 0, 0.014904264, 1)
 color_ramp = SubResource("Gradient_ci37t")

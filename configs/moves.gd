@@ -62,7 +62,7 @@ const CATALOG := {
 			"built_different": {"animation": "special_built_different", "effect": "built_different", "kind": Combat.AttackKind.BLAST, "tier": "broken",
 				"tuning": {"buff_time": 4.0, "speed_mult": 1.8, "invuln": true, "buff_effect": "res://vfx/character/khalid/special/built_different/built_different.tscn"}},
 		},
-		"default_attack": "cherry_shots", "default_special": "built_different",
+		"default_attack": "bakshen", "default_special": "built_different",
 	},
 }
 

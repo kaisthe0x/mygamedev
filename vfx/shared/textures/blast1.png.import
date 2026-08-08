@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0oxxr2ehomdo"
-path="res://.godot/imported/bakshen.png-0567c810a288f86e1c94ec92974fb2b7.ctex"
+uid="uid://cypphgyn0eo2d"
+path="res://.godot/imported/blast1.png-5cc60b43bcb5718b7218dabd8e1c26e3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/character/khalid/attack/bakshen/bakshen.png"
-dest_files=["res://.godot/imported/bakshen.png-0567c810a288f86e1c94ec92974fb2b7.ctex"]
+source_file="res://vfx/shared/textures/blast1.png"
+dest_files=["res://.godot/imported/blast1.png-5cc60b43bcb5718b7218dabd8e1c26e3.ctex"]
 
 [params]
 
