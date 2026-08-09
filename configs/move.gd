@@ -31,6 +31,11 @@ var tier: String = "typical"
 ## Player's exported defaults. May be a single dict, OR an ARRAY (one per combo
 ## segment) for a multi-hit attack. Leave damage 0 when the effect carries the hit.
 var tuning: Variant = {}
+## Seconds this move must recharge before it can fire again (0 = no cooldown, the default). A
+## cooling attack ignores the attack press until ready, and the Player shows a small fill bar over
+## the character's head meanwhile -- for a heavy one-shot like Khalid's bakshen. Specials have their
+## own separate anti-spam cooldown (Player.SPECIAL_COOLDOWN); this is the per-ATTACK one.
+var cooldown: float = 0.0
 
 
 ## Build a Move from a catalog entry. `animation` defaults to "<kind>_<id>".
@@ -44,6 +49,7 @@ static func make(move_kind: String, move_id: String, d: Dictionary) -> Move:
 	m.style = String(d.get("style", "combo"))
 	m.tier = String(d.get("tier", "typical"))
 	m.tuning = d.get("tuning", {})
+	m.cooldown = float(d.get("cooldown", 0.0))
 	return m
 
 

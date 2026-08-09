@@ -114,7 +114,7 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     ("khalid", "slam"): {"fps": 15.0, "hold_last": 1.6},
     # Bakshen: a charged slash. fps 10 so the per-frame math is clean (see FRAME_DURATIONS: the
     # wind-up frame holds 1s); hold_last lets the final slash pose linger while its VFX plays.
-    ("khalid", "attack_bakshen"): {"fps": 10.0, "hold_last": 3.0},
+    ("khalid", "attack_bakshen"): {"fps": 10.0, "hold_last": 10.0},
     # Default special (special_default): a short flex. The invuln window it grants is UNIVERSAL to
     # every special (Player.grant_special_invuln), not from here; hold_last just lands the pose.
     ("khalid", "special_default"): {"fps": 8.0, "hold_last": 3.0},

@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://ci0uaw50nlg3n" path="res://vfx/character/khalid/attack/spear/spear_slash_texture_9.png" id="3_d3rgc"]
 
 [sub_resource type="RectangleShape2D" id="box_thrust2"]
-size = Vector2(75, 30)
+size = Vector2(89, 30)
 
 [sub_resource type="Curve" id="curve_shrink"]
 _data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -25,7 +25,7 @@ script = ExtResource("2_hb")
 damage = 12.0
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1455431137]
-position = Vector2(37.5, 1)
+position = Vector2(30.5, 1)
 shape = SubResource("box_thrust2")
 
 [node name="Slash" type="CPUParticles2D" parent="." unique_id=1192405490]

@@ -45,13 +45,13 @@ var health: float = 100.0:
 ## enemies (RUH_PER_KILL each), never decays, and is measured in CHARGES/BLOCKS (RUH_PER_BLOCK
 ## each). One special cast spends SPECIAL_COST (one full charge). `ruh_cap` (raised by rewards)
 ## is the ceiling -- default one charge, so one cast empties it; a bigger cap banks more casts.
-const RUH_PER_BLOCK := 100.0   ## one HUD "block" = one special charge
-const RUH_PER_KILL := 25.0     ## Ruh gained per enemy killed (4 kills = 1 charge by default)
-const SPECIAL_COST := 100.0    ## Ruh a cast consumes to layer the Impervious effect on (= one block)
-const MAX_RUH_CAP := 500.0     ## hard ceiling: 5 charges (rewards raise ruh_cap up to here)
+const RUH_PER_BLOCK := 100.0 ## one HUD "block" = one special charge
+const RUH_PER_KILL := 25.0 ## Ruh gained per enemy killed (4 kills = 1 charge by default)
+const SPECIAL_COST := 100.0 ## Ruh a cast consumes to layer the Impervious effect on (= one block)
+const MAX_RUH_CAP := 500.0 ## hard ceiling: 5 charges (rewards raise ruh_cap up to here)
 ## Short lag between special casts so a special (no longer Ruh-gated) can't be spammed.
 const SPECIAL_COOLDOWN := 0.6
-@export var ruh_cap: float = 100.0:  # 1 charge/block; rewards raise it toward MAX_RUH_CAP (5)
+@export var ruh_cap: float = 100.0: # 1 charge/block; rewards raise it toward MAX_RUH_CAP (5)
 	set(value):
 		ruh_cap = clampf(value, 0.0, MAX_RUH_CAP)
 		ruh = minf(ruh, ruh_cap)
@@ -66,7 +66,7 @@ var ruh: float = 0.0:
 
 ## Run-reward buffs applied on top of the character's base. `damage_mult` scales every hit
 ## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
-const BASE_RUH_CAP := 100.0  # 1 special charge
+const BASE_RUH_CAP := 100.0 # 1 special charge
 const BASE_MAX_HEALTH := 100.0
 const BASE_AIR_JUMPS := 2
 var damage_mult: float = 1.0
@@ -75,13 +75,13 @@ var damage_mult: float = 1.0
 var run_mult: float = 1.0
 ## --- reward buffs (all per-run, reset by begin_run). Placeholders: some fully wired, some just
 ## stored for now (marked WIP) so the reward is selectable + tunable later. ---
-var damage_taken_mult: float = 1.0    ## Thick Hide: < 1 = take less damage (applied in take_damage)
-var slam_damage_mult: float = 1.0     ## Meteor: > 1 = harder slams (applied in _slam_release)
-var attack_reach_mult: float = 1.0    ## Long Arm: scales attack hitbox reach (resolve_tuning)
-var lifesteal_frac: float = 0.0       ## Leech: heal this fraction of damage dealt (RunManager)
-var attack_projectile_bonus: int = 0  ## Split Shot: +N projectiles -- WIP (stored, not yet spawned)
+var damage_taken_mult: float = 1.0 ## Thick Hide: < 1 = take less damage (applied in take_damage)
+var slam_damage_mult: float = 1.0 ## Meteor: > 1 = harder slams (applied in _slam_release)
+var attack_reach_mult: float = 1.0 ## Long Arm: scales attack hitbox reach (resolve_tuning)
+var lifesteal_frac: float = 0.0 ## Leech: heal this fraction of damage dealt (RunManager)
+var attack_projectile_bonus: int = 0 ## Split Shot: +N projectiles -- WIP (stored, not yet spawned)
 var impervious_until_hit: bool = false ## Last Stand: invuln until hit -- WIP (stored)
-var special_radius_mult: float = 1.0  ## Wide Impact: scales special hit radius -- WIP for scene boxes
+var special_radius_mult: float = 1.0 ## Wide Impact: scales special hit radius -- WIP for scene boxes
 ## The character's STARTING dash effect (the Emitters-config key fired on each dash). Every dash IS
 ## this effect; a reward swaps it for another. Its "Trail" node follows the player, its other nodes
 ## linger/etc (per-node, see ParticleDirector). >>> Flip this to "dash_crimson_vortex" to START with
@@ -97,7 +97,7 @@ var _dash_effect: String = STARTING_DASH_EFFECT
 func begin_run() -> void:
 	_dead = false
 	_death_finished = false
-	_end_special_invuln()  # drop any active special invuln + aura on run restart
+	_end_special_invuln() # drop any active special invuln + aura on run restart
 	damage_mult = 1.0
 	run_mult = 1.0
 	damage_taken_mult = 1.0
@@ -107,13 +107,13 @@ func begin_run() -> void:
 	attack_projectile_bonus = 0
 	impervious_until_hit = false
 	special_radius_mult = 1.0
-	_dash_effect = STARTING_DASH_EFFECT  # back to the starting dash; upgrades are re-earned each run
+	_dash_effect = STARTING_DASH_EFFECT # back to the starting dash; upgrades are re-earned each run
 	special_invuln_bonus = 0.0
 	ruh_cap = BASE_RUH_CAP
 	max_air_jumps = BASE_AIR_JUMPS
 	max_health = BASE_MAX_HEALTH
-	_loadout.clear()  # back to the character's default (Typical) moves + movement
-	_apply_character()  # re-applies moves + run/jump/dash/slam from the (now default) loadout
+	_loadout.clear() # back to the character's default (Typical) moves + movement
+	_apply_character() # re-applies moves + run/jump/dash/slam from the (now default) loadout
 	health = max_health
 	ruh = 0.0
 	velocity = Vector2.ZERO
@@ -306,6 +306,11 @@ var special_invuln_bonus: float = 0.0
 var _special_aura: Node2D = null
 ## Countdown until the next special can fire (SPECIAL_COOLDOWN), so specials can't be spammed.
 var _special_cd: float = 0.0
+## Countdown until the CURRENT attack can fire again -- only for a cooldown attack (Move.cooldown
+## > 0, e.g. bakshen). While > 0 the attack press is ignored and the overhead bar fills; 0 = ready.
+var _attack_cd: float = 0.0
+## Small world-space bar over the head that fills as a cooldown attack recharges (hidden otherwise).
+var _cooldown_bar: FloatingHealthBar = null
 ## Base seconds of Impervious (invuln) every special grants (before `special_invuln_bonus`).
 const SPECIAL_INVULN_TIME := 10.0
 ## The shared "Impervious" aura every special engulfs the player in while invulnerable.
@@ -369,6 +374,7 @@ func _apply_character() -> void:
 	_combo_playing = false
 	_buffered_special = false
 	_flurry = false
+	_attack_cd = 0.0 # a fresh run/swap starts every attack ready (no leftover cooldown)
 	# Drop back to idle: a state-specific animation (e.g. slam) may not exist on the
 	# new character, and a swap is a clean slate anyway. Skip in the editor so a
 	# preview character keeps whatever pose the scene is set to show.
@@ -400,7 +406,7 @@ func _apply_movement(category: String, option_id: String) -> void:
 	var o := Loadout.option(character, category, option_id)
 	match category:
 		"run":
-			if o.has("speed"): run_speed = o["speed"] * run_mult  # buff survives a swap
+			if o.has("speed"): run_speed = o["speed"] * run_mult # buff survives a swap
 		"jump":
 			if o.has("velocity"): jump_velocity = o["velocity"]
 		"dash":
@@ -415,7 +421,7 @@ func equip(category: String, option_id: String) -> void:
 	_loadout[category] = option_id
 	_apply_loadout()
 	if category == "attack" or category == "special":
-		character_changed.emit(character)  # nudge the HUD stats to redraw the new move/tier
+		character_changed.emit(character) # nudge the HUD stats to redraw the new move/tier
 
 
 ## The equipped option id in a category (default when unset), for the HUD / rewards.
@@ -498,13 +504,13 @@ func fire_effect(anim: String, tilt: float = 0.0) -> void:
 ## Called from _enter(State.DASH); _process_dash then skips the lunge and plays the tail.
 func _do_blink() -> void:
 	var motion := Vector2(dash_speed * dash_time * _facing, 0.0)
-	fire_effect("blink_out")  # poof at the spot we're leaving
+	fire_effect("blink_out") # poof at the spot we're leaving
 	if _blink_phase_walls:
 		global_position += motion
 	else:
 		move_and_collide(motion)
-	velocity.x = 0.0  # a teleport carries no momentum; the dash tail re-derives it
-	fire_effect("blink_in")  # poof where we arrive
+	velocity.x = 0.0 # a teleport carries no momentum; the dash tail re-derives it
+	fire_effect("blink_in") # poof where we arrive
 	# Brief over-white the world bloom picks up; cascades from the player to the sprite.
 	modulate = Color(2.2, 2.2, 2.2)
 	create_tween().tween_property(self, "modulate", Color(1, 1, 1), 0.18)
@@ -518,7 +524,7 @@ func portrait_path() -> String:
 ## Damage hits HP ONLY -- Ruh is not a shield (that's the whole point of the rework). Flash the
 ## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
-	health -= amount * damage_taken_mult  # Thick Hide reward reduces this
+	health -= amount * damage_taken_mult # Thick Hide reward reduces this
 	flash(_sprite)
 	if health <= 0.0 and not _dead:
 		_die()
@@ -567,6 +573,14 @@ func _build_combat() -> void:
 	add_child(_status)
 	_status.setup(_sprite)
 
+	# Overhead cooldown bar for a cooldown attack (bakshen). Same world-space FloatingHealthBar the
+	# enemies use, tinted gold ("charge"); hidden until an attack is actually recharging.
+	_cooldown_bar = FloatingHealthBar.new()
+	_cooldown_bar.fill_color = Color(1.0, 0.08, 0.08)
+	_cooldown_bar.position = Vector2(0, -52)
+	_cooldown_bar.visible = false
+	add_child(_cooldown_bar)
+
 
 ## THE BUFF SEAM. Resolve the effective per-hit tuning of `move`'s combo segment `seg`
 ## -- the numbers the attack's Hitbox is configured with. Today it's the base straight
@@ -574,7 +588,7 @@ func _build_combat() -> void:
 ## (damage x1.3, +reach, hits twice, ...) so every attack becomes buffable without
 ## re-plumbing. Set into _active_hit at segment/special start; read by the director.
 func resolve_tuning(move: Move, seg: int = 0) -> Dictionary:
-	var base: Dictionary = move.segment(seg).duplicate()  # copy: never mutate the catalog
+	var base: Dictionary = move.segment(seg).duplicate() # copy: never mutate the catalog
 	# Buff/item/event modifiers fold in here. `damage_mult` is a run reward ("+X% damage").
 	if not is_equal_approx(damage_mult, 1.0) and base.has("damage"):
 		base["damage"] = float(base["damage"]) * damage_mult
@@ -599,7 +613,7 @@ func active_hit() -> Dictionary:
 func _on_hurt(hit: Hit) -> void:
 	take_damage(hit.amount)
 	if _dead:
-		return  # the killing blow: death takes over -- no knockback/stun/reactions
+		return # the killing blow: death takes over -- no knockback/stun/reactions
 	# Per-character reaction to being hurt (retaliation, defensive buff, ...).
 	if _ability != null:
 		_ability.on_hurt(self, hit)
@@ -658,7 +672,7 @@ func set_dash_effect(effect: String) -> void:
 ## Make the player invulnerable for the special window and engulf them in the shared aura. Called
 ## by EVERY special cast (special_default has no other effect; the rest add this on top of theirs).
 func grant_special_invuln() -> void:
-	_end_special_invuln()  # clean refresh if re-cast within the window
+	_end_special_invuln() # clean refresh if re-cast within the window
 	_special_invuln_left = SPECIAL_INVULN_TIME + special_invuln_bonus
 	if SPECIAL_AURA != null:
 		_special_aura = SPECIAL_AURA.instantiate() as Node2D
@@ -697,7 +711,7 @@ func hold_animation(duration: float, effect: Strike = null) -> void:
 	if duration <= 0.0 or _sprite == null:
 		return
 	_hold_left = maxf(_hold_left, duration)
-	_channel = effect  # remember it so a hit can break the channel (see _on_hurt)
+	_channel = effect # remember it so a hit can break the channel (see _on_hurt)
 	_sprite.pause()
 
 
@@ -749,7 +763,7 @@ func _die() -> void:
 	_combo_playing = false
 	_flurry = false
 	_hold_left = 0.0
-	_end_special_invuln()  # drop the invuln aura on death
+	_end_special_invuln() # drop the invuln aura on death
 	if _channel != null and is_instance_valid(_channel):
 		_channel.cancel()
 	_channel = null
@@ -758,7 +772,7 @@ func _die() -> void:
 	if has_anim(&"death"):
 		_enter(State.DEATH)
 	else:
-		_death_finished = true  # no death sheet -> nothing to play; respawn at once
+		_death_finished = true # no death sheet -> nothing to play; respawn at once
 
 
 ## Dead: no input, just let the body settle to the ground while the death anim plays out.
@@ -805,19 +819,21 @@ func _physics_process(delta: float) -> void:
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 	_special_cd = maxf(_special_cd - delta, 0.0)
+	_attack_cd = maxf(_attack_cd - delta, 0.0)
+	_update_cooldown_bar()
 	_armor_left = maxf(_armor_left - delta, 0.0)
 	if _hold_left > 0.0:
 		_hold_left = maxf(_hold_left - delta, 0.0)
 		if _hold_left <= 0.0 and _sprite != null:
-			_sprite.play()  # resume the held animation where it left off
-			_channel = null  # channel finished on its own
+			_sprite.play() # resume the held animation where it left off
+			_channel = null # channel finished on its own
 
 	# Track the fall so a touchdown from a real drop (not a tiny hop) can squash, and so
 	# the ability's on_land learns how far/fast he fell.
 	var on_floor := is_on_floor()
 	if not on_floor:
 		if _was_on_floor:
-			_apex_y = global_position.y  # just left the ground -- start measuring the drop
+			_apex_y = global_position.y # just left the ground -- start measuring the drop
 		_fall_peak = maxf(_fall_peak, velocity.y) # +y is downward
 		_apex_y = minf(_apex_y, global_position.y) # highest point reached (min y)
 	_just_landed = on_floor and not _was_on_floor and _fall_peak >= land_min_fall_speed
@@ -829,9 +845,9 @@ func _physics_process(delta: float) -> void:
 	_was_on_floor = on_floor
 
 	if _state == State.DEATH:
-		_process_death(delta)  # highest priority: death overrides stun and everything else
+		_process_death(delta) # highest priority: death overrides stun and everything else
 	elif _state == State.SPAWN:
-		_process_spawn(delta)  # materializing: frozen input until the spawn anim finishes
+		_process_spawn(delta) # materializing: frozen input until the spawn anim finishes
 	elif _stun_left > 0.0:
 		_process_stun(delta)
 	elif _state == State.DASH:
@@ -854,7 +870,7 @@ func _physics_process(delta: float) -> void:
 	if _ability != null:
 		_ability.physics(self, delta)
 
-	_tick_special_invuln(delta)  # count down the special's invuln window; end it cleanly
+	_tick_special_invuln(delta) # count down the special's invuln window; end it cleanly
 
 	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
@@ -1054,7 +1070,7 @@ func _process_land(delta: float) -> void:
 			_enter(State.DASH)
 			return
 		if Input.is_action_just_pressed("jump") and _air_jumps_used < max_air_jumps:
-			_air_jump()  # enters JUMP itself
+			_air_jump() # enters JUMP itself
 		return
 
 	# Grounded recovery.
@@ -1079,7 +1095,7 @@ func _process_land(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
 		_state = State.RUN
 		return
-	velocity.x = move_toward(velocity.x, 0.0, friction * delta)  # keep last facing when idle
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta) # keep last facing when idle
 
 
 func _has_land() -> bool:
@@ -1162,7 +1178,7 @@ func _process_attack(delta: float) -> void:
 ## normal/land states and by a light-attack cancel (see _process_attack).
 func _start_special() -> void:
 	if _special_cd > 0.0:
-		return  # short lag between specials (anti-spam)
+		return # short lag between specials (anti-spam)
 	var is_default := _current_special != null and _current_special.id == "special_default"
 	var has_ruh := can_special()
 	# The default special is ONLY the Impervious trigger -- pointless without Ruh, so it's gated.
@@ -1171,13 +1187,13 @@ func _start_special() -> void:
 		return
 	_special_cd = SPECIAL_COOLDOWN
 	if has_ruh:
-		spend_special()      # a charge buys the Impervious window (invuln + aura)
+		spend_special() # a charge buys the Impervious window (invuln + aura)
 		grant_special_invuln()
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
 	_buffered_special = false
-	_active_hit = resolve_tuning(_current_special, 0)  # feed the special's Hitbox
+	_active_hit = resolve_tuning(_current_special, 0) # feed the special's Hitbox
 	# Kills dealt BY the special don't refill Ruh -- otherwise you'd self-loop Impervious. A future
 	# buff can flip this. (Attacks/other kills still fill it; see RunManager._on_enemy_died.)
 	_active_hit["from_special"] = true
@@ -1218,7 +1234,7 @@ func _process_slam(delta: float) -> void:
 		velocity.y = 0.0 if is_on_floor() else maxf(velocity.y, slam_speed)
 		return
 	if is_on_floor() or _near_ground(slam_impact_distance):
-		_slam_release()  # close enough -- play the impact into the ground
+		_slam_release() # close enough -- play the impact into the ground
 		return
 	# Still high: keep the fast plunge, and once the anim reaches the last descent
 	# frame, lock it there so the impact can't fire yet, and hide the sprite.
@@ -1238,9 +1254,9 @@ func _slam_release() -> void:
 	_slam_impacting = true
 	_sprite.visible = true
 	_sprite.speed_scale = 1.0
-	var drop := global_position.y - _slam_start_y  # how far we plunged (px)
+	var drop := global_position.y - _slam_start_y # how far we plunged (px)
 	var t := clampf((drop - slam_min_drop) / maxf(slam_max_drop - slam_min_drop, 1.0), 0.0, 1.0)
-	_active_hit = {"damage_scale": lerpf(1.0, slam_max_damage_mult, t) * slam_damage_mult}  # Meteor reward
+	_active_hit = {"damage_scale": lerpf(1.0, slam_max_damage_mult, t) * slam_damage_mult} # Meteor reward
 
 
 ## Sheet-relative -> emitted frame offset for `anim` (the generator drops the
@@ -1284,6 +1300,11 @@ func _advance_combo() -> void:
 			_start_flurry()
 		return
 
+	# A cooldown attack (Move.cooldown > 0, e.g. bakshen) can't be spammed: swallow the press
+	# while it's still recharging. The overhead bar shows the fill; _attack_cd is set on fire below.
+	if _current_attack != null and _current_attack.cooldown > 0.0 and _attack_cd > 0.0:
+		return
+
 	var hits := _attack_hits()
 	if hits.is_empty():
 		return
@@ -1304,6 +1325,10 @@ func _advance_combo() -> void:
 	_sprite.speed_scale = 1.0
 	_sprite.play(_current_attack.animation)
 	_sprite.set_frame_and_progress(seg_start, 0.0)
+	# Start the recharge on a cooldown attack (bakshen): further presses are swallowed by the
+	# gate above until _attack_cd hits 0. A cooldown attack is effectively a single-hit heavy.
+	if _current_attack.cooldown > 0.0:
+		_attack_cd = _current_attack.cooldown
 
 
 ## Start a held "flurry" attack: play the (looping) animation once and let it cycle. The
@@ -1319,6 +1344,21 @@ func _start_flurry() -> void:
 	_sprite.play(_current_attack.animation)
 
 
+## Show + fill the overhead cooldown bar for a cooldown attack: empty the instant it fires,
+## filling to full as `_attack_cd` counts down, then hidden once ready (or for any attack with no
+## cooldown). Driven every physics frame from _physics_process.
+func _update_cooldown_bar() -> void:
+	if _cooldown_bar == null:
+		return
+	var cd := 0.0 if _current_attack == null else _current_attack.cooldown
+	if cd <= 0.0 or _attack_cd <= 0.0:
+		if _cooldown_bar.visible:
+			_cooldown_bar.visible = false
+		return
+	_cooldown_bar.visible = true
+	_cooldown_bar.set_ratio(1.0 - _attack_cd / cd)
+
+
 ## Emitted frame indices that end each combo segment. From the SpriteFrames
 ## `hit_frames` metadata (written by the generator); falls back to every frame.
 func _attack_hits() -> Array:
@@ -1331,7 +1371,7 @@ func _attack_hits() -> Array:
 func _enter(state: State) -> void:
 	_state = state
 	_sprite.speed_scale = 1.0
-	_sprite.visible = true  # defensive: a held slam hides it; always restore on any entry
+	_sprite.visible = true # defensive: a held slam hides it; always restore on any entry
 	match state:
 		State.DASH:
 			_dash_left = dash_time
@@ -1360,14 +1400,14 @@ func _enter(state: State) -> void:
 		State.ATTACK:
 			velocity.x = 0.0
 		State.DEATH:
-			velocity.x = 0.0  # collapse in place; _process_death lets the body fall
+			velocity.x = 0.0 # collapse in place; _process_death lets the body fall
 		State.SPAWN:
-			velocity.x = 0.0  # materialize in place; _process_spawn lets the body settle
+			velocity.x = 0.0 # materialize in place; _process_spawn lets the body settle
 		State.SLAM:
 			# Commit: kill horizontal drift and start the downward plunge now.
 			velocity = Vector2(0.0, slam_speed)
-			_slam_impacting = false  # fresh slam: not yet released into the impact
-			_slam_start_y = global_position.y  # measure the plunge from here for damage
+			_slam_impacting = false # fresh slam: not yet released into the impact
+			_slam_start_y = global_position.y # measure the plunge from here for damage
 
 
 func _animation_for(state: State) -> StringName:
@@ -1454,5 +1494,5 @@ func _on_animation_finished() -> void:
 	# Light attack is a paused single frame; jump/fall loop or hold, so only dash, the
 	# special swing, and the (grounded) landing end on playback finishing.
 	if _state == State.DASH or _state == State.SPECIAL or _state == State.LAND or _state == State.SLAM:
-		_active_hit = {}  # the swing/slam already fired; don't let its tuning bleed onward
+		_active_hit = {} # the swing/slam already fired; don't let its tuning bleed onward
 		_enter(State.IDLE)

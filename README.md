@@ -465,6 +465,16 @@ tuning. A flurry feeds a *single* `tuning` to every hit (12 dmg, `knockback 0` t
 caught in the spin), so — like `ora_ora` — it has **no** `HIT_FRAMES` entry (those drive the
 click-combo segmentation, not a flurry).
 
+**Attack cooldown (`Move.cooldown`).** A heavy one-shot can carry a `cooldown` (seconds) in
+`moves.gd` so it can't be spammed — Khalid's `bakshen` uses `2.0`. While it recharges,
+`_advance_combo()` swallows the attack press (the swing simply doesn't start), and a small
+gold **fill bar floats over Khalid's head** (`FloatingHealthBar`, the same world-space bar the
+enemies use, tinted for "charge") growing empty→full as `_attack_cd` counts down; it hides once
+ready or for any attack with `cooldown 0`. The timer starts the instant the swing fires and
+resets to 0 on run-start / character swap. This is the per-**attack** cooldown; specials have
+their own separate anti-spam window (`SPECIAL_COOLDOWN`). A cooldown attack is effectively a
+single heavy hit — the gate blocks re-entry, so it doesn't chain combo segments.
+
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:
 - **`attack_recovery`** — how long the hit frame holds before idle resumes. Keep

@@ -35,8 +35,9 @@ const CATALOG := {
 				{"damage": 35, "knockback": 140}, # finisher (strongest)
 			]},
 			# Bakshen: a charged slash -- ~1s wind-up (see FRAME_DURATIONS), then one heavy hit on the
-			# last frame. Big single payoff; numbers below feed the attack_bakshen Strike's hitbox.
-			"bakshen": {"animation": "attack_bakshen", "effect": "attack_bakshen", "kind": Combat.AttackKind.MELEE, "tier": "elite",
+			# last frame. Big single payoff, so it's gated by a 2s `cooldown` (can't be spammed) -- the
+			# player shows an overhead fill bar while it recharges. Numbers feed the attack_bakshen Strike.
+			"bakshen": {"animation": "attack_bakshen", "effect": "attack_bakshen", "kind": Combat.AttackKind.MELEE, "tier": "elite", "cooldown": 2.0,
 				"tuning": {"damage": 65, "knockback": 0, "stun": 0.0}},
 			# Cherry Shots: a two-shot laser volley -- a small bolt on frame 3, a bigger/stronger one on
 			# frame 7 (a 2-segment combo, one press each). PROJECTILE kind: the director spawns the
