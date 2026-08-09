@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://cspearhiuaaa"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
+[ext_resource type="Texture2D" uid="uid://fwrrn2xvj6f" path="res://vfx/character/khalid/attack/spear/slash.png" id="3_slash"]
+
+[sub_resource type="RectangleShape2D" id="box_thrust2"]
+size = Vector2(75, 30)
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="grad_slash"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1.4, 0.18, 0.16, 1, 0.77, 0.04, 0.04, 1, 0.3, 0.05, 0.04, 0)
+
+[node name="Thrust2" type="Node2D"]
+script = ExtResource("1_strike")
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(37.5, 1)
+shape = SubResource("box_thrust2")
+
+[node name="Slash" type="CPUParticles2D" parent="."]
+texture_filter = 1
+emitting = false
+amount = 10
+texture = ExtResource("3_slash")
+lifetime = 0.34
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+spread = 9.09
+gravity = Vector2(0, 0)
+initial_velocity_min = 300.0
+initial_velocity_max = 380.0
+scale_amount_min = 0.03
+scale_amount_max = 0.03
+scale_amount_curve = SubResource("curve_shrink")
+color_ramp = SubResource("grad_slash")

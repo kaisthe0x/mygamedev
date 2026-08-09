@@ -26,25 +26,29 @@ const TABLE := {
 		"attack_ora_ora": [ {"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2, 4], "pos": Vector2(23, -22)}],
 		# Bakshen: one big charged slash -- the Strike (its hitbox + red burst) fires on the last frame.
 		"attack_bakshen": [ {"scene": preload("res://vfx/character/khalid/attack/bakshen/attack_bakshen.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(15, -18)}],
-		# Twin Reaper: a 5-hit spinning combo -- one DISTINCT Strike node (hitbox + particles) fires per
-		# hit frame (3/4/6/7/9). Same damage each (moves.gd). Tweak each node's particles in the scene.
+		# Twin Reaper: a 5-hit spinning flurry -- each hit is its OWN scene file (Strike + hitbox +
+		# particles), named attack_twin_reaper_<sheetframe>.tscn so the filename tells you which frame it
+		# fires on. One row per file, no "node" key -> the whole file fires. This split (vs one bundled
+		# palette) means each hit's particles edit in isolation -- open the _N file alone, no soup. Frames
+		# still live here in Phase 1; a later generator can infer them from the filenames.
 		"attack_twin_reaper": [
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash1", "mode": "burst", "frames": [3], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash2", "mode": "burst", "frames": [4], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash3", "mode": "burst", "frames": [6], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash4", "mode": "burst", "frames": [7], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash5", "mode": "burst", "frames": [9], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_3.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_4.tscn"), "mode": "burst", "frames": [4], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_6.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_7.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(14, -18)},
 		],
-		# Cherry Shots: two laser Projectiles -- the small bolt launches on frame 3, the big one on frame 7.
+		# Cherry Shots: two laser Projectiles, each its own file (see the twin_reaper split note) --
+		# attack_cherry_shots_3.tscn launches the small bolt on frame 3, _7 the big one on frame 7.
 		"attack_cherry_shots": [
-			{"scene": preload("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots.tscn"), "node": "ShotSmall", "mode": "burst", "frames": [3], "pos": Vector2(16, -22)},
-			{"scene": preload("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots.tscn"), "node": "ShotBig", "mode": "burst", "frames": [7], "pos": Vector2(16, -22)},
+			{"scene": preload("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots_3.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(16, -22)},
+			{"scene": preload("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots_7.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(16, -22)},
 		],
-		# Spear: one DISTINCT hit-node per frame (thrust, thrust, big finisher). Each row fires one by name.
+		# Spear: a 3-hit combo -- one file per hit (thrust, thrust, big finisher), named by frame.
 		"attack_spear": [
-			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Thrust1", "mode": "burst", "frames": [6], "pos": Vector2(20, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Thrust2", "mode": "burst", "frames": [9], "pos": Vector2(22, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear.tscn"), "node": "Finisher", "mode": "burst", "frames": [13], "pos": Vector2(10, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear_6.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(20, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(22, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear_13.tscn"), "mode": "burst", "frames": [13], "pos": Vector2(10, -18)},
 		],
 		"special_ground_breaker": [ {"scene": preload("res://vfx/character/khalid/special/ground_breaker/special_ground_breaker.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(0, 0), "clip_to_ground": true}],
 		"special_frenemy": [ {"scene": preload("res://vfx/character/khalid/special/frenemy/special_frenemy.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(40, -20)}], # the frenemy blast fires on the forward-thrust frame

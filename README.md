@@ -968,13 +968,15 @@ lunge/armor. An **empty** `tuning` means "the effect scene carries its own numbe
   folded into the per-frame `monitorable` calc, same channel as dash i-frames) and a
   `speed_mult` on `run_speed`, wrapped in the aura scene at `buff_effect` (parented to the
   player, freed on expiry). It ticks down in `_physics_process` and clears on death /
-  run-restart. Khalid's **Built Different** (`built_different`) is the first: 4s of
-  immunity + 1.8× speed + a red aura, no damage. Add another by dropping the same fields
-  on any special.
+  run-restart. **No shipped special uses it right now** — the old *Built Different* was
+  folded into the **universal Impervious window** every special now grants — but the seam
+  is live for the future item/build system: drop `buff_time`/`speed_mult`/`buff_effect` on
+  any special and it becomes a self-buff.
 - **Projectile attacks** put `Projectile` nodes (not `Strike`s) in the effect scene; the
   director world-parents them at the muzzle and reads facing from `scale.x` so they fly
-  off. Khalid's **Cherry Shots** fires two — `ShotSmall` on frame 3, `ShotBig` on frame 7
-  — each a red laser `Line2D` bolt with its own damage from the tuning array.
+  off. Khalid's **Cherry Shots** fires two — a small bolt on frame 3, a big one on frame 7,
+  each its own per-frame file (`attack_cherry_shots_3/_7.tscn`), a red laser `Line2D` bolt
+  with its own damage from the tuning array.
 - A character with **no effect scene** for an attack deals no damage (Khalid, for now);
   a character with an **empty specials pool** (`get_move` returns null) simply can't
   special — the button no-ops.

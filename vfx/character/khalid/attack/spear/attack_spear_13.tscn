@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://cspearhit13a"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
+[ext_resource type="Texture2D" uid="uid://fwrrn2xvj6f" path="res://vfx/character/khalid/attack/spear/slash.png" id="3_slash"]
+
+[sub_resource type="RectangleShape2D" id="box_finisher"]
+size = Vector2(112, 49)
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="grad_finish"]
+offsets = PackedFloat32Array(0, 0.6660482, 0.82745826, 1)
+colors = PackedColorArray(0.9, 0.1, 0.08, 1, 1.7, 0.22, 0.2, 1, 0.9452769, 0.6080301, 0.6037999, 0.386, 0.35, 0.06, 0.05, 0)
+
+[node name="Finisher" type="Node2D"]
+script = ExtResource("1_strike")
+
+[node name="Hitbox" type="Area2D" parent="."]
+position = Vector2(16, -3)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(27, 2.5)
+shape = SubResource("box_finisher")
+
+[node name="Arc" type="CPUParticles2D" parent="."]
+z_index = -1
+texture_filter = 1
+rotation = 0.010459501
+emitting = false
+amount = 7
+texture = ExtResource("3_slash")
+lifetime = 0.3
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+emission_shape = 1
+emission_sphere_radius = 6.0
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 200.0
+initial_velocity_max = 420.0
+scale_amount_min = 0.1
+scale_amount_max = 0.1
+scale_amount_curve = SubResource("curve_shrink")
+color_ramp = SubResource("grad_finish")

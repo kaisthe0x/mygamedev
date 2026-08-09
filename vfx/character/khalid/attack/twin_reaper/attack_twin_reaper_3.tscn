@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://ctwreaphit3a"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
+[ext_resource type="Texture2D" uid="uid://b246pafp524x0" path="res://vfx/character/khalid/attack/twin_reaper/scythe_texture1.png" id="3_tex"]
+
+[sub_resource type="RectangleShape2D" id="box_reaper"]
+size = Vector2(47, 51.375)
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="grad"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.85, 0.05, 0.05, 1, 0.3, 0.03, 0.03, 0)
+
+[node name="Reaper3" type="Node2D"]
+script = ExtResource("1_strike")
+lifetime = 0.28
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(16.5, -0.6875)
+shape = SubResource("box_reaper")
+
+[node name="Particles" type="CPUParticles2D" parent="."]
+texture_filter = 1
+rotation = 1.5859629
+amount = 5
+texture = ExtResource("3_tex")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("curve_shrink")
+color_ramp = SubResource("grad")

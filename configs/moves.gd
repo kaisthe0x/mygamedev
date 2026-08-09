@@ -40,7 +40,7 @@ const CATALOG := {
 				"tuning": {"damage": 65, "knockback": 0, "stun": 0.0}},
 			# Cherry Shots: a two-shot laser volley -- a small bolt on frame 3, a bigger/stronger one on
 			# frame 7 (a 2-segment combo, one press each). PROJECTILE kind: the director spawns the
-			# ShotSmall / ShotBig Projectile nodes from attack_cherry_shots.tscn; damage per shot below.
+			# per-frame Projectile files attack_cherry_shots_3/_7.tscn; damage per shot below.
 			"cherry_shots": {"animation": "attack_cherry_shots", "effect": "attack_cherry_shots", "kind": Combat.AttackKind.PROJECTILE, "tier": "elite", "tuning": [
 				{"damage": 22, "knockback": 40}, # small bolt (frame 3)
 				{"damage": 42, "knockback": 90}, # big bolt (frame 7, stronger)

@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://ccherryshot3a"]
+
+[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="1_proj"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
+
+[sub_resource type="Curve" id="curve_taper"]
+_data = [Vector2(0.0056074746, 0), 0.0, 0.0, 0, 0, Vector2(0.9644859, 0.41921395), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="RectangleShape2D" id="shape_small"]
+size = Vector2(30, 9)
+
+[node name="ShotSmall" type="Node2D"]
+script = ExtResource("1_proj")
+speed = 660.0
+homing = 0.0
+max_range = 460.0
+
+[node name="Bolt" type="Line2D" parent="."]
+points = PackedVector2Array(-26, 0, 0, 0)
+width = 7.0
+width_curve = SubResource("curve_taper")
+default_color = Color(1.7, 0.18, 0.16, 1)
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="Hitbox" type="Area2D" parent="."]
+position = Vector2(-13, 0)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+damage = 22.0
+knockback = 40.0
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("shape_small")

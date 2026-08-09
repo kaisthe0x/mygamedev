@@ -108,6 +108,27 @@ frames. Adding an effect is a scene + a table row, no code.
      (single or composite). Note: `node` **lifts one child out and drops the rest**
      (including sibling hitboxes) — to just reskin a shared scene per hit, use `set`,
      not `node`.
+   - **Per-hit split files (preferred for multi-hit attacks).** Rather than bundle
+     every hit's emitters into one palette scene addressed by `node`, give each hit
+     its **own** scene file named `<effect>_<sheetframe>.tscn` (frames it fires on,
+     `_`-separated: `_3`, `_1_2` for two frames sharing one look, and a bare name =
+     every frame). Each file is a self-contained `Strike` + `Hitbox` + its particles,
+     wired as an ordinary row with **no `node` key** (the whole file fires). This is
+     what khalid's `attack_twin_reaper` uses — `attack_twin_reaper_3.tscn` …`_9.tscn`.
+     Why it beats the palette: each hit's emitters **edit in isolation** (open the one
+     file — no overlapping-emitter soup), no cross-hit subresource duplication, and the
+     director spawns exactly the file it needs instead of instancing the whole bundle and
+     discarding the rest. Frames still live in the config row for now; a later generator
+     can infer them from the filenames. Reserve `node`/palette for a scene whose parts
+     genuinely must live together.
+     **What does NOT split:** the `_<frame>` convention is only for **frame-scheduled
+     multi-hit** effects. A **single-emission** effect (bakshen, ground_breaker, frenemy)
+     is already one file — leave it bare-named. An **event-fired** effect (the dashes,
+     double-jump — fired by `fire_effect()`, not an animation frame) also stays one scene;
+     where it needs a following part *and* a lingering part (the crimson vortex's follow
+     `Trail` + lingering `Vortex`), that split is handled **inside** the scene by the
+     `Trail` node-name convention (below), not by separate files. Splitting only kicks in
+     when one move fires distinct groups on distinct **frames**.
    - `set` — *optional* **property overrides** applied on spawn, so one shared scene
      covers several variants without a clone per tweak. Keys are `"ChildPath:property"`
      (an empty path targets the spawned node itself); a `"res://…"` value is loaded
