@@ -25,6 +25,8 @@ const CAM_ZOOM_NORMAL := Vector2(1.5, 1.5)
 const CAM_ZOOM_DEATH := Vector2(2.5, 2.5)
 const CAM_ZOOM_SPAWN := Vector2(2, 2)
 const DEATH_HOLD := 0.7
+## The "soul" that floats from a dead enemy to the player on a Ruh-granting kill (see _spawn_ruh_orb).
+const RUH_ORB := preload("res://vfx/shared/ruh_orb/ruh_orb.tscn")
 
 @export var player_path: NodePath = ^"Player"
 
@@ -274,7 +276,12 @@ func _spawn_fx(pos: Vector2) -> void:
 ## it can't self-loop Impervious), then either spawn the next batch or CLEAR the arena.
 func _on_enemy_died(enemy: Enemy) -> void:
 	if _player != null and not enemy.last_hit_from_special:
+		var ruh_before := _player.ruh
 		_player.gain_ruh_on_kill() # every kill charges Ruh -- optional enemies included
+		# Did THIS kill top off a full charge? (Ruh banks now, at the kill; the soul's arrival flash
+		# just reflects it.) Pass the flag to the orb so a charge-completing soul flashes bigger.
+		var completed := floori(_player.ruh / Player.RUH_PER_BLOCK) > floori(ruh_before / Player.RUH_PER_BLOCK)
+		_spawn_ruh_orb(enemy.global_position, completed) # a soul floats to Khalid to show the pickup
 	if enemy.optional:
 		return # optional enemies don't gate the level clear (kill them for Ruh, or skip them)
 	_alive -= 1
@@ -283,6 +290,18 @@ func _on_enemy_died(enemy: Enemy) -> void:
 		# Spawning the next batch builds new bodies/hurtboxes, and their collision/monitoring state
 		# can't change mid-flush ("Can't change state while flushing queries"). Defer to next idle.
 		_advance_batch.call_deferred()
+
+
+## Pop a glowing soul off the dead enemy and send it homing to the player -- the visual receipt for
+## the Ruh just banked. Added to the world (this node is the level root) so it outlives the enemy
+## freeing, and self-frees on arrival. Pure VFX (no Area2D), so it's safe to spawn mid-physics-flush.
+func _spawn_ruh_orb(at: Vector2, completed_charge: bool) -> void:
+	if _player == null:
+		return
+	var orb := RUH_ORB.instantiate() as RuhOrb
+	add_child(orb)
+	Nodes.place_at(orb, at + Vector2(0, -18)) # lift off the body's centre, not the feet
+	orb.launch(_player, completed_charge)
 
 
 ## Spawn the next batch, or clear the level if none remain. Deferred from _on_enemy_died so enemy

@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://cruhorbsoul1"]
+
+[ext_resource type="Script" uid="uid://bdew5q47qiwuu" path="res://vfx/script/ruh_orb.gd" id="1_orb"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="grad_ruh"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(1.9, 0.45, 0.5, 1, 0.85, 0.12, 0.16, 0.9, 0.4, 0.03, 0.05, 0)
+
+[node name="RuhOrb" type="Node2D" unique_id=1600362377]
+script = ExtResource("1_orb")
+absorb_time = 1.0
+
+[node name="Trail" type="CPUParticles2D" parent="." unique_id=1802116769]
+texture_filter = 1
+position = Vector2(2, 0)
+texture = ExtResource("2_dot")
+lifetime = 0.4
+emission_shape = 1
+emission_sphere_radius = 8.05
+direction = Vector2(0, 0)
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_max = 24.0
+scale_amount_min = 0.4
+scale_amount_max = 0.4
+scale_amount_curve = SubResource("curve_shrink")
+color_ramp = SubResource("grad_ruh")

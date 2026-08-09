@@ -1035,6 +1035,18 @@ from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds 
   `enemy_id`) or a `scene` (a custom enemy — `nasen.tscn` sleeper, `ein.tscn` kamikaze), plus
   any Enemy `@export` overrides. `RunManager._spawn_enemy` applies them; the enemy's `died`
   signal banks Ruh (unless the kill was by the special) and counts toward clearing the arena.
+  On a Ruh-granting kill it also pops a **Ruh soul** (`vfx/shared/ruh_orb/`, `RuhOrb`): a glowing
+  crimson orb that flies a **curved, parabolic path** to the player — a quadratic Bezier from the
+  death spot to the player's live position, bowed by `arc_height` — always reaching him at the end
+  of `flight_time` (arrival time, not a give-up cap; it only bails if the player is gone). On contact
+  it **shrinks into his chest** (`absorb_time`) and **surges Khalid's hair gradient** toward an
+  absorb palette and smoothly back — `Player.on_ruh_absorbed` → `_hair_surge`, driving the tint
+  shader's `base_red`/`accent_a`/`accent_b` on a per-instance **duplicated** material (so it never
+  writes back to the shared `.tres`); stronger/longer for the soul that **completes a full Ruh
+  charge**, and rate-limited (`RUH_FLASH_REFRACTORY`) so a cluster of arrivals folds into one surge
+  instead of strobing. Ruh is banked at the kill, not the arrival (`RunManager._spawn_ruh_orb` passes
+  the charge flag), so the special stays available immediately; the absorb palette (`HAIR_ABSORB_*`
+  in `player.gd`) is the knob to play with. World-parented + no Area2D, so it's safe mid-physics-flush.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.

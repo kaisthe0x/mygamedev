@@ -311,6 +311,20 @@ var _special_cd: float = 0.0
 var _attack_cd: float = 0.0
 ## Small world-space bar over the head that fills as a cooldown attack recharges (hidden otherwise).
 var _cooldown_bar: FloatingHealthBar = null
+## Anti-strobe timer for the Ruh-absorb reaction: a cluster of souls arriving together folds into
+## ONE surge instead of restacking (a full-charge soul surges anyway). See on_ruh_absorbed.
+const RUH_FLASH_REFRACTORY := 0.2
+var _ruh_flash_cd: float = 0.0
+var _hair_tween: Tween = null
+## Per-instance DUPLICATE of the tint material (so absorb tweens stay local and never write back to
+## the shared .tres), plus the resting hair colours captured from it.
+var _tint_mat: ShaderMaterial = null
+var _hair_base := {}
+# Hair "absorb surge" palette -- the flowing hair gradient (base_red / accent_a / accent_b) smoothly
+# lerps toward these as a Ruh soul lands, then eases back to rest. Play with the gradient here.
+const HAIR_ABSORB_BASE := Color(2.6, 1.7, 0.5)
+const HAIR_ABSORB_A := Color(2.3, 1.0, 0.35)
+const HAIR_ABSORB_B := Color(1.9, 0.6, 0.25)
 ## Base seconds of Impervious (invuln) every special grants (before `special_invuln_bonus`).
 const SPECIAL_INVULN_TIME := 10.0
 ## The shared "Impervious" aura every special engulfs the player in while invulnerable.
@@ -360,7 +374,20 @@ func _apply_character() -> void:
 	# Optional per-character sprite tint material -- e.g. Khalid's living-hair/metal shader. Convention:
 	# res://resources/<id>_tint.tres. Missing file = no material (plain sprite).
 	var mat_path := "res://resources/%s_tint.tres" % character
-	sprite.material = load(mat_path) if ResourceLoader.exists(mat_path) else null
+	# Duplicate the tint material so the hair-colour surge on a Ruh pickup stays instance-local and
+	# never writes back to the shared .tres; capture the resting hair gradient to lerp from.
+	var mat: Material = load(mat_path) if ResourceLoader.exists(mat_path) else null
+	if mat is ShaderMaterial:
+		_tint_mat = (mat as ShaderMaterial).duplicate()
+		sprite.material = _tint_mat
+		var br: Variant = _tint_mat.get_shader_parameter("base_red")
+		var aa: Variant = _tint_mat.get_shader_parameter("accent_a")
+		var ab: Variant = _tint_mat.get_shader_parameter("accent_b")
+		_hair_base = {"base_red": br, "accent_a": aa, "accent_b": ab} if (br is Color and aa is Color and ab is Color) else {}
+	else:
+		_tint_mat = null
+		_hair_base = {}
+		sprite.material = mat
 	# Seed the attack/special + movement stats from the current LOADOUT (defaults until a
 	# reward swaps one in). This is the per-character feel + which moves are equipped.
 	_apply_loadout()
@@ -543,6 +570,41 @@ func can_special() -> bool:
 ## Bank Ruh for a kill. RunManager calls this on every enemy death. The setter caps at ruh_cap.
 func gain_ruh_on_kill() -> void:
 	ruh += RUH_PER_KILL
+
+
+## A Ruh soul just reached the body (RuhOrb on arrival): pulse a crimson flash on Khalid.
+## `completed_charge` = this soul is the one that topped off a full charge, so it flashes brighter +
+## longer (the meaningful beat). Rate-limited -- a plain soul is skipped while a pulse is still fresh
+## (RUH_FLASH_REFRACTORY), so a cluster of simultaneous arrivals folds into one flash instead of
+## strobing; a full-charge soul flashes regardless. (A future absorb SFX cue would fire here too.)
+func on_ruh_absorbed(completed_charge: bool) -> void:
+	if not completed_charge and _ruh_flash_cd > 0.0:
+		return
+	_ruh_flash_cd = RUH_FLASH_REFRACTORY
+	# Surge Khalid's hair toward the absorb palette and smoothly back -- stronger + longer for the
+	# soul that completes a full charge. (A future absorb SFX cue would fire here too.)
+	_hair_surge(1.0 if completed_charge else 0.6, 0.6 if completed_charge else 0.35)
+
+
+## Smoothly lerp the hair gradient toward the absorb palette (0 -> `strength`) then ease it back to
+## rest (-> 0) over `dur` via a mix factor. No-op if this character has no tint material.
+func _hair_surge(strength: float, dur: float) -> void:
+	if _tint_mat == null or _hair_base.is_empty():
+		return
+	if _hair_tween != null and _hair_tween.is_valid():
+		_hair_tween.kill()
+	_hair_tween = create_tween()
+	_hair_tween.tween_method(_set_hair_mix, 0.0, strength, dur * 0.35).set_ease(Tween.EASE_OUT)
+	_hair_tween.tween_method(_set_hair_mix, strength, 0.0, dur * 0.65).set_ease(Tween.EASE_IN)
+
+
+## Blend each hair colour `f` of the way from its resting value toward the absorb palette.
+func _set_hair_mix(f: float) -> void:
+	if _tint_mat == null:
+		return
+	_tint_mat.set_shader_parameter("base_red", (_hair_base["base_red"] as Color).lerp(HAIR_ABSORB_BASE, f))
+	_tint_mat.set_shader_parameter("accent_a", (_hair_base["accent_a"] as Color).lerp(HAIR_ABSORB_A, f))
+	_tint_mat.set_shader_parameter("accent_b", (_hair_base["accent_b"] as Color).lerp(HAIR_ABSORB_B, f))
 
 
 ## Spend one special charge. Returns false (spends nothing) if there isn't enough Ruh.
@@ -821,6 +883,7 @@ func _physics_process(delta: float) -> void:
 	_special_cd = maxf(_special_cd - delta, 0.0)
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
 	_update_cooldown_bar()
+	_ruh_flash_cd = maxf(_ruh_flash_cd - delta, 0.0)
 	_armor_left = maxf(_armor_left - delta, 0.0)
 	if _hold_left > 0.0:
 		_hold_left = maxf(_hold_left - delta, 0.0)
