@@ -560,10 +560,10 @@ func _replay_from(anim: StringName, from: int) -> void:
 ## Is the player still within melee reach + on our level (the condition a looping melee
 ## keeps swinging on)?
 func _in_melee_reach() -> bool:
-	var player := _player()
-	if player == null:
+	var t := _target()  # frenemy-aware: the enemy it's fighting while charmed, else the player
+	if t == null:
 		return false
-	var to := player.global_position - global_position
+	var to := t.global_position - global_position
 	return absf(to.y) <= attack_align_y and absf(to.x) <= melee_range
 
 
@@ -622,11 +622,11 @@ func _fire_projectile() -> void:
 		proj.max_range = ranged_travel
 		proj.ground_trail = true  # scorch the floor red as it rolls past
 	else:
-		# Aim at the player's torso so a high muzzle still connects with a short body;
-		# fall back to straight ahead if the player vanished mid-cast. Fizzle after a
-		# few seconds if it misses everything.
-		var player := _player()
-		var target := (player.global_position + Vector2(0, -15)) if player != null \
+		# Aim at the TARGET's torso (the player, or the nearest enemy while charmed) so a high
+		# muzzle still connects with a short body; fall back to straight ahead if the target
+		# vanished mid-cast. Fizzle after a few seconds if it misses everything.
+		var aim := _target()  # frenemy-aware: nearest enemy while charmed, else the player
+		var target := (aim.global_position + Vector2(0, -15)) if aim != null \
 			else muzzle + Vector2(_facing, 0)
 		proj.velocity = (target - muzzle).normalized() * projectile_speed
 		proj.max_life = 3.0
@@ -662,13 +662,13 @@ func _fire_lob() -> void:
 	if vis != null:
 		lob.add_child(vis.instantiate())
 
-	# Land it next to the player, biased toward us (so it drops at their feet, not behind).
-	# Fall back to a short toss ahead if the player vanished mid-throw.
-	var player := _player()
+	# Land it next to the TARGET (the player, or the nearest enemy while charmed), biased toward
+	# us so it drops at their feet, not behind. Fall back to a short toss ahead if none.
+	var aim := _target()  # frenemy-aware: nearest enemy while charmed, else the player
 	var land := muzzle + Vector2(_facing * 90.0, 30.0)
-	if player != null:
-		var side := -signf(player.global_position.x - global_position.x)
-		land = player.global_position + Vector2(side * lob_land_offset, 0.0)
+	if aim != null:
+		var side := -signf(aim.global_position.x - global_position.x)
+		land = aim.global_position + Vector2(side * lob_land_offset, 0.0)
 	lob.target = land
 
 	get_parent().add_child(lob)
