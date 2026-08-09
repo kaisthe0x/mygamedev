@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+Sfx="*res://scripts/audio/sfx.gd"
 HUD="*res://scenes/hud.tscn"
 
 [display]

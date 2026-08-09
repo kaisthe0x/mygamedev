@@ -670,6 +670,27 @@ that's the linear-vs-sRGB trap — key it off `khsv`, not `hsv`.
 
 ---
 
+## Audio (SFX)
+
+Sound effects run through one autoload service, **`Sfx`** (`scripts/audio/sfx.gd`) — the audio
+counterpart to `Icons` (textures) and the `Emitters` config (particles). Files live in **`sfx/`**.
+
+- **Add a sound:** drop the file in `sfx/`, add one line to `Sfx.LIBRARY` (`"key":
+  "res://sfx/file.wav"`), then call it. That's the whole workflow.
+- **Play it:** `Sfx.play("key")` for a non-positional one-shot (UI / player-centric feedback);
+  `Sfx.play_at("key", world_pos)` for a positional 2D one (an enemy hit, an explosion). Both take
+  optional `volume_db` / `pitch` and round-robin a pool of players, so overlapping sounds don't
+  cut each other off.
+- **Missing file = silent no-op** (a `push_warning`, no crash) — so a cue can be wired in code
+  before the audio actually lands, exactly like `Icons`' fallback.
+- **Bus:** plays on an `"SFX"` bus if one exists (add it in the editor's Audio panel for separate
+  SFX volume), else falls back to `Master` automatically.
+- First wired cue: **`ruh_absorb`** — fired from `Player.on_ruh_absorbed` when a Ruh soul lands
+  (pitched up a touch on a charge-completing soul). The shipped `sfx/ruh_absorb.wav` is a
+  synthesized **placeholder** — replace it freely; nothing else changes.
+
+---
+
 ## Enemies & combat
 
 ### Enemy sprites

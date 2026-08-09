@@ -582,8 +582,9 @@ func on_ruh_absorbed(completed_charge: bool) -> void:
 		return
 	_ruh_flash_cd = RUH_FLASH_REFRACTORY
 	# Surge Khalid's hair toward the absorb palette and smoothly back -- stronger + longer for the
-	# soul that completes a full charge. (A future absorb SFX cue would fire here too.)
+	# soul that completes a full charge -- and play the absorb cue (pitched up a touch on a charge).
 	_hair_surge(1.0 if completed_charge else 0.6, 0.6 if completed_charge else 0.35)
+	Sfx.play("ruh_absorb", 0.0, 1.12 if completed_charge else 1.0)
 
 
 ## Smoothly lerp the hair gradient toward the absorb palette (0 -> `strength`) then ease it back to
