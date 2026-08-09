@@ -106,6 +106,10 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Khalid
     ("khalid", "run"): {"fps": 7.0},
     ("khalid", "attack_ora_ora"): {"loop": True, "fps": 18.0},
+    # Twin Reaper: a spinning FLURRY -- hold attack and the whole spin LOOPS, each pass firing its
+    # 5 Slash nodes on the emitter frames. loop is REQUIRED (a non-looping flurry hangs on the last
+    # frame); no HIT_FRAMES so the spin plays smooth (segmented snapping is for click-combos).
+    ("khalid", "attack_twin_reaper"): {"loop": True, "fps": 16.0},
     ("khalid", "special_ground_breaker"): {"fps": 15.0, "hold_last": 1.6},
     ("khalid", "slam"): {"fps": 15.0, "hold_last": 1.6},
     # Bakshen: a charged slash. fps 10 so the per-frame math is clean (see FRAME_DURATIONS: the
@@ -139,6 +143,8 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
         3,
     ],  # the short stun blast fires on the forward-thrust frame
     ("khalid", "attack_bakshen"): [3],  # single charged hit on the last (slash) frame
+    # attack_twin_reaper: NONE on purpose -- it's a flurry (loops smooth), not a click-combo. Its 5
+    # hits come from the emitter Slash1-5 rows firing on frames 3/4/6/7/9, not combo segments.
     ("khalid", "attack_cherry_shots"): [
         3,
         7,

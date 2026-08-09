@@ -34,7 +34,7 @@ const DEATH_HOLD := 0.7
 var _level_index := 0
 var _cleared_this_run := 0  ## levels cleared (exits paid) so far this run -> HUD + the SaveData record
 var _wave_index := 0        ## next enemy BATCH to spawn on clear (finite -- past the last, none)
-var _alive := 0             ## enemies currently alive; hitting 0 spawns the next batch (or clears)
+var _alive := 0             ## REQUIRED enemies alive (optional ones don't count); 0 spawns next batch / clears
 var _cleared := false       ## true once every batch is spawned AND dead -> the exit opens
 var _door_type := "health"  ## this level's reward-door type, rolled in _build_level
 var _transitioning := false ## true while the reward/level-change is mid-flight
@@ -124,6 +124,8 @@ func _build_level(index: int) -> void:
 	_content.add_child(_gate)
 
 	_spawn_group(lv["start"], false)  # start enemies just exist -- no spawn puff
+	if _alive <= 0:  # start batch had ONLY optional enemies -> advance to a real one (see _advance_batch)
+		_advance_batch.call_deferred()
 
 	if _player != null:
 		Nodes.place_at(_player, _player_spawn)
@@ -240,7 +242,8 @@ func _spawn_group(specs: Array, with_fx: bool) -> void:
 		if enemy != null:
 			enemy.died.connect(_on_enemy_died.bind(enemy))
 			enemy.damaged.connect(_on_enemy_damaged)  # Leech reward: heal a fraction of damage dealt
-			_alive += 1
+			if not enemy.optional:
+				_alive += 1  # only required enemies gate the level clear
 
 
 func _spawn_enemy(kit: Dictionary, pos: Vector2) -> Enemy:
@@ -270,9 +273,11 @@ func _spawn_fx(pos: Vector2) -> void:
 ## An enemy died: bank Ruh (kills fill the special meter -- EXCEPT kills by the special itself, so
 ## it can't self-loop Impervious), then either spawn the next batch or CLEAR the arena.
 func _on_enemy_died(enemy: Enemy) -> void:
-	_alive -= 1
 	if _player != null and not enemy.last_hit_from_special:
-		_player.gain_ruh_on_kill()  # each non-special kill charges the Ruh (special) meter
+		_player.gain_ruh_on_kill()  # every kill charges Ruh -- optional enemies included
+	if enemy.optional:
+		return  # optional enemies don't gate the level clear (kill them for Ruh, or skip them)
+	_alive -= 1
 	if _alive <= 0 and not _transitioning and not _cleared:
 		# This fires INSIDE a physics flush (a hit or the vortex's DoT tick killed the enemy).
 		# Spawning the next batch builds new bodies/hurtboxes, and their collision/monitoring state
@@ -287,6 +292,8 @@ func _advance_batch() -> void:
 		return
 	if not _spawn_next_wave():
 		_cleared = true  # no more batches -> level cleared; the exit opens (see _physics_process)
+	elif _alive <= 0:
+		_advance_batch.call_deferred()  # that batch had only optional enemies -> straight to the next
 
 
 ## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --

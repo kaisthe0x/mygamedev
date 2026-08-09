@@ -31,5 +31,5 @@ const MAZAB := {
 	"ranged_damage": 16.0, "ranged_knockback": 160.0, "ranged_stun": 0.25,
 	"lob_arc_time": 0.9, "lob_dwell": 1.0, "lob_explosion_extents": Vector2(48, 26),
 }
-const NASEN := {"scene": "res://scenes/nasen.tscn", "tier": Tier.STRONG}
+const NASEN := {"scene": "res://scenes/nasen.tscn", "tier": Tier.STRONG, "optional": true}  # optional: needn't be killed to clear
 const EIN := {"scene": "res://scenes/ein.tscn", "tier": Tier.MID}

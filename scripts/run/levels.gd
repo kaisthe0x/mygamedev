@@ -8,7 +8,8 @@ extends RefCounted
 ##   bg           background tint -- gives each level a different LOOK
 ##   platforms    [[center_x, top_y, width], ...] one-way ledges (the Floor is always there)
 ##   player_spawn where the player drops in
-##   exit_pos     where the exit gate sits; it stays LOCKED until every enemy is dead, then opens
+##   exit_pos     where the exit gate sits; LOCKED until every REQUIRED enemy is dead (optional ones,
+##                e.g. Nasen, can be skipped -- see EnemyKits `optional`), then opens
 ##   start        the first enemy BATCH, present on arrival -- [{kit, pos}, ...] (kit = an EnemyKits.* dict)
 ##   waves        the remaining batches (FINITE). When the current batch is wiped, the next spawns;
 ##                after the LAST batch is cleared the level is done and the exit opens. So the total

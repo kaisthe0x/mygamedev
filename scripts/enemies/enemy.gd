@@ -27,6 +27,9 @@ signal damaged(amount: float, source: Node)
 
 @export var enemy_id: String = "kebus"
 @export var display_name: String = "Kebus"
+## Optional enemies do NOT have to be killed to clear the level -- the exit opens once every
+## REQUIRED enemy is dead, even if optional ones are still roaming. Set per-kit (see EnemyKits).
+@export var optional := false
 
 @export_group("Stats")
 @export var max_health: float = 60.0

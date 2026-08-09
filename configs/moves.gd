@@ -45,6 +45,11 @@ const CATALOG := {
 				{"damage": 22, "knockback": 40}, # small bolt (frame 3)
 				{"damage": 42, "knockback": 90}, # big bolt (frame 7, stronger)
 			]},
+			# Twin Reaper: a spinning FLURRY -- hold attack and the spin loops, each pass firing its 5
+			# Slash nodes (hit frames 3/4/6/7/9) from attack_twin_reaper.tscn. Like ora_ora, a flurry
+			# feeds ONE tuning to every hit (knockback 0 keeps them caught in the spin); DPS = the rate.
+			"twin_reaper": {"style": "flurry", "animation": "attack_twin_reaper", "effect": "attack_twin_reaper", "kind": Combat.AttackKind.MELEE, "tier": "elite",
+				"tuning": {"damage": 12, "knockback": 0}},
 		},
 		# Ground breaker: an overhead slam that cracks the ground -- a GROUND-type Strike
 		# (special_ground_breaker.tscn) whose hitbox SHAPE is authored in the scene, fed these numbers.

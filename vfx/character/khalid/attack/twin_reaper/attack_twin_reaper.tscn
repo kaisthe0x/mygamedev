@@ -1,0 +1,320 @@
+[gd_scene format=3 uid="uid://cvjir415ycrc7"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
+[ext_resource type="Texture2D" uid="uid://b246pafp524x0" path="res://vfx/character/khalid/attack/twin_reaper/scythe_texture1.png" id="3_ol4qs"]
+
+[sub_resource type="RectangleShape2D" id="box_reaper"]
+size = Vector2(47, 51.375)
+
+[sub_resource type="Curve" id="Curve_p8h6w"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Grad_reaper"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.85, 0.05, 0.05, 1, 0.3, 0.03, 0.03, 0)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_p8h6w"]
+load_path = "res://.godot/imported/scythe_texture1.png-314fee77b75fc5970aa1eead76900ab5.ctex"
+
+[sub_resource type="Curve" id="Curve_oi3xf"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_xm0co"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1.5999998, 0.17531334, 0.11029898, 1, 0.85, 0.05, 0.05, 1, 0.3, 0.03, 0.03, 0)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_ol4qs"]
+load_path = "res://.godot/imported/scythe_texture1.png-314fee77b75fc5970aa1eead76900ab5.ctex"
+
+[sub_resource type="Curve" id="Curve_64do7"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_64do7"]
+load_path = "res://.godot/imported/scythe_texture1.png-314fee77b75fc5970aa1eead76900ab5.ctex"
+
+[sub_resource type="Curve" id="Curve_atqi5"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_oi3xf"]
+offsets = PackedFloat32Array(0, 0.64117646, 1)
+colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.9996026, 0.88233304, 0.8628773, 1, 0.3, 0.03, 0.03, 0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0ehbk"]
+size = Vector2(55.5, 66)
+
+[sub_resource type="Curve" id="Curve_ol4qs"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_64do7"]
+offsets = PackedFloat32Array(0, 0.64117646, 1)
+colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.9996026, 0.88233304, 0.8628773, 1, 0.3, 0.03, 0.03, 0)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_atqi5"]
+load_path = "res://.godot/imported/scythe_texture1.png-314fee77b75fc5970aa1eead76900ab5.ctex"
+
+[sub_resource type="Curve" id="Curve_xm0co"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_3g7an"]
+offsets = PackedFloat32Array(0, 0.64117646, 1)
+colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.9996026, 0.88233304, 0.8628773, 1, 0.3, 0.03, 0.03, 0)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_oi3xf"]
+load_path = "res://.godot/imported/scythe_texture1.png-314fee77b75fc5970aa1eead76900ab5.ctex"
+
+[sub_resource type="Curve" id="Curve_3g7an"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_d01fd"]
+offsets = PackedFloat32Array(0, 0.64117646, 1)
+colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.9996026, 0.88233304, 0.8628773, 1, 0.3, 0.03, 0.03, 0)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_0ehbk"]
+load_path = "res://.godot/imported/scythe_texture1.png-314fee77b75fc5970aa1eead76900ab5.ctex"
+
+[sub_resource type="Curve" id="Curve_d01fd"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.55, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_7ptwt"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.85, 0.05, 0.05, 1, 0.3, 0.03, 0.03, 0)
+
+[node name="AttackTwinReaper" type="Node2D" unique_id=1279369522]
+
+[node name="Slash1" type="Node2D" parent="." unique_id=2010324544]
+script = ExtResource("1_strike")
+lifetime = 0.28
+
+[node name="Hitbox" type="Area2D" parent="Slash1" unique_id=1403838686]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Slash1/Hitbox" unique_id=363760249]
+position = Vector2(16.5, -0.6875)
+shape = SubResource("box_reaper")
+
+[node name="Particles" type="CPUParticles2D" parent="Slash1" unique_id=880570342]
+texture_filter = 1
+position = Vector2(1.9073486e-06, -1.9073486e-06)
+rotation = 1.5859629
+amount = 5
+texture = ExtResource("3_ol4qs")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_p8h6w")
+color_ramp = SubResource("Grad_reaper")
+
+[node name="Slash2" type="Node2D" parent="." unique_id=213734075]
+script = ExtResource("1_strike")
+lifetime = 0.28
+
+[node name="Hitbox" type="Area2D" parent="Slash2" unique_id=1992639030]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Slash2/Hitbox" unique_id=1203260402]
+position = Vector2(16, 0.375)
+shape = SubResource("box_reaper")
+
+[node name="Particles2" type="CPUParticles2D" parent="Slash2" unique_id=1697837469]
+texture_filter = 1
+position = Vector2(1.9073486e-06, -1.9073486e-06)
+rotation = 1.5859629
+scale = Vector2(0.99999994, 0.99999994)
+amount = 3
+texture = SubResource("CompressedTexture2D_p8h6w")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_oi3xf")
+color = Color(0.92941177, 0, 0.007843138, 1)
+color_ramp = SubResource("Gradient_xm0co")
+
+[node name="Slash3" type="Node2D" parent="." unique_id=677525936]
+script = ExtResource("1_strike")
+lifetime = 0.28
+
+[node name="Hitbox" type="Area2D" parent="Slash3" unique_id=1173180176]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Slash3/Hitbox" unique_id=2010899611]
+position = Vector2(10, -6)
+shape = SubResource("box_reaper")
+
+[node name="Particles3" type="CPUParticles2D" parent="Slash3" unique_id=2122467856]
+texture_filter = 1
+position = Vector2(1.9073486e-06, -1.9073486e-06)
+rotation = 1.5859629
+scale = Vector2(0.99999994, 0.99999994)
+amount = 2
+texture = SubResource("CompressedTexture2D_ol4qs")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_64do7")
+color_ramp = SubResource("Grad_reaper")
+
+[node name="Particles4" type="CPUParticles2D" parent="Slash3" unique_id=72602758]
+texture_filter = 1
+position = Vector2(1.9073486e-06, -1.9073486e-06)
+rotation = 0.48253655
+scale = Vector2(0.99999994, 0.99999994)
+amount = 2
+texture = SubResource("CompressedTexture2D_64do7")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_atqi5")
+color = Color(1, 0.25676844, 0.2285957, 1)
+color_ramp = SubResource("Gradient_oi3xf")
+
+[node name="Slash4" type="Node2D" parent="." unique_id=458288780]
+script = ExtResource("1_strike")
+lifetime = 0.28
+
+[node name="Hitbox" type="Area2D" parent="Slash4" unique_id=1590453827]
+position = Vector2(-44, -1)
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Slash4/Hitbox" unique_id=2051899020]
+position = Vector2(15.75, 3)
+shape = SubResource("RectangleShape2D_0ehbk")
+
+[node name="Particles5" type="CPUParticles2D" parent="Slash4" unique_id=2055782168]
+texture_filter = 1
+position = Vector2(-13, -1)
+rotation = 0.025949448
+scale = Vector2(0.99999994, 0.99999994)
+amount = 2
+texture = SubResource("CompressedTexture2D_64do7")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_ol4qs")
+color = Color(1, 0.25676844, 0.2285957, 1)
+color_ramp = SubResource("Gradient_64do7")
+
+[node name="Particles6" type="CPUParticles2D" parent="Slash4" unique_id=1312935331]
+texture_filter = 1
+position = Vector2(-12, 2)
+rotation = 3.1043377
+scale = Vector2(0.99999994, 0.99999994)
+amount = 2
+texture = SubResource("CompressedTexture2D_atqi5")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_xm0co")
+color = Color(1, 0.25676844, 0.2285957, 1)
+color_ramp = SubResource("Gradient_3g7an")
+
+[node name="Particles7" type="CPUParticles2D" parent="Slash4" unique_id=1510648468]
+texture_filter = 1
+position = Vector2(-24, 1.9999998)
+rotation = 4.7919526
+scale = Vector2(0.99999994, 0.99999994)
+amount = 2
+texture = SubResource("CompressedTexture2D_oi3xf")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 75.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_3g7an")
+color = Color(1, 0.25676844, 0.2285957, 1)
+color_ramp = SubResource("Gradient_d01fd")
+
+[node name="Slash5" type="Node2D" parent="." unique_id=1505874567]
+script = ExtResource("1_strike")
+
+[node name="Hitbox" type="Area2D" parent="Slash5" unique_id=1546955328]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+
+[node name="Shape" type="CollisionShape2D" parent="Slash5/Hitbox" unique_id=821804237]
+position = Vector2(26, -6)
+shape = SubResource("box_reaper")
+
+[node name="Particles8" type="CPUParticles2D" parent="Slash5" unique_id=928606386]
+texture_filter = 1
+position = Vector2(1.9073486e-06, -1.9073486e-06)
+rotation = 1.5859629
+scale = Vector2(0.99999994, 0.99999994)
+amount = 5
+texture = SubResource("CompressedTexture2D_0ehbk")
+lifetime = 0.2
+explosiveness = 1.0
+local_coords = true
+direction = Vector2(-1, -90)
+spread = 0.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 220.0
+initial_velocity_max = 340.0
+scale_amount_min = 0.1
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_d01fd")
+color_ramp = SubResource("Gradient_7ptwt")

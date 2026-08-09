@@ -21,6 +21,7 @@ const PATHS := {
 	"attack:spear":        "res://vfx/shared/textures/blast1.png",
 	"attack:bakshen":      "res://vfx/shared/impervious/bolt.png",
 	"attack:cherry_shots": "res://vfx/shared/textures/soft_dot.png",
+	"attack:twin_reaper":  "res://vfx/shared/textures/blast1.png",
 
 	# --- specials ---
 	"special:special_default":   "res://vfx/shared/impervious/shield.png",

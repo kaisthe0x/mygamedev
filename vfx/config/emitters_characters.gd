@@ -26,6 +26,15 @@ const TABLE := {
 		"attack_ora_ora": [ {"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2, 4], "pos": Vector2(23, -22)}],
 		# Bakshen: one big charged slash -- the Strike (its hitbox + red burst) fires on the last frame.
 		"attack_bakshen": [ {"scene": preload("res://vfx/character/khalid/attack/bakshen/attack_bakshen.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(15, -18)}],
+		# Twin Reaper: a 5-hit spinning combo -- one DISTINCT Strike node (hitbox + particles) fires per
+		# hit frame (3/4/6/7/9). Same damage each (moves.gd). Tweak each node's particles in the scene.
+		"attack_twin_reaper": [
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash1", "mode": "burst", "frames": [3], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash2", "mode": "burst", "frames": [4], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash3", "mode": "burst", "frames": [6], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash4", "mode": "burst", "frames": [7], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper.tscn"), "node": "Slash5", "mode": "burst", "frames": [9], "pos": Vector2(14, -18)},
+		],
 		# Cherry Shots: two laser Projectiles -- the small bolt launches on frame 3, the big one on frame 7.
 		"attack_cherry_shots": [
 			{"scene": preload("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots.tscn"), "node": "ShotSmall", "mode": "burst", "frames": [3], "pos": Vector2(16, -22)},

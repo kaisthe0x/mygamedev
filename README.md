@@ -458,6 +458,13 @@ buffered special still cancels it. `_advance_combo()` routes the first press to
 `_start_flurry()`, and `_process_attack()` holds it while `attack` is pressed. Per-punch
 damage/knockback are low (`moves.gd`) since the DPS comes from the cadence.
 
+Khalid's `twin_reaper` (Elite) is a second flurry: **hold** and the whole spin loops
+(`loop: true`, `fps 16`), each pass firing its five `Slash1`–`Slash5` `Strike` nodes on the
+emitter frames (3/4/6/7/9) — one node per hit so each keeps its own hitbox + particles for
+tuning. A flurry feeds a *single* `tuning` to every hit (12 dmg, `knockback 0` to keep enemies
+caught in the spin), so — like `ora_ora` — it has **no** `HIT_FRAMES` entry (those drive the
+click-combo segmentation, not a flurry).
+
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:
 - **`attack_recovery`** — how long the hit frame holds before idle resumes. Keep
