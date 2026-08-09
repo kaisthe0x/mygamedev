@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://wlkkbde6j3mf"]
+[gd_scene format=3 uid="uid://bsvij5d2kkrc7"]
 
-[ext_resource type="Texture2D" path="res://vfx/character/khalid/special/stay/stay_texture.png" id="1_gsprb"]
+[ext_resource type="Texture2D" uid="uid://3875ryixpbhf" path="res://vfx/character/khalid/special/frenemy/frenemy_texture.png" id="1_gsprb"]
 
 [sub_resource type="Curve" id="Curve_pulse"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(0.9858407, 0.45762712), 0.0, 0.0, 0, 0, Vector2(0.99998, 1), 0.0, 0.0, 0, 0, Vector2(0.99999, 0.3370787), 0.0, 0.0, 0, 0]

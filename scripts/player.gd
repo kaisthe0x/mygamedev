@@ -82,6 +82,13 @@ var lifesteal_frac: float = 0.0       ## Leech: heal this fraction of damage dea
 var attack_projectile_bonus: int = 0  ## Split Shot: +N projectiles -- WIP (stored, not yet spawned)
 var impervious_until_hit: bool = false ## Last Stand: invuln until hit -- WIP (stored)
 var special_radius_mult: float = 1.0  ## Wide Impact: scales special hit radius -- WIP for scene boxes
+## The character's STARTING dash effect (the Emitters-config key fired on each dash). Every dash IS
+## this effect; a reward swaps it for another. Its "Trail" node follows the player, its other nodes
+## linger/etc (per-node, see ParticleDirector). >>> Flip this to "dash_crimson_vortex" to START with
+## the vortex and test it without earning it. <<<
+const STARTING_DASH_EFFECT := "dash_crimson_vortex"
+## The active dash effect this run (swapped by a reward). Reset to STARTING_DASH_EFFECT by begin_run.
+var _dash_effect: String = STARTING_DASH_EFFECT
 
 
 ## Start a BRAND-NEW run: clear every run-reward buff back to base, re-apply the character's base
@@ -100,6 +107,7 @@ func begin_run() -> void:
 	attack_projectile_bonus = 0
 	impervious_until_hit = false
 	special_radius_mult = 1.0
+	_dash_effect = STARTING_DASH_EFFECT  # back to the starting dash; upgrades are re-earned each run
 	special_invuln_bonus = 0.0
 	ruh_cap = BASE_RUH_CAP
 	max_air_jumps = BASE_AIR_JUMPS
@@ -635,6 +643,12 @@ func apply_lunge(impulse: float) -> void:
 ## Grant super-armor for `duration` seconds (see _on_hurt). Stacks by taking the longer.
 func set_armor(duration: float) -> void:
 	_armor_left = maxf(_armor_left, duration)
+
+
+## Swap the active dash effect (an Emitters-config key fired on each dash -- see _enter). The seam a
+## reward uses to UPGRADE the dash, e.g. "dash_crimson_vortex".
+func set_dash_effect(effect: String) -> void:
+	_dash_effect = effect
 
 
 ## Turn ON a timed self-buff from a special's tuning (Built Different): `buff_time` seconds of
@@ -1323,6 +1337,12 @@ func _enter(state: State) -> void:
 			_dash_left = dash_time
 			_dash_anim_left = maxf(dash_anim_time, dash_time)
 			_dash_cd = dash_cooldown
+			# Fire this dash's effect at the spot we're leaving (before the lunge/blink moves us). Its
+			# "Trail" follows the player, the rest lingers here (see ParticleDirector). Clear _active_hit
+			# first so a dropped Strike uses its OWN authored damage, not a stale attack's tuning.
+			if _dash_effect != "":
+				_active_hit = {}
+				fire_effect(_dash_effect)
 			# Play the dash animation over the (longer) visible window rather than
 			# squeezing it into the brief lunge, so the frames are seen, not
 			# fast-forwarded. Frame counts differ per character (4-6); stretching to

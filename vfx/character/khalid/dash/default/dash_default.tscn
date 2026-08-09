@@ -1,11 +1,11 @@
 [gd_scene format=3 uid="uid://b3m3m6gb1ksrg"]
 
-[sub_resource type="Gradient" id="Gradient_khalid"]
+[sub_resource type="Gradient" id="Gradient_85f8d"]
 offsets = PackedFloat32Array(0, 0.6003683, 0.7661142)
 colors = PackedColorArray(0.7735731, 0.03876, 0.03876, 1, 0.08235294, 0.5294118, 0.49019608, 1, 0.8235294, 0.7490196, 0.078431375, 1)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_khalid"]
-gradient = SubResource("Gradient_khalid")
+gradient = SubResource("Gradient_85f8d")
 width = 100
 
 [sub_resource type="Curve" id="Curve_spin"]
@@ -19,7 +19,7 @@ point_count = 4
 
 [node name="DashDefault" type="Node2D" unique_id=1477328167]
 
-[node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=234077515]
+[node name="Trail" type="CPUParticles2D" parent="." unique_id=234077515]
 position = Vector2(-12, -12)
 amount = 150
 texture = SubResource("GradientTexture1D_khalid")

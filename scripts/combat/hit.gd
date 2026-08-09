@@ -16,6 +16,11 @@ var ranged: bool = false
 ## meter (RunManager checks this) -- so the special can't self-loop its own Impervious window.
 var from_special: bool = false
 
+## Seconds to CHARM the victim into a temporary ally (0 = none). An enemy hit with this becomes a
+## "frenemy": it stops targeting the player and fights the other enemies for the duration, then
+## reverts. See Enemy.become_frenemy. (The frenemy special uses this instead of a stun.)
+var frenemy_time: float = 0.0
+
 ## Optional visual status: an engulfing overlay tint on the victim. `a > 0`
 ## enables it; it lasts `status_time` seconds (defaults to the stun duration).
 var status_color: Color = Color(0, 0, 0, 0)

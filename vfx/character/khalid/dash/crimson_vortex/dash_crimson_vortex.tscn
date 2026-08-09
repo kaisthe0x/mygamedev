@@ -1,11 +1,8 @@
 [gd_scene format=3 uid="uid://myex7w2fjfun"]
 
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_oak6a"]
-
-[sub_resource type="Curve" id="Curve_oak6a"]
-_limits = [-200.0, 200.0, 0.0, 1.0]
-_data = [Vector2(0, 200), 0.0, 0.0, 0, 0, Vector2(0.13619404, 133.6323), 0.0, 0.0, 0, 0, Vector2(0.3152985, -200), 0.0, 0.0, 0, 0, Vector2(0.73880595, -200), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 5
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
 
 [sub_resource type="Curve" id="Curve_jq0bu"]
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
@@ -15,20 +12,66 @@ point_count = 2
 offsets = PackedFloat32Array(0.33015266, 0.83206105, 1)
 colors = PackedColorArray(0, 0, 0, 1, 0.14901961, 0, 0, 1, 1, 0.03529412, 0.1764706, 1)
 
-[node name="CrimsonVortex" type="Node2D" unique_id=2029558270]
+[sub_resource type="CircleShape2D" id="Circle_hit"]
+radius = 38.0
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=765950689]
+[sub_resource type="Gradient" id="Gradient_mudsj"]
+offsets = PackedFloat32Array(0, 0.6003683, 0.7661142)
+colors = PackedColorArray(0.7735731, 0.03876, 0.03876, 1, 0.1254902, 0, 0, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_ktj50"]
+gradient = SubResource("Gradient_mudsj")
+width = 100
+
+[sub_resource type="Curve" id="Curve_qo24w"]
+_limits = [-360.0, 360.0, 0.0, 1.0]
+_data = [Vector2(0, 360), 0.0, 0.0, 0, 0, Vector2(0.45315486, 360), 0.0, 0.0, 0, 0, Vector2(0.4703633, -41.47464), 0.0, 0.0, 0, 0, Vector2(0.7323135, -194.10135), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="Curve" id="Curve_40d4k"]
+_data = [Vector2(0, 0.3271889), 0.0, 0.0, 0, 0, Vector2(0.06309751, 0.2488479), 0.0, 0.0, 0, 0, Vector2(0.13766731, 0.19354838), 0.0, 0.0, 0, 0, Vector2(0.24665391, 0.04147458), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="CrimsonVortex" type="Node2D" unique_id=2029558270]
+script = ExtResource("1_strike")
+lifetime = 1.5
+emit_duration = 1.3
+
+[node name="Vortex" type="CPUParticles2D" parent="." unique_id=765950689]
 amount = 200
 texture = ExtResource("1_oak6a")
+lifetime = 0.7
+preprocess = 0.7
 emission_shape = 1
 emission_sphere_radius = 32.77
 gravity = Vector2(0, 0)
 orbit_velocity_min = 175.0
 orbit_velocity_max = 200.0
-tangential_accel_min = 120.0
-tangential_accel_max = 120.0
-tangential_accel_curve = SubResource("Curve_oak6a")
 scale_amount_min = 0.5
 scale_amount_max = 0.5
 scale_amount_curve = SubResource("Curve_jq0bu")
 color_ramp = SubResource("Gradient_oak6a")
+
+[node name="Hitbox" type="Area2D" parent="Vortex" unique_id=100]
+visible = false
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_hb")
+damage = 18.0
+
+[node name="Shape" type="CollisionShape2D" parent="Vortex/Hitbox" unique_id=101]
+shape = SubResource("Circle_hit")
+
+[node name="Trail" type="CPUParticles2D" parent="." unique_id=1411358838]
+position = Vector2(-12, -12)
+amount = 150
+texture = SubResource("GradientTexture1D_ktj50")
+lifetime = 0.2
+emission_shape = 3
+emission_rect_extents = Vector2(12, 10)
+spread = 96.71
+gravity = Vector2(500, 0)
+initial_velocity_min = 50.0
+initial_velocity_max = 50.0
+angular_velocity_curve = SubResource("Curve_qo24w")
+scale_amount_curve = SubResource("Curve_40d4k")

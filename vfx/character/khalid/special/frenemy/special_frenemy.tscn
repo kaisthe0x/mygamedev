@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="4_ember"]
-[ext_resource type="Texture2D" uid="uid://3875ryixpbhf" path="res://vfx/character/khalid/special/stay/stay_texture.png" id="4_l18u6"]
+[ext_resource type="Texture2D" uid="uid://3875ryixpbhf" path="res://vfx/character/khalid/special/frenemy/frenemy_texture.png" id="4_l18u6"]
 
 [sub_resource type="Curve" id="Curve_l18u6"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.49734512, 0.49438208), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]

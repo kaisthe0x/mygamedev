@@ -51,18 +51,18 @@ const CATALOG := {
 		"specials": {
 			"ground_breaker": {"animation": "special_ground_breaker", "effect": "special_ground_breaker", "kind": Combat.AttackKind.GROUND,
 				"tuning": {"damage": 40, "knockback": 160, "stun": 1.0, "victim_effect": "res://vfx/status/ground_breaker_stun.tscn"}},
-			# Stay: a short blast -- little damage, but a long 5s STUN (knockback 0 so the enemy just
-			# freezes in place). Instead of a flat tint, `victim_effect` engulfs the frozen enemy in a
-			# bubbling red stun effect (the stay pulse texture) for the stun. A control/utility special.
-			"stay": {"animation": "special_stay", "effect": "special_stay", "kind": Combat.AttackKind.BLAST, "tier": "elite",
-				"tuning": {"damage": 4, "knockback": 0, "stun": 5.0, "victim_effect": "res://vfx/status/stay_stun.tscn"}},
+			# Frenemy: a short blast that CHARMS the enemy -- for `frenemy` seconds it becomes a temporary
+			# ALLY, stops targeting the player, and fights the OTHER enemies instead (not stunned). The
+			# same red aura (`victim_effect`) surrounds it while charmed. A control/utility special.
+			"frenemy": {"animation": "special_frenemy", "effect": "special_frenemy", "kind": Combat.AttackKind.BLAST, "tier": "elite",
+				"tuning": {"damage": 4, "knockback": 0, "frenemy": 8.0, "victim_effect": "res://vfx/status/frenemy_stun.tscn", "victim_time": 8.0}},
 			# special_default: the BASELINE special the player always starts with -- no damage, no extra
 			# effect. Its only job is the invincibility (Impervious) window + aura, which EVERY special
 			# now grants (Player.grant_special_invuln, fired on any cast). Others add THEIR effect on top.
 			"special_default": {"animation": "special_default", "effect": "special_default", "kind": Combat.AttackKind.BLAST, "tier": "typical",
 				"tuning": {}},
 		},
-		"default_attack": "bakshen", "default_special": "special_default",
+		"default_attack": "bakshen", "default_special": "frenemy",
 	},
 }
 

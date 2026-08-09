@@ -133,7 +133,11 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
 HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("khalid", "special_ground_breaker"): [2, 3, 4, 5, 6],
     ("khalid", "attack_spear"): [6, 9, 13],  # thrust, thrust, big spinning finisher (strongest)
-    ("khalid", "special_stay"): [1, 2, 3],  # the short stun blast fires on the forward-thrust frame
+    ("khalid", "special_frenemy"): [
+        1,
+        2,
+        3,
+    ],  # the short stun blast fires on the forward-thrust frame
     ("khalid", "attack_bakshen"): [3],  # single charged hit on the last (slash) frame
     ("khalid", "attack_cherry_shots"): [
         3,

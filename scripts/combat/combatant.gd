@@ -75,7 +75,7 @@ const VICTIM_VFX_REF_H := 34.0
 ## POSITIONING is the scene's own job: the effect is parented at our origin, which is the
 ## victim's FEET (sprites are feet-anchored). So the scene's ROOT position is an offset from
 ## the feet -- y = 0 sits at the feet, negative y rises up the body. Author it in the scene
-## (e.g. stay_stun ~ (0,-17) to cover the torso; ground_breaker_stun ~ (0,0) to erupt from
+## (e.g. frenemy_stun ~ (0,-17) to cover the torso; ground_breaker_stun ~ (0,0) to erupt from
 ## the feet). `fit_h` (0 = none) scales the effect's SIZE to the victim; the position you
 ## authored is left as-is.
 func spawn_victim_vfx(scene: PackedScene, duration: float, fit_h: float = 0.0) -> void:

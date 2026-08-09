@@ -14,8 +14,8 @@
 [ext_resource type="Texture2D" uid="uid://cvo6weherngml" path="res://sprites/characters/khalid/khalid_attack_ora_ora_frames.png" id="12_attack_ora_ora"]
 [ext_resource type="Texture2D" uid="uid://dkyvjdmxgwfcr" path="res://sprites/characters/khalid/khalid_attack_spear_frames.png" id="13_attack_spear"]
 [ext_resource type="Texture2D" uid="uid://bct86rb447ejl" path="res://sprites/characters/khalid/khalid_special_default_frames.png" id="14_special_default"]
-[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="15_special_ground_breaker"]
-[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_stay_frames.png" id="16_special_stay"]
+[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_frenemy_frames.png" id="15_special_frenemy"]
+[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="16_special_ground_breaker"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -462,64 +462,64 @@ atlas = ExtResource("14_special_default")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
+[sub_resource type="AtlasTexture" id="special_frenemy_1"]
+atlas = ExtResource("15_special_frenemy")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 0, 0)
+
+[sub_resource type="AtlasTexture" id="special_frenemy_2"]
+atlas = ExtResource("15_special_frenemy")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 0, 0)
+
+[sub_resource type="AtlasTexture" id="special_frenemy_3"]
+atlas = ExtResource("15_special_frenemy")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(0, 0, 0, 0)
+
+[sub_resource type="AtlasTexture" id="special_frenemy_4"]
+atlas = ExtResource("15_special_frenemy")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(0, 0, 0, 0)
+
 [sub_resource type="AtlasTexture" id="special_ground_breaker_1"]
-atlas = ExtResource("15_special_ground_breaker")
+atlas = ExtResource("16_special_ground_breaker")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_2"]
-atlas = ExtResource("15_special_ground_breaker")
+atlas = ExtResource("16_special_ground_breaker")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_3"]
-atlas = ExtResource("15_special_ground_breaker")
+atlas = ExtResource("16_special_ground_breaker")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_4"]
-atlas = ExtResource("15_special_ground_breaker")
+atlas = ExtResource("16_special_ground_breaker")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_5"]
-atlas = ExtResource("15_special_ground_breaker")
+atlas = ExtResource("16_special_ground_breaker")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_6"]
-atlas = ExtResource("15_special_ground_breaker")
+atlas = ExtResource("16_special_ground_breaker")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_7"]
-atlas = ExtResource("15_special_ground_breaker")
+atlas = ExtResource("16_special_ground_breaker")
 region = Rect2(896, 0, 128, 80)
 margin = Rect2(0, 0, 0, 0)
 
-[sub_resource type="AtlasTexture" id="special_stay_1"]
-atlas = ExtResource("16_special_stay")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(0, 0, 0, 0)
-
-[sub_resource type="AtlasTexture" id="special_stay_2"]
-atlas = ExtResource("16_special_stay")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(0, 0, 0, 0)
-
-[sub_resource type="AtlasTexture" id="special_stay_3"]
-atlas = ExtResource("16_special_stay")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(0, 0, 0, 0)
-
-[sub_resource type="AtlasTexture" id="special_stay_4"]
-atlas = ExtResource("16_special_stay")
-region = Rect2(512, 0, 128, 80)
-margin = Rect2(0, 0, 0, 0)
-
 [resource]
-metadata/hit_frames = {"attack_bakshen": [2], "attack_cherry_shots": [2, 6], "attack_spear": [5, 8, 12], "special_ground_breaker": [1, 2, 3, 4, 5], "special_stay": [0, 1, 2]}
-metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "fall": 1, "land": 1, "slam": 1, "dash": 1, "death": 1, "spawn": 1, "attack_bakshen": 1, "attack_cherry_shots": 1, "attack_ora_ora": 1, "attack_spear": 1, "special_default": 1, "special_ground_breaker": 1, "special_stay": 1}
+metadata/hit_frames = {"attack_bakshen": [2], "attack_cherry_shots": [2, 6], "attack_spear": [5, 8, 12], "special_frenemy": [0, 1, 2], "special_ground_breaker": [1, 2, 3, 4, 5]}
+metadata/sheet_start = {"idle": 0, "run": 1, "jump": 1, "fall": 1, "land": 1, "slam": 1, "dash": 1, "death": 1, "spawn": 1, "attack_bakshen": 1, "attack_cherry_shots": 1, "attack_ora_ora": 1, "attack_spear": 1, "special_default": 1, "special_frenemy": 1, "special_ground_breaker": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -859,6 +859,23 @@ animations = [{
 "speed": 8.0
 }, {
 "frames": [{
+"duration": 1.0,
+"texture": SubResource("special_frenemy_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("special_frenemy_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("special_frenemy_3")
+}, {
+"duration": 0.25,
+"texture": SubResource("special_frenemy_4")
+}],
+"loop": false,
+"name": &"special_frenemy",
+"speed": 10.0
+}, {
+"frames": [{
 "duration": 0.25,
 "texture": SubResource("special_ground_breaker_1")
 }, {
@@ -883,21 +900,4 @@ animations = [{
 "loop": false,
 "name": &"special_ground_breaker",
 "speed": 15.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("special_stay_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("special_stay_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("special_stay_3")
-}, {
-"duration": 0.25,
-"texture": SubResource("special_stay_4")
-}],
-"loop": false,
-"name": &"special_stay",
-"speed": 10.0
 }]

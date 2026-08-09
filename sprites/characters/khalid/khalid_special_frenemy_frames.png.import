@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3875ryixpbhf"
-path="res://.godot/imported/stay_texture.png-c80530c10dac93d0cd1f3603bd85bbe2.ctex"
+uid="uid://cnw1o6571cck5"
+path="res://.godot/imported/khalid_special_frenemy_frames.png-9b72ef9e03af29b6e640b28725eb5d0d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://vfx/character/khalid/special/stay/stay_texture.png"
-dest_files=["res://.godot/imported/stay_texture.png-c80530c10dac93d0cd1f3603bd85bbe2.ctex"]
+source_file="res://sprites/characters/khalid/khalid_special_frenemy_frames.png"
+dest_files=["res://.godot/imported/khalid_special_frenemy_frames.png-9b72ef9e03af29b6e640b28725eb5d0d.ctex"]
 
 [params]
 

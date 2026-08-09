@@ -147,6 +147,30 @@ func _spawn(scene: PackedScene, node_name := "") -> Node2D:
 	return node
 
 
+## Pull any node named "Trail" out of a dropped effect and parent it onto the DIRECTOR (a child of
+## the player), so it FOLLOWS him -- a dash trail/aura -- instead of lingering at the drop point like
+## the rest of the effect. Each is mirrored to facing, emitted as a brief one-shot, and freed once its
+## particles finish. Convention: name a node "Trail" to make it follow; everything else lingers. This
+## is per-node behaviour, so one effect scene can mix a following trail with a lingering hazard.
+func _spawn_followers(root: Node2D, m: float) -> void:
+	for child in root.get_children():
+		if String(child.name) != "Trail":
+			continue
+		var f := child as Node2D
+		if f == null:
+			continue
+		var authored := f.position  # its offset relative to the body
+		root.remove_child(f)
+		f.owner = null
+		add_child(f)  # onto the director -> it tracks the player
+		_face(f, _capture(f), authored, m)
+		var ems := _emitters_of(f)
+		for em in ems:
+			em.one_shot = true  # a brief trail: emit the pool once as the dash moves, then stop + free
+			em.emitting = true
+		_free_when_done(f, ems)
+
+
 ## Every particle emitter in a spawned effect: the node itself if it is one, plus
 ## any under it -- so a Node2D can bundle several particles as one attack, and the
 ## director drives them all together.
@@ -358,7 +382,15 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	if node is LobProjectile:
 		_launch_lob(node as LobProjectile, b, m)
 		return
+	# Follow convention: any "Trail" node tracks the PLAYER (a dash trail) instead of lingering at
+	# the drop point. Pulled out onto the director before the rest is stamped in the world.
+	_spawn_followers(node, m)
 	var emitters := _emitters_of(node)
+	# A trail-ONLY effect (e.g. the default dash) has nothing left to stamp after its Trail followed --
+	# its root is now empty, so free it instead of leaking an empty node.
+	if emitters.is_empty() and _hitboxes_of(node).is_empty() and not (node is Projectile or node is Strike):
+		node.queue_free()
+		return
 	_face(node, _capture(node), b.pos, m)
 	# Optional lean: rotate the whole burst so its emission tilts (e.g. the double-jump
 	# exhaust angling opposite to travel). World gravity still pulls particles down.

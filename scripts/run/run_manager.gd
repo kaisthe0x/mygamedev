@@ -274,8 +274,19 @@ func _on_enemy_died(enemy: Enemy) -> void:
 	if _player != null and not enemy.last_hit_from_special:
 		_player.gain_ruh_on_kill()  # each non-special kill charges the Ruh (special) meter
 	if _alive <= 0 and not _transitioning and not _cleared:
-		if not _spawn_next_wave():
-			_cleared = true  # no more batches -> level cleared; the exit opens (see _physics_process)
+		# This fires INSIDE a physics flush (a hit or the vortex's DoT tick killed the enemy).
+		# Spawning the next batch builds new bodies/hurtboxes, and their collision/monitoring state
+		# can't change mid-flush ("Can't change state while flushing queries"). Defer to next idle.
+		_advance_batch.call_deferred()
+
+
+## Spawn the next batch, or clear the level if none remain. Deferred from _on_enemy_died so enemy
+## bodies are built outside the physics flush. Re-checks state (it may have changed since queued).
+func _advance_batch() -> void:
+	if _alive > 0 or _transitioning or _cleared:
+		return
+	if not _spawn_next_wave():
+		_cleared = true  # no more batches -> level cleared; the exit opens (see _physics_process)
 
 
 ## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --

@@ -25,7 +25,7 @@ const PATHS := {
 	# --- specials ---
 	"special:special_default":   "res://vfx/shared/impervious/shield.png",
 	"special:ground_breaker":    "res://vfx/shared/textures/blast1.png",
-	"special:stay":              "res://vfx/shared/textures/pixel_ember.png",
+	"special:frenemy":              "res://vfx/shared/textures/pixel_ember.png",
 
 	# --- reward DOOR types (one random door per level) ---
 	"door:health":   "res://vfx/shared/textures/soft_dot.png",
@@ -40,6 +40,7 @@ const PATHS := {
 	"buff:ruh_cap":  "res://vfx/shared/impervious/shield.png",
 	"buff:air_jump": "res://vfx/shared/textures/pixel_ember.png",
 	"buff:run":      "res://vfx/shared/textures/pixel_ember.png",
+	"buff:crimson_vortex": "res://vfx/shared/textures/soft_dot.png",
 }
 
 static var _cache := {}

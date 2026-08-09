@@ -156,6 +156,10 @@ var _point_b := 0.0
 var _patrol_target := 0.0
 var _idle_timer := 0.0
 var _stun_left := 0.0
+## Seconds left CHARMED as a "frenemy": while > 0 this enemy fights FOR the player -- it targets the
+## other enemies, its attacks hit them (not the player), and its contact damage is off. See
+## become_frenemy / _end_frenemy. Set by the frenemy special (Hit.frenemy_time).
+var _frenemy_left := 0.0
 var _contact_cd := 0.0
 var _contact_hitbox: Hitbox
 var _scratch_timer := 0.0
@@ -291,6 +295,11 @@ func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
 		return
 
+	if _frenemy_left > 0.0:  # count down the charm; revert to hostile when it runs out
+		_frenemy_left -= delta
+		if _frenemy_left <= 0.0:
+			_end_frenemy()
+
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
@@ -359,8 +368,8 @@ func _on_anim_looped() -> void:
 
 
 func _tick_contact(delta: float) -> void:
-	if _contact_hitbox == null:
-		return
+	if _contact_hitbox == null or is_frenemy():
+		return  # a charmed frenemy doesn't touch-damage the player
 	_contact_cd = maxf(_contact_cd - delta, 0.0)
 	if _contact_cd <= 0.0:
 		_contact_hitbox.activate()  # re-arm; hits the player if still overlapping
@@ -371,11 +380,11 @@ func _act(delta: float) -> void:
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
 	_alert_left = maxf(_alert_left - delta, 0.0)
 
-	var player := _player()
+	var player := _target()  # the player normally; the nearest OTHER enemy while charmed (frenemy)
 	if player != null:
 		var to_player := player.global_position.x - global_position.x
 		var dist: float = absf(to_player)
-		# Attacks are horizontal, so we can only land one when the player is roughly at our
+		# Attacks are horizontal, so we can only land one when the target is roughly at our
 		# height (see attack_align_y) -- otherwise don't swing/fire at all.
 		var aligned := absf(player.global_position.y - global_position.y) <= attack_align_y
 		if aligned and _attack_cd <= 0.0:
@@ -561,7 +570,7 @@ func _in_melee_reach() -> bool:
 ## in front of the body for the swing.
 func _spawn_melee_strike() -> void:
 	var strike := Strike.new()
-	strike.hostile = true
+	strike.hostile = not is_frenemy()  # a charmed frenemy's swing hits enemies, not the player
 	strike.friendly_fire = friendly_fire  # also catch other enemies, if flagged
 	strike.lifetime = 0.15
 	strike.source = self
@@ -586,7 +595,7 @@ func _fire_projectile() -> void:
 	# enemy-hit layer scanning player hurtboxes, homing = 0 flies straight, and the look/damage
 	# are the `projectile` scene (the Emitters config) + a Hitbox built from this enemy's tuning.
 	var proj := Projectile.new()
-	proj.hostile = true
+	proj.hostile = not is_frenemy()  # a charmed frenemy's shot hits enemies, not the player
 	proj.friendly_fire = friendly_fire  # also catch other enemies, if flagged
 	proj.homing = 0.0                # aim once / surge forward -- no steering
 	proj.rotate_to_heading = false   # visual authored blasting +x -> mirror, don't rotate
@@ -632,7 +641,7 @@ func _fire_projectile() -> void:
 func _fire_lob() -> void:
 	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE)
 	var lob := LobProjectile.new()
-	lob.hostile = true
+	lob.hostile = not is_frenemy()  # a charmed frenemy's lob hits enemies, not the player
 	lob.friendly_fire = friendly_fire
 	lob.source = self
 	lob.arc_time = lob_arc_time
@@ -705,12 +714,16 @@ func _on_hurt(hit: Hit) -> void:
 	# relative to our feet. fit_h scales it to this enemy's size.
 	if hit.victim_vfx != null:
 		spawn_victim_vfx(hit.victim_vfx, hit.victim_vfx_time, hurtbox_size.y)
+	# The frenemy special charms us into a temporary ally (it carries no stun, so we keep fighting --
+	# just for the player now).
+	if hit.frenemy_time > 0.0:
+		become_frenemy(hit.frenemy_time)
 	# Knockback needs a brief stagger, or the AI overwrites the shove velocity next
 	# frame and nothing moves; a pure stun freezes for longer.
 	var stagger := apply_knockback(hit, _facing)
 	if stagger > 0.0:
 		# Never SHORTEN an existing stun: a follow-up jab on a long-stunned enemy would otherwise
-		# overwrite the 5s stay-stun with its own 0.18s stagger and wake them early. Take the max,
+		# overwrite a long control stun with its own 0.18s stagger and wake them early. Take the max,
 		# so a hit can EXTEND a stun but never cut it short.
 		_stun_left = maxf(_stun_left, stagger)
 		_set_state(State.STUN)  # freezes the sprite on whatever frame it was on (see _set_state)
@@ -751,6 +764,53 @@ func _player() -> Node2D:
 	if p != null and p.has_method("is_dead") and p.is_dead():
 		return null
 	return p
+
+
+## True while charmed into fighting for the player (see become_frenemy). Public so other enemies
+## can tell (they don't attack a fellow frenemy) and a frenemy's attacks flip to hit enemies.
+func is_frenemy() -> bool:
+	return _frenemy_left > 0.0
+
+
+## Who this enemy targets: the player normally, or -- while charmed -- the nearest OTHER (hostile)
+## enemy, so a frenemy chases and attacks the mob instead of the player.
+func _target() -> Node2D:
+	if is_frenemy():
+		return _nearest_hostile_enemy()
+	return _player()
+
+
+## The nearest live enemy that ISN'T us and ISN'T also a frenemy (so charmed allies don't fight
+## each other). Null when there's nobody left to fight.
+func _nearest_hostile_enemy() -> Node2D:
+	var best: Node2D = null
+	var best_d := INF
+	for e: Node in get_tree().get_nodes_in_group("enemies"):
+		if e == self or not (e is Node2D):
+			continue
+		if e.has_method("is_frenemy") and e.is_frenemy():
+			continue
+		var d := global_position.distance_squared_to((e as Node2D).global_position)
+		if d < best_d:
+			best_d = d
+			best = e as Node2D
+	return best
+
+
+## CHARM this enemy into a temporary ally for `duration` seconds: it fights the other enemies and
+## its contact damage to the player switches off. Its attacks flip to hit enemies automatically
+## (they read is_frenemy at spawn). Re-charming extends it. The frenemy special calls this.
+func become_frenemy(duration: float) -> void:
+	if duration <= 0.0 or _state == State.DEAD:
+		return
+	_frenemy_left = maxf(_frenemy_left, duration)
+	if _contact_hitbox != null:
+		_contact_hitbox.set_deferred("monitoring", false)  # don't touch-hurt the player while allied
+
+
+## The charm wore off -- back to a normal hostile enemy (re-arm contact next _tick_contact).
+func _end_frenemy() -> void:
+	_frenemy_left = 0.0
 
 
 func _face(dir: int) -> void:

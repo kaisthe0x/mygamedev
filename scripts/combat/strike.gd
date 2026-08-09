@@ -37,6 +37,11 @@ extends Node2D
 ## it -- the channel breaks (a channeled effect stops when the caster is damaged). Default true (the
 ## norm). Set false for an uninterruptible channel. Ignored by non-channel strikes.
 @export var interrupt_on_hurt: bool = true
+## Damage-over-time INTERVAL (seconds): while alive, re-hit everyone standing in the box every `tick`
+## seconds -- a burning/vortex field. 0 = a SINGLE hit on contact (the default). Author it here for a
+## self-contained hazard (the crimson vortex), or inject it via a move's tuning (`tick`). The damage
+## PER tick is the Hitbox's own `damage`.
+@export var tick: float = 0.0
 
 ## Who struck (knockback credit + lunge/armor target); set by the spawner.
 var source: Node = null
@@ -74,6 +79,11 @@ func _ready() -> void:
 		free_delay = maxf(free_delay, emit_window + em.lifetime * (1.0 + em.lifetime_randomness))
 	get_tree().create_timer(free_delay).timeout.connect(_fade_out)
 
+	# Authored damage-over-time (a self-contained hazard, e.g. the crimson vortex): re-hit every
+	# `tick`s for the strike's life. A move can also inject `tick` via tuning (see apply_tuning).
+	if tick > 0.0 and _hitbox != null:
+		_start_ticking(tick)
+
 
 ## Configure this strike from a resolved tuning dict (moves.gd via the player's resolve
 ## seam, or an enemy's exports): set the hitbox's numbers + reach, and trigger the
@@ -102,6 +112,8 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 			_hitbox.victim_vfx_time = t.get("victim_time", 0.0)  # 0 -> defaults to the stun/status window
 		if t.has("from_special"):
 			_hitbox.from_special = t["from_special"]  # a special-kill doesn't refill Ruh
+		if t.has("frenemy"):
+			_hitbox.frenemy_time = t["frenemy"]  # charm the victim into a temporary ally
 		_resize_hitbox(t)
 	# Wielder-effects act on the striker (option A): lunge shoves them forward, armor
 	# lets them shrug off stagger during the swing. No-op when the field/method is absent.
@@ -119,11 +131,12 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 	# inferno cast frame until the fire finishes) -- option A: the strike drives its wielder.
 	if emit_duration > 0.0 and source != null and source.has_method("hold_animation"):
 		source.hold_animation(emit_duration, self)  # pass self so the caster can cancel us
-	# Damage-over-time: re-hit everyone in the box every `tick` seconds for the strike's
-	# life (inferno = 10 dmg every 0.25s). tick 0 = a single hit (the default).
-	var tick: float = t.get("tick", 0.0)
-	if tick > 0.0 and _hitbox != null:
-		_start_ticking(tick)
+	# Damage-over-time from a move's tuning: re-hit everyone in the box every `tick`s (inferno =
+	# 10 dmg every 0.25s). Only if the scene didn't already author one (_ready starts that).
+	if t.has("tick") and _hitbox != null and not is_instance_valid(_tick_timer):
+		var injected := float(t["tick"])
+		if injected > 0.0:
+			_start_ticking(injected)
 
 
 ## Hit `hits` times across the strike's life -- a fixed COUNT of pulses (a buff: "hits

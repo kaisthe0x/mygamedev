@@ -24,6 +24,7 @@ const POOLS := {
 		{"id": "run",      "name": "Fleetfoot",   "desc": "+10% run speed"},
 		{"id": "tough",    "name": "Thick Hide",  "desc": "-10% damage taken"},
 		{"id": "slam_dmg", "name": "Meteor",      "desc": "+25% slam damage"},
+		{"id": "crimson_vortex", "name": "Crimson Vortex", "desc": "Your dash leaves a damaging vortex"},
 	],
 	"attack": [
 		{"id": "reach",     "name": "Long Arm",   "desc": "+15% attack reach"},
@@ -75,6 +76,7 @@ static func apply(id: String, player: Player) -> void:
 		"run":           player.run_mult *= 1.1; player.equip("run", player.loadout_id("run"))
 		"tough":         player.damage_taken_mult *= 0.9
 		"slam_dmg":      player.slam_damage_mult *= 1.25
+		"crimson_vortex": player.set_dash_effect("dash_crimson_vortex")
 		# attack
 		"reach":         player.attack_reach_mult *= 1.15
 		"atk_dmg":       player.damage_mult += 0.12
