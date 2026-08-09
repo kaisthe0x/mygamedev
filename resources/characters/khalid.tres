@@ -1,7 +1,7 @@
 [gd_resource type="SpriteFrames" format=3 uid="uid://bcyv4jkebxmh4"]
 
 [ext_resource type="Texture2D" uid="uid://curdanl1g5wne" path="res://sprites/characters/khalid/khalid_idle_frames.png" id="1_idle"]
-[ext_resource type="Texture2D" uid="uid://ca6lk1lk3ilhv" path="res://sprites/characters/khalid/khalid_run_frames.png" id="2_run"]
+[ext_resource type="Texture2D" uid="uid://b4ad5413jf2ox" path="res://sprites/characters/khalid/khalid_run_frames.png" id="2_run"]
 [ext_resource type="Texture2D" uid="uid://cfxv8jtgkbepk" path="res://sprites/characters/khalid/khalid_jump_frames.png" id="3_jump"]
 [ext_resource type="Texture2D" uid="uid://codx4c5rgtrn4" path="res://sprites/characters/khalid/khalid_fall_frames.png" id="4_fall"]
 [ext_resource type="Texture2D" uid="uid://7yfxxomfdj7i" path="res://sprites/characters/khalid/khalid_land_frames.png" id="5_land"]

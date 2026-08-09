@@ -122,111 +122,24 @@ one shared canvas (**currently 128x80**):
 
 ### Palette cleanup
 
-The character sheets were AI-generated at high resolution and downscaled to
-~32px. The resampler blended every region into hundreds of near-identical
-shades — the idle sheet had **1595 unique colours across 1795 opaque pixels**,
-roughly one colour per pixel — and wrapped everything in a dark antialiasing
-rind that reads as a muddy black outline.
+The character sheets were AI-generated and downscaled to ~32px, which smeared
+every region into hundreds of near-identical shades (Khalid's idle sheet had
+**1595 unique colours across 1795 opaque pixels**) and wrapped everything in a
+muddy black antialiasing rind.
 
-`tools/repalette.py` collapses a sheet onto a hand-authored palette of 6
-materials x (5 shades + a rim), 36 colours total.
+That cleanup is **not done here** — it belongs to the art pipeline, because the
+`.aseprite` masters are the source and this repo only consumes the exported
+sheets. It lives in the art repo:
 
-**Identity from the portrait, form from the sprite.** `Khalid.png` is the only
-art with authoritative colours (40 clean colours, tightly hue-clustered), so
-**hue and saturation** come from it. **Value does not** — it is a 1080px
-illustration with big brightly-lit flats, and pasting its brightness onto a 32px
-sprite makes him read like a toy. Measured, the sheets live in a dark compressed
-band (luma p5–p95 = 0.04–0.42) where a portrait-valued ramp spans 0.12–0.79.
-So each ramp is anchored to that material's *measured median luma in the sheets*,
-then opened up by `GAIN` so the five shades have somewhere to read.
+    mygame/tools/repalette/          <- scripts + full README
 
-`--calibrate` regenerates both the `PALETTE` and `CUTS` blocks, and the committed
-tables are exactly its output — keep it that way, or the two silently diverge.
-It deliberately measures only VFX-free sheets, since the spear/death/spawn
-effects classify as `hair` and drag it far too bright.
+It collapses each sheet onto a hand-authored palette (6 materials x 5 shades +
+a rim, 36 colours) and writes the result back into the `.aseprite` masters, so
+the art repo's git hooks regenerate the GIFs and `frames/*.png` from it.
 
-**Colours and cuts are separate on purpose.** `CUTS` says *where* to change
-shade and comes from the sheets' measured distribution; `PALETTE` says *what to
-paint* and is spread apart by `GAIN` for visibility. Conflating them either
-reproduces the source's flatness or wrecks its tone.
-
-`GAIN` pushes each shade away from its material's median by a power law on the
-**ratio**, not a multiple of the difference — skin and metal are spread widely
-enough that scaling the difference drives the darkest shade past black into
-negative luma. `SHADE_FLOOR` then stops the push bottoming out: a black shadow
-on teal skin reads as a hole punched in him rather than as shading.
-
-Three passes, because nearest-colour matching alone does not work — the rind
-sits *between* two materials, so it snaps to whichever ramp is closer and the
-black outline survives:
-
-1. **classify** — assign each pixel a material by **hue band**, not distance.
-   Hue survives the downscale; value does not. The jacket stays at H~18 whether
-   lit or shadowed, while its brightness slides all over the place.
-2. **shade** — map each pixel's luma through that material's **fixed `CUTS`**.
-   They are absolute and identical for every sheet, so a given source brown
-   always becomes the same brown. An earlier version ranked pixels *per sheet*
-   and split on quantiles, which was wrong twice over: it forced every material
-   into the same 35/40/25 light/mid/dark split regardless of what it looked
-   like (his 91%-midtone hair came out banded, his dark trousers came out
-   mottled like camo), and per-sheet quantiles meant the same brown mapped to
-   different shades in `idle` and `run` — the exact inconsistency this tool
-   exists to remove.
-3. **de-ink** — pixels too dark or too odd to classify are the rind, and it is
-   doing two different jobs. Where it traces the silhouette or runs between two
-   materials it is a **real outline** and takes that material's dark `RIM` tint —
-   dark and chromatic, never black. Deleting it outright (an earlier attempt)
-   removed the edge separating arm from torso and flattened the sprite. Where it
-   is a lone speck inside one flat region it is just dirt and copies its
-   neighbour. Either way it inherits rather than being shaded in pass 2: a rind
-   pixel's colour is a blend of two regions, so its own luma is meaningless.
-
-Fixed cuts also removed the need for the blur that pass 2 used to run
-(`--smooth`, now default 0). It only ever existed to hide quantile mottle, and
-it cost real form: a 3x3 mean averages a 1px armpit crease with eight lit
-neighbours and erases it. Fixed cuts do not mottle, so flat areas stay flat on
-their own and creases survive.
-
-Two subtleties in what counts as rind:
-
-- It must be dark **and** desaturated. Of the pixels under `INK_VAL`, 166 of 226
-  still carry saturation ≥ 0.2 — they are a material in deep shadow (the crease
-  under an armpit, a fold inside the coat). Treating every dark pixel as rind
-  threw that hue away and handed those creases to the neighbour vote, which
-  filled them in flat. That is why armpits read as a blob.
-- ...except below `DEAD_VAL`, where saturation stops meaning anything. `#070100`
-  reports S=1.00 purely because one channel is 7 and the others are ~0. Trusting
-  that let outline pixels classify as `hair` and painted red dots on his boots.
-
-A final de-speckle flips lone pixels that disagree with all 8 neighbours. The
-gold `trim` is exempt (`DESPECKLE_EXEMPT`) — the collar is a 1px accent the
-downscale left as scattered single pixels, and despeckling wipes it off his neck.
-
-Note the `skin` rule's high saturation floor (0.45). Real skin is vividly teal
-(S 0.66–0.95); a lower floor also swept up the dark blue-grey boot pixels and
-scattered teal specks down his legs. The two populations are cleanly bimodal
-with a gap at ~0.45. That was a *classification* error, not noise — no amount of
-de-speckling fixed it, because the specks came in clusters.
-
-Every sheet lands on 36 colours or fewer, and each material's light/dark balance
-now tracks the source within a couple of percent (jacket 26/16/19/17/22 in the
-source vs 27/16/19/17/21 out). Two things to know:
-
-- **`--alpha keep` for dash, spawn, and death.** The default hardens alpha,
-  which is right for the body but turns those sheets' semi-transparent ghost
-  trails into solid duplicate bodies.
-- **Effects inherit the character's ramps.** The spear's red energy and the
-  death flash fall in the hair's hue band, so they become hair red. Fine for
-  red VFX; a non-red effect would need its own material in `RULES`.
-
-Run `--debug` to write `*_mask.png` classification maps (magenta = unclaimed
-by any rule). That is the view to look at when tuning `RULES`.
-
-The real ceiling on quality here is **source resolution**, not the palette: the
-body is only ~38x32 px inside the 128x80 canvas. Re-downscaling the original
-generations to a larger body would buy more than any further palette work.
-
-Output goes to a sibling `<dir>_repal/` — the script never overwrites sources.
+Nothing in *this* repo needs to run it. The only thing to know downstream is
+that a re-palette changes the sheets under `sprites/`, so re-run
+`gen_spriteframes.py` and re-verify after pulling one.
 
 ### Frame 0 is the idle reference
 
@@ -1282,7 +1195,7 @@ fine. **Trust the actual run over the squiggles.**
 | Command | Purpose |
 |---|---|
 | `python3 tools/gen_spriteframes.py` | Regenerate SpriteFrames from the sheets |
-| `python3 tools/repalette.py <sheet-or-dir>` | Collapse an AI-generated sheet onto the hand-authored palette (see [Palette cleanup](#palette-cleanup)) |
+| Palette cleanup | Lives in the art repo, `mygame/tools/repalette/` — see [Palette cleanup](#palette-cleanup) |
 | `godot --headless --script tools/verify_frames.gd` | Assert all animations load on a uniform canvas |
 | `godot --script tools/capture_shots.gd` | Render every character/animation to PNGs for eyeballing alignment |
 | VFX build tools (particle textures/scenes) | Under `vfx/script/` — see [vfx/README.md](vfx/README.md#build-tools) |
