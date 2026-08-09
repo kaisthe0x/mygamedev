@@ -8,35 +8,33 @@
 size = Vector2(112, 49)
 
 [sub_resource type="Curve" id="curve_shrink"]
-_data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="Gradient" id="grad_finish"]
 offsets = PackedFloat32Array(0, 0.6660482, 0.82745826, 1)
 colors = PackedColorArray(0.9, 0.1, 0.08, 1, 1.7, 0.22, 0.2, 1, 0.9452769, 0.6080301, 0.6037999, 0.386, 0.35, 0.06, 0.05, 0)
 
-[node name="Finisher" type="Node2D"]
+[node name="Finisher" type="Node2D" unique_id=1108576694]
 script = ExtResource("1_strike")
 
-[node name="Hitbox" type="Area2D" parent="."]
+[node name="Hitbox" type="Area2D" parent="." unique_id=110125045]
 position = Vector2(16, -3)
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_hb")
 
-[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1374677448]
 position = Vector2(27, 2.5)
 shape = SubResource("box_finisher")
 
-[node name="Arc" type="CPUParticles2D" parent="."]
+[node name="Arc" type="CPUParticles2D" parent="." unique_id=2032577110]
 z_index = -1
 texture_filter = 1
 rotation = 0.010459501
-emitting = false
 amount = 7
 texture = ExtResource("3_slash")
 lifetime = 0.3
-one_shot = true
 explosiveness = 1.0
 local_coords = true
 emission_shape = 1

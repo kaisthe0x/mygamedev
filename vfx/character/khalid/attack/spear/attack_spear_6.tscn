@@ -3,9 +3,10 @@
 [ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="3_ember"]
+[ext_resource type="Texture2D" uid="uid://drbxqcbxgev74" path="res://vfx/character/khalid/attack/spear/thrust_texture.png" id="3_hh5k5"]
 
 [sub_resource type="RectangleShape2D" id="box_thrust1"]
-size = Vector2(36, 18)
+size = Vector2(99, 90)
 
 [sub_resource type="Curve" id="curve_shrink"]
 _data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -15,22 +16,23 @@ point_count = 3
 offsets = PackedFloat32Array(0, 0.5, 1)
 colors = PackedColorArray(1.4, 0.18, 0.16, 1, 0.77, 0.04, 0.04, 1, 0.3, 0.05, 0.04, 0)
 
-[node name="Thrust1" type="Node2D"]
+[node name="Thrust1" type="Node2D" unique_id=1378564085]
 script = ExtResource("1_strike")
 
-[node name="Hitbox" type="Area2D" parent="."]
+[node name="Hitbox" type="Area2D" parent="." unique_id=788409881]
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_hb")
+damage = 8.0
 
-[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
-position = Vector2(18, 0)
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1024897721]
+position = Vector2(49.5, -1)
 shape = SubResource("box_thrust1")
 
-[node name="Slash" type="CPUParticles2D" parent="."]
+[node name="Slash" type="CPUParticles2D" parent="." unique_id=807585325]
 texture_filter = 1
 amount = 40
-texture = ExtResource("3_ember")
+texture = ExtResource("3_hh5k5")
 lifetime = 0.3
 explosiveness = 1.0
 local_coords = true
@@ -38,11 +40,14 @@ spread = 29.74
 gravity = Vector2(0, 0)
 initial_velocity_min = 320.0
 initial_velocity_max = 450.0
-scale_amount_min = 0.5
+angle_min = 132.2
+angle_max = 132.2
+scale_amount_min = 0.08
+scale_amount_max = 0.08
 scale_amount_curve = SubResource("curve_shrink")
 color_ramp = SubResource("grad_slash")
 
-[node name="Thrust" type="CPUParticles2D" parent="."]
+[node name="Thrust" type="CPUParticles2D" parent="." unique_id=618465192]
 texture_filter = 1
 position = Vector2(31, -1)
 amount = 40
@@ -55,5 +60,6 @@ spread = 8.56
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 250.0
+scale_amount_min = 0.08
 scale_amount_curve = SubResource("curve_shrink")
 color_ramp = SubResource("grad_slash")

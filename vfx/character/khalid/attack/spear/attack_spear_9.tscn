@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
-[ext_resource type="Texture2D" uid="uid://fwrrn2xvj6f" path="res://vfx/character/khalid/attack/spear/slash.png" id="3_slash"]
+[ext_resource type="Texture2D" uid="uid://ci0uaw50nlg3n" path="res://vfx/character/khalid/attack/spear/spear_slash_texture_9.png" id="3_d3rgc"]
 
 [sub_resource type="RectangleShape2D" id="box_thrust2"]
 size = Vector2(75, 30)
@@ -12,35 +12,37 @@ _data = [Vector2(0, 0.42696637), 0.0, 0.0, 0, 0, Vector2(0.54513276, 0.516854), 
 point_count = 3
 
 [sub_resource type="Gradient" id="grad_slash"]
-offsets = PackedFloat32Array(0, 0.5, 1)
-colors = PackedColorArray(1.4, 0.18, 0.16, 1, 0.77, 0.04, 0.04, 1, 0.3, 0.05, 0.04, 0)
+offsets = PackedFloat32Array(0, 0.4862745, 0.7529412)
+colors = PackedColorArray(0.77, 0.04, 0.04, 1, 1, 0.614053, 0.5559344, 1, 0.3, 0.05, 0.04, 0)
 
-[node name="Thrust2" type="Node2D"]
+[node name="Thrust2" type="Node2D" unique_id=1912293502]
 script = ExtResource("1_strike")
 
-[node name="Hitbox" type="Area2D" parent="."]
+[node name="Hitbox" type="Area2D" parent="." unique_id=56243151]
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_hb")
+damage = 12.0
 
-[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1455431137]
 position = Vector2(37.5, 1)
 shape = SubResource("box_thrust2")
 
-[node name="Slash" type="CPUParticles2D" parent="."]
+[node name="Slash" type="CPUParticles2D" parent="." unique_id=1192405490]
 texture_filter = 1
-emitting = false
-amount = 10
-texture = ExtResource("3_slash")
+amount = 2
+texture = ExtResource("3_d3rgc")
 lifetime = 0.34
-one_shot = true
 explosiveness = 1.0
 local_coords = true
-spread = 9.09
+spread = 0.0
 gravity = Vector2(0, 0)
-initial_velocity_min = 300.0
+initial_velocity_min = 145.0
 initial_velocity_max = 380.0
-scale_amount_min = 0.03
-scale_amount_max = 0.03
+angle_min = 173.0
+angle_max = 173.0
+scale_amount_min = 0.08
+scale_amount_max = 0.2
 scale_amount_curve = SubResource("curve_shrink")
+color = Color(1, 0, 0.18039216, 1)
 color_ramp = SubResource("grad_slash")
