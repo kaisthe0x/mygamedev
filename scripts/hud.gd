@@ -198,6 +198,7 @@ func _bind(player: Player) -> void:
 	_on_health_changed(_player.health, _player.max_health)
 	_on_ruh_changed(_player.ruh, _player.ruh_cap)
 	_bar.value = _target
+	_recolor_hp()  # colour the full bar green now that _bar.value is seeded (see _on_health_changed)
 	_set_shown(true)
 
 
@@ -226,6 +227,7 @@ func _process(delta: float) -> void:
 		return
 	if not is_equal_approx(_bar.value, _target):
 		_bar.value = move_toward(_bar.value, _target, drain_speed * delta)
+		_recolor_hp()  # shift the fill green->orange->red as the animated drain crosses thresholds
 	_levels_label.text = "LEVELS  %d   ·   BEST %d" % [SaveData.current_cleared, SaveData.levels_record()]
 	_stats_label.text = _stats_text()
 
@@ -241,6 +243,17 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	_bar.max_value = maximum
 	_target = current
 	_value_label.text = "%d / %d" % [roundi(current), roundi(maximum)]
+	_recolor_hp()
+
+
+## Tint the HP fill by how full it is -- green / orange / red -- from the SAME bands the floating
+## enemy bars use (FloatingHealthBar.color_for_ratio), so player and enemies read consistently.
+func _recolor_hp() -> void:
+	if _bar == null or _bar.max_value <= 0.0:
+		return
+	var fs := _bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if fs != null:
+		fs.bg_color = FloatingHealthBar.color_for_ratio(_bar.value / _bar.max_value)
 
 
 func _on_ruh_changed(current: float, maximum: float) -> void:

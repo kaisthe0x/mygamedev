@@ -10,10 +10,32 @@ extends Node2D
 @export var bg_color := Color(0.09, 0.09, 0.11, 0.85)
 @export var border_color := Color(0, 0, 0, 0.85)
 @export var fill_color := Color(0.82, 0.24, 0.24)
+## When true the fill is coloured by how full the bar is -- green high, orange mid, red low
+## (see color_for_ratio) instead of the fixed `fill_color`. On for HEALTH bars (enemy + the HUD
+## uses the same thresholds); off for a plain gauge like the player's gold cooldown bar.
+@export var ratio_colors: bool = false
 @export var name_size := 6
+
+# Shared health-fill thresholds + colours, so every health bar (this one AND the HUD's ProgressBar)
+# reads the SAME green/orange/red from one place. Tweak here to retune every health bar at once.
+const LOW_RATIO := 0.25   ## at/below -> red (danger)
+const MID_RATIO := 0.5    ## at/below (but above LOW) -> orange; above -> green
+const COLOR_HIGH := Color(0.30, 0.80, 0.32)  ## green -- healthy
+const COLOR_MID := Color(0.95, 0.62, 0.16)   ## orange -- getting low
+const COLOR_LOW := Color(0.86, 0.22, 0.22)   ## red -- danger
 
 var _ratio: float = 1.0
 var _label: Label
+
+
+## Green (high) / orange (mid) / red (low) for a 0..1 fill fraction. Static so the HUD health
+## ProgressBar can tint itself from the exact same bands as the floating enemy bars.
+static func color_for_ratio(r: float) -> Color:
+	if r <= LOW_RATIO:
+		return COLOR_LOW
+	if r <= MID_RATIO:
+		return COLOR_MID
+	return COLOR_HIGH
 
 
 ## Add the floating name label above the bar. No name -> bar only.
@@ -49,4 +71,5 @@ func _draw() -> void:
 	draw_rect(Rect2(origin - Vector2.ONE, Vector2(w + 2, h + 2)), border_color)
 	draw_rect(Rect2(origin, Vector2(w, h)), bg_color)
 	if _ratio > 0.0:
-		draw_rect(Rect2(origin, Vector2(w * _ratio, h)), fill_color)
+		var fc := color_for_ratio(_ratio) if ratio_colors else fill_color
+		draw_rect(Rect2(origin, Vector2(w * _ratio, h)), fc)

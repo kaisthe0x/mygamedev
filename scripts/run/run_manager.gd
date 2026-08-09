@@ -22,8 +22,8 @@ const CAM_TIGHTEN_START := 600.0
 const CAM_TIGHTEN_FULL := 1200.0
 const CAM_TIGHT_K := 0.9
 const CAM_ZOOM_NORMAL := Vector2(1.5, 1.5)
-const CAM_ZOOM_DEATH := Vector2(2.25, 2.25)
-const CAM_ZOOM_SPAWN := Vector2(2.25, 2.25)
+const CAM_ZOOM_DEATH := Vector2(2.5, 2.5)
+const CAM_ZOOM_SPAWN := Vector2(2, 2)
 const DEATH_HOLD := 0.7
 
 @export var player_path: NodePath = ^"Player"
@@ -32,16 +32,16 @@ const DEATH_HOLD := 0.7
 @onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
 var _level_index := 0
-var _cleared_this_run := 0  ## levels cleared (exits paid) so far this run -> HUD + the SaveData record
-var _wave_index := 0        ## next enemy BATCH to spawn on clear (finite -- past the last, none)
-var _alive := 0             ## REQUIRED enemies alive (optional ones don't count); 0 spawns next batch / clears
-var _cleared := false       ## true once every batch is spawned AND dead -> the exit opens
-var _door_type := "health"  ## this level's reward-door type, rolled in _build_level
+var _cleared_this_run := 0 ## levels cleared (exits paid) so far this run -> HUD + the SaveData record
+var _wave_index := 0 ## next enemy BATCH to spawn on clear (finite -- past the last, none)
+var _alive := 0 ## REQUIRED enemies alive (optional ones don't count); 0 spawns next batch / clears
+var _cleared := false ## true once every batch is spawned AND dead -> the exit opens
+var _door_type := "health" ## this level's reward-door type, rolled in _build_level
 var _transitioning := false ## true while the reward/level-change is mid-flight
 
 ## The reward-door types one is rolled from per level (more coming: money, ally meeting point...).
 const DOOR_TYPES := ["health", "athletic", "attack", "special"]
-var _content: Node2D        ## per-level nodes (platforms, gate, enemies); freed on level change
+var _content: Node2D ## per-level nodes (platforms, gate, enemies); freed on level change
 var _gate: ExitGate
 var _bg: ColorRect
 var _player_spawn := Vector2.ZERO
@@ -64,7 +64,7 @@ func _ready() -> void:
 		_player.spawn()
 	if _camera != null:
 		Nodes.place_at(_camera, _player_spawn + Vector2(0, -30))
-	_choose_attack()  # run start: pick the attack that's locked in for this run
+	_choose_attack() # run start: pick the attack that's locked in for this run
 
 
 func _physics_process(delta: float) -> void:
@@ -80,7 +80,7 @@ func _physics_process(delta: float) -> void:
 	if _player.get_state() == Player.State.SPAWN:
 		_handle_spawn(delta)
 		return
-	if _player.global_position.y > DEATH_Y:  # fell off -> reposition, no life lost
+	if _player.global_position.y > DEATH_Y: # fell off -> reposition, no life lost
 		Nodes.place_at(_player, _player_spawn)
 		if _camera != null:
 			Nodes.place_at(_camera, _player_spawn + Vector2(0, -30))
@@ -112,28 +112,28 @@ func _build_level(index: int) -> void:
 	_bg.color = tint
 	_player_spawn = lv["player_spawn"]
 
-	_place_trees()  # background tree props (behind the terrain), varied per level
+	_place_trees() # background tree props (behind the terrain), varied per level
 	for p in lv["platforms"]:
 		_build_platform(p[0], p[1], p[2], 14.0)
 
-	_door_type = DOOR_TYPES[randi() % DOOR_TYPES.size()]  # one random reward door per level
+	_door_type = DOOR_TYPES[randi() % DOOR_TYPES.size()] # one random reward door per level
 	_gate = ExitGate.new()
 	_gate.setup(_door_type)
 	_gate.position = lv["exit_pos"]
 	_gate.touched.connect(_on_gate_touched)
 	_content.add_child(_gate)
 
-	_spawn_group(lv["start"], false)  # start enemies just exist -- no spawn puff
-	if _alive <= 0:  # start batch had ONLY optional enemies -> advance to a real one (see _advance_batch)
+	_spawn_group(lv["start"], false) # start enemies just exist -- no spawn puff
+	if _alive <= 0: # start batch had ONLY optional enemies -> advance to a real one (see _advance_batch)
 		_advance_batch.call_deferred()
 
 	if _player != null:
 		Nodes.place_at(_player, _player_spawn)
 
 
-const TERRAIN_Z := -5    ## terrain tiles: behind the player/enemies (z 0)
-const PLANT_Z := -4      ## plants sit just in front of the terrain, still behind actors
-const TREE_Z := -15      ## trees: background props, behind the terrain
+const TERRAIN_Z := -5 ## terrain tiles: behind the player/enemies (z 0)
+const PLANT_Z := -4 ## plants sit just in front of the terrain, still behind actors
+const TREE_Z := -15 ## trees: background props, behind the terrain
 
 func _build_platform(center_x: float, top_y: float, width: float, height: float) -> void:
 	var body := StaticBody2D.new()
@@ -174,12 +174,12 @@ func _paint_surface(parent: Node, origin: Vector2, width: float, fill_rows: int)
 	for row in fill_rows + 1:
 		var cells: Array[Vector2i] = Terrain.TOP_CELLS if row == 0 else Terrain.FILL_CELLS
 		for col in cols:
-			var cell: Vector2i = cells[(col + row) % cells.size()]  # vary the art across the run
+			var cell: Vector2i = cells[(col + row) % cells.size()] # vary the art across the run
 			var w: float = t if col < full else rem
 			var spr := Sprite2D.new()
 			var at := Terrain.cell_texture(sheet, cell)
 			if w < t:
-				at.region = Rect2(at.region.position, Vector2(w, t))  # clip the partial edge column
+				at.region = Rect2(at.region.position, Vector2(w, t)) # clip the partial edge column
 			spr.texture = at
 			spr.centered = false
 			spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -224,7 +224,7 @@ func _place_trees() -> void:
 		spr.texture = tex
 		spr.centered = false
 		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		spr.position = Vector2(spots[i] - tex.get_width() / 2.0, -tex.get_height())  # base on the floor (y=0)
+		spr.position = Vector2(spots[i] - tex.get_width() / 2.0, -tex.get_height()) # base on the floor (y=0)
 		spr.z_index = TREE_Z
 		_content.add_child(spr)
 
@@ -241,9 +241,9 @@ func _spawn_group(specs: Array, with_fx: bool) -> void:
 		var enemy := _spawn_enemy(spec["kit"], pos)
 		if enemy != null:
 			enemy.died.connect(_on_enemy_died.bind(enemy))
-			enemy.damaged.connect(_on_enemy_damaged)  # Leech reward: heal a fraction of damage dealt
+			enemy.damaged.connect(_on_enemy_damaged) # Leech reward: heal a fraction of damage dealt
 			if not enemy.optional:
-				_alive += 1  # only required enemies gate the level clear
+				_alive += 1 # only required enemies gate the level clear
 
 
 func _spawn_enemy(kit: Dictionary, pos: Vector2) -> Enemy:
@@ -256,7 +256,7 @@ func _spawn_enemy(kit: Dictionary, pos: Vector2) -> Enemy:
 			enemy.enemy_id = kit[key]
 		else:
 			enemy.set(key, kit[key])
-	enemy.position = pos  # before add_child so Enemy._ready anchors patrol on the real spot
+	enemy.position = pos # before add_child so Enemy._ready anchors patrol on the real spot
 	_content.add_child(enemy)
 	return enemy
 
@@ -274,9 +274,9 @@ func _spawn_fx(pos: Vector2) -> void:
 ## it can't self-loop Impervious), then either spawn the next batch or CLEAR the arena.
 func _on_enemy_died(enemy: Enemy) -> void:
 	if _player != null and not enemy.last_hit_from_special:
-		_player.gain_ruh_on_kill()  # every kill charges Ruh -- optional enemies included
+		_player.gain_ruh_on_kill() # every kill charges Ruh -- optional enemies included
 	if enemy.optional:
-		return  # optional enemies don't gate the level clear (kill them for Ruh, or skip them)
+		return # optional enemies don't gate the level clear (kill them for Ruh, or skip them)
 	_alive -= 1
 	if _alive <= 0 and not _transitioning and not _cleared:
 		# This fires INSIDE a physics flush (a hit or the vortex's DoT tick killed the enemy).
@@ -291,9 +291,9 @@ func _advance_batch() -> void:
 	if _alive > 0 or _transitioning or _cleared:
 		return
 	if not _spawn_next_wave():
-		_cleared = true  # no more batches -> level cleared; the exit opens (see _physics_process)
+		_cleared = true # no more batches -> level cleared; the exit opens (see _physics_process)
 	elif _alive <= 0:
-		_advance_batch.call_deferred()  # that batch had only optional enemies -> straight to the next
+		_advance_batch.call_deferred() # that batch had only optional enemies -> straight to the next
 
 
 ## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --
@@ -337,9 +337,9 @@ func _on_reward_chosen(id: String) -> void:
 	_cleared_this_run += 1
 	SaveData.current_cleared = _cleared_this_run
 	if _level_index >= Levels.count() - 1:
-		_restart_run()  # run complete -> loop back to level 1 (template; a win screen later)
+		_restart_run() # run complete -> loop back to level 1 (template; a win screen later)
 	else:
-		_build_level(_level_index + 1)  # carry life forward -- no reset
+		_build_level(_level_index + 1) # carry life forward -- no reset
 
 
 ## Wipe the run and start over at level 1 (death or completion). Resets buffs + refills to
@@ -353,7 +353,7 @@ func _restart_run() -> void:
 	_build_level(0)
 	if _player != null:
 		_player.begin_run()
-		_choose_attack()  # every fresh run: re-pick the run-locked attack
+		_choose_attack() # every fresh run: re-pick the run-locked attack
 
 
 ## Open the run-start attack picker; equip whatever the player chooses (locked for the run).
@@ -378,7 +378,7 @@ func _handle_death(delta: float) -> void:
 	if _player.death_complete():
 		_death_hold -= delta
 		if _death_hold <= 0.0:
-			_restart_run()  # DEATH = whole run over, start from scratch (roguelite)
+			_restart_run() # DEATH = whole run over, start from scratch (roguelite)
 
 
 func _handle_spawn(delta: float) -> void:
@@ -413,7 +413,7 @@ func _zoom_to(z: Vector2, dur: float) -> void:
 
 func _build_bg() -> void:
 	var layer := CanvasLayer.new()
-	layer.layer = -100  # behind everything
+	layer.layer = -100 # behind everything
 	add_child(layer)
 	# Optional background IMAGE, stretched to fill, behind the per-level colour tint. Drop
 	# assets/terrain/background.png to use it; without it, the tint is just opaque (as before).
@@ -430,7 +430,7 @@ func _build_bg() -> void:
 	_bg = ColorRect.new()
 	_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(_bg)  # per-level tint on top (translucent over an image -- see _build_level)
+	layer.add_child(_bg) # per-level tint on top (translucent over an image -- see _build_level)
 
 
 ## Skin the floor (from level.tscn's Floor): hide the placeholder ColorRect and tile the surface,
@@ -443,11 +443,11 @@ func _build_floor() -> void:
 	if shape == null or not (shape.shape is RectangleShape2D):
 		return
 	var size: Vector2 = (shape.shape as RectangleShape2D).size
-	var top_left := shape.position - size / 2.0  # collider centre -> top-left
+	var top_left := shape.position - size / 2.0 # collider centre -> top-left
 	var old := floor_body.get_node_or_null("ColorRect")
 	if old != null:
-		old.visible = false  # keep the node (scene-owned) but hand the look to the skin
-	_paint_surface(floor_body, top_left, size.x, 2)  # surface + 2 fill rows of ground
+		old.visible = false # keep the node (scene-owned) but hand the look to the skin
+	_paint_surface(floor_body, top_left, size.x, 2) # surface + 2 fill rows of ground
 	_scatter_plants(floor_body, top_left, size.x, 0.4)
 
 
@@ -466,11 +466,11 @@ func _add_glow() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_respawn"):
-		_build_level(_level_index)  # rebuild the current level fresh
+		_build_level(_level_index) # rebuild the current level fresh
 		return
 	if _player == null:
 		return
 	if event.is_action_pressed("debug_damage"):
 		_player.take_damage(12.0)
 	elif event.is_action_pressed("debug_heal"):
-		_player.ruh += Player.SPECIAL_COST  # +1 Ruh charge (test the special meter)
+		_player.ruh += Player.SPECIAL_COST # +1 Ruh charge (test the special meter)

@@ -284,6 +284,7 @@ func _floor_ahead(dir: int) -> bool:
 
 func _build_health_bar() -> void:
 	_bar = FloatingHealthBar.new()
+	_bar.ratio_colors = true  # health: green (full) -> orange -> red (low)
 	add_child(_bar)
 	_bar.setup(display_name)
 	# Just above the head (sprite is drawn from feet at y=0 upward).
