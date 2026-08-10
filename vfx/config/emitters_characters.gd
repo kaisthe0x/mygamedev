@@ -23,27 +23,23 @@ const TABLE := {
 		"double_jump": [ {"scene": preload("res://vfx/character/khalid/jump/default/jump_default.tscn"), "mode": "burst", "pos": Vector2(0, -3)}],
 		"blink_out": [ {"scene": preload("res://vfx/character/khalid/other/blink_out.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
 		"blink_in": [ {"scene": preload("res://vfx/character/khalid/other/blink_in.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
-		# Ora ora: the flurry's two punch frames (sheet 2 & 4) -- one row each so each punch gets its own
-		# sound (ora_ora_2/_4.wav) in sync with the fist burst. Both fire the same scene.
-		"attack_ora_ora": [
-			{"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2], "pos": Vector2(23, -22), "sfx": "res://sfx/character/attack/ora_ora/ora_ora_2.wav"},
-			{"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [4], "pos": Vector2(23, -22), "sfx": "res://sfx/character/attack/ora_ora/ora_ora_4.wav"},
-		],
+		# Ora ora: the flurry fires its fist burst on the two punch frames (sheet 2 & 4). Per-punch
+		# SOUNDS live in SfxCharacters.FRAMES, not here (this config is particles only).
+		"attack_ora_ora": [ {"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2, 4], "pos": Vector2(23, -22)}],
 		# Bakshen: one big charged slash -- the Strike (its hitbox + red burst) fires on the last frame.
 		"attack_bakshen": [ {"scene": preload("res://vfx/character/khalid/attack/bakshen/attack_bakshen.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(15, -18)}],
 		# Twin Reaper: a 5-hit spinning flurry -- each hit is its OWN scene file (Strike + hitbox +
 		# particles), named attack_twin_reaper_<sheetframe>.tscn so the filename tells you which frame it
 		# fires on. One row per file, no "node" key -> the whole file fires. This split (vs one bundled
 		# palette) means each hit's particles edit in isolation -- open the _N file alone, no soup. Frames
-		# still live here in Phase 1; a later generator can infer them from the filenames. Each row also
-		# carries an `sfx` (a per-hit sound, organized in sfx/ to mirror this vfx tree) the director plays
-		# positionally in sync with the burst -- see ParticleDirector._fire_burst.
+		# still live here in Phase 1; a later generator can infer them from the filenames. Per-hit SOUNDS
+		# live in SfxCharacters.FRAMES (same frames), not here -- this config is particles only.
 		"attack_twin_reaper": [
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_3.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_3.wav"},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_4.tscn"), "mode": "burst", "frames": [4], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_4.wav"},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_6.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_6.wav"},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_7.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_7.wav"},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_9.wav"},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_3.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_4.tscn"), "mode": "burst", "frames": [4], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_6.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_7.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(14, -18)},
 		],
 		# Cherry Shots: two laser Projectiles, each its own file (see the twin_reaper split note) --
 		# attack_cherry_shots_3.tscn launches the small bolt on frame 3, _7 the big one on frame 7.
@@ -58,10 +54,9 @@ const TABLE := {
 			{"scene": preload("res://vfx/character/khalid/attack/spear/attack_spear_13.tscn"), "mode": "burst", "frames": [13], "pos": Vector2(10, -18)},
 		],
 		"special_ground_breaker": [ {"scene": preload("res://vfx/character/khalid/special/ground_breaker/special_ground_breaker.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(0, 0), "clip_to_ground": true}],
-		"special_frenemy": [ {"scene": preload("res://vfx/character/khalid/special/frenemy/special_frenemy.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(40, -20), "sfx": "res://sfx/character/special/frenemy/frenemy.wav"}], # the frenemy blast (+ its sound) fires on the forward-thrust frame
-		# special_default: the baseline "flex" has NO particles -- an SFX-ONLY row (no `scene`) so its cast
-		# sound still rides the Emitters config, fired on the flex frame. See ParticleDirector._fire_burst.
-		"special_default": [ {"mode": "burst", "frames": [2], "pos": Vector2(0, -20), "sfx": "res://sfx/character/special/default/special_default.wav"}],
+		"special_frenemy": [ {"scene": preload("res://vfx/character/khalid/special/frenemy/special_frenemy.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(40, -20)}], # the frenemy blast fires on the forward-thrust frame (its sound: SfxCharacters.FRAMES)
+		# special_default: the baseline "flex" has NO particles -- so no emitter row. Its cast sound lives
+		# in SfxCharacters.FRAMES (played by the director on the flex frame, independent of any particle).
 		"slam": [
 			{"scene": preload("res://vfx/character/khalid/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},
 			{"scene": preload("res://vfx/character/khalid/slam/default/slam_default.tscn"), "mode": "burst", "frames": [3, 4], "pos": Vector2(0, 0), "clip_to_ground": true},

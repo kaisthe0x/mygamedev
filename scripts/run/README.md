@@ -13,7 +13,8 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 | `run_manager.gd` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, **awards lahm per point of damage dealt**, runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
 | `levels.gd` (`Levels`) | **The 5 levels, as data** — per level: look (`bg`), `platforms`, `player_spawn`, `exit_pos`, `exit_cost`, `start` enemies, and escalating `waves`. Edit here to change *what a level is*. |
 | `enemies.gd` (`EnemyKits`) | **The enemy roster** — one named kit per type (combat tuning + which scene), plus a `Tier` for wave-building. Levels reference these by name. Edit here to change *who* the enemies are. |
-| `rewards.gd` (`Rewards`) | **The reward pool** — stat rewards (`pool()` + `apply()`) **plus loadout-swap cards** generated from the character's `Loadout`: whenever a category (attack/special/movement) has >1 option, an "equip this (Tier)" card is offered (id `swap:<cat>:<opt>`). Tiers: Typical/Elite/Broken. |
+| `rewards.gd` (`Rewards`) | **The reward OFFER + EFFECT service** over the typed catalog (`configs/rewards_catalog.gd` data → `Reward` objects), **build-aware** (Phase 4): `offer_for()` filters by each reward's `requires` and weights by `synergy` against the queryable `Build`, then samples; `apply()` runs the effect — a stat buff, a granted **`Passive`**, or an **`equip`** (move upgrade). Still mixes in **loadout-swap cards** from `Loadout` (id `swap:<cat>:<opt>`) for a category with >1 option. |
+| `build.gd` (`Build`) | A **queryable snapshot of the player's build** — equipped Action ids per category + rewards taken + their tags — that conditional rewards predicate over. `Build.of(player)`; `matches(cond)` evaluates a condition dict (`equipped`/`tag`/`reward`). |
 | `exit_gate.gd` (`ExitGate`) | The exit door (an `Area2D`): detects the player, shows/greens/reds by affordability, reports `touched`. RunManager owns the decision. |
 | `reward_ui.gd` (`RewardUI`) | The pick-a-reward popup (pauses the game, emits `chosen(id)`). |
 
@@ -64,8 +65,14 @@ Related, but not in this folder:
 - **Change an enemy's stats** → its kit in `enemies.gd` (combat).
 - **Change the special economy** → `Player.RUH_PER_KILL` (fill rate), `RUH_PER_BLOCK` / `SPECIAL_COST`
   (charge size), `BASE_RUH_CAP` (starting charges), `SPECIAL_INVULN_TIME` (invuln window).
-- **Add/change a reward** → `rewards.gd` (`pool()` + `apply()`). Keep a heal in the pool — it's the
-  only way to mend HP. Raise `ruh_cap` via the `Deeper Ruh` (+1 charge) reward.
+- **Add/change a reward** → add a row to `configs/rewards_catalog.gd` (pure data); wire its effect in
+  `rewards.gd` `_buff()` unless it's a `passive`/`equip` reward (those are handled generically). Keep a
+  heal in the pool — it's the only way to mend HP.
+- **Make a reward build-aware** → on its catalog row: `requires` (a `Build` condition dict — only offer
+  when it holds, e.g. `{"equipped":"twin_reaper"}`), `synergy` (`{"when":<cond>,"weight":N}` — nudge the
+  roll odds), `unique` (once-only), `upgrades`/`equip` (a move upgrade), `passive` (grant a `Passive`).
+- **Add a reward passive** → a `scripts/abilities/<id>.gd` `extends Passive` (hooks: on_hit_dealt,
+  on_hurt, on_land, physics, …); reference it from a reward's `passive: "<id>"`. See `leech.gd`.
 
 ## Known template gaps (deliberate, for later)
 

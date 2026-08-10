@@ -1,31 +1,16 @@
 extends Node
 
-## Central SOUND-EFFECTS service (autoload `Sfx`) -- ONE place to register every game sound and fire
-## it as a fire-and-forget one-shot. The audio counterpart to `Icons` (textures) and the `Emitters`
-## config (particles): a namespaced key maps to a file under res://sfx/, loaded lazily + cached, and
-## a MISSING file is a silent no-op -- so a cue can be wired in code before the actual audio lands.
-##
-## >>> To add a sound: drop the file in res://sfx/ and add ONE line to LIBRARY below. Then call
-##     Sfx.play("your_key") anywhere. That's it. <<<
+## Central SOUND-EFFECTS service (autoload `Sfx`) -- the runtime that PLAYS sounds; the catalog of
+## which sounds exist lives in the pure-DATA configs (SfxCharacters / SfxEnemies / SfxWorld), one per
+## area, which this aggregates. Every sound is a stable `key` -> path there; code + the presentation
+## driver reference sounds by key only. An unregistered key is a silent no-op (a cue can be listed
+## before its file lands, or intentionally left unwired). See configs/sfx_*.gd for the master lists.
 ##
 ##   Sfx.play("key")        -- non-positional one-shot (UI / player-centric feedback, e.g. a pickup).
 ##   Sfx.play_at("key", p)  -- positional 2D one-shot at world point `p` (an enemy hit, an explosion).
-## Both round-robin a small pool of players so overlapping sounds don't cut each other off. Optional
-## volume_db / pitch args vary a cue without a second file.
-
-## key -> res:// path. ONE line per sound, grouped by area. >>> ADD SOUNDS HERE <<<
-const LIBRARY := {
-	# --- feedback / pickups ---
-	"ruh_absorb": "res://sfx/ruh_absorb.wav",  # a Ruh soul lands on Khalid (placeholder -- replace freely)
-	"level_cleared": "res://sfx/level_cleared.wav",  # last required enemy down, exit opens (RunManager clear beat)
-	# --- combat / enemies ---
-	"enemy_death": "res://sfx/enemy_death.wav",  # any enemy dies (Enemy._die, positional)
-	# --- player movement ---
-	"dash": "res://sfx/dash.wav",  # Khalid dashes (Player _enter State.DASH)
-	"jump": "res://sfx/jump.wav",  # ground + air jump (Player jump input / _air_jump)
-	"player_run": "res://sfx/player_run.wav",  # looping footsteps while running (Sfx.make_loop, owned by Player)
-	"slam": "res://sfx/slam.wav",  # ground-slam impact (Player._slam_release)
-}
+##   Sfx.make_loop("key")   -- a dedicated looping player the CALLER owns (footsteps, a channel hum).
+## Both one-shots round-robin a small pool so overlaps don't cut each other off. Optional volume_db /
+## pitch vary a cue without a second file.
 
 ## Bus these play on -- lets you set an SFX volume separately from music. Falls back to Master until
 ## you add an "SFX" bus in the editor's Audio panel (the code then uses it automatically).
@@ -42,10 +27,14 @@ var _pos: Array[AudioStreamPlayer2D] = []
 var _fi := 0
 var _pi := 0
 var _cache := {}
+var _cues := {}  # key -> path, merged from the per-area configs (SfxCharacters/Enemies/World)
 var _bus: StringName = &"Master"  # resolved in _ready (SFX bus if present, else Master)
 
 
 func _ready() -> void:
+	# Merge the per-area cue catalogs into one lookup. Keys are globally unique across areas.
+	for table in [SfxCharacters.CUES, SfxEnemies.CUES, SfxWorld.CUES]:
+		_cues.merge(table)
 	# Force the output device if pinned + available, else leave it on the system default.
 	if PREFERRED_OUTPUT != "" and PREFERRED_OUTPUT in AudioServer.get_output_device_list():
 		AudioServer.output_device = PREFERRED_OUTPUT
@@ -74,18 +63,19 @@ func set_muted(on: bool) -> void:
 	AudioBus.set_muted(BUS, on)
 
 
-## The stream for a key (cached), or null if unregistered / missing. `key` is either a name in
-## LIBRARY, OR a direct `res://` path -- so organized per-attack sounds (mirroring the vfx folders,
-## e.g. the Emitters `sfx` field) can be played without a flat LIBRARY entry.
+## The stream for a cue key (cached), or null. An UNREGISTERED key (not in any config) is a silent
+## no-op -- so an <enemy>.<type> the code composes but that has no sound just plays nothing. A
+## REGISTERED key whose file is missing warns (a wired cue whose audio hasn't landed / moved).
 func _stream(key: String) -> AudioStream:
 	if _cache.has(key):
 		return _cache[key]
-	var path: String = key if key.begins_with("res://") else String(LIBRARY.get(key, ""))
 	var s: AudioStream = null
-	if path != "" and ResourceLoader.exists(path):
-		s = load(path)
-	elif key != "":
-		push_warning("Sfx: '%s' not found (playing nothing)" % key)
+	if _cues.has(key):
+		var path: String = _cues[key]
+		if ResourceLoader.exists(path):
+			s = load(path)
+		else:
+			push_warning("Sfx: cue '%s' -> %s not found (playing nothing)" % [key, path])
 	_cache[key] = s
 	return s
 

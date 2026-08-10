@@ -32,6 +32,9 @@ var _sprite: AnimatedSprite2D
 var _sustained: Array[Dictionary] = []
 ## One entry per burst config row: {anim, frames: Array[int], pos, scene}.
 var _bursts: Array[Dictionary] = []
+## Frame-synced SOUND cues for this character: anim -> {emitted_frame: cue_key}. Built from
+## SfxCharacters.FRAMES; played in _refresh symmetrically to the particle bursts (Sfx.play).
+var _sfx_frames: Dictionary = {}
 
 
 ## Wire the director to a player sprite: watch the sprite's frame/animation changes to drive
@@ -49,6 +52,7 @@ func set_character(id: String) -> void:
 		entry.node.queue_free()
 	_sustained.clear()
 	_bursts.clear()
+	_build_sfx_frames(id)
 
 	var by_anim := Emitters.character(id)
 	for anim in by_anim:
@@ -57,8 +61,8 @@ func set_character(id: String) -> void:
 		var start := _sheet_start(anim)
 		for row: Dictionary in by_anim[anim]:
 			var frames := _frames_for(anim, row.get("frames", []), start)
-			var pos := row.get("pos", Vector2.ZERO) as Vector2
-			var scene: PackedScene = row.get("scene", null)  # null = an sfx-only row (no particles)
+			var pos := row["pos"] as Vector2
+			var scene: PackedScene = row["scene"]
 			var boost: Dictionary = row.get("boost", {})
 			if row.get("mode", "burst") == "sustained":
 				var node := _spawn(scene, row.get("node", ""))
@@ -82,9 +86,22 @@ func set_character(id: String) -> void:
 					"anim": anim, "frames": frames, "pos": pos, "scene": scene,
 					"node": row.get("node", ""), "set": row.get("set", {}),
 					"boost": boost, "clip_to_ground": row.get("clip_to_ground", false),
-					"sfx": row.get("sfx", ""),  # optional per-frame sound, played in sync with the burst
 				})
 	_refresh()
+
+
+## Build this character's frame-synced SOUND cues from SfxCharacters.FRAMES, converting the config's
+## SHEET-relative frames to the EMITTED indices the sprite reports (so they line up with playback).
+## Played in _refresh, symmetrically to the particle bursts -- SFX config lives apart from the VFX one.
+func _build_sfx_frames(id: String) -> void:
+	_sfx_frames = {}
+	var by_anim: Dictionary = SfxCharacters.FRAMES.get(id, {})
+	for anim in by_anim:
+		var start := _sheet_start(anim)
+		var emap := {}
+		for sheet_frame in by_anim[anim]:
+			emap[int(sheet_frame) - start] = by_anim[anim][sheet_frame]
+		_sfx_frames[StringName(anim)] = emap
 
 
 ## Emitted frame indices an emitter listens on. `raw` is either an array of
@@ -358,6 +375,12 @@ func _refresh() -> void:
 		if b.anim == anim and b.frames.has(frame):
 			_fire_burst(b, m)
 
+	# Frame-synced SOUND cues -- the audio twin of the bursts above (SfxCharacters.FRAMES). Same
+	# frame trigger; fired positionally at the character (Sfx resolves the cue key -> file).
+	var cue: String = (_sfx_frames.get(_sprite.animation, {}) as Dictionary).get(frame, "")
+	if cue != "":
+		Sfx.play_at(cue, global_position)
+
 
 ## Fire the burst emitters configured under `anim` right now, as a code-driven
 ## one-shot -- for an effect tied to an event rather than an animation frame. Give
@@ -376,10 +399,6 @@ func fire_effect(anim: String, tilt: float = 0.0) -> void:
 func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	var node := _spawn(b.scene, b.get("node", ""))
 	if node == null:
-		# An sfx-ONLY row (no particle scene, e.g. the effect-less special_default) still fires its
-		# frame-synced sound. Positional, at the same anchor a burst would use.
-		if b.get("sfx", "") != "":
-			Sfx.play_at(b.sfx, global_position + Vector2(b.pos.x * m, b.pos.y))
 		return
 	_apply_overrides(node, b.get("set", {}))
 	# A LobProjectile-rooted effect (a lobbed bomb) is thrown, not stamped: it arcs to the nearest
@@ -417,8 +436,6 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	else:
 		add_child(node)
 	Nodes.place_at(node, target)  # snap to the strike point without interpolation smear
-	if b.get("sfx", "") != "":
-		Sfx.play_at(b.sfx, target)  # optional per-frame hit sound, in sync with this burst
 	var hitboxes := _hitboxes_of(node)
 	# Keep a ground blast from spilling past the platform edge into open air: clip
 	# its emission band and hitbox to the surface underfoot before it fires.

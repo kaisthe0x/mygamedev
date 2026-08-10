@@ -18,7 +18,7 @@ signal ruh_changed(current: float, maximum: float)
 signal character_changed(id: String)
 
 ## Character roster + resource-path templates live in CharacterConfig; per-character
-## moves + tuning in the Moves catalog (configs/moves.gd).
+## attacks + specials in the Actions catalog (configs/actions_<char>.gd).
 
 @export_enum("khalid")
 var character: String = "khalid":
@@ -68,20 +68,24 @@ var ruh: float = 0.0:
 ## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
 const BASE_RUH_CAP := 100.0 # 1 special charge
 const BASE_MAX_HEALTH := 100.0
-const BASE_AIR_JUMPS := 2
 var damage_mult: float = 1.0
 ## Run-speed multiplier from rewards (Fleetfoot), applied OVER the equipped run option's base so a
 ## loadout swap doesn't wipe the buff. Reset by begin_run().
 var run_mult: float = 1.0
+## Extra air jumps from rewards (Second Wind), added OVER the jump Locomotion's base air_jumps so a
+## loadout swap doesn't wipe the buff -- same pattern as run_mult. Reset by begin_run().
+var air_jump_bonus: int = 0
 ## --- reward buffs (all per-run, reset by begin_run). Placeholders: some fully wired, some just
 ## stored for now (marked WIP) so the reward is selectable + tunable later. ---
 var damage_taken_mult: float = 1.0 ## Thick Hide: < 1 = take less damage (applied in take_damage)
 var slam_damage_mult: float = 1.0 ## Meteor: > 1 = harder slams (applied in _slam_release)
 var attack_reach_mult: float = 1.0 ## Long Arm: scales attack hitbox reach (resolve_tuning)
-var lifesteal_frac: float = 0.0 ## Leech: heal this fraction of damage dealt (RunManager)
 var attack_projectile_bonus: int = 0 ## Split Shot: +N projectiles -- WIP (stored, not yet spawned)
 var impervious_until_hit: bool = false ## Last Stand: invuln until hit -- WIP (stored)
 var special_radius_mult: float = 1.0 ## Wide Impact: scales special hit radius -- WIP for scene boxes
+## Ids of the rewards taken THIS run (in pick order), the raw material for the queryable Build that
+## conditional rewards predicate over (Build.of). Reset by begin_run; appended by record_reward().
+var _rewards_taken: Array[String] = []
 ## The character's STARTING dash effect (the Emitters-config key fired on each dash). Every dash IS
 ## this effect; a reward swaps it for another. Its "Trail" node follows the player, its other nodes
 ## linger/etc (per-node, see ParticleDirector). >>> Flip this to "dash_crimson_vortex" to START with
@@ -103,14 +107,14 @@ func begin_run() -> void:
 	damage_taken_mult = 1.0
 	slam_damage_mult = 1.0
 	attack_reach_mult = 1.0
-	lifesteal_frac = 0.0
 	attack_projectile_bonus = 0
 	impervious_until_hit = false
 	special_radius_mult = 1.0
 	_dash_effect = STARTING_DASH_EFFECT # back to the starting dash; upgrades are re-earned each run
 	special_invuln_bonus = 0.0
 	ruh_cap = BASE_RUH_CAP
-	max_air_jumps = BASE_AIR_JUMPS
+	air_jump_bonus = 0 # _apply_character below re-seeds max_air_jumps from the jump Locomotion
+	_rewards_taken.clear() # fresh build for the new run
 	max_health = BASE_MAX_HEALTH
 	_loadout.clear() # back to the character's default (Typical) moves + movement
 	_apply_character() # re-applies moves + run/jump/dash/slam from the (now default) loadout
@@ -119,81 +123,40 @@ func begin_run() -> void:
 	velocity = Vector2.ZERO
 	spawn()
 
-@export_group("Movement")
-## The current character's run speed (px/s). Seeded per character on every character
-## change from CharacterConfig.RUN_SPEEDS -- edit per-character values THERE, not here
-## (this is overwritten on swap). The inspector value only applies before a character
-## is equipped.
-@export var run_speed: float = 160.0
-@export var acceleration: float = 1200.0
-@export var friction: float = 1400.0
-## Run-cycle cadence relative to ground speed. Playback = speed/run_speed ×
-## run_anim_speed, so the legs keep pace with actual movement (busier when
-## sprinting, slower when starting) instead of foot-sliding -- a slide reads as a
-## smeary "blurry" run. >1 = busier legs. Purely visual; tune to taste.
-@export var run_anim_speed: float = 1.5
-## The current character's jump velocity (negative = up). Seeded per character on every
-## character change from CharacterConfig.JUMP_VELOCITIES -- edit per-character values
-## THERE, not here (this is overwritten on swap). More negative = higher jump.
-@export var jump_velocity: float = -330.0
-## Extra mid-air jumps after the ground jump (1 = a double jump). The ground jump is
-## silent; each air jump re-boosts AND spawns the character's jump particles (a
-## combat-capable burst -- see the Emitters config "double_jump").
-@export var max_air_jumps: int = 2
-@export var gravity: float = 900.0
-## Falling faster than rising makes the arc feel less floaty.
-@export var fall_gravity_scale: float = 1.35
-
-@export_group("Dash")
-## The current character's dash (lunge) speed. Seeded per character on every character
-## change from CharacterConfig.DASH_SPEEDS -- edit per-character values THERE, not here
-## (this is overwritten on swap). Higher = a faster, farther dash.
-@export var dash_speed: float = 420.0
-@export var dash_time: float = 0.18
-@export var dash_cooldown: float = 0.45
-## How long the dash ANIMATION plays, decoupled from the lunge. The lunge stays
-## fast (`dash_time`); when this is longer, the character settles to a stop over the
-## extra time while the remaining dash frames play out -- so you see the animation
-## instead of a fast-forward. Set it to <= `dash_time` for the old squeezed look.
-@export var dash_anim_time: float = 0.30
-## Gravity kept during an air dash. 0 hangs in place, 1 falls normally.
-@export_range(0.0, 1.0) var dash_gravity_scale: float = 0.35
-
-@export_group("Slam")
-## Downward plunge speed of an air-down ground slam (much faster than a normal
-## fall, so it reads as a committed slam). Universal move; only characters with a
-## `slam` sheet can do it. Particles are authored per character in the Emitters config.
-@export var slam_speed: float = 1200.0
-## Minimum clear space (px) directly below the feet before an air slam is allowed --
-## if the nearest platform straight down is closer than this, the slam press does
-## nothing (no room to build a real plunge). Set 0 to always allow.
-@export var slam_min_clearance: float = 50.0
-## The slam animation frame to LOCK on during a tall plunge -- the last descent frame,
-## just before the impact frames. Sheet-relative (same numbering as the Emitters config), so
-## with the wind streaks on 0-2 and the impact on 3-4, this is 2. While locked the
-## sprite is hidden (only the wind-streak particles show).
-@export var slam_hold_frame: int = 2
-## How far above the ground (px) a held slam releases its impact frames, so they play
-## into the ground instead of in mid-air (like land_predict_distance for the slam).
-@export var slam_impact_distance: float = 30.0
-## Slam damage scales with how far it PLUNGED (from where you pressed slam to impact).
-## A drop <= `slam_min_drop` deals the scene's base damage (mult 1.0); at `slam_max_drop`
-## it reaches `slam_max_damage_mult`x, lerped between. Multiplies BOTH slam hitboxes, so
-## their reach/impact ratio is preserved. The offensive cousin of a fall-damage ability.
-@export var slam_min_drop: float = 120.0
-@export var slam_max_drop: float = 700.0
-@export var slam_max_damage_mult: float = 2.5
-
-@export_group("Juice")
-## Minimum falling speed on touchdown to play the landing squash (characters
-## that have a `land` animation). Below it -- little hops, walking off a lip --
-## you snap straight to idle/run with no squash.
-@export var land_min_fall_speed: float = 140.0
-## How far above the ground (px) the LAND animation starts, so it plays THROUGH the
-## touchdown instead of after it. A downward ray this long, while falling at least
-## land_min_fall_speed; keep it small (an anticipation, not an early snap). 0 = land
-## only on touchdown. Only matters for characters with a `land` sheet.
-@export var land_predict_distance: float = 22.0
+# --- Movement runtime state -- seeded from the equipped movement Actions' Locomotions ---
+# NOT inspector @exports anymore: every movement/physics value lives in typed config -- the shared
+# baseline in configs/locomotion.gd, per-character deviations in each character's MOVEMENTS catalog
+# (configs/actions_<char>.gd). Player._apply_movement copies the equipped run/jump/dash/slam Locomotion
+# into these runtime vars on character change / swap; buffs then layer on top (run_mult, air_jump_bonus).
+# The initial values below are placeholders, overwritten before the first physics step. To RETUNE, edit
+# the Locomotion baseline or the character catalog -- never here.
+# run
+var run_speed: float = 160.0
+var acceleration: float = 1200.0
+var friction: float = 1400.0
+var run_anim_speed: float = 1.5       ## run-cycle cadence vs ground speed (visual; >1 = busier legs)
+# jump / vertical arc
+var jump_velocity: float = -330.0
+var max_air_jumps: int = 2            ## the jump Locomotion's air_jumps + air_jump_bonus (buff); each air jump spawns particles
+var gravity: float = 900.0
+var fall_gravity_scale: float = 1.35  ## >1 = falls faster than it rises (less floaty)
+# dash
+var dash_speed: float = 420.0
+var dash_time: float = 0.18
+var dash_cooldown: float = 0.45
+var dash_anim_time: float = 0.30      ## dash ANIMATION length, decoupled from the lunge (dash_time)
+var dash_gravity_scale: float = 0.35  ## gravity kept during an air dash (0 = hang, 1 = fall normally)
+# slam
+var slam_speed: float = 1200.0
+var slam_min_clearance: float = 50.0  ## min clear space below the feet to allow a slam (0 = always)
+var slam_hold_frame: int = 2          ## slam frame to LOCK on during a tall plunge (sheet-relative)
+var slam_impact_distance: float = 30.0    ## px above ground a held slam releases its impact frames
+var slam_min_drop: float = 120.0      ## slam damage scales from mult 1.0 at this drop...
+var slam_max_drop: float = 700.0      ## ...up to slam_max_damage_mult at this drop (lerped between)
+var slam_max_damage_mult: float = 2.5
+# landing
+var land_min_fall_speed: float = 140.0    ## min touchdown speed to play the landing squash
+var land_predict_distance: float = 22.0   ## px above ground the LAND anim starts (plays through touchdown)
 
 @export_group("Attack")
 ## How long the sprite holds on a hit frame before returning to idle, if the
@@ -212,11 +175,11 @@ enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPA
 
 var _state: State = State.IDLE
 var _facing: int = 1
-## The active attack + special for this character (from the Moves catalog). They
+## The active attack + special for this character (from the Actions catalog). They
 ## decide which animation plays and its hit tuning; swap them with set_move() (a
 ## future UI hook). Seeded to the character's defaults on every character change.
-var _current_attack: Move
-var _current_special: Move
+var _current_attack: Action
+var _current_special: Action
 ## The equipped loadout: {category -> option_id} for attack/special/run/jump/dash/slam. Empty =
 ## every category on its default (Typical). Rewards call equip() to swap one; begin_run() clears
 ## it back to defaults. See configs/loadout.gd.
@@ -225,7 +188,7 @@ var _loadout: Dictionary = {}
 ## knockback, stun, reach, and the lunge / super-armor / multi-hit knobs. Set at
 ## segment/special start via resolve_tuning() (the buff seam), and read by the
 ## ParticleDirector when it arms that attack's Hitbox -- so combat numbers live in
-## configs/moves.gd, not baked in the effect scene. Empty = no attack in progress (or a
+## the Actions catalog, not baked in the effect scene. Empty = no attack in progress (or a
 ## move that deliberately carries its own scene numbers, like the two finger-gun shots).
 var _active_hit: Dictionary = {}
 var _dash_left: float = 0.0
@@ -233,10 +196,10 @@ var _dash_left: float = 0.0
 ## finish playing after the lunge is over.
 var _dash_anim_left: float = 0.0
 var _dash_cd: float = 0.0
-## True when this dash is a blink (teleport) instead of the glide-lunge -- seeded per
-## character from CharacterConfig.BLINK_DASH on every character change. When set, the
-## lunge is skipped (the blink does the displacement); the dash animation + i-frames +
-## cooldown still run as the "materialize".
+## True when this dash is a blink (teleport) instead of the glide-lunge -- seeded from the equipped
+## dash Action's Locomotion (`move.blink`) on every character change / swap. When set, the lunge is
+## skipped (the blink does the displacement); the dash animation + i-frames + cooldown still run as
+## the "materialize".
 var _dash_custom: bool = false
 var _blink_dash: bool = false
 ## Blink stops at walls (move_and_collide). Flip true for a future "phase through walls"
@@ -294,8 +257,10 @@ var _hold_left: float = 0.0
 ## The active held/channeled effect while its emission plays, so a hit
 ## can break it (see _on_hurt). Null when nothing is being channeled.
 var _channel: Strike = null
-## The current character's unique ability, or null if they have none.
-var _ability: CharacterAbility
+## Active PASSIVES -- the character's intrinsic ability (seeded first, if any) plus reward-granted
+## passives added during the run (Player.add_passive). Each hook is dispatched to every entry. Reset to
+## just the character ability on character change / run restart (see _seed_passives).
+var _passives: Array[Passive] = []
 ## Universal SPECIAL invulnerability: EVERY special cast makes the player untouchable for a short
 ## window (the Built Different effect, now baked into every special). While > 0 the hurtbox stays
 ## off (folded into _physics_process). Reward buffs will extend it via `special_invuln_bonus`.
@@ -306,7 +271,7 @@ var special_invuln_bonus: float = 0.0
 var _special_aura: Node2D = null
 ## Countdown until the next special can fire (SPECIAL_COOLDOWN), so specials can't be spammed.
 var _special_cd: float = 0.0
-## Countdown until the CURRENT attack can fire again -- only for a cooldown attack (Move.cooldown
+## Countdown until the CURRENT attack can fire again -- only for a cooldown attack (Action.cooldown
 ## > 0, e.g. bakshen). While > 0 the attack press is ignored and the overhead bar fills; 0 = ready.
 var _attack_cd: float = 0.0
 ## Small world-space bar over the head that fills as a cooldown attack recharges (hidden otherwise).
@@ -413,7 +378,7 @@ func _apply_character() -> void:
 		_state = State.IDLE
 	sprite.speed_scale = 1.0
 	sprite.play(_animation_for(_state))
-	_equip_ability()
+	_seed_passives()
 	if _particles != null: # null during the initial _ready pass; set up just after
 		_particles.set_character(character)
 	character_changed.emit(character)
@@ -425,26 +390,49 @@ func _apply_character() -> void:
 ## on character change and after every equip(). Movement stats mirror the old per-character seeding
 ## when the loadout is empty, so nothing changes until a reward swaps something.
 func _apply_loadout() -> void:
-	_current_attack = Moves.get_move(character, "attacks", _loadout.get("attack", ""))
-	_current_special = Moves.get_move(character, "specials", _loadout.get("special", ""))
+	_current_attack = Actions.get_action(character, "attacks", _loadout.get("attack", ""))
+	_current_special = Actions.get_action(character, "specials", _loadout.get("special", ""))
 	for cat in Loadout.MOVEMENT_CATS:
 		_apply_movement(cat, _loadout.get(cat, "default"))
 
 
-## Apply one movement option's stats. Missing stats leave the current value (so a slam option with
-## no `speed` keeps the export default).
+## Seed the runtime movement vars for one category from its equipped movement Action's Locomotion.
+## `category` is "run"/"jump"/"dash"/"slam"; `option_id` picks the option (default when unknown). Each
+## category copies only its own fields; the run/air-jump buffs (run_mult, air_jump_bonus) layer on top
+## so a swap doesn't wipe them.
 func _apply_movement(category: String, option_id: String) -> void:
-	var o := Loadout.option(character, category, option_id)
+	var a := Actions.get_action(character, category, option_id)
+	if a == null or a.move == null:
+		return
+	var m := a.move
 	match category:
 		"run":
-			if o.has("speed"): run_speed = o["speed"] * run_mult # buff survives a swap
+			run_speed = m.run_speed * run_mult # buff survives a swap
+			acceleration = m.acceleration
+			friction = m.friction
+			run_anim_speed = m.run_anim_speed
 		"jump":
-			if o.has("velocity"): jump_velocity = o["velocity"]
+			jump_velocity = m.jump_velocity
+			max_air_jumps = m.air_jumps + air_jump_bonus # buff survives a swap
+			gravity = m.gravity
+			fall_gravity_scale = m.fall_gravity_scale
+			land_min_fall_speed = m.land_min_fall_speed
+			land_predict_distance = m.land_predict_distance
 		"dash":
-			if o.has("speed"): dash_speed = o["speed"]
-			if o.has("blink"): _blink_dash = o["blink"]
+			dash_speed = m.dash_speed
+			dash_time = m.dash_time
+			dash_cooldown = m.dash_cooldown
+			dash_anim_time = m.dash_anim_time
+			dash_gravity_scale = m.dash_gravity_scale
+			_blink_dash = m.blink
 		"slam":
-			if o.has("speed"): slam_speed = o["speed"]
+			slam_speed = m.slam_speed
+			slam_min_clearance = m.slam_min_clearance
+			slam_hold_frame = m.slam_hold_frame
+			slam_impact_distance = m.slam_impact_distance
+			slam_min_drop = m.slam_min_drop
+			slam_max_drop = m.slam_max_drop
+			slam_max_damage_mult = m.slam_max_damage_mult
 
 
 ## Equip a loadout option in `category` (a reward swap). Re-seeds without a full character reset.
@@ -466,20 +454,46 @@ func loadout_choices() -> Array:
 	return Loadout.swap_choices(character, _loadout)
 
 
-## Swap in the ability script named after this character, if one exists.
-func _equip_ability() -> void:
-	_ability = null
+## Rebuild the passive list for the current character: tear down any existing passives (run restart /
+## character change drops reward passives), then seed the character's intrinsic ability FIRST if it has
+## one (scripts/abilities/<id>.gd). Reward passives are re-added during the run via add_passive().
+func _seed_passives() -> void:
+	for p in _passives:
+		p.teardown(self)
+	_passives.clear()
 	if Engine.is_editor_hint():
 		return
 	var path := CharacterConfig.ABILITY_PATH % character
 	if not ResourceLoader.exists(path):
 		return
-	var script: GDScript = load(path)
-	_ability = script.new() as CharacterAbility
-	if _ability == null:
+	var ability: Variant = load(path).new()
+	if ability is CharacterAbility:
+		add_passive(ability)
+	else:
 		push_warning("%s must extend CharacterAbility" % path)
-		return
-	_ability.setup(self)
+
+
+## Add a passive (a reward grant, or the character ability) and run its setup(). See Passive.
+func add_passive(p: Passive) -> void:
+	_passives.append(p)
+	p.setup(self)
+
+
+## Dispatched by RunManager when the player deals `amount` damage to `target` -- feeds the passive
+## on_hit_dealt hook (lifesteal, on-hit procs, stacks). See Passive.on_hit_dealt.
+func notify_hit_dealt(amount: float, target: Node) -> void:
+	for p in _passives:
+		p.on_hit_dealt(self, amount, target)
+
+
+## Record that reward `id` was taken this run (feeds the Build). Rewards.apply calls this.
+func record_reward(id: String) -> void:
+	_rewards_taken.append(id)
+
+
+## Rewards taken this run, in pick order (read by Build.of). A copy -- callers can't mutate the log.
+func rewards_taken() -> Array:
+	return _rewards_taken.duplicate()
 
 
 ## Read-only access to the state machine, for abilities and other systems.
@@ -487,13 +501,13 @@ func get_state() -> State:
 	return _state
 
 
-## The active attack / special Move (or null for a special-less character),
+## The active attack / special Action (or null for a special-less character),
 ## for the HUD / debug panel / a future move-select UI.
-func current_attack() -> Move:
+func current_attack() -> Action:
 	return _current_attack
 
 
-func current_special() -> Move:
+func current_special() -> Action:
 	return _current_special
 
 
@@ -502,15 +516,15 @@ func has_anim(anim: StringName) -> bool:
 	return _sprite != null and _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(anim)
 
 
-## Switch the active attack or special to `id` -- one of Moves.ids(character, kind).
+## Switch the active attack or special to `id` -- one of Actions.ids(character, kind).
 ## `kind` is "attacks" or "specials". This is the hook a future move-select UI calls;
 ## until then the character's catalog defaults are used. An unknown id falls back to
-## the default. (To change the *default*, edit configs/moves.gd.)
+## the default. (To change the *default*, edit configs/actions_<char>.gd.)
 func set_move(kind: String, id: String) -> void:
 	if kind == "attacks":
-		_current_attack = Moves.get_move(character, "attacks", id)
+		_current_attack = Actions.get_action(character, "attacks", id)
 	elif kind == "specials":
-		_current_special = Moves.get_move(character, "specials", id)
+		_current_special = Actions.get_action(character, "specials", id)
 
 
 ## Which way the character faces (+1 right, -1 left) -- for abilities that spawn
@@ -527,7 +541,7 @@ func fire_effect(anim: String, tilt: float = 0.0) -> void:
 		_particles.fire_effect(anim, tilt)
 
 
-## The blink (teleport) dash, used when this character has BLINK_DASH on. Vanish and
+## The blink (teleport) dash, used when the equipped dash is a blink (`move.blink`). Vanish and
 ## reappear `dash_speed * dash_time` ahead -- the SAME reach the glide-dash would cover,
 ## just instant -- with a blink-out poof where we leave and a blink-in poof where we land,
 ## plus a quick over-white flash. move_and_collide stops us at walls (enemies aren't on
@@ -634,7 +648,7 @@ func _build_combat() -> void:
 	_hurtbox.hurt.connect(_on_hurt)
 
 	# No built-in attack box any more: every attack is a spawned Strike/Projectile whose
-	# own Hitbox carries the hit, fed from moves.gd via the director (see _active_hit).
+	# own Hitbox carries the hit, fed from the Actions catalog via the director (see _active_hit).
 
 	_status = StatusOverlay.new()
 	add_child(_status)
@@ -651,18 +665,18 @@ func _build_combat() -> void:
 	# Looping run footsteps -- owned by us so it frees cleanly and never gets stuck playing. Runtime
 	# only (autoloads/audio don't exist while editing the scene). Toggled in _update_animation.
 	if not Engine.is_editor_hint():
-		_run_sfx = Sfx.make_loop("player_run")
+		_run_sfx = Sfx.make_loop("run")
 		if _run_sfx != null:
 			add_child(_run_sfx)
 
 
-## THE BUFF SEAM. Resolve the effective per-hit tuning of `move`'s combo segment `seg`
+## THE BUFF SEAM. Resolve the effective per-hit tuning of `action`'s combo segment `seg`
 ## -- the numbers the attack's Hitbox is configured with. Today it's the base straight
-## from configs/moves.gd; the item/build system will later layer its modifiers here
+## from the Actions catalog; the item/build system will later layer its modifiers here
 ## (damage x1.3, +reach, hits twice, ...) so every attack becomes buffable without
 ## re-plumbing. Set into _active_hit at segment/special start; read by the director.
-func resolve_tuning(move: Move, seg: int = 0) -> Dictionary:
-	var base: Dictionary = move.segment(seg).duplicate() # copy: never mutate the catalog
+func resolve_tuning(action: Action, seg: int = 0) -> Dictionary:
+	var base: Dictionary = action.segment(seg).duplicate() # copy: never mutate the catalog
 	# Buff/item/event modifiers fold in here. `damage_mult` is a run reward ("+X% damage").
 	if not is_equal_approx(damage_mult, 1.0) and base.has("damage"):
 		base["damage"] = float(base["damage"]) * damage_mult
@@ -688,9 +702,9 @@ func _on_hurt(hit: Hit) -> void:
 	take_damage(hit.amount)
 	if _dead:
 		return # the killing blow: death takes over -- no knockback/stun/reactions
-	# Per-character reaction to being hurt (retaliation, defensive buff, ...).
-	if _ability != null:
-		_ability.on_hurt(self, hit)
+	# Passives reacting to being hurt (retaliation, defensive buff, ...).
+	for p in _passives:
+		p.on_hurt(self, hit)
 	# A held/channeled effect breaks when the caster is hit, if it opts in --
 	# stop it and release the pose-hold. Independent of the ability hook above.
 	if _channel != null and is_instance_valid(_channel) and _channel.interrupt_on_hurt:
@@ -794,8 +808,8 @@ func hold_animation(duration: float, effect: Strike = null) -> void:
 func _on_frame_changed() -> void:
 	if _state == State.SPECIAL:
 		if _sprite.frame == _special_strike_frame():
-			if _ability != null:
-				_ability.on_special_strike(self)
+			for p in _passives:
+				p.on_special_strike(self)
 		return
 	# Bounded loop: when a looping animation has a `loop_to`, snap back to
 	# `loop_from` the moment playback steps past it, so the cycle stays inside the
@@ -912,8 +926,10 @@ func _physics_process(delta: float) -> void:
 		_fall_peak = maxf(_fall_peak, velocity.y) # +y is downward
 		_apex_y = minf(_apex_y, global_position.y) # highest point reached (min y)
 	_just_landed = on_floor and not _was_on_floor and _fall_peak >= land_min_fall_speed
-	if on_floor and not _was_on_floor and _ability != null:
-		_ability.on_land(self, maxf(global_position.y - _apex_y, 0.0), _fall_peak)
+	if on_floor and not _was_on_floor and not _passives.is_empty():
+		var drop := maxf(global_position.y - _apex_y, 0.0)
+		for p in _passives:
+			p.on_land(self, drop, _fall_peak)
 	if on_floor:
 		_fall_peak = 0.0
 		_air_jumps_used = 0 # refresh the double jump on every touchdown
@@ -941,9 +957,9 @@ func _physics_process(delta: float) -> void:
 		_process_normal(delta)
 
 	# Runs after the state machine has set this frame's velocity but before it is
-	# applied, so an ability can override any of it.
-	if _ability != null:
-		_ability.physics(self, delta)
+	# applied, so a passive can override any of it.
+	for p in _passives:
+		p.physics(self, delta)
 
 	_tick_special_invuln(delta) # count down the special's invuln window; end it cleanly
 
@@ -1373,12 +1389,12 @@ func _slam_has_clearance() -> bool:
 func _advance_combo() -> void:
 	# A flurry attack doesn't chain segments -- the first press starts the held loop and
 	# _process_attack runs it. Ignore re-presses once it's going.
-	if _current_attack != null and _current_attack.style == "flurry":
+	if _current_attack != null and _current_attack.is_flurry():
 		if not _flurry:
 			_start_flurry()
 		return
 
-	# A cooldown attack (Move.cooldown > 0, e.g. bakshen) can't be spammed: swallow the press
+	# A cooldown attack (Action.cooldown > 0, e.g. bakshen) can't be spammed: swallow the press
 	# while it's still recharging. The overhead bar shows the fill; _attack_cd is set on fire below.
 	if _current_attack != null and _current_attack.cooldown > 0.0 and _attack_cd > 0.0:
 		return

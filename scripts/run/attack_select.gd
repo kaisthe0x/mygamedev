@@ -64,22 +64,22 @@ func open(character: String) -> void:
 	scroll.add_child(grid)
 
 	var first: Button = null
-	for id in Moves.ids(character, "attacks"):
-		var move: Move = Moves.get_move(character, "attacks", id)
-		if move == null:
+	for id in Actions.ids(character, "attacks"):
+		var action: Action = Actions.get_action(character, "attacks", id)
+		if action == null:
 			continue
-		grid.add_child(_make_card(id, move))
+		grid.add_child(_make_card(id, action))
 		if first == null:
 			first = grid.get_child(grid.get_child_count() - 1)
 	if first != null:
 		first.grab_focus()  # keyboard/controller can pick without a mouse
 
 
-func _make_card(id: String, move: Move) -> Button:
+func _make_card(id: String, action: Action) -> Button:
 	var card := Button.new()
 	card.custom_minimum_size = CARD
 	card.clip_contents = true
-	var tcol: Color = Loadout.tier_color(move.tier)
+	var tcol: Color = Loadout.tier_color(action.tier)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.12, 0.12, 0.15, 0.96)
 	sb.set_border_width_all(2)
@@ -88,8 +88,8 @@ func _make_card(id: String, move: Move) -> Button:
 	card.add_theme_stylebox_override("normal", sb)
 	card.add_theme_stylebox_override("hover", sb)
 	# Icon (fixed size, so a huge placeholder png can't balloon the card) + label, click passes through.
-	card.add_child(card_body(Icons.attack(id),
-		"%s\n[%s]  dmg %s" % [id.capitalize(), Loadout.tier_label(move.tier), _dmg(move)], CARD.x))
+	card.add_child(card_body(Icons.load_path(action.icon),
+		"%s\n[%s]  dmg %s" % [action.name, Loadout.tier_label(action.tier), _dmg(action)], CARD.x))
 	card.pressed.connect(func() -> void: _pick(id))
 	return card
 
@@ -121,22 +121,15 @@ static func card_body(tex: Texture2D, text: String, card_w: float) -> Control:
 	return box
 
 
-## Damage summary for a card: an array-tuned combo shows "a/b/c", a dict shows its damage,
-## an empty tuning means the effect scene carries its own numbers.
-func _dmg(move: Move) -> String:
-	var t: Variant = move.tuning
-	if t is Array:
-		if (t as Array).is_empty():
-			return "scene"
-		var parts: Array[String] = []
-		for seg: Dictionary in t:
-			parts.append(str(seg.get("damage", 0)))
-		return "/".join(parts)
-	if t is Dictionary:
-		if (t as Dictionary).is_empty():
-			return "scene"
-		return str((t as Dictionary).get("damage", 0))
-	return "?"
+## Damage summary for a card: a multi-segment combo shows "a/b/c", a single hit shows its damage,
+## and no hitbox means the effect scene carries its own numbers.
+func _dmg(action: Action) -> String:
+	if action.hit == null or action.hit.segments.is_empty():
+		return "scene"
+	var parts: Array[String] = []
+	for seg: Dictionary in action.hit.segments:
+		parts.append(str(seg.get("damage", 0)))
+	return parts[0] if parts.size() == 1 else "/".join(parts)
 
 
 func _pick(id: String) -> void:

@@ -1,78 +1,112 @@
 class_name Rewards
 extends RefCounted
 
-## Reward pools, split by DOOR TYPE. Each level rolls ONE random door type (RunManager); clearing
-## the arena opens that door, and the player picks ONE of that type's rewards. `apply()` mutates
-## the player. Buffs are per-RUN (reset by Player.begin_run). Every reward has an icon via the
-## `Icons` registry (`Icons.buff(id)`, or the `icon_key` a swap card carries).
+## Reward OFFER + EFFECT logic over the typed catalog (RewardsCatalog / Reward) -- build-aware (Phase 4).
+## The DATA lives in configs/rewards_catalog.gd; this service filters/weights the offer by the queryable
+## Build (conditional rewards) and applies the chosen reward's effect. Buffs are per-RUN (reset by
+## Player.begin_run). Effects are one of: equip a move (upgrade), grant a Passive (ability), or a stat
+## buff keyed by id below.
 ##
-## Door types: HEALTH / ATHLETIC / ATTACK / SPECIAL. The SPECIAL door also mixes in CHANGE-SPECIAL
-## swap cards (built from the character's other specials). Attacks are RUN-LOCKED -- never swapped,
-## only buffed (the ATTACK door).
-##
-## Numbers are placeholders -- tune freely. A few effects are WIP (stored on the player but not yet
-## fully realised); they're marked in the desc and safe to pick.
-
-## door_type -> [ {id, name, desc}, ... ]
-const POOLS := {
-	"health": [
-		{"id": "mend",     "name": "Mend",        "desc": "Heal +40 HP now"},
-		{"id": "max_hp",   "name": "Second Skin", "desc": "+25 max HP (and heal it)"},
-	],
-	"athletic": [
-		{"id": "air_jump", "name": "Extra Wind",  "desc": "+1 air jump"},
-		{"id": "run",      "name": "Fleetfoot",   "desc": "+10% run speed"},
-		{"id": "tough",    "name": "Thick Hide",  "desc": "-10% damage taken"},
-		{"id": "slam_dmg", "name": "Meteor",      "desc": "+25% slam damage"},
-		{"id": "crimson_vortex", "name": "Crimson Vortex", "desc": "Your dash leaves a damaging vortex"},
-	],
-	"attack": [
-		{"id": "reach",     "name": "Long Arm",   "desc": "+15% attack reach"},
-		{"id": "atk_dmg",   "name": "Bloodlust",  "desc": "+12% attack damage"},
-		{"id": "lifesteal", "name": "Leech",      "desc": "Heal 8% of damage dealt"},
-		{"id": "multishot", "name": "Split Shot", "desc": "+1 projectile (WIP)"},
-	],
-	"special": [
-		{"id": "ruh_cap",       "name": "Deeper Ruh",  "desc": "+1 Ruh charge (max 5)"},
-		{"id": "longer_imp",    "name": "Fortitude",   "desc": "+3s Impervious duration"},
-		{"id": "imp_until_hit", "name": "Last Stand",  "desc": "Impervious until you're hit (WIP)"},
-		{"id": "bigger_blast",  "name": "Wide Impact", "desc": "+20% special hit radius (WIP)"},
-	],
-}
+## Door types: HEALTH / ATHLETIC / ATTACK / SPECIAL. The SPECIAL door also mixes in CHANGE-SPECIAL swap
+## cards (built from the character's other specials). Attacks are run-locked -- buffed or UPGRADED
+## (a conditional swap, e.g. Dual Executioner), never freely swapped.
 
 
-## `n` rewards for a `door_type`, shuffled. The SPECIAL door also mixes in change-special swaps.
+## `n` rewards for a `door_type`, build-aware: only OFFERABLE rewards (requires + unique gates), sampled
+## without replacement weighted by synergy. The SPECIAL door also mixes in change-special swap cards.
 static func offer_for(door_type: String, player: Player, n: int) -> Array:
-	var pool: Array = (POOLS.get(door_type, []) as Array).duplicate(true)
+	var build := Build.of(player)
+	var weighted := []  # [{card, weight}]
+	for d: Dictionary in RewardsCatalog.POOLS.get(door_type, []):
+		var r := Reward.make(door_type, d)
+		if r.offerable(build):
+			weighted.append({"card": r.to_card(), "weight": r.weight(build)})
 	if door_type == "special" and player != null:
 		for choice: Dictionary in player.loadout_choices():
 			if String(choice["category"]) != "special":
 				continue
 			var o: Dictionary = choice["option"]
-			pool.append({
-				"id": "swap:special:%s" % o["id"],
-				"name": o["name"],
+			weighted.append({"card": {
+				"id": "swap:special:%s" % o["id"], "name": o["name"],
 				"desc": "Change special · %s" % Loadout.tier_label(o["tier"]),
-				"tier": o["tier"],                  # RewardUI badges/tints by this
-				"icon_key": "special:%s" % o["id"], # the special's own icon
-			})
-	pool.shuffle()
-	return pool.slice(0, mini(n, pool.size()))
+				"tier": o["tier"], "icon": o["icon"],
+			}, "weight": 1.0})
+	return _sample(weighted, n)
 
 
-## Apply reward `id` to the player -- the single place a reward's EFFECT lives.
+## Sample up to `n` cards from `[{card, weight}]` WITHOUT replacement, weighted (roulette).
+static func _sample(entries: Array, n: int) -> Array:
+	var pool := entries.duplicate()
+	var out := []
+	while not pool.is_empty() and out.size() < n:
+		var total := 0.0
+		for e: Dictionary in pool:
+			total += e["weight"]
+		var pick := randf() * total
+		var idx := 0
+		for i in pool.size():
+			pick -= pool[i]["weight"]
+			if pick <= 0.0:
+				idx = i
+				break
+		out.append(pool[idx]["card"])
+		pool.remove_at(idx)
+	return out
+
+
+## Apply reward `id` to the player -- the single place a reward's EFFECT lives. Records it on the build.
 static func apply(id: String, player: Player) -> void:
 	if id.begins_with("swap:"):
 		var parts := id.split(":")  # swap:<category>:<option_id>
 		if parts.size() == 3:
 			player.equip(parts[1], parts[2])
+		player.record_reward(id)
 		return
+	var r := _find(id)
+	if r == null:
+		push_warning("Rewards: unknown reward id '%s'" % id)
+		return
+	player.record_reward(id)
+	if not r.equip.is_empty():                                  # a move swap / upgrade
+		player.equip(String(r.equip["category"]), String(r.equip["id"]))
+		return
+	if not r.passive.is_empty():                                # a behavioral passive (ability)
+		var p := _make_passive(r.passive)
+		if p != null:
+			player.add_passive(p)
+		return
+	_buff(id, player)                                           # a stat buff
+
+
+## The Reward with this id, searching every door pool (null if none).
+static func _find(id: String) -> Reward:
+	for door: String in RewardsCatalog.POOLS:
+		for d: Dictionary in RewardsCatalog.POOLS[door]:
+			if String(d["id"]) == id:
+				return Reward.make(door, d)
+	return null
+
+
+## Instantiate a reward-granted Passive by id (scripts/abilities/<id>.gd). Null (with a warning) if
+## missing or not a Passive.
+static func _make_passive(passive_id: String) -> Passive:
+	var path := "res://scripts/abilities/%s.gd" % passive_id
+	if ResourceLoader.exists(path):
+		var p: Variant = load(path).new()
+		if p is Passive:
+			return p
+	push_warning("Rewards: no Passive script for '%s' at %s" % [passive_id, path])
+	return null
+
+
+## Stat-buff effects, keyed by reward id (the ones that just tweak a Player stat).
+static func _buff(id: String, player: Player) -> void:
 	match id:
 		# health
 		"mend":          player.heal(40.0)
 		"max_hp":        player.max_health += 25.0; player.heal(25.0)
 		# athletic
-		"air_jump":      player.max_air_jumps += 1
+		"air_jump":      player.air_jump_bonus += 1; player.equip("jump", player.loadout_id("jump"))
 		"run":           player.run_mult *= 1.1; player.equip("run", player.loadout_id("run"))
 		"tough":         player.damage_taken_mult *= 0.9
 		"slam_dmg":      player.slam_damage_mult *= 1.25
@@ -80,11 +114,10 @@ static func apply(id: String, player: Player) -> void:
 		# attack
 		"reach":         player.attack_reach_mult *= 1.15
 		"atk_dmg":       player.damage_mult += 0.12
-		"lifesteal":     player.lifesteal_frac += 0.08
 		"multishot":     player.attack_projectile_bonus += 1
 		# special
 		"ruh_cap":       player.ruh_cap += Player.RUH_PER_BLOCK
 		"longer_imp":    player.special_invuln_bonus += 3.0
 		"imp_until_hit": player.impervious_until_hit = true
 		"bigger_blast":  player.special_radius_mult *= 1.2
-		_: push_warning("Rewards: unknown reward id '%s'" % id)
+		_: push_warning("Rewards: unhandled buff id '%s'" % id)

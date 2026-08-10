@@ -77,10 +77,14 @@ Clear every batch → the **reward door** opens (one random type per level: **He
 / Special**, each iconned) → **pick one buff** → next level. The instant the **last required** enemy
 falls and the exit unlocks, a brief **"you did it!" slow-motion** plays (`RunManager._celebrate_clear`
 drops `Engine.time_scale` and ramps it back via a real-time tween) — **optional** enemies (Nasen)
-never trigger it, since only required kills reach the clear. Attacks are run-locked (only buffed);
-specials can be swapped at the Special door. Take 0 HP and the run restarts. All of this — the 5 levels,
-the enemy roster, the reward pools, the attack picker — lives in [`scripts/run/`](scripts/run/README.md)
-(`RunManager` is `level.tscn`'s root; `Levels` / `EnemyKits` / `Rewards` / `Icons` are the data). The `.tscn` stays minimal because the editor
+never trigger it, since only required kills reach the clear. Attacks are run-locked (buffed, or
+**upgraded** by a conditional reward); specials can be swapped at the Special door. Rewards are
+**build-aware** — a reward can `require` something equipped (Dual Executioner only shows once Twin
+Reaper is), weight its odds by `synergy`, or grant a **behavioural passive** (Leech's lifesteal) — see
+the *Passives & abilities* section + [`configs/rewards_catalog.gd`](configs/rewards_catalog.gd). Take 0
+HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pools, the attack
+picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s root;
+`Levels` / `EnemyKits` / `Rewards` / `RewardsCatalog` / `Build` / `Icons` are the data + logic). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset
 skin ([`configs/terrain.gd`](configs/terrain.gd)) stamped as sprites over the colliders — tiled
 neon terrain, ground plants, tree props — art in `assets/terrain/`, gameplay unchanged.
@@ -344,28 +348,32 @@ and a matching case in `_animation_for()` in `player.gd`.
 
 `scripts/player.gd` — a `CharacterBody2D` with a small state machine
 (`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM / DEATH / SPAWN`).
-Everything is tunable in the inspector.
 
-| Group | Key values |
+**Movement stats live in typed config, not the inspector.** Every movement/physics knob is a
+`Locomotion` (`configs/locomotion.gd`, the shared baseline) attached to a **movement Action**
+(run/jump/dash/slam), with per-character deviations in each character's `MOVEMENTS` catalog
+(`configs/actions_<char>.gd`). The Player seeds its runtime movement vars from the equipped movement
+Actions on every character change / swap (`_apply_movement`). Only non-movement feel (health/ruh,
+attack pacing, hit-stop juice) stays as inspector `@export`s.
+
+| Locomotion (typed config) | Key values |
 |---|---|
-| Health | `max_health` 100 |
-| Movement | `run_speed` 160 & `jump_velocity` -330 (both **per character** — see below), `max_air_jumps` 1, `gravity` 900, `fall_gravity_scale` 1.35, `run_anim_speed` 1.5 |
-| Dash | `dash_speed` 420 (**per character** — see below), `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35 |
-| Slam | `slam_speed` 1200, `slam_min_clearance` 50, `slam_hold_frame` 2, `slam_impact_distance` 30, `slam_min_drop` 120 / `slam_max_drop` 700 / `slam_max_damage_mult` 2.5 (drop-scaled damage) |
-| Attack | `attack_recovery` 0.12, `combo_reset_time` 0.45 |
-| Juice | `land_min_fall_speed` 140, `land_predict_distance` 22 |
+| run | `run_speed` 160 (**Khalid 230**), `acceleration` 1200, `friction` 1400, `run_anim_speed` 1.5 |
+| jump / arc / land | `jump_velocity` -330, `air_jumps` 2, `gravity` 900, `fall_gravity_scale` 1.35, `land_min_fall_speed` 140, `land_predict_distance` 22 |
+| dash | `dash_speed` 420, `dash_time` 0.18, `dash_anim_time` 0.30, `dash_cooldown` 0.45, `dash_gravity_scale` 0.35, `blink` (**Khalid true**) |
+| slam | `slam_speed` 1200, `slam_min_clearance` 50, `slam_hold_frame` 2, `slam_impact_distance` 30, `slam_min_drop` 120 / `slam_max_drop` 700 / `slam_max_damage_mult` 2.5 (drop-scaled damage) |
+| `@export` (inspector) | Health `max_health` 100; Attack `attack_recovery` 0.12, `combo_reset_time` 0.45 |
 
-**Per-character movement feel.** `run_speed`, `jump_velocity`, and `dash_speed` are
-seeded on every character change from `CharacterConfig.RUN_SPEEDS` /
-`JUMP_VELOCITIES` / `DASH_SPEEDS` (in `configs/character_config.gd`) — edit per-character
-values there, not on the Player node (the inspector value is overwritten on swap).
-Characters not listed use the `DEFAULT_*` values (`run` 160, `jump` -330 with negative =
-up, `dash` 420); **Khalid runs a touch faster (230)**. The run *animation* cadence auto-scales to each
-character's speed, so faster runners don't foot-slide.
+**Per-character movement feel.** A movement Action's `move` (Locomotion) lists only the fields a
+character deviates on; everything else falls to the shared baseline. **Khalid runs a touch faster
+(`run_speed` 230)** and **blink-dashes** — the rest of his movement is baseline. The run *animation*
+cadence auto-scales to each character's speed, so faster runners don't foot-slide. Reward **buffs**
+layer over the config base so a loadout swap never wipes them — run speed via `run_mult`, extra air
+jumps via `air_jump_bonus` (each re-applies its category on grant).
 
 **Blink dash (per character).** A character's dash can be a **blink** (instant teleport)
-instead of the glide-lunge — toggled per character in `CharacterConfig.BLINK_DASH`
-(`{"khalid": true}` today; anyone unlisted glides). When on, `_enter(State.DASH)` calls
+instead of the glide-lunge — set by the equipped dash Action's `move.blink` (Khalid's `blink_dash`
+option is `true`; the baseline glides). When on, `_enter(State.DASH)` calls
 `Player._do_blink()`: it displaces `dash_speed × dash_time` ahead (the *same* reach the
 glide would cover, just instant) via `move_and_collide` so it **stops at walls** and
 **passes through enemies**, fires the character's own `other/blink_out.tscn` /
@@ -405,8 +413,8 @@ sheets for it:
 Each phase is **opt-in per character** by the presence of the `fall` / `land` sheet.
 **All five characters now have both.** (Khalid's full kit — movement VFX
 (run/jump/fall/dash/double-jump), a **ground slam** (`slam_default` + `slam_wind_streaks`),
-and his **Ground Breaker** special (an overhead-slam GROUND `Strike`, damage from
-`moves.gd`) — is wired in the `Emitters` config, all in his red-teal-gold palette. Only his
+and his **Ground Breaker** special (an overhead-slam AOE `Strike`, damage from
+the `Actions` catalog) — is wired in the `Emitters` config, all in his red-teal-gold palette. Only his
 light **attack** still lacks an effect scene, so it deals no damage for now.)
 
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
@@ -473,14 +481,14 @@ The combo system supports multi-hit attacks — several hits on chosen frames, w
 in-between frames animating between them (see `HIT_FRAMES`). Khalid's `ora_ora` isn't a combo
 but a **flurry** (below); single-hit attacks just list one hit frame.
 
-**Attack styles (`Move.style`).** Most attacks are `"combo"` (the click-per-segment
-swing above). Khalid's `ora_ora` is a `"flurry"`: **hold** the attack button and the
+**Attack styles (`Action.style`, an enum).** Most attacks are `STANDARD` (the click-per-segment
+swing above). Khalid's `ora_ora` is a `FLURRY`: **hold** the attack button and the
 animation loops fast (marked `loop: true` in the generator `OVERRIDES`), its punch
 frames (2, 4 in the `Emitters` config) firing the `attack_ora_ora` `Strike` on every pass —
 so the hits come at the loop's rate, not per click. Releasing ends it back to idle; a
 buffered special still cancels it. `_advance_combo()` routes the first press to
 `_start_flurry()`, and `_process_attack()` holds it while `attack` is pressed. Per-punch
-damage/knockback are low (`moves.gd`) since the DPS comes from the cadence.
+damage/knockback are low (the `Actions` catalog) since the DPS comes from the cadence.
 
 Khalid's `twin_reaper` (Elite) is a second flurry: **hold** and the whole spin loops
 (`loop: true`, `fps 16`), each pass firing its five `Slash1`–`Slash5` `Strike` nodes on the
@@ -489,8 +497,9 @@ tuning. A flurry feeds a *single* `tuning` to every hit (12 dmg, `knockback 0` t
 caught in the spin), so — like `ora_ora` — it has **no** `HIT_FRAMES` entry (those drive the
 click-combo segmentation, not a flurry).
 
-**Attack cooldown (`Move.cooldown`).** A heavy one-shot can carry a `cooldown` (seconds) in
-`moves.gd` so it can't be spammed — Khalid's `bakshen` uses `2.0`. While it recharges,
+**Attack cooldown (`Action.style` `COOLDOWN` + `Action.cooldown`).** A heavy one-shot can carry a
+`cooldown` (seconds) in the `Actions` catalog so it can't be spammed — Khalid's `bakshen` uses `3.0`.
+While it recharges,
 `_advance_combo()` swallows the attack press (the swing simply doesn't start), and a small
 gold **fill bar floats over Khalid's head** (`FloatingHealthBar`, the same world-space bar the
 enemies use, tinted for "charge") growing empty→full as `_attack_cd` counts down; it hides once
@@ -541,56 +550,52 @@ a lethal hit runs the full death lifecycle — see **Death** / **Spawn** below.)
 
 ---
 
-## Character abilities
+## Passives & abilities
 
-Each character can have a unique ability. **This is the place to add
-character-specific behaviour** — the Player itself stays generic, with no
-per-character branching.
+**This is the place to add behavioural rules** — event-driven code that reacts to the game — the
+Player itself stays generic, with no per-character or per-reward branching. A **`Passive`** is one
+such rule bundle; the Player holds a **list** of them (`_passives`) and dispatches every hook to each.
+Two flavours, identical interface:
 
-Drop a script at `scripts/abilities/<character_id>.gd` extending
-`CharacterAbility`. The Player finds it by filename when that character is
-equipped — no registration, no scene edits. A character with no file simply has
-no ability.
+- a character's **intrinsic ability** — `scripts/abilities/<character_id>.gd` extending
+  `CharacterAbility` (which *is* a `Passive`). Found by filename when that character is equipped —
+  no registration; seeded FIRST in the list. A character with no file simply has no ability.
+- a **reward-granted passive** (Phase 4) — `scripts/abilities/<id>.gd` extending `Passive`, added at
+  runtime via `Player.add_passive()` when its reward is taken (a reward row's `passive: "<id>"`), and
+  cleared on run restart (each passive's `teardown` runs so it can undo lingering effects).
 
 ```gdscript
-extends CharacterAbility
+extends Passive   # (or CharacterAbility for a character-intrinsic one)
 
-func physics(player: Player, _delta: float) -> void:
-    if player.get_state() == Player.State.SPECIAL and not player.is_on_floor():
-        player.velocity.y = 0.0
+func on_hit_dealt(player: Player, amount: float, _target: Node) -> void:
+    player.heal(amount * 0.08)   # Leech: lifesteal (scripts/abilities/leech.gd)
 ```
 
-Two hooks, both optional:
+Hooks, all optional (override only what you need):
 
 | Hook | When | Use for |
 |---|---|---|
-| `setup(player)` | Once, on equip | One-off changes (`player.run_speed = 200`), resetting state |
+| `setup(player)` / `teardown(player)` | Once, on add / remove | One-off changes; undo them on teardown so nothing leaks across runs |
 | `physics(player, delta)` | Every physics frame, **after** the state machine sets velocity and **before** `move_and_slide()` | Movement overrides — whatever you set here wins |
 | `on_special_strike(player)` | The special's strike frame | Spawn a code-driven effect/projectile on connect |
 | `on_hurt(player, hit)` | Player takes a combat hit | React to damage — retaliation, defensive buff |
 | `on_land(player, fall_distance, fall_speed)` | Every touchdown | Fall damage, landing shockwaves (`fall_distance` = px dropped from the apex) |
+| `on_hit_dealt(player, amount, target)` | Player deals damage (via RunManager) | Lifesteal, on-hit procs, stacks |
 
-`physics` runs last on purpose, so an ability can override anything the state
-machine decided. `player.get_state()` exposes the current state
-(`Player.State.SPECIAL`, etc.), and the whole Player API — `take_damage()`,
-`velocity`, `is_on_floor()`, every exported tunable — is available.
+`physics` runs last on purpose, so a passive can override anything the state machine decided.
+`player.get_state()` exposes the current state, and the whole Player API — `take_damage()`,
+`velocity`, `add_passive()`, every tunable — is available. Each rule is "on EVENT, if CONDITION, do
+ACTION"; add new event hooks to `passive.gd` + fire them from the player as more are needed.
 
-This is the **per-character rule engine**: each rule is "on EVENT, if CONDITION,
-do ACTION," and each character's file overrides only the hooks it cares about
-(base = no-ops, so existing abilities keep working). Add new event hooks to
-`character_ability.gd` + fire them from the player as more are needed.
+### Current passives
 
-### Current abilities
-
-**None ship in this repo** — Khalid has no ability script; his moves are all data
-(`moves.gd`) + effect scenes. The `CharacterAbility` system above is fully wired, so
-dropping a `scripts/abilities/khalid.gd` (extending `CharacterAbility`) gives him a
-per-character hook (`on_special_strike` / `on_hurt` / `on_land` / `physics`). The parked
-characters in `playground/` had abilities — a fall-damage-on-land, a channeled special that
-cancels when hit — kept there as reference for what the hooks can do.
-
-Khalid used to carry the blink as an ability; it's now a **universal, per-character dash
-option** — see **Blink dash** below.
+- **Leech** (`scripts/abilities/leech.gd`) — a reward-granted passive: heal 8% of damage dealt, via
+  `on_hit_dealt`. The worked example of a rewardable behavioural ability.
+- **No character-intrinsic ability ships** — Khalid has no `scripts/abilities/khalid.gd`; his
+  attacks/specials are all data (`Actions`) + effect scenes. Dropping that file gives him an intrinsic
+  hook set. The parked characters in `playground/` had abilities (fall-damage-on-land, a channeled
+  special that cancels when hit) — reference for what the hooks can do. Khalid used to carry the blink
+  as an ability; it's now a **per-character dash option** (see **Blink dash** above).
 
 ---
 
@@ -610,7 +615,7 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
   `Hitbox` that grows/fades and self-frees, and covers melee slashes, blasts, and ground
   AoEs. Use it instead of a `CPUParticles2D` when the texture itself must h-flip (a directional drawn slash). Its projectile sibling is **`Projectile`** (`scripts/combat/projectile.gd`).
 - **Where to add an attack effect:** a visual → `EmittersCharacters`; a hit's
-  numbers → the move's `tuning` in `configs/moves.gd`; a spawned thing/behavior → a
+  numbers → the action's `hit.segments` in `configs/actions_<char>.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
   `Local Coords`, per-child positioning) in [vfx/README.md](vfx/README.md).
 
@@ -675,8 +680,10 @@ that's the linear-vs-sRGB trap — key it off `khsv`, not `hsv`.
 
 ## Audio (SFX + Music)
 
-Sound effects run through one autoload service, **`Sfx`** (`scripts/audio/sfx.gd`) — the audio
-counterpart to `Icons` (textures) and the `Emitters` config (particles). Files live in **`sfx/`**.
+Sound effects split **config from code**, mirroring `Emitters`. The **catalog** of what sounds exist
+is pure data in per-area files — **`SfxCharacters`**, **`SfxEnemies`**, **`SfxWorld`** (`configs/sfx_*.gd`)
+— and the autoload **`Sfx`** (`scripts/audio/sfx.gd`) is just the runtime that plays them. Files live in
+**`sfx/`**.
 
 Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/music.gd`), files in
 **`music/`**. It's a **two-player crossfader**: `Music.play("key")` fades the current track out on one
@@ -689,17 +696,22 @@ via `RunManager._build_level`; on a **level clear** it crossfades to the calm **
 level builds. Plays on a `"Music"` bus if present (else Master), and is a silent no-op until the file
 exists. Same "drop a file, add one line" workflow as `Sfx`.
 
-- **Add a sound:** drop the file in `sfx/`, add one line to `Sfx.LIBRARY` (`"key":
-  "res://sfx/file.wav"`), then call it. That's the whole workflow.
-- **Play a one-shot:** `Sfx.play("key")` (non-positional — UI / player-centric feedback) or
-  `Sfx.play_at("key", world_pos)` (positional 2D — an enemy hit, an explosion). Both take optional
-  `volume_db` / `pitch` and round-robin a pool of players, so overlaps don't cut each other off.
-- **Loop a held sound:** `Sfx.make_loop("key")` returns a dedicated looping `AudioStreamPlayer`
-  (stream forced to `LOOP_FORWARD`) that the **caller parents and owns** — so it frees with its
-  owner and never gets stuck playing — then drives `play()`/`stop()` by state. Used for the run
-  footsteps: the Player owns `_run_sfx` and gates it on the `RUN` state in `_update_animation`.
-- **Missing file = silent no-op** (a `push_warning`, no crash) — so a cue can be wired in code
-  before the audio actually lands, exactly like `Icons`' fallback.
+- **The one place to check what sounds we use:** each config's **`CUES`** dict — a `key → path`
+  master list per area. **Paths live only there**; nothing else hardcodes a `res://sfx/…` path.
+- **Add a sound:** drop the file in `sfx/`, add one `CUES` line to the right config, then reference
+  it by **key** — never a path.
+- **Trigger it two ways:**
+  - **Code event** — `Sfx.play("dash")` / `Sfx.play_at("enemy_death", pos)` (one-shots, pooled so
+    overlaps don't cut off) or `Sfx.make_loop("run")` (a looping player the caller owns). The
+    *trigger* lives in the script (that's where the event is); the *file* lives in the config.
+  - **Frame-synced hit** — declare `anim → { sheet_frame: cue }` in the config's **`FRAMES`** dict;
+    the presentation driver plays it when the animation reaches that frame (the audio twin of the
+    particle bursts). This is symmetric to VFX — the **Emitters config stays particles-only**.
+- **Enemy sound keys** follow conventions the code composes: `enemy_death` (shared), `<id>.<type>`
+  (attack start, type = `melee`/`projectile`), `<id>.pop` (a lob's delayed explosion), and per-frame
+  hits in `SfxEnemies.FRAMES` — all in `SfxEnemies`, keyed by `enemy_id`.
+- **Unregistered key = silent** (an `<id>.<type>` with no cue just plays nothing); a **registered
+  key whose file is missing = one warning** — so a cue can be listed before its audio lands.
 - **Buses & mixing:** the mixer is split **Master → SFX + Music** (`default_bus_layout.tres`), so the
   two categories have independent volume + effects; `Sfx`/`Music` players auto-route to their bus.
   Control them at runtime with **`AudioBus`** (`scripts/audio/audio_bus.gd`) or the convenience
@@ -709,25 +721,9 @@ exists. Same "drop a file, add one line" workflow as `Sfx`.
   permanent, or add/tweak them live from code (`AudioBus.add_effect(&"SFX", AudioEffectEQ.new())`,
   `AudioBus.get_effect`/`set_effect_enabled`) for dynamic changes (an underwater muffle, boss-room
   reverb). Music also has its own per-track fade envelope on top of its bus volume.
-- Wired cues so far: **`ruh_absorb`** (`Player.on_ruh_absorbed`), **`enemy_death`** (`Enemy._die`,
-  positional), **`dash`** (`Player` entering `State.DASH`), and the looping **`player_run`**.
-  `sfx/ruh_absorb.wav` is a synthesized **placeholder** (replace freely); the source of truth for
-  what's wired is always `Sfx.LIBRARY`, not this list.
-- **Organized attack/enemy sounds** live in folders mirroring the vfx tree (no flat `LIBRARY` entry —
-  `Sfx` plays a `res://` path directly). Two conventions: **per-hit** attack/special sounds ride the
-  Emitters `sfx` row field (`sfx/character/attack/<move>/<move>_<frame>.wav`, synced to the burst);
-  **enemy attack** sounds are **auto-discovered by `enemy_id`** — no per-kit wiring — from
-  `sfx/enemy/<id>/attack/` (`Enemy._attack_sfx_dir`). Just drop files in that folder:
-    - `melee.wav` / `projectile.wav` — the attack **start** (melee anim / ranged anim).
-    - `<type>_<sheetframe>.wav` (e.g. `projectile_4.wav`) — a **per-frame** sound when the anim hits
-      that frame; the number is **sheet-relative** (counts the idle frame), probed once at spawn via
-      `ResourceLoader.exists` (export-safe, no folder scan).
-    - `projectile_pop.wav` — a **lob enemy's delayed explosion** (Mazab): the detonation isn't on an
-      animation frame, so the `LobProjectile` plays it at the blast point (`_explode`).
-  Missing files are silently skipped, and it all works for custom-scene enemies too (Nasen's rage
-  routes the same hooks). **The rule going forward: sounds live next to what fires them** — player
-  attack/special hits on the Emitters `sfx` row, enemy attacks in `sfx/enemy/<id>/attack/`, and
-  one-off events (dash, jump, death, level clear) as a direct `Sfx.play`/`play_at` at the event.
+- **The rule:** *what* sounds exist is declared in the `CUES` configs (checkable in one place per
+  area); *when* they fire is either a `Sfx.play(key)` at a code event or a `FRAMES` entry for a
+  frame-synced hit. `sfx/ruh_absorb.wav` is a synthesized **placeholder** (replace freely).
 
 ---
 
@@ -1019,17 +1015,26 @@ so a victim can react by attack type — e.g. nasen is stunned by melee but not 
       column from the stay pulse texture) and `res://vfx/status/ground_breaker_stun.tscn`
       (a burst up from the feet).
 
-### Player attacks — `moves.gd` tuning + a spawned `Strike` / `Projectile`
+### Player attacks — an `Action` (`hit` tuning) + a spawned `Strike` / `Projectile`
+
+An **`Action`** (`configs/action.gd`) is what a character performs — typed identity
+(`id`/`name`/`icon`), a `category` + cadence `style`, a `tier`, its `animation`, an optional
+`cooldown`, and — when it deals damage — a **`hit`** (a `StrikeSpec`: delivery `type` + per-segment
+tuning). Actions are pure code-config, one catalog per character (`configs/actions_khalid.gd`),
+reached through **`Actions`**. Presentation is deliberately NOT on the Action: its `animation` is the
+key the particles (`EmittersCharacters`) and sounds (`SfxCharacters`) hang off, so retexturing a move
+never touches its data. (This replaces the old `Move`/`moves.gd`.)
 
 There's **no built-in attack box** any more. Every attack is a **spawned node** that
 carries its own `Hitbox`: a **`Strike`** (`scripts/combat/strike.gd` — a melee slash /
 blast / ground AoE that stays at the body) or a **`Projectile`**
 (`scripts/combat/projectile.gd` — a shot that leaves the body, used by players *and*
 enemies via a `hostile` flag). The `ParticleDirector` fires it on the attack's authored
-frames and feeds it the hit's numbers from **`configs/moves.gd`** — so combat numbers
+frames and feeds it the hit's numbers from the **`Action`'s `hit`** — so combat numbers
 live in one place, in code, never baked in a `.tscn`.
 
-Each move's `tuning` (a dict, or an ARRAY one-per-combo-segment):
+Each action's `hit.segments` (one tuning dict per combo hit — a single-element list for a one-hit
+attack; `hit` is `null` when the effect scene carries its own numbers):
 
 | field | meaning |
 |---|---|
@@ -1043,20 +1048,19 @@ Each move's `tuning` (a dict, or an ARRAY one-per-combo-segment):
 | `buff_time` / `speed_mult` / `invuln` / `buff_effect` | **self-buff special** fields (see below) |
 
 **How a hit reaches the box (and the buff seam):** on each segment/special start the
-player resolves the effective tuning via **`resolve_tuning(move, seg)`** into
-`_active_hit` — *this is where the future item/build system layers its modifiers*
+player resolves the effective tuning via **`resolve_tuning(action, seg)`** (→ `action.segment(seg)`)
+into `_active_hit` — *this is where the future item/build system layers its modifiers*
 (damage ×1.3, +reach, hits twice). When the director arms the attack's `Hitbox` it calls
 `_inject_tuning`, passing `_active_hit` to the node's `apply_tuning()` — which sets
 damage/knockback/stun and, for a `Strike`, resizes the box from `extents`/`x` and fires
-lunge/armor. An **empty** `tuning` means "the effect scene carries its own numbers"
-(finger_guns, whose two shots have different damage one dict can't express).
+lunge/armor. A **null** `hit` (empty `segments`) means "the effect scene carries its own numbers"
+(cherry_shots, whose two shots have different damage one dict can't express — they're per-frame scenes).
 
-- `light` combos stay segment-per-click; each segment resolves its own tuning, so the
-  three rope-dart hits keep different reach + damage. A combo's the Emitters config frames must
+- multi-segment combos stay segment-per-click; each segment resolves its own tuning, so the
+  three spear hits keep different reach + damage. A combo's `Emitters` config frames must
   match its `HIT_FRAMES` (one effect spawn per segment).
-- The move's **`kind`** (`Combat.AttackKind`: MELEE / BLAST / GROUND / PROJECTILE) is
-  descriptive metadata for the future move-select / build UI — it does **not** drive
-  behavior.
+- The hit's **`type`** (`StrikeSpec.Type`: MELEE / PROJECTILE / AOE / BLAST / …) is
+  descriptive metadata for the move-select / build UI — it does **not** drive behavior.
 - **Self-buff specials** (no enemy hitbox): a special whose tuning carries `buff_time`
   turns into a timed buff on the *caster* instead of an attack. `_start_special` calls
   `apply_self_buff`, which grants `buff_time` seconds of `invuln` (the hurtbox stays off —
@@ -1073,7 +1077,7 @@ lunge/armor. An **empty** `tuning` means "the effect scene carries its own numbe
   each its own per-frame file (`attack_cherry_shots_3/_7.tscn`), a red laser `Line2D` bolt
   with its own damage from the tuning array.
 - A character with **no effect scene** for an attack deals no damage (Khalid, for now);
-  a character with an **empty specials pool** (`get_move` returns null) simply can't
+  a character with an **empty specials pool** (`Actions.get_action` returns null) simply can't
   special — the button no-ops.
 
 ### Dash i-frames

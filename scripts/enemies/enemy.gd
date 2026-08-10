@@ -460,53 +460,40 @@ func _start_attack(state: State, anim: StringName, player: Node2D) -> void:
 	_play(anim)
 
 
-## Discover per-frame attack HIT sounds under the enemy's sound folder: `<type>_<sheetframe>.wav`
-## (melee_3.wav, projectile_4.wav, ...). Probed ONCE at spawn with ResourceLoader.exists (export-safe,
-## no folder scan, no warning spam), keyed by anim -> EMITTED frame. The filename number is
-## SHEET-relative (counts the idle frame 0, like every config), converted here via sheet_start.
+## Build this enemy's per-frame HIT sound cues from SfxEnemies.FRAMES[enemy_id], converting the
+## config's SHEET-relative frames to the EMITTED indices the sprite reports. Keyed anim -> {emitted:
+## cue_key}, played in _on_frame_changed. Done once at spawn.
 func _build_frame_sfx() -> void:
 	_frame_sfx = {}
-	var dir := _attack_sfx_dir()
+	var by_anim: Dictionary = SfxEnemies.FRAMES.get(enemy_id, {})
 	var sf := _sprite.sprite_frames
-	for pair in [[&"attack", "melee"], [&"attack_projectile", "projectile"]]:
-		var anim: StringName = pair[0]
-		if not sf.has_animation(anim):
+	for anim in by_anim:
+		var a := StringName(anim)
+		if not sf.has_animation(a):
 			continue
-		var start := AnimMeta.sheet_start(sf, anim)
+		var start := AnimMeta.sheet_start(sf, a)
 		var map := {}
-		for emitted in sf.get_frame_count(anim):
-			var path := "%s%s_%d.wav" % [dir, pair[1], emitted + start]
-			if ResourceLoader.exists(path):
-				map[emitted] = path
-		if not map.is_empty():
-			_frame_sfx[anim] = map
+		for sheet_frame in by_anim[anim]:
+			map[int(sheet_frame) - start] = by_anim[anim][sheet_frame]
+		_frame_sfx[a] = map
 
 
-## This enemy's sound folder, DERIVED from enemy_id -- no per-kit wiring to forget. Just drop files
-## in res://sfx/enemy/<id>/attack/ and they play (see the convention in _play_attack_start_sfx /
-## _build_frame_sfx / _fire_lob). enemy_id is always set (kit `id` or the custom scene's export).
-func _attack_sfx_dir() -> String:
-	return "res://sfx/enemy/%s/attack/" % enemy_id
-
-
-## Play this enemy's attack-START sound for `anim` (`<dir>melee.wav` for the melee anim,
-## `<dir>projectile.wav` for the ranged one), positionally. Silent (no warning) if the file is
-## absent. Shared by the base attack and by subclasses with their own trigger (Nasen's rage).
+## Play this enemy's attack-START cue for `anim` -- key `<enemy_id>.<type>` (type = melee / projectile),
+## resolved by the Sfx service (silent no-op if that enemy has no such cue). Shared by the base attack
+## and by subclasses with their own trigger (Nasen's rage).
 func _play_attack_start_sfx(anim: StringName) -> void:
 	var kind := "melee" if anim == &"attack" else "projectile"
-	var path := _attack_sfx_dir() + kind + ".wav"
-	if ResourceLoader.exists(path):
-		Sfx.play_at(path, global_position)
+	Sfx.play_at("%s.%s" % [enemy_id, kind], global_position)
 
 
-## Play the per-frame HIT sound for the attack anim currently PLAYING, if this frame has one. Keyed
-## by `_sprite.animation` (not state), so it covers melee/ranged AND Nasen's rage (attack anim, RAGE).
+## Play the per-frame HIT cue for the attack anim currently PLAYING, if this frame has one. Keyed by
+## `_sprite.animation`, so it covers melee/ranged AND Nasen's rage (the attack anim under RAGE state).
 func _play_frame_sfx() -> void:
 	if _frame_sfx.is_empty():
 		return
-	var path: String = (_frame_sfx.get(_sprite.animation, {}) as Dictionary).get(_sprite.frame, "")
-	if path != "":
-		Sfx.play_at(path, global_position)
+	var cue: String = (_frame_sfx.get(_sprite.animation, {}) as Dictionary).get(_sprite.frame, "")
+	if cue != "":
+		Sfx.play_at(cue, global_position)
 
 
 func _on_frame_changed() -> void:
@@ -712,11 +699,9 @@ func _fire_lob() -> void:
 	lob.explosion_effect = _vfx_scene("explosion")  # blast look (config); null -> Strike's own flash
 	# detached from us at detonation, so raw pos (no facing mirror)
 	lob.explosion_effect_pos = Emitters.enemy_effect(enemy_id, "explosion").get("pos", Vector2.ZERO)
-	# The delayed POP sound: the lob plays it at the detonation point, not here (see LobProjectile).
-	# Same folder convention -- <id>/attack/projectile_pop.wav. Absent = silent.
-	var pop := _attack_sfx_dir() + "projectile_pop.wav"
-	if ResourceLoader.exists(pop):
-		lob.explosion_sfx = pop
+	# The delayed POP cue -- the lob plays it at the detonation point (see LobProjectile). Key
+	# `<id>.pop` (declare it in SfxEnemies to wire one); the Sfx service no-ops if it's unregistered.
+	lob.explosion_sfx = "%s.pop" % enemy_id
 	var vis := _vfx_scene("projectile")
 	if vis != null:
 		lob.add_child(vis.instantiate())

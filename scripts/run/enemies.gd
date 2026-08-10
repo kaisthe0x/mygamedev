@@ -4,9 +4,8 @@ extends RefCounted
 ## The enemy roster for the run — one named kit per enemy TYPE, referenced by the level/wave
 ## tables in run/levels.gd. A kit is a spawn spec: either an `id` (built from the generic
 ## scenes/enemy.tscn with that enemy_id) or a custom `scene`, plus any Enemy @export overrides
-## (combat tuning). The particle LOOK for each lives in the Emitters config, not here; and its
-## SOUNDS are auto-discovered from res://sfx/enemy/<id>/attack/ by enemy_id (Enemy._attack_sfx_dir) --
-## nothing to wire in the kit, just drop melee.wav / projectile.wav / <type>_<frame>.wav / projectile_pop.wav.
+## (combat tuning). The particle LOOK lives in the Emitters config and the SOUNDS in `SfxEnemies`
+## (keyed by enemy_id) -- neither is wired in the kit here.
 ##
 ## `tier` is design shorthand for wave-building (how many of each to throw): STRONG enemies are
 ## dangerous/high-HP (and pay the most lahm, since lahm = HP); CHIP enemies are fodder. Use it

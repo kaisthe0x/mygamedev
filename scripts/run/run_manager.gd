@@ -251,7 +251,7 @@ func _spawn_group(specs: Array, with_fx: bool) -> void:
 		var enemy := _spawn_enemy(spec["kit"], pos)
 		if enemy != null:
 			enemy.died.connect(_on_enemy_died.bind(enemy))
-			enemy.damaged.connect(_on_enemy_damaged) # Leech reward: heal a fraction of damage dealt
+			enemy.damaged.connect(_on_enemy_damaged.bind(enemy)) # feeds player passive on_hit_dealt (Leech, on-hit procs)
 			if not enemy.optional:
 				_alive += 1 # only required enemies gate the level clear
 
@@ -345,10 +345,10 @@ func _set_time_scale(v: float) -> void:
 
 ## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --
 ## no infinite refill), which is how a level ends: clear every batch and the exit opens.
-## Leech reward: heal the player a fraction of the damage THEY deal to an enemy. No-op at 0%.
-func _on_enemy_damaged(amount: float, source: Node) -> void:
-	if _player != null and source == _player and _player.lifesteal_frac > 0.0:
-		_player.heal(amount * _player.lifesteal_frac)
+## When the player deals damage, feed their passives' on_hit_dealt hook (Leech lifesteal, on-hit procs).
+func _on_enemy_damaged(amount: float, source: Node, enemy: Node) -> void:
+	if _player != null and source == _player:
+		_player.notify_hit_dealt(amount, enemy)
 
 
 func _spawn_next_wave() -> bool:

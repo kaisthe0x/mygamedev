@@ -49,9 +49,9 @@ func open(rewards: Array, door_type := "") -> void:
 		var card := Button.new()
 		card.custom_minimum_size = Vector2(card_w, 150)
 		card.clip_contents = true
-		# Fixed-size icon (from the registry: a swap card names its own via icon_key, else a buff icon)
-		# over the name/desc -- so a large placeholder png can't balloon the card.
-		var tex: Texture2D = Icons.texture(r.get("icon_key", "buff:%s" % r["id"]))
+		# Fixed-size icon over the name/desc (so a large placeholder png can't balloon the card): a swap
+		# card carries its Action's own `icon` PATH; a buff falls back to the buff-id registry icon.
+		var tex: Texture2D = Icons.load_path(r["icon"]) if r.has("icon") else Icons.texture("buff:%s" % r["id"])
 		card.add_child(AttackSelect.card_body(tex, "%s\n\n%s" % [r["name"], r["desc"]], card_w))
 		var id: String = r["id"]
 		card.pressed.connect(func() -> void: _pick(id))

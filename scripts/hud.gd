@@ -304,27 +304,20 @@ func _stats_text() -> String:
 	return "\n".join(lines)
 
 
-func _move_line(label: String, m: Move) -> String:
-	if m == null:
+func _move_line(label: String, a: Action) -> String:
+	if a == null:
 		return "%s: none" % label
-	var kind_name: String = Combat.AttackKind.keys()[m.attack_kind]
-	return "%s: %s [%s] %s  dmg %s" % [label, m.id, kind_name, Loadout.tier_label(m.tier), _dmg(m)]
+	var kind_name: String = StrikeSpec.Type.keys()[a.hit.type] if a.hit != null else "—"
+	return "%s: %s [%s] %s  dmg %s" % [label, a.id, kind_name, Loadout.tier_label(a.tier), _dmg(a)]
 
 
-func _dmg(m: Move) -> String:
-	var t: Variant = m.tuning
-	if t is Array:
-		if (t as Array).is_empty():
-			return "scene"
-		var parts: Array[String] = []
-		for seg: Dictionary in t:
-			parts.append(str(seg.get("damage", 0)))
-		return "/".join(parts)
-	if t is Dictionary:
-		if (t as Dictionary).is_empty():
-			return "scene"
-		return str((t as Dictionary).get("damage", 0))
-	return "?"
+func _dmg(a: Action) -> String:
+	if a.hit == null or a.hit.segments.is_empty():
+		return "scene"
+	var parts: Array[String] = []
+	for seg: Dictionary in a.hit.segments:
+		parts.append(str(seg.get("damage", 0)))
+	return parts[0] if parts.size() == 1 else "/".join(parts)
 
 
 func _yn(b: bool) -> String:

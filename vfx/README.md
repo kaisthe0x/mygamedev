@@ -74,7 +74,7 @@ frames. Adding an effect is a scene + a table row, no code.
    single `CPUParticles2D`/`GPUParticles2D`, a `Node2D` bundling several as one
    composite attack, a `Projectile` (a shot), or a `Strike` (a slash / blast / ground
    AoE). A `Strike`/`Projectile` carries its own `Hitbox`, fed the hit's numbers from
-   `configs/moves.gd` at spawn (see the damage section below) — nothing is baked here.
+   the `Action`'s `hit` (`configs/actions_<char>.gd`) at spawn (see the damage section below) — nothing is baked here.
 
    **How a scene is referenced.** A row names its scene with **`preload("res://…")`** in
    `EmittersCharacters.TABLE` — so it's validated at parse time and resident before the game
@@ -177,14 +177,11 @@ frames. Adding an effect is a scene + a table row, no code.
      base as you tune it. One scene owns the *look*, the JSON owns *how hard it
      hits*. Fork a separate scene only when an effect needs a genuinely different
      look (direction, spread, colour, gravity, rotation), not just more power.
-   - `sfx` — *optional* **per-frame sound**, a `res://` path (or an `Sfx.LIBRARY` key)
-     the director plays **positionally, in sync with the burst** (`Sfx.play_at`). Lets a
-     hit's sound live in the same row as its particle + frame, so it fires exactly when
-     the hit does. Organize the files to mirror this vfx tree — e.g. twin_reaper's five
-     hits use `sfx/character/attack/twin_reaper/twin_reaper_<frame>.wav`. Burst rows only.
-     A row with **only** `sfx` + `frames` and **no `scene`** is an **sfx-only cue** — for an
-     effect-less move (e.g. `special_default`, the flex that just grants Impervious): it plays
-     the sound on those frames and spawns no particles.
+
+   > **Sounds are NOT here.** This config is particles only. Frame-synced hit sounds live in the
+   > parallel **`SfxCharacters.FRAMES`** (same `anim → {frame: cue}` shape, sheet-relative) and are
+   > played by the same director in `_refresh`, symmetrically to the bursts. See the Audio section
+   > in the top-level README.
 
    **Author every effect facing right.** The director mirrors the whole thing
    when the character turns: `pos.x`, and for `CPUParticles2D` also `direction.x`
@@ -198,8 +195,8 @@ frames. Adding an effect is a scene + a table row, no code.
 
 ### Making an attack deal damage — a `Strike`/`Projectile` + its `Hitbox`
 
-An attack effect carries its **own `Hitbox`**, and its **numbers come from
-`configs/moves.gd`** (fed in at spawn), while its **shape/position is authored in the
+An attack effect carries its **own `Hitbox`**, and its **numbers come from the `Action`'s `hit`
+(`configs/actions_<char>.gd`)** (fed in at spawn), while its **shape/position is authored in the
 scene**. Code owns the numbers (clobber-safe, buffable); the editor owns the geometry.
 
 1. Make the effect scene's root a **`Strike`** (`scripts/combat/strike.gd` — a slash /
@@ -209,12 +206,12 @@ scene**. Code owns the numbers (clobber-safe, buffable); the editor owns the geo
    node's `hostile` flag. `attack_chainsaw.tscn` and `special_poison_raiser.tscn` are
    worked examples.
 2. Put the **numbers** (`damage` / `knockback` / `stun` / `color`, and for a `Strike`
-   the `extents`/`x` reach + `lunge`/`super_armor`/`multi_hit`) in the move's `tuning`
-   in **`configs/moves.gd`** — NOT on the `Hitbox`. The player resolves them via
+   the `extents`/`x` reach + `lunge`/`super_armor`/`multi_hit`) in the action's `hit.segments`
+   in **`configs/actions_<char>.gd`** — NOT on the `Hitbox`. The player resolves them via
    `resolve_tuning()` (the buff seam) into `_active_hit`, and the director's
    `_inject_tuning` passes them to the node's `apply_tuning()` when it arms the box. Any
-   value left on the `Hitbox` is a fallback used only when the move's `tuning` omits it
-   (or is empty — the finger-guns case, where two shots carry their own per-shot damage).
+   value left on the `Hitbox` is a fallback used only when the action's `hit` omits it
+   (or is null — the cherry_shots case, where two shots carry their own per-shot damage).
 3. The **`ParticleDirector` arms it**: on spawn it sets `source` and switches the box on
    while the effect is emitting (a `sustained` effect's frames, a `burst`'s life). One
    activation = one hit per target (the `Hitbox` dedupes); `multi_hit` re-arms it. The
@@ -281,16 +278,16 @@ Pick the layer by *what the effect is*:
 | Goal | Add it to | Code? |
 |---|---|---|
 | A **visual** on chosen animation frames (spark, trail, drawn slash) | `EmittersCharacters` (+ a scene under `vfx/character/<id>/…`) | none |
-| A hit's **damage / knockback / reach** | the move's `tuning` in `configs/moves.gd` | none |
+| A hit's **damage / knockback / reach** | the action's `hit.segments` in `configs/actions_<char>.gd` | none |
 | A **thing spawned** on a hit, or custom behavior | a `CharacterAbility` script (`scripts/abilities/`) | small |
 
 1. **Frame-indexed particle (no code).** Make/obtain a scene under
    `vfx/character/<id>/<category>/<name>/<name>.tscn`, then register it in
    the `Emitters` config: `<id> → <animation> → [{type, mode ("sustained"|"burst"),
    frames (sheet-relative), pos ([x,y] from feet, auto-mirrored)}]`. Done.
-2. **Tune the hit (no code).** The move's `tuning` in `configs/moves.gd` — `damage`,
+2. **Tune the hit (no code).** The action's `hit.segments` in `configs/actions_<char>.gd` — `damage`,
    `knockback`, `stun`, and hitbox `x`/`extents` (an array = one entry per combo
-   segment). The effect keys off the move's `animation` name in the `Emitters` config.
+   segment). The effect keys off the action's `animation` name in the `Emitters` config.
 3. **Spawn something / new behavior (a `CharacterAbility`).** Create
    `scripts/abilities/<id>.gd` extending `CharacterAbility` (auto-equipped) and
    override a hook: `on_special_strike(player)` (the moment the special connects),

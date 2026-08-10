@@ -1,14 +1,15 @@
 class_name Icons
 extends RefCounted
 
-## Central ICON registry -- ONE place mapping every attack / special / reward-door / buff to a
-## texture. Everything UI (reward cards, doors, the attack picker, the HUD) asks HERE for its icon,
-## so when real art lands you swap a PATH below and nothing else changes -- no UI refactor.
+## Central ICON registry for things WITHOUT their own icon field -- reward doors + buffs. (Attacks
+## and specials now embed their `icon` PATH on the Action itself; load those with `Icons.load_path`.)
+## Everything UI (reward cards, doors, the HUD) asks HERE for its icon, so when real art lands you swap
+## a PATH below and nothing else changes -- no UI refactor.
 ##
-## Keys are NAMESPACED: "attack:<id>", "special:<id>", "door:<type>", "buff:<id>". Look them up with
-## `Icons.texture(key)` or the typed helpers (`Icons.attack("spear")`, `Icons.door("health")`, ...).
+## Keys are NAMESPACED: "door:<type>", "buff:<id>". Look them up with `Icons.texture(key)` or the typed
+## helpers (`Icons.door("health")`, `Icons.buff("mend")`); an explicit res:// path via `load_path`.
 ## Textures load lazily + cache, so unmapped/unused icons cost nothing and adding one is a single
-## line. Anything missing falls back to FALLBACK (so a new move/buff is never iconless).
+## line. Anything missing falls back to FALLBACK (so a door/buff is never iconless).
 ##
 ## >>> TODO(art): every path below is a TEMPORARY placeholder (reused existing pngs). Replace with
 ## real icons as they're drawn -- one line each, no code changes elsewhere. <<<
@@ -16,18 +17,6 @@ extends RefCounted
 const FALLBACK := "res://vfx/shared/textures/soft_dot.png"
 
 const PATHS := {
-	# --- attacks (run-locked; shown in the attack picker) ---
-	"attack:ora_ora":      "res://vfx/shared/textures/pixel_ember.png",
-	"attack:spear":        "res://vfx/shared/textures/blast1.png",
-	"attack:bakshen":      "res://vfx/shared/impervious/bolt.png",
-	"attack:cherry_shots": "res://vfx/shared/textures/soft_dot.png",
-	"attack:twin_reaper":  "res://vfx/shared/textures/blast1.png",
-
-	# --- specials ---
-	"special:special_default":   "res://vfx/shared/impervious/shield.png",
-	"special:ground_breaker":    "res://vfx/shared/textures/blast1.png",
-	"special:frenemy":              "res://vfx/shared/textures/pixel_ember.png",
-
 	# --- reward DOOR types (one random door per level) ---
 	"door:health":   "res://vfx/shared/textures/soft_dot.png",
 	"door:athletic": "res://vfx/shared/textures/pixel_ember.png",
@@ -60,12 +49,16 @@ static func texture(key: String) -> Texture2D:
 	return tex
 
 
-static func attack(id: String) -> Texture2D:
-	return texture("attack:" + id)
-
-
-static func special(id: String) -> Texture2D:
-	return texture("special:" + id)
+## The texture at an explicit res:// PATH (e.g. an Action's embedded `icon`), cached, with the same
+## missing-file FALLBACK as texture(). Empty / missing path -> FALLBACK, so nothing is ever iconless.
+static func load_path(path: String) -> Texture2D:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		path = FALLBACK
+	if _cache.has(path):
+		return _cache[path]
+	var tex: Texture2D = load(path)
+	_cache[path] = tex
+	return tex
 
 
 static func door(door_type: String) -> Texture2D:
