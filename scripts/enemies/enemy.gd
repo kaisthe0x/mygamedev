@@ -152,6 +152,7 @@ var _has_melee := false
 var _has_ranged := false
 var _has_death := false
 var _has_patrol := false
+var _frame_sfx := {} ## anim -> {emitted_frame: sound path}, built at spawn from the enemy's sound folder
 var _attack_cd := 0.0
 var _attack_fired := false
 var _point_a := 0.0
@@ -205,6 +206,7 @@ func _ready() -> void:
 	_has_ranged = _sprite.sprite_frames.has_animation(&"attack_projectile")
 	_has_death = _sprite.sprite_frames.has_animation(&"death")
 	_has_patrol = _sprite.sprite_frames.has_animation(&"patrol")
+	_build_frame_sfx()
 
 	health = max_health
 	_bar.set_ratio(1.0)
@@ -449,6 +451,7 @@ func _patrol(delta: float) -> void:
 
 func _start_attack(state: State, anim: StringName, player: Node2D) -> void:
 	_set_state(state)
+	_play_attack_start_sfx(anim)
 	velocity.x = 0.0
 	_attack_fired = false
 	_impacted = false
@@ -457,7 +460,57 @@ func _start_attack(state: State, anim: StringName, player: Node2D) -> void:
 	_play(anim)
 
 
+## Discover per-frame attack HIT sounds under the enemy's sound folder: `<type>_<sheetframe>.wav`
+## (melee_3.wav, projectile_4.wav, ...). Probed ONCE at spawn with ResourceLoader.exists (export-safe,
+## no folder scan, no warning spam), keyed by anim -> EMITTED frame. The filename number is
+## SHEET-relative (counts the idle frame 0, like every config), converted here via sheet_start.
+func _build_frame_sfx() -> void:
+	_frame_sfx = {}
+	var dir := _attack_sfx_dir()
+	var sf := _sprite.sprite_frames
+	for pair in [[&"attack", "melee"], [&"attack_projectile", "projectile"]]:
+		var anim: StringName = pair[0]
+		if not sf.has_animation(anim):
+			continue
+		var start := AnimMeta.sheet_start(sf, anim)
+		var map := {}
+		for emitted in sf.get_frame_count(anim):
+			var path := "%s%s_%d.wav" % [dir, pair[1], emitted + start]
+			if ResourceLoader.exists(path):
+				map[emitted] = path
+		if not map.is_empty():
+			_frame_sfx[anim] = map
+
+
+## This enemy's sound folder, DERIVED from enemy_id -- no per-kit wiring to forget. Just drop files
+## in res://sfx/enemy/<id>/attack/ and they play (see the convention in _play_attack_start_sfx /
+## _build_frame_sfx / _fire_lob). enemy_id is always set (kit `id` or the custom scene's export).
+func _attack_sfx_dir() -> String:
+	return "res://sfx/enemy/%s/attack/" % enemy_id
+
+
+## Play this enemy's attack-START sound for `anim` (`<dir>melee.wav` for the melee anim,
+## `<dir>projectile.wav` for the ranged one), positionally. Silent (no warning) if the file is
+## absent. Shared by the base attack and by subclasses with their own trigger (Nasen's rage).
+func _play_attack_start_sfx(anim: StringName) -> void:
+	var kind := "melee" if anim == &"attack" else "projectile"
+	var path := _attack_sfx_dir() + kind + ".wav"
+	if ResourceLoader.exists(path):
+		Sfx.play_at(path, global_position)
+
+
+## Play the per-frame HIT sound for the attack anim currently PLAYING, if this frame has one. Keyed
+## by `_sprite.animation` (not state), so it covers melee/ranged AND Nasen's rage (attack anim, RAGE).
+func _play_frame_sfx() -> void:
+	if _frame_sfx.is_empty():
+		return
+	var path: String = (_frame_sfx.get(_sprite.animation, {}) as Dictionary).get(_sprite.frame, "")
+	if path != "":
+		Sfx.play_at(path, global_position)
+
+
 func _on_frame_changed() -> void:
+	_play_frame_sfx()
 	if _state == State.MELEE and _sprite.frame in _hit_frames(&"attack"):
 		_spawn_melee_strike()
 		_begin_hitstop()
@@ -659,6 +712,11 @@ func _fire_lob() -> void:
 	lob.explosion_effect = _vfx_scene("explosion")  # blast look (config); null -> Strike's own flash
 	# detached from us at detonation, so raw pos (no facing mirror)
 	lob.explosion_effect_pos = Emitters.enemy_effect(enemy_id, "explosion").get("pos", Vector2.ZERO)
+	# The delayed POP sound: the lob plays it at the detonation point, not here (see LobProjectile).
+	# Same folder convention -- <id>/attack/projectile_pop.wav. Absent = silent.
+	var pop := _attack_sfx_dir() + "projectile_pop.wav"
+	if ResourceLoader.exists(pop):
+		lob.explosion_sfx = pop
 	var vis := _vfx_scene("projectile")
 	if vis != null:
 		lob.add_child(vis.instantiate())

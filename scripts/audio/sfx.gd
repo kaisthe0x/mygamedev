@@ -17,6 +17,7 @@ extends Node
 const LIBRARY := {
 	# --- feedback / pickups ---
 	"ruh_absorb": "res://sfx/ruh_absorb.wav",  # a Ruh soul lands on Khalid (placeholder -- replace freely)
+	"level_cleared": "res://sfx/level_cleared.wav",  # last required enemy down, exit opens (RunManager clear beat)
 	# --- combat / enemies ---
 	"enemy_death": "res://sfx/enemy_death.wav",  # any enemy dies (Enemy._die, positional)
 	# --- player movement ---

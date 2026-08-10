@@ -92,6 +92,18 @@ func play(key: String, fade_in := 1.5, volume_db := DEFAULT_VOLUME_DB) -> void:
 	_tween.tween_property(_player, "volume_db", volume_db, fade_in)
 
 
+## Pause the current track, keeping its position (e.g. the between-level lull). `resume()` picks it
+## back up exactly where it left off. Both no-op if nothing is playing / nothing is paused.
+func pause() -> void:
+	if _player.playing:
+		_player.stream_paused = true
+
+
+func resume() -> void:
+	if _player.stream_paused:
+		_player.stream_paused = false
+
+
 ## Fade the current track out over `fade_out` seconds, then stop.
 func stop(fade_out := 1.0) -> void:
 	if not _player.playing:

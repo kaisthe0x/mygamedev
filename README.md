@@ -74,7 +74,10 @@ charges **Ruh** — the special meter, shown in charges (100 each), no decay. Sp
 to go **Impervious** (~10s invincible); every special grants it on top of its own effect (the baseline
 `special_default` is *only* that). **HP is separate**: damage hits it only, heals *only* from rewards.
 Clear every batch → the **reward door** opens (one random type per level: **Health / Athletic / Attack
-/ Special**, each iconned) → **pick one buff** → next level. Attacks are run-locked (only buffed);
+/ Special**, each iconned) → **pick one buff** → next level. The instant the **last required** enemy
+falls and the exit unlocks, a brief **"you did it!" slow-motion** plays (`RunManager._celebrate_clear`
+drops `Engine.time_scale` and ramps it back via a real-time tween) — **optional** enemies (Nasen)
+never trigger it, since only required kills reach the clear. Attacks are run-locked (only buffed);
 specials can be swapped at the Special door. Take 0 HP and the run restarts. All of this — the 5 levels,
 the enemy roster, the reward pools, the attack picker — lives in [`scripts/run/`](scripts/run/README.md)
 (`RunManager` is `level.tscn`'s root; `Levels` / `EnemyKits` / `Rewards` / `Icons` are the data). The `.tscn` stays minimal because the editor
@@ -678,10 +681,12 @@ counterpart to `Icons` (textures) and the `Emitters` config (particles). Files l
 Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/music.gd`), files in
 **`music/`**. It's a single looping track with smooth fades: `Music.play("key")` fades a track in
 (no-op if it's already the current one, so a level restart never restarts the bed — autoloads
-survive scene reloads), `Music.stop()` fades out. `.mp3`/`.ogg`/`.wav` are all force-looped. Register
-tracks in `Music.TRACKS`; the gameplay bed is `"level"` (`music/level.mp3`), faded in from
-`RunManager._ready`. Plays on a `"Music"` bus if present (else Master), keeps going through pause,
-and is a silent no-op until the file exists. Same "drop a file, add one line" workflow as `Sfx`.
+survive scene reloads), `Music.stop()` fades out, and `Music.pause()`/`resume()` freeze/continue the
+track at its position. `.mp3`/`.ogg`/`.wav` are all force-looped. Register tracks in `Music.TRACKS`;
+the gameplay bed is `"level"`, faded in from `RunManager._ready`. On a level clear the bed **pauses**
+(with a `level_cleared` cue) through the between-level lull and **resumes** when the next level builds
+(`_build_level`). Plays on a `"Music"` bus if present (else Master), and is a silent no-op until the
+file exists. Same "drop a file, add one line" workflow as `Sfx`.
 
 - **Add a sound:** drop the file in `sfx/`, add one line to `Sfx.LIBRARY` (`"key":
   "res://sfx/file.wav"`), then call it. That's the whole workflow.
@@ -707,6 +712,21 @@ and is a silent no-op until the file exists. Same "drop a file, add one line" wo
   positional), **`dash`** (`Player` entering `State.DASH`), and the looping **`player_run`**.
   `sfx/ruh_absorb.wav` is a synthesized **placeholder** (replace freely); the source of truth for
   what's wired is always `Sfx.LIBRARY`, not this list.
+- **Organized attack/enemy sounds** live in folders mirroring the vfx tree (no flat `LIBRARY` entry —
+  `Sfx` plays a `res://` path directly). Two conventions: **per-hit** attack/special sounds ride the
+  Emitters `sfx` row field (`sfx/character/attack/<move>/<move>_<frame>.wav`, synced to the burst);
+  **enemy attack** sounds are **auto-discovered by `enemy_id`** — no per-kit wiring — from
+  `sfx/enemy/<id>/attack/` (`Enemy._attack_sfx_dir`). Just drop files in that folder:
+    - `melee.wav` / `projectile.wav` — the attack **start** (melee anim / ranged anim).
+    - `<type>_<sheetframe>.wav` (e.g. `projectile_4.wav`) — a **per-frame** sound when the anim hits
+      that frame; the number is **sheet-relative** (counts the idle frame), probed once at spawn via
+      `ResourceLoader.exists` (export-safe, no folder scan).
+    - `projectile_pop.wav` — a **lob enemy's delayed explosion** (Mazab): the detonation isn't on an
+      animation frame, so the `LobProjectile` plays it at the blast point (`_explode`).
+  Missing files are silently skipped, and it all works for custom-scene enemies too (Nasen's rage
+  routes the same hooks). **The rule going forward: sounds live next to what fires them** — player
+  attack/special hits on the Emitters `sfx` row, enemy attacks in `sfx/enemy/<id>/attack/`, and
+  one-off events (dash, jump, death, level clear) as a direct `Sfx.play`/`play_at` at the event.
 
 ---
 

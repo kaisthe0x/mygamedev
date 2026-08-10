@@ -4,7 +4,9 @@ extends RefCounted
 ## The enemy roster for the run — one named kit per enemy TYPE, referenced by the level/wave
 ## tables in run/levels.gd. A kit is a spawn spec: either an `id` (built from the generic
 ## scenes/enemy.tscn with that enemy_id) or a custom `scene`, plus any Enemy @export overrides
-## (combat tuning). The particle LOOK for each lives in the Emitters config, not here.
+## (combat tuning). The particle LOOK for each lives in the Emitters config, not here; and its
+## SOUNDS are auto-discovered from res://sfx/enemy/<id>/attack/ by enemy_id (Enemy._attack_sfx_dir) --
+## nothing to wire in the kit, just drop melee.wav / projectile.wav / <type>_<frame>.wav / projectile_pop.wav.
 ##
 ## `tier` is design shorthand for wave-building (how many of each to throw): STRONG enemies are
 ## dangerous/high-HP (and pay the most lahm, since lahm = HP); CHIP enemies are fodder. Use it
@@ -31,5 +33,5 @@ const MAZAB := {
 	"ranged_damage": 16.0, "ranged_knockback": 160.0, "ranged_stun": 0.25,
 	"lob_arc_time": 0.9, "lob_dwell": 1.0, "lob_explosion_extents": Vector2(48, 26),
 }
-const NASEN := {"scene": "res://scenes/nasen.tscn", "tier": Tier.STRONG, "optional": true}  # optional: needn't be killed to clear
+const NASEN := {"scene": "res://scenes/nasen.tscn", "tier": Tier.STRONG, "optional": true}  # optional: needn't be killed to clear; rage cue = attack/melee.wav
 const EIN := {"scene": "res://scenes/ein.tscn", "tier": Tier.MID}

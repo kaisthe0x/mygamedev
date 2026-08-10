@@ -25,6 +25,11 @@ const CAM_ZOOM_NORMAL := Vector2(1.5, 1.5)
 const CAM_ZOOM_DEATH := Vector2(2.5, 2.5)
 const CAM_ZOOM_SPAWN := Vector2(2, 2)
 const DEATH_HOLD := 0.7
+## "You did it!" clear beat: a brief slow-motion the moment the LAST REQUIRED enemy falls and the
+## exit opens (optional enemies never trigger it). Slam time down, hold, ramp back to normal.
+const CLEAR_SLOWMO_SCALE := 0.3   ## time scale at the peak of the beat
+const CLEAR_SLOWMO_HOLD := 0.7   ## REAL seconds held slow before ramping back
+const CLEAR_SLOWMO_RAMP := 0.55   ## REAL seconds ramping time back to 1.0
 ## The "soul" that floats from a dead enemy to the player on a Ruh-granting kill (see _spawn_ruh_orb).
 const RUH_ORB := preload("res://vfx/shared/ruh_orb/ruh_orb.tscn")
 
@@ -56,6 +61,7 @@ var _cam_tween: Tween
 
 
 func _ready() -> void:
+	Engine.time_scale = 1.0 # safety: never inherit a slowed clock (e.g. from a clear-beat mid-reload)
 	_add_glow()
 	_build_bg()
 	_build_floor()
@@ -97,6 +103,7 @@ func _physics_process(delta: float) -> void:
 # --- level building ---------------------------------------------------------
 
 func _build_level(index: int) -> void:
+	Music.resume() # reaching a new level un-pauses the bed paused at the previous clear (no-op otherwise)
 	_level_index = clampi(index, 0, Levels.count() - 1)
 	_wave_index = 0
 	_alive = 0
@@ -312,8 +319,28 @@ func _advance_batch() -> void:
 		return
 	if not _spawn_next_wave():
 		_cleared = true # no more batches -> level cleared; the exit opens (see _physics_process)
+		_celebrate_clear() # brief slow-mo "you did it" beat -- ONLY the last required kill reaches here
+		Sfx.play("level_cleared") # the clear cue
+		Music.pause() # go quiet through the between-level lull; resumed when the next level builds
 	elif _alive <= 0:
 		_advance_batch.call_deferred() # that batch had only optional enemies -> straight to the next
+
+
+## The "you did it!" clear beat: slam time down, hold, then ramp back to normal. The tween is set to
+## IGNORE time_scale so it advances in REAL time (otherwise slowing time would slow its own ramp).
+## time_scale is reset to 1.0 on _ready / _restart_run so a slowed frame can never leak into a run.
+func _celebrate_clear() -> void:
+	Engine.time_scale = CLEAR_SLOWMO_SCALE
+	# tween_method (a function call), NOT tween_property on the Engine singleton -- the latter
+	# silently does nothing. set_ignore_time_scale so the ramp runs in real, not slowed, time.
+	var t := create_tween().set_ignore_time_scale(true)
+	t.tween_interval(CLEAR_SLOWMO_HOLD)
+	t.tween_method(_set_time_scale, CLEAR_SLOWMO_SCALE, 1.0, CLEAR_SLOWMO_RAMP) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+func _set_time_scale(v: float) -> void:
+	Engine.time_scale = v
 
 
 ## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --
@@ -365,6 +392,7 @@ func _on_reward_chosen(id: String) -> void:
 ## Wipe the run and start over at level 1 (death or completion). Resets buffs + refills to
 ## 100 HP / empty Ruh via Player.begin_run.
 func _restart_run() -> void:
+	Engine.time_scale = 1.0 # never carry a clear-beat slowdown into the next run
 	# The run is ending (death or completion): bank its cleared count into the record, then reset.
 	SaveData.report_run(_cleared_this_run)
 	_cleared_this_run = 0

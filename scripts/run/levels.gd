@@ -38,7 +38,7 @@ static func _all() -> Array:
 
 static func _build() -> Array:
 	return [
-	# ── 1 · The Shallows ── ease-in: chip fodder + a couple strong. Cheap gate (4 blocks). ──
+	# ── 1 · The Shallows ── gentle intro: ONE batch of 4 (no waves) so a new player clears it fast. ──
 	{
 		"name": "The Shallows",
 		"bg": Color(0.06, 0.10, 0.13),
@@ -50,13 +50,8 @@ static func _build() -> Array:
 			{"kit": EnemyKits.BAGHEL, "pos": Vector2(-40.0, -150.0)},
 			{"kit": EnemyKits.BAGHEL, "pos": Vector2(-150.0, 0.0)},
 			{"kit": EnemyKits.KEBUS, "pos": Vector2(330.0, -110.0)},
-			{"kit": EnemyKits.KEBUS, "pos": Vector2(-300.0, -95.0)},
 		],
-		"waves": [
-			[{"kit": EnemyKits.BAGHEL, "pos": Vector2(-300.0, -95.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(200.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(200.0, -180.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(40.0, -150.0)}],
-			[{"kit": EnemyKits.BAGHEL, "pos": Vector2(0.0, 0.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(300.0, 0.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-300.0, -95.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(330.0, -110.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-100.0, -180.0)}],
-			[{"kit": EnemyKits.KEBUS, "pos": Vector2(-150.0, 0.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(150.0, 0.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(330.0, -110.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -200.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(250.0, -200.0)}],
-		],
+		"waves": [], # intro level: just the 4-enemy start batch -- clear those 4 and the exit opens
 	},
 	# ── 2 · Redward ── more mid enemies, lob throwers. Gate 5 blocks. ───────────────────────
 	{

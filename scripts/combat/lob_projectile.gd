@@ -48,6 +48,10 @@ extends Node2D
 ## Offset of the blast look within the explosion (from the Emitters config). Not facing-mirrored:
 ## the bomb has left its thrower, so its facing is irrelevant here.
 @export var explosion_effect_pos := Vector2.ZERO
+## Sound played (positionally, at the detonation point) when the bomb POPS -- the delayed blast, so
+## it can't ride an attack-animation frame. A res:// path; "" = none. The thrower sets it from its
+## sound folder (`<id>/attack/projectile_pop.wav`).
+@export var explosion_sfx: String = ""
 
 ## Where to AIM the arc (world space). Set by the spawner (enemy: next to the player). It only
 ## shapes the toss -- the bomb lands on a real surface, not here. Vector2.INF = a short toss
@@ -143,6 +147,8 @@ func _land() -> void:
 ## `explosion_effect` look. Same activation pattern as the enemy melee strike / nasen's rage.
 func _explode() -> void:
 	_phase = Phase.SPENT
+	if explosion_sfx != "":
+		Sfx.play_at(explosion_sfx, global_position)  # the delayed POP, at the detonation point
 	var parent := get_parent()
 	if parent == null:
 		queue_free()

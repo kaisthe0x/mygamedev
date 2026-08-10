@@ -57,6 +57,8 @@ func _act(delta: float) -> void:
 ## yell). Each cycle re-arms the AoE (`_attack_fired`/`_impacted`).
 func _start_rage(from_frame := 0) -> void:
 	_set_state(State.RAGE)
+	if from_frame == 0:
+		_play_attack_start_sfx(&"attack")  # the wake/attack cue -- once per rage, not every yell loop
 	_attack_fired = false
 	_impacted = false
 	_replay_from(&"attack", from_frame)  # base helper: skip to `from_frame`, then play to the end
@@ -64,6 +66,7 @@ func _start_rage(from_frame := 0) -> void:
 
 ## Erupt the AoE on the attack's hit frame while raging.
 func _on_frame_changed() -> void:
+	_play_frame_sfx()  # per-frame hit sounds (e.g. a future melee_<frame>.wav) work during rage too
 	if _state == State.RAGE and not _attack_fired and _sprite.frame in _hit_frames(&"attack"):
 		_attack_fired = true
 		_spawn_rage_aoe()
