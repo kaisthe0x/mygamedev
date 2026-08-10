@@ -18,7 +18,7 @@ colors = PackedColorArray(0.6, 0.7, 0.78, 0.8, 0.45, 0.55, 0.62, 0)
 
 [node name="Shards" type="CPUParticles2D" parent="." unique_id=885911861]
 texture_filter = 1
-emitting = false
+emitting = true
 amount = 90
 texture = ExtResource("1_ember")
 lifetime = 0.4
@@ -37,7 +37,7 @@ color_ramp = SubResource("Grad_shard")
 
 [node name="Dust" type="CPUParticles2D" parent="." unique_id=1469187066]
 z_index = -1
-emitting = false
+emitting = true
 amount = 40
 texture = ExtResource("2_dot")
 lifetime = 0.55
