@@ -679,14 +679,15 @@ Sound effects run through one autoload service, **`Sfx`** (`scripts/audio/sfx.gd
 counterpart to `Icons` (textures) and the `Emitters` config (particles). Files live in **`sfx/`**.
 
 Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/music.gd`), files in
-**`music/`**. It's a single looping track with smooth fades: `Music.play("key")` fades a track in
-(no-op if it's already the current one, so a level restart never restarts the bed — autoloads
-survive scene reloads), `Music.stop()` fades out, and `Music.pause()`/`resume()` freeze/continue the
-track at its position. `.mp3`/`.ogg`/`.wav` are all force-looped. Register tracks in `Music.TRACKS`;
-the gameplay bed is `"level"`, faded in from `RunManager._ready`. On a level clear the bed **pauses**
-(with a `level_cleared` cue) through the between-level lull and **resumes** when the next level builds
-(`_build_level`). Plays on a `"Music"` bus if present (else Master), and is a silent no-op until the
-file exists. Same "drop a file, add one line" workflow as `Sfx`.
+**`music/`**. It's a **two-player crossfader**: `Music.play("key")` fades the current track out on one
+player while the new one fades in on the other, **always started from the top** — so switching beds is
+smooth and re-entering a level restarts its music fresh. `Music.stop()` fades to silence;
+`Music.pause()`/`resume()` freeze/continue at position. `.mp3`/`.ogg`/`.wav` are all force-looped.
+Register tracks in `Music.TRACKS`. In the run: the `"level"` bed starts (from the top) on every level
+via `RunManager._build_level`; on a **level clear** it crossfades to the calm **`"base_rest"`** bed
+(with a `level_cleared` cue) while the exit/reward is open, and that **crossfades back out** as the next
+level builds. Plays on a `"Music"` bus if present (else Master), and is a silent no-op until the file
+exists. Same "drop a file, add one line" workflow as `Sfx`.
 
 - **Add a sound:** drop the file in `sfx/`, add one line to `Sfx.LIBRARY` (`"key":
   "res://sfx/file.wav"`), then call it. That's the whole workflow.

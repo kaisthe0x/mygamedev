@@ -182,6 +182,9 @@ frames. Adding an effect is a scene + a table row, no code.
      hit's sound live in the same row as its particle + frame, so it fires exactly when
      the hit does. Organize the files to mirror this vfx tree — e.g. twin_reaper's five
      hits use `sfx/character/attack/twin_reaper/twin_reaper_<frame>.wav`. Burst rows only.
+     A row with **only** `sfx` + `frames` and **no `scene`** is an **sfx-only cue** — for an
+     effect-less move (e.g. `special_default`, the flex that just grants Impervious): it plays
+     the sound on those frames and spawns no particles.
 
    **Author every effect facing right.** The director mirrors the whole thing
    when the character turns: `pos.x`, and for `CPUParticles2D` also `direction.x`

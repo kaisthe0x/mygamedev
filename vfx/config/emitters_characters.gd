@@ -23,7 +23,12 @@ const TABLE := {
 		"double_jump": [ {"scene": preload("res://vfx/character/khalid/jump/default/jump_default.tscn"), "mode": "burst", "pos": Vector2(0, -3)}],
 		"blink_out": [ {"scene": preload("res://vfx/character/khalid/other/blink_out.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
 		"blink_in": [ {"scene": preload("res://vfx/character/khalid/other/blink_in.tscn"), "mode": "burst", "pos": Vector2(0, -18)}],
-		"attack_ora_ora": [ {"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2, 4], "pos": Vector2(23, -22)}],
+		# Ora ora: the flurry's two punch frames (sheet 2 & 4) -- one row each so each punch gets its own
+		# sound (ora_ora_2/_4.wav) in sync with the fist burst. Both fire the same scene.
+		"attack_ora_ora": [
+			{"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [2], "pos": Vector2(23, -22), "sfx": "res://sfx/character/attack/ora_ora/ora_ora_2.wav"},
+			{"scene": preload("res://vfx/character/khalid/attack/ora_ora/attack_ora_ora.tscn"), "mode": "burst", "frames": [4], "pos": Vector2(23, -22), "sfx": "res://sfx/character/attack/ora_ora/ora_ora_4.wav"},
+		],
 		# Bakshen: one big charged slash -- the Strike (its hitbox + red burst) fires on the last frame.
 		"attack_bakshen": [ {"scene": preload("res://vfx/character/khalid/attack/bakshen/attack_bakshen.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(15, -18)}],
 		# Twin Reaper: a 5-hit spinning flurry -- each hit is its OWN scene file (Strike + hitbox +
@@ -54,6 +59,9 @@ const TABLE := {
 		],
 		"special_ground_breaker": [ {"scene": preload("res://vfx/character/khalid/special/ground_breaker/special_ground_breaker.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(0, 0), "clip_to_ground": true}],
 		"special_frenemy": [ {"scene": preload("res://vfx/character/khalid/special/frenemy/special_frenemy.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(40, -20), "sfx": "res://sfx/character/special/frenemy/frenemy.wav"}], # the frenemy blast (+ its sound) fires on the forward-thrust frame
+		# special_default: the baseline "flex" has NO particles -- an SFX-ONLY row (no `scene`) so its cast
+		# sound still rides the Emitters config, fired on the flex frame. See ParticleDirector._fire_burst.
+		"special_default": [ {"mode": "burst", "frames": [2], "pos": Vector2(0, -20), "sfx": "res://sfx/character/special/default/special_default.wav"}],
 		"slam": [
 			{"scene": preload("res://vfx/character/khalid/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},
 			{"scene": preload("res://vfx/character/khalid/slam/default/slam_default.tscn"), "mode": "burst", "frames": [3, 4], "pos": Vector2(0, 0), "clip_to_ground": true},

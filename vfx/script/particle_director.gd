@@ -57,8 +57,8 @@ func set_character(id: String) -> void:
 		var start := _sheet_start(anim)
 		for row: Dictionary in by_anim[anim]:
 			var frames := _frames_for(anim, row.get("frames", []), start)
-			var pos := row["pos"] as Vector2
-			var scene: PackedScene = row["scene"]
+			var pos := row.get("pos", Vector2.ZERO) as Vector2
+			var scene: PackedScene = row.get("scene", null)  # null = an sfx-only row (no particles)
 			var boost: Dictionary = row.get("boost", {})
 			if row.get("mode", "burst") == "sustained":
 				var node := _spawn(scene, row.get("node", ""))
@@ -376,6 +376,10 @@ func fire_effect(anim: String, tilt: float = 0.0) -> void:
 func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	var node := _spawn(b.scene, b.get("node", ""))
 	if node == null:
+		# An sfx-ONLY row (no particle scene, e.g. the effect-less special_default) still fires its
+		# frame-synced sound. Positional, at the same anchor a burst would use.
+		if b.get("sfx", "") != "":
+			Sfx.play_at(b.sfx, global_position + Vector2(b.pos.x * m, b.pos.y))
 		return
 	_apply_overrides(node, b.get("set", {}))
 	# A LobProjectile-rooted effect (a lobbed bomb) is thrown, not stamped: it arcs to the nearest

@@ -86,7 +86,7 @@ var special_radius_mult: float = 1.0 ## Wide Impact: scales special hit radius -
 ## this effect; a reward swaps it for another. Its "Trail" node follows the player, its other nodes
 ## linger/etc (per-node, see ParticleDirector). >>> Flip this to "dash_crimson_vortex" to START with
 ## the vortex and test it without earning it. <<<
-const STARTING_DASH_EFFECT := "dash_crimson_vortex"
+const STARTING_DASH_EFFECT := "dash_default"
 ## The active dash effect this run (swapped by a reward). Reset to STARTING_DASH_EFFECT by begin_run.
 var _dash_effect: String = STARTING_DASH_EFFECT
 

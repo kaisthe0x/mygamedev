@@ -73,7 +73,7 @@ func _ready() -> void:
 	if _camera != null:
 		Nodes.place_at(_camera, _player_spawn + Vector2(0, -30))
 	_choose_attack() # run start: pick the attack that's locked in for this run
-	Music.play("level") # fade the gameplay bed in (no-op if it's already going across a restart)
+	# (level music is started from _build_level -- fresh from the top on every level, incl. the first)
 
 
 func _physics_process(delta: float) -> void:
@@ -103,7 +103,7 @@ func _physics_process(delta: float) -> void:
 # --- level building ---------------------------------------------------------
 
 func _build_level(index: int) -> void:
-	Music.resume() # reaching a new level un-pauses the bed paused at the previous clear (no-op otherwise)
+	Music.play("level") # every level starts its music FRESH from the top (crossfades out the rest bed)
 	_level_index = clampi(index, 0, Levels.count() - 1)
 	_wave_index = 0
 	_alive = 0
@@ -321,7 +321,7 @@ func _advance_batch() -> void:
 		_cleared = true # no more batches -> level cleared; the exit opens (see _physics_process)
 		_celebrate_clear() # brief slow-mo "you did it" beat -- ONLY the last required kill reaches here
 		Sfx.play("level_cleared") # the clear cue
-		Music.pause() # go quiet through the between-level lull; resumed when the next level builds
+		Music.play("base_rest") # swap to the calm rest bed; it crossfades back out when the next level builds
 	elif _alive <= 0:
 		_advance_batch.call_deferred() # that batch had only optional enemies -> straight to the next
 
