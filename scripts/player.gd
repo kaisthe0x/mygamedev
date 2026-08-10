@@ -311,6 +311,10 @@ var _special_cd: float = 0.0
 var _attack_cd: float = 0.0
 ## Small world-space bar over the head that fills as a cooldown attack recharges (hidden otherwise).
 var _cooldown_bar: FloatingHealthBar = null
+## Looping run footsteps -- a dedicated player we OWN (frees with the player, never orphaned as a
+## stuck sound), toggled by the RUN state in _update_animation. Null in-editor / if the file's
+## missing. Created via Sfx.make_loop.
+var _run_sfx: AudioStreamPlayer = null
 ## Anti-strobe timer for the Ruh-absorb reaction: a cluster of souls arriving together folds into
 ## ONE surge instead of restacking (a full-charge soul surges anyway). See on_ruh_absorbed.
 const RUH_FLASH_REFRACTORY := 0.2
@@ -643,6 +647,13 @@ func _build_combat() -> void:
 	_cooldown_bar.position = Vector2(0, -52)
 	_cooldown_bar.visible = false
 	add_child(_cooldown_bar)
+
+	# Looping run footsteps -- owned by us so it frees cleanly and never gets stuck playing. Runtime
+	# only (autoloads/audio don't exist while editing the scene). Toggled in _update_animation.
+	if not Engine.is_editor_hint():
+		_run_sfx = Sfx.make_loop("player_run")
+		if _run_sfx != null:
+			add_child(_run_sfx)
 
 
 ## THE BUFF SEAM. Resolve the effective per-hit tuning of `move`'s combo segment `seg`
@@ -1033,8 +1044,9 @@ func _process_normal(delta: float) -> void:
 		_drop_through_platform()
 	if Input.is_action_just_pressed("jump"):
 		if is_on_floor():
-			velocity.y = jump_velocity # ground jump -- silent, no particles
+			velocity.y = jump_velocity # ground jump -- no particles (air jump gets those)
 			_jump_launch = true
+			Sfx.play("jump")
 		elif _air_jumps_used < max_air_jumps:
 			_air_jump()
 
@@ -1094,6 +1106,7 @@ func _drop_through_platform() -> bool:
 func _air_jump() -> void:
 	velocity.y = jump_velocity
 	_air_jumps_used += 1
+	Sfx.play("jump")
 	# The jump arrests the descent, so fall damage / the land squash should measure only
 	# the NEW fall from here -- not the whole drop since he left the ground. Re-anchor the
 	# apex and clear the peak speed; the rise after this re-raises the apex.
@@ -1318,6 +1331,7 @@ func _slam_release() -> void:
 	_slam_impacting = true
 	_sprite.visible = true
 	_sprite.speed_scale = 1.0
+	Sfx.play("slam")  # ground-impact hit
 	var drop := global_position.y - _slam_start_y # how far we plunged (px)
 	var t := clampf((drop - slam_min_drop) / maxf(slam_max_drop - slam_min_drop, 1.0), 0.0, 1.0)
 	_active_hit = {"damage_scale": lerpf(1.0, slam_max_damage_mult, t) * slam_damage_mult} # Meteor reward
@@ -1441,6 +1455,7 @@ func _enter(state: State) -> void:
 			_dash_left = dash_time
 			_dash_anim_left = maxf(dash_anim_time, dash_time)
 			_dash_cd = dash_cooldown
+			Sfx.play("dash")  # player-centric -- non-positional
 			# Fire this dash's effect at the spot we're leaving (before the lunge/blink moves us). Its
 			# "Trail" follows the player, the rest lingers here (see ParticleDirector). Clear _active_hit
 			# first so a dropped Strike uses its OWN authored damage, not a stale attack's tuning.
@@ -1491,6 +1506,15 @@ func _animation_for(state: State) -> StringName:
 
 func _update_animation(_delta: float) -> void:
 	_sprite.flip_h = _facing < 0
+	# Run-loop footsteps: playing only while the RUN state shows (attacks, dashes, airborne, idle all
+	# silence it). Owned player -> this just gates playback. Null in-editor, so it no-ops there.
+	if _run_sfx != null:
+		var running := _state == State.RUN
+		if running != _run_sfx.playing:
+			if running:
+				_run_sfx.play()
+			else:
+				_run_sfx.stop()
 	var next := _animation_for(_state)
 	if _sprite.animation != next:
 		_sprite.play(next)

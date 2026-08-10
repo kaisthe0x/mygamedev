@@ -739,6 +739,7 @@ func _on_hurt(hit: Hit) -> void:
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
 	_set_state(State.DEAD)  # _physics_process bails on DEAD, so the AI stops here
+	Sfx.play_at("enemy_death", global_position)  # positional -- pans with where it fell
 	died.emit()  # count the kill (RunManager banks Ruh + tracks arena clear)
 	remove_from_group("enemies")  # stop being a homing target NOW -- the death anim/fade below
 	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse

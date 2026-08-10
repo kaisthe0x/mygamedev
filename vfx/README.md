@@ -177,6 +177,11 @@ frames. Adding an effect is a scene + a table row, no code.
      base as you tune it. One scene owns the *look*, the JSON owns *how hard it
      hits*. Fork a separate scene only when an effect needs a genuinely different
      look (direction, spread, colour, gravity, rotation), not just more power.
+   - `sfx` — *optional* **per-frame sound**, a `res://` path (or an `Sfx.LIBRARY` key)
+     the director plays **positionally, in sync with the burst** (`Sfx.play_at`). Lets a
+     hit's sound live in the same row as its particle + frame, so it fires exactly when
+     the hit does. Organize the files to mirror this vfx tree — e.g. twin_reaper's five
+     hits use `sfx/character/attack/twin_reaper/twin_reaper_<frame>.wav`. Burst rows only.
 
    **Author every effect facing right.** The director mirrors the whole thing
    when the character turns: `pos.x`, and for `CPUParticles2D` also `direction.x`

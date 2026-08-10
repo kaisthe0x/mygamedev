@@ -670,24 +670,43 @@ that's the linear-vs-sRGB trap — key it off `khsv`, not `hsv`.
 
 ---
 
-## Audio (SFX)
+## Audio (SFX + Music)
 
 Sound effects run through one autoload service, **`Sfx`** (`scripts/audio/sfx.gd`) — the audio
 counterpart to `Icons` (textures) and the `Emitters` config (particles). Files live in **`sfx/`**.
 
+Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/music.gd`), files in
+**`music/`**. It's a single looping track with smooth fades: `Music.play("key")` fades a track in
+(no-op if it's already the current one, so a level restart never restarts the bed — autoloads
+survive scene reloads), `Music.stop()` fades out. `.mp3`/`.ogg`/`.wav` are all force-looped. Register
+tracks in `Music.TRACKS`; the gameplay bed is `"level"` (`music/level.mp3`), faded in from
+`RunManager._ready`. Plays on a `"Music"` bus if present (else Master), keeps going through pause,
+and is a silent no-op until the file exists. Same "drop a file, add one line" workflow as `Sfx`.
+
 - **Add a sound:** drop the file in `sfx/`, add one line to `Sfx.LIBRARY` (`"key":
   "res://sfx/file.wav"`), then call it. That's the whole workflow.
-- **Play it:** `Sfx.play("key")` for a non-positional one-shot (UI / player-centric feedback);
-  `Sfx.play_at("key", world_pos)` for a positional 2D one (an enemy hit, an explosion). Both take
-  optional `volume_db` / `pitch` and round-robin a pool of players, so overlapping sounds don't
-  cut each other off.
+- **Play a one-shot:** `Sfx.play("key")` (non-positional — UI / player-centric feedback) or
+  `Sfx.play_at("key", world_pos)` (positional 2D — an enemy hit, an explosion). Both take optional
+  `volume_db` / `pitch` and round-robin a pool of players, so overlaps don't cut each other off.
+- **Loop a held sound:** `Sfx.make_loop("key")` returns a dedicated looping `AudioStreamPlayer`
+  (stream forced to `LOOP_FORWARD`) that the **caller parents and owns** — so it frees with its
+  owner and never gets stuck playing — then drives `play()`/`stop()` by state. Used for the run
+  footsteps: the Player owns `_run_sfx` and gates it on the `RUN` state in `_update_animation`.
 - **Missing file = silent no-op** (a `push_warning`, no crash) — so a cue can be wired in code
   before the audio actually lands, exactly like `Icons`' fallback.
-- **Bus:** plays on an `"SFX"` bus if one exists (add it in the editor's Audio panel for separate
-  SFX volume), else falls back to `Master` automatically.
-- First wired cue: **`ruh_absorb`** — fired from `Player.on_ruh_absorbed` when a Ruh soul lands
-  (pitched up a touch on a charge-completing soul). The shipped `sfx/ruh_absorb.wav` is a
-  synthesized **placeholder** — replace it freely; nothing else changes.
+- **Buses & mixing:** the mixer is split **Master → SFX + Music** (`default_bus_layout.tres`), so the
+  two categories have independent volume + effects; `Sfx`/`Music` players auto-route to their bus.
+  Control them at runtime with **`AudioBus`** (`scripts/audio/audio_bus.gd`) or the convenience
+  wrappers **`Sfx.set_volume(0..1)`** / **`Music.set_volume(0..1)`** (+ `set_muted`) — bind a settings
+  slider straight to those. **Effects** (EQ to tweak frequencies, low/high-pass filters, reverb,
+  compressor, …) go on a bus: author them in the editor's **Audio panel** (bottom dock) for anything
+  permanent, or add/tweak them live from code (`AudioBus.add_effect(&"SFX", AudioEffectEQ.new())`,
+  `AudioBus.get_effect`/`set_effect_enabled`) for dynamic changes (an underwater muffle, boss-room
+  reverb). Music also has its own per-track fade envelope on top of its bus volume.
+- Wired cues so far: **`ruh_absorb`** (`Player.on_ruh_absorbed`), **`enemy_death`** (`Enemy._die`,
+  positional), **`dash`** (`Player` entering `State.DASH`), and the looping **`player_run`**.
+  `sfx/ruh_absorb.wav` is a synthesized **placeholder** (replace freely); the source of truth for
+  what's wired is always `Sfx.LIBRARY`, not this list.
 
 ---
 

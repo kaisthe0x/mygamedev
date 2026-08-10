@@ -15,21 +15,21 @@ point_count = 3
 offsets = PackedFloat32Array(0, 0.64117646, 1)
 colors = PackedColorArray(1.5999943, 0.09894938, 0.14201215, 1, 0.9996026, 0.88233304, 0.8628773, 1, 0.3, 0.03, 0.03, 0)
 
-[node name="Reaper7" type="Node2D"]
+[node name="Reaper7" type="Node2D" unique_id=1300743878]
 script = ExtResource("1_strike")
 lifetime = 0.28
 
-[node name="Hitbox" type="Area2D" parent="."]
+[node name="Hitbox" type="Area2D" parent="." unique_id=26628819]
 position = Vector2(-44, -1)
 collision_layer = 32
 collision_mask = 16
 script = ExtResource("2_hb")
 
-[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1070821883]
 position = Vector2(15.75, 3)
 shape = SubResource("box_big")
 
-[node name="Particles" type="CPUParticles2D" parent="."]
+[node name="Particles" type="CPUParticles2D" parent="." unique_id=955216432]
 texture_filter = 1
 position = Vector2(-13, -1)
 rotation = 0.025949448
@@ -49,7 +49,7 @@ scale_amount_curve = SubResource("curve_shrink")
 color = Color(1, 0.25676844, 0.2285957, 1)
 color_ramp = SubResource("grad_white")
 
-[node name="Particles2" type="CPUParticles2D" parent="."]
+[node name="Particles2" type="CPUParticles2D" parent="." unique_id=348334995]
 texture_filter = 1
 position = Vector2(-12, 2)
 rotation = 3.1043377
@@ -69,7 +69,7 @@ scale_amount_curve = SubResource("curve_shrink")
 color = Color(1, 0.25676844, 0.2285957, 1)
 color_ramp = SubResource("grad_white")
 
-[node name="Particles3" type="CPUParticles2D" parent="."]
+[node name="Particles3" type="CPUParticles2D" parent="." unique_id=408436090]
 texture_filter = 1
 position = Vector2(-24, 2)
 rotation = 4.7919526

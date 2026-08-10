@@ -67,6 +67,7 @@ func _ready() -> void:
 	if _camera != null:
 		Nodes.place_at(_camera, _player_spawn + Vector2(0, -30))
 	_choose_attack() # run start: pick the attack that's locked in for this run
+	Music.play("level") # fade the gameplay bed in (no-op if it's already going across a restart)
 
 
 func _physics_process(delta: float) -> void:

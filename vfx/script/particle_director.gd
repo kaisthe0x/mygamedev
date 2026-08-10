@@ -82,6 +82,7 @@ func set_character(id: String) -> void:
 					"anim": anim, "frames": frames, "pos": pos, "scene": scene,
 					"node": row.get("node", ""), "set": row.get("set", {}),
 					"boost": boost, "clip_to_ground": row.get("clip_to_ground", false),
+					"sfx": row.get("sfx", ""),  # optional per-frame sound, played in sync with the burst
 				})
 	_refresh()
 
@@ -412,6 +413,8 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	else:
 		add_child(node)
 	Nodes.place_at(node, target)  # snap to the strike point without interpolation smear
+	if b.get("sfx", "") != "":
+		Sfx.play_at(b.sfx, target)  # optional per-frame hit sound, in sync with this burst
 	var hitboxes := _hitboxes_of(node)
 	# Keep a ground blast from spilling past the platform edge into open air: clip
 	# its emission band and hitbox to the surface underfoot before it fires.

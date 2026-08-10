@@ -30,13 +30,15 @@ const TABLE := {
 		# particles), named attack_twin_reaper_<sheetframe>.tscn so the filename tells you which frame it
 		# fires on. One row per file, no "node" key -> the whole file fires. This split (vs one bundled
 		# palette) means each hit's particles edit in isolation -- open the _N file alone, no soup. Frames
-		# still live here in Phase 1; a later generator can infer them from the filenames.
+		# still live here in Phase 1; a later generator can infer them from the filenames. Each row also
+		# carries an `sfx` (a per-hit sound, organized in sfx/ to mirror this vfx tree) the director plays
+		# positionally in sync with the burst -- see ParticleDirector._fire_burst.
 		"attack_twin_reaper": [
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_3.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_4.tscn"), "mode": "burst", "frames": [4], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_6.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_7.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(14, -18)},
-			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_3.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_3.wav"},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_4.tscn"), "mode": "burst", "frames": [4], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_4.wav"},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_6.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_6.wav"},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_7.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_7.wav"},
+			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(14, -18), "sfx": "res://sfx/character/attack/twin_reaper/twin_reaper_9.wav"},
 		],
 		# Cherry Shots: two laser Projectiles, each its own file (see the twin_reaper split note) --
 		# attack_cherry_shots_3.tscn launches the small bolt on frame 3, _7 the big one on frame 7.
