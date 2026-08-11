@@ -349,11 +349,12 @@ func _set_time_scale(v: float) -> void:
 ## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --
 ## no infinite refill), which is how a level ends: clear every batch and the exit opens.
 ## When the player deals damage: feed their passives' on_hit_dealt hook (Leech lifesteal, on-hit procs)
-## and pop a floating damage number over the enemy (world-space, in the content layer with the enemies).
+## and pop a floating damage number over the enemy (a FloatingText label, parented to the enemy).
 func _on_enemy_damaged(amount: float, source: Node, enemy: Enemy) -> void:
 	if _player != null and source == _player:
 		_player.notify_hit_dealt(amount, enemy)
-		DamageNumber.spawn(enemy, DAMAGE_NUMBER_OFFSET, amount, enemy.last_hit_from_special)
+		var kind := "damage_special" if enemy.last_hit_from_special else "damage"
+		FloatingText.emit(kind, enemy, DAMAGE_NUMBER_OFFSET, str(roundi(amount)), amount)
 
 
 func _spawn_next_wave() -> bool:

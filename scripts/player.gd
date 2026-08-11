@@ -281,6 +281,8 @@ var _parry_left: float = 0.0
 @export var shield_time: float = 1.2          ## seconds the shield keeps BLOCKING after a cast (refreshed while held)
 @export var parry_window: float = 0.25        ## seconds after RAISING the shield in which a block also REFLECTS (perfect parry)
 @export var shield_reflect_mult: float = 1.0  ## reflected (parried) damage = incoming × this (0 = never reflect)
+## Where the "Perfect!" parry callout (a FloatingText) spawns, local to Khalid (above his head).
+const PARRY_TEXT_OFFSET := Vector2(0, -30)
 ## Countdown until the next special can fire (SPECIAL_COOLDOWN), so specials can't be spammed.
 var _special_cd: float = 0.0
 ## Countdown until the CURRENT attack can fire again -- only for a cooldown attack (Action.cooldown
@@ -727,6 +729,7 @@ func _on_hurt(hit: Hit) -> void:
 					back.source = self # credited to the player, so a reflect kill still banks Ruh
 					(hit.source as Enemy).apply_hit(back)
 				Sfx.play("redere_shield_parry") # perfect-parry cue (missing file = silent)
+				FloatingText.emit("perfect", self, PARRY_TEXT_OFFSET, "Perfect!") # a gold callout over Khalid's head
 			else:
 				Sfx.play("redere_shield_block") # standard block cue
 			flash(_sprite) # block flash -- no damage taken (reflected or not)

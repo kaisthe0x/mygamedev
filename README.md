@@ -32,7 +32,7 @@ scenes/               player, level, hud
 scripts/              player, hud
 scripts/run/          the roguelite run: levels, batches, Ruh, reward doors, attack picker (see scripts/run/README.md)
 scripts/abilities/    Passive base + per-character abilities + reward passives, named <id>.gd
-scripts/combat/       Hurtbox, hitbox, combatant base, health bar, floating damage numbers (constants -> configs/combat.gd)
+scripts/combat/       Hurtbox, hitbox, combatant base, health bar, floating text (damage numbers, callouts) (constants -> configs/combat.gd)
 scripts/enemies/      Enemy base + projectile
 sprites/characters/   Source pixel-art sheets, one folder per character
 sprites/enemies/      Source enemy sheets, one folder per enemy
@@ -871,14 +871,18 @@ to hand-wire. Key traits:
   **colour-coded by fill** — green when healthy, orange as it drops, red when low
   (`FloatingHealthBar.ratio_colors`; the thresholds/colours live in one place,
   `color_for_ratio`, so the HUD player HP bar reads from the exact same bands).
-- **Floating damage numbers** (`scripts/combat/damage_number.gd`, Risk-of-Rain style): every hit the
-  player lands pops a number that scales/colours by magnitude (white → hot gold; magenta for a
-  special) and floats up + fades. Spawned off the existing `enemy.damaged` signal in
-  `RunManager._on_enemy_damaged`, **parented to the enemy** and animated (an explicit per-frame lerp,
-  no Tween) in the enemy's *local* space — so it rides above the enemy's head, immune to both the
-  camera chasing the player and the enemy's own knockback/patrol (the two things that dragged
-  world-space / screen-space versions across the screen). All feel is `DamageNumber` exports. One per
-  hit, so a flurry throws up a cascade.
+- **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
+  label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude)`. It parents the label to
+  the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it
+  rides above a moving enemy/player and is immune to both the camera chasing the player and the host's
+  own knockback/patrol (the two things that dragged world-space / screen-space versions across the
+  screen). **Every label TYPE is a preset** in [`configs/floating_text_types.gd`](configs/floating_text_types.gd) —
+  its own size/colour (fixed or magnitude-ramped), font, and independent in/out transition — so a
+  **`damage`** number (white → hot gold; `damage_special` = magenta) and a **`perfect`** parry callout
+  ("Perfect!", gold, fades in slower) read and animate differently with no code change. Damage numbers
+  are just `FloatingText.emit("damage"/"damage_special", enemy, …, amount)` off the `enemy.damaged`
+  signal in `RunManager._on_enemy_damaged`; the perfect-parry callout is `emit("perfect", …)` in
+  `Player._on_hurt`. Add a label type = add a row to the preset table.
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
   hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
   plays that animation once and **vanishes the instant it finishes** (`_on_anim_finished` →
