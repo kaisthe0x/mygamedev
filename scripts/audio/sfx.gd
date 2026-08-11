@@ -93,6 +93,19 @@ func play(key: String, volume_db := 0.0, pitch := 1.0) -> void:
 	pl.play()
 
 
+## Fire ONE random variant from `keys` -- so a repeated event (a hurt grunt) doesn't make the same
+## noise every time. Skips unregistered / missing-file keys, so dropping only 2 of 3 variant files
+## still works cleanly (the missing one is never picked). No-op if none resolve.
+func play_random(keys: Array, volume_db := 0.0, pitch := 1.0) -> void:
+	var valid: Array = []
+	for k in keys:
+		if _stream(String(k)) != null:
+			valid.append(k)
+	if valid.is_empty():
+		return
+	play(String(valid[randi() % valid.size()]), volume_db, pitch)
+
+
 ## Create a dedicated LOOPING player for `key` (stream forced to loop, on the SFX bus). It is NOT
 ## added to the tree -- the CALLER parents it (so it frees with its owner, never orphaned as a
 ## stuck sound) and drives play()/stop() by state, e.g. a footstep loop while grounded + moving.

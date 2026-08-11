@@ -46,6 +46,7 @@ CHARACTER_ANIMS = {
     "special": (10.0, False),
     "death": (10.0, False),  # plays once on death, then holds the last (dead) frame
     "spawn": (10.0, False),  # plays once when the character (re)spawns, then hands to idle
+    "hurt": (12.0, False),  # brief flinch played while staggered by a hit (player HURT state)
 }
 ENEMY_ANIMS = {
     "idle": (6.0, True),
@@ -126,6 +127,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     ("khalid", "special_redere_shield"): {"fps": 9.0, "hold_last": 2.0},
     ("khalid", "special_redere_frisbee"): {"fps": 11.0, "hold_last": 2.0},
     ("khalid", "death"): {"fps": 7.0},
+    # Hurt flinch: slower than the 12fps default + a lingering recoil so the 3-frame
+    # reaction reads (the Player holds HURT at least this long, not cut short by a brief stagger).
+    ("khalid", "hurt"): {"fps": 10.0, "hold_last": 1.6},
     # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
     # plays only once. Enemy.gd honours loop_from for a re-played attack (see _replay_from).

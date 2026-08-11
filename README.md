@@ -424,8 +424,11 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
 - **Come Closer** — a magnet: the `special_come_closer` effect scene (`scripts/combat/magnet_field.gd`) grabs
   enemies in range and `Enemy.magnetize()`s them toward Khalid, stunning each on arrival (no damage). Tune the
   pull on the field scene.
-- **Redere Shield** — a guard: casting a `"shield"`-tagged special opens `Player._shield_left`, a window that
-  **blocks** all damage and **reflects** it to the attacker (`_on_hurt` → `Enemy.apply_hit`). Tune `shield_time` /
+- **Redere Shield** — a held guard: the block is *state-based* — active only while Khalid is in the shield
+  special (`Player._is_shielding()`), so it drops the instant he releases or is staggered (no lingering timer,
+  so a hit taken right after the guard is down lands — and sounds — normally). It **blocks** all front-side
+  damage; a hit caught in the brief `parry_window` right after the raise is a **perfect parry** that reflects
+  to the attacker (`_on_hurt` → `Enemy.apply_hit`) — just holding only blocks. Tune `parry_window` /
   `shield_reflect_mult` on the Player.
 - **Redere Frisbee** — the *upgraded* shield: throws it as a `Projectile` (fed the Action's `hit`). A conditional
   reward that swaps in once Redere Shield is equipped — the special-side twin of Dual Executioner.
@@ -560,6 +563,18 @@ special grants), `begin_run()`, `is_dead()`, `death_complete()`, `spawn()`, `set
 `portrait_path()`, and the `health_changed` / `ruh_changed` / `character_changed` signals. Ruh fills
 by killing (no decay) and is spent to cast a special; it never shields HP. (Enemies deal real damage;
 a lethal hit runs the full death lifecycle — see **Death** / **Spawn** below.)
+
+**Getting hit.** A landed hit (past the shield/super-armor/death guards) drops Khalid into a brief `HURT`
+state that plays his `hurt` flinch animation, then hands back to idle/run. **Flinch policy** is a toggle,
+`flinch_on_all_damage` on the Player (default **on**): on = react to *every* hit; off = only hits that
+**stagger** (knockback > 0 — mazab/ein/nasen) flinch, while no-knockback chip/ranged hits (baghel, kebus,
+which carry `knockback 0 + stun 0`) just deal damage + a grunt. The state is held for `max(stagger,
+hurt-anim length)` so a tiny or zero stagger never cuts the flinch off. A fresh hit **while already
+flinching** (a barrage / multiple enemies) only *extends* it — it does **not** restart the anim at frame 0,
+or a continuous pummel would freeze it on the first frame and never visibly play. One smooth flinch plays
+and holds until the barrage ends. (Per-enemy knockback/stun live in [`scripts/run/enemies.gd`](scripts/run/enemies.gd).) `take_damage()` also fires one of a few random hurt grunts (`hurt.1/2/3`, pitch-wobbled)
+so he doesn't repeat. A character with no `hurt` sheet falls back to the old idle-during-stagger look. The
+shield's block/parry is a separate feedback (a `_shake` sprite vibrate, not a state) — see **Redere Shield**.
 
 ---
 
@@ -877,12 +892,12 @@ to hand-wire. Key traits:
   rides above a moving enemy/player and is immune to both the camera chasing the player and the host's
   own knockback/patrol (the two things that dragged world-space / screen-space versions across the
   screen). **Every label TYPE is a preset** in [`configs/floating_text_types.gd`](configs/floating_text_types.gd) —
-  its own size/colour (fixed or magnitude-ramped), font, and independent in/out transition — so a
-  **`damage`** number (white → hot gold; `damage_special` = magenta) and a **`perfect`** parry callout
-  ("Perfect!", gold, fades in slower) read and animate differently with no code change. Damage numbers
-  are just `FloatingText.emit("damage"/"damage_special", enemy, …, amount)` off the `enemy.damaged`
-  signal in `RunManager._on_enemy_damaged`; the perfect-parry callout is `emit("perfect", …)` in
-  `Player._on_hurt`. Add a label type = add a row to the preset table.
+  its own size/colour (fixed or magnitude-ramped), font, `italic` slant, and independent in/out
+  transition — so different events read and animate distinctly with no code change. The only live type
+  today is the **`damage`** number (white → hot gold; `damage_special` = magenta), emitted as
+  `FloatingText.emit("damage"/"damage_special", enemy, …, amount)` off the `enemy.damaged` signal in
+  `RunManager._on_enemy_damaged`. Add a label type = add a row to the preset table (the file keeps a
+  commented word-callout example — a parry "Nice", a "LEVEL UP" — for when one's wanted).
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
   hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
   plays that animation once and **vanishes the instant it finishes** (`_on_anim_finished` →

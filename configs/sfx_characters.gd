@@ -19,6 +19,11 @@ const CUES := {
 	"slam": "res://sfx/character/slam.wav",
 	"run": "res://sfx/character/run.wav", # looping footsteps (Sfx.make_loop)
 	"ruh_absorb": "res://sfx/character/ruh_absorb.wav", # a Ruh soul lands on Khalid
+	# Hurt grunts -- one is picked at RANDOM per hit (Sfx.play_random in Player.take_damage) so he doesn't
+	# repeat. Drop 2-3 files here; a missing one is just never picked (so 2 works fine, 3 gives more variety).
+	"hurt.1": "res://sfx/character/hurt/hurt_1.wav",
+	"hurt.2": "res://sfx/character/hurt/hurt_2.wav",
+	"hurt.3": "res://sfx/character/hurt/hurt_3.wav",
 	# --- attack / special HITS (played by the director on the FRAMES below) ---
 	"twin_reaper.3": "res://sfx/character/attack/twin_reaper/twin_reaper_3.wav",
 	"twin_reaper.4": "res://sfx/character/attack/twin_reaper/twin_reaper_4.wav",

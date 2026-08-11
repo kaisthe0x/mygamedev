@@ -100,7 +100,7 @@ const SPECIALS := {
 	# Redere Shield: a HELD guard -- hold the special button to keep it up. BLOCKS all front-side damage
 	# (open from behind); a hit taken in the brief PARRY window right after RAISING it is reflected (a
 	# perfect parry), but just holding only blocks. No `hit`; player-side (the "shield"/"held" tags drive
-	# _start_special / _process_special / _on_hurt). Tune on the Player (shield_time / parry_window / shield_reflect_mult).
+	# _start_special / _process_special / _on_hurt). Tune on the Player (parry_window / shield_reflect_mult).
 	"redere_shield": {
 		"name": "Shield", "icon": "res://vfx/shared/impervious/shield.png", "tier": "elite", "tags": ["shield", "held"],
 	},
@@ -138,5 +138,5 @@ const MOVEMENTS := {
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "come_closer"
+const DEFAULT_SPECIAL := "redere_shield"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

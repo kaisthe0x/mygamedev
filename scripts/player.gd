@@ -102,7 +102,9 @@ func begin_run() -> void:
 	_dead = false
 	_death_finished = false
 	_end_special_invuln() # drop any active special invuln + aura on run restart
-	_shield_left = 0.0
+	_shake_left = 0.0
+	if _sprite != null:
+		_sprite.position = Vector2.ZERO
 	_parry_left = 0.0
 	damage_mult = 1.0
 	run_mult = 1.0
@@ -173,7 +175,7 @@ var land_predict_distance: float = 22.0 ## px above ground the LAND anim starts 
 ## (~34°). The puff leans opposite to horizontal travel; 0 = straight down. Tune to taste.
 const DOUBLE_JUMP_LEAN := 0.6
 
-enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPAWN}
+enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPAWN, HURT}
 
 var _state: State = State.IDLE
 var _facing: int = 1
@@ -271,18 +273,25 @@ var _special_invuln_left: float = 0.0
 var special_invuln_bonus: float = 0.0
 ## The red aura VFX shown while invuln (freed on expiry), or null.
 var _special_aura: Node2D = null
-## SHIELD (Redere Shield special): while `_shield_left` > 0 the player BLOCKS all front-side damage (no
-## reflect). `_parry_left` is a SHORT window opened ONLY at the moment the shield is raised (the cast) --
-## a hit blocked while it's still > 0 is a PERFECT PARRY and gets reflected at the attacker. So just
-## HOLDING the guard blocks; timing the raise right before a hit lands reflects. The hurtbox stays ACTIVE
-## (unlike the pass-through invuln) so hits reach _on_hurt. Both reset by begin_run. Tune with the exports.
-var _shield_left: float = 0.0
+## SHIELD (Redere Shield special): the player BLOCKS all front-side damage WHILE the shield special is
+## up (see _is_shielding -- no lingering timer, so a hit after it drops lands normally). `_parry_left`
+## is a SHORT window opened ONLY at the raise (cast): a hit blocked while it's still > 0 is a PERFECT
+## PARRY and gets reflected. So just HOLDING the guard blocks; timing the raise right before a hit
+## reflects. The hurtbox stays ACTIVE (unlike the pass-through invuln) so hits reach _on_hurt.
 var _parry_left: float = 0.0
-@export var shield_time: float = 1.2          ## seconds the shield keeps BLOCKING after a cast (refreshed while held)
 @export var parry_window: float = 0.25        ## seconds after RAISING the shield in which a block also REFLECTS (perfect parry)
 @export var shield_reflect_mult: float = 1.0  ## reflected (parried) damage = incoming × this (0 = never reflect)
-## Where the "Perfect!" parry callout (a FloatingText) spawns, local to Khalid (above his head).
-const PARRY_TEXT_OFFSET := Vector2(0, -30)
+## Sprite VIBRATE when the shield takes a hit (a blocked/parried impact): a quick decaying jitter of
+## _sprite.position. `_shake_left`/`_shake_dur` drive it in _physics_process; reset by begin_run.
+var _shake_left: float = 0.0
+var _shake_dur: float = 0.0
+var _shake_amp: float = 0.0                   ## amplitude of the CURRENT shake (set by _shake())
+@export var shield_shake_amp: float = 4.0    ## px the sprite jitters on a shield hit
+@export var shield_shake_time: float = 0.18  ## seconds the shield vibration lasts (decays to 0)
+## FLINCH POLICY. true = Khalid plays the HURT flinch on ANY hit that lands. false = he only flinches on
+## hits that STAGGER him (knockback > 0, e.g. mazab/ein/nasen) -- chip/ranged hits with no knockback
+## (baghel, kebus) then just deal damage + a grunt, no anim interrupt. Toggle in the inspector or here.
+@export var flinch_on_all_damage: bool = true
 ## Countdown until the next special can fire (SPECIAL_COOLDOWN), so specials can't be spammed.
 var _special_cd: float = 0.0
 ## Countdown until the CURRENT attack can fire again -- only for a cooldown attack (Action.cooldown
@@ -530,6 +539,21 @@ func has_anim(anim: StringName) -> bool:
 	return _sprite != null and _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(anim)
 
 
+## Total play time (seconds) of a one-shot animation -- the sum of each frame's real duration (frames
+## carry a relative length, so hold_last / FRAME_DURATIONS are honoured), or 0 if it doesn't exist.
+func _anim_duration(anim: StringName) -> float:
+	if not has_anim(anim):
+		return 0.0
+	var sf := _sprite.sprite_frames
+	var fps := sf.get_animation_speed(anim)
+	if fps <= 0.0:
+		return 0.0
+	var total := 0.0
+	for i in sf.get_frame_count(anim):
+		total += sf.get_frame_duration(anim, i) / fps
+	return total
+
+
 ## Switch the active attack or special to `id` -- one of Actions.ids(character, kind).
 ## `kind` is "attacks" or "specials". This is the hook a future move-select UI calls;
 ## until then the character's catalog defaults are used. An unknown id falls back to
@@ -584,9 +608,23 @@ func portrait_path() -> String:
 ## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
 	health -= amount * damage_taken_mult # Thick Hide reward reduces this
-	flash(_sprite)
+	# Damage feedback: one of a few random hurt grunts (so he doesn't make the same noise every time),
+	# pitch-wobbled for variety. The visible flinch is the HURT animation, played from _on_hurt when a
+	# hit actually staggers him (a bare HP tick -- e.g. a future DoT -- just grunts, no anim interrupt).
+	Sfx.play_random(["hurt.1", "hurt.2", "hurt.3"], 0.0, randf_range(0.95, 1.06))
 	if health <= 0.0 and not _dead:
 		_die()
+
+
+## Start a sprite SHAKE: `amp` px of decaying random jitter over `time` seconds (applied in
+## _physics_process, snapped back to centre when done). A non-colour hit tell -- reused by the hurt
+## flinch and the shield-hit vibrate. A stronger/fresh shake overrides a weaker one still in progress.
+func _shake(amp: float, time: float) -> void:
+	if time <= 0.0:
+		return
+	_shake_amp = amp
+	_shake_dur = time
+	_shake_left = time
 
 
 ## Restore HP (capped at max_health). The ONLY way to heal -- rewards call this. Never from Ruh.
@@ -710,12 +748,21 @@ func active_hit() -> Dictionary:
 	return _active_hit
 
 
+## True only while a shield-tagged special is actually up -- i.e. we're IN the SPECIAL state running
+## that special. State-based (not a timer), so the guard drops the instant the state exits: releasing
+## the button (-> IDLE) or being staggered from behind. A hit AFTER that lands as a normal hit, so the
+## block cue never plays with the shield down. `_parry_left` (the reflect window) is only checked
+## inside this gate, so it can't fire outside a shield either.
+func _is_shielding() -> bool:
+	return _state == State.SPECIAL and _current_special != null and _current_special.tags.has("shield")
+
+
 ## Take a hit: damage, optional shove, optional freeze/overlay.
 ## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
 func _on_hurt(hit: Hit) -> void:
 	# SHIELD (Redere Shield): block hits from the FRONT (the facing side) entirely and reflect them at
 	# the attacker (a parry) -- but it's OPEN from behind, so a hit from the back side lands normally.
-	if _shield_left > 0.0:
+	if _is_shielding():
 		var from_behind := hit.source is Node2D \
 			and int(signf((hit.source as Node2D).global_position.x - global_position.x)) == -_facing
 		if not from_behind:
@@ -729,10 +776,10 @@ func _on_hurt(hit: Hit) -> void:
 					back.source = self # credited to the player, so a reflect kill still banks Ruh
 					(hit.source as Enemy).apply_hit(back)
 				Sfx.play("redere_shield_parry") # perfect-parry cue (missing file = silent)
-				FloatingText.emit("perfect", self, PARRY_TEXT_OFFSET, "Perfect!") # a gold callout over Khalid's head
 			else:
 				Sfx.play("redere_shield_block") # standard block cue
 			flash(_sprite) # block flash -- no damage taken (reflected or not)
+			_shake(shield_shake_amp, shield_shake_time) # VIBRATE: the guard rattles from the impact
 			return
 		# hit from behind -> falls through and lands as a normal hit
 	take_damage(hit.amount)
@@ -752,14 +799,24 @@ func _on_hurt(hit: Hit) -> void:
 	# interrupted (a Strike granted it via set_armor from its tuning).
 	if _armor_left > 0.0:
 		return
-	var stagger := apply_knockback(hit, _facing) # shove + how long to stagger
-	if stagger > 0.0:
-		_stun_left = stagger
-		_state = State.IDLE
-		# A stagger interrupts any swing -- clear ALL of its flags, or they leak into the new
-		# state. `_flurry` especially: left true, it never gets cleared (that only happens inside
-		# _process_attack, which no longer runs), so _advance_combo's `if not _flurry` guard blocks
-		# ora-ora forever after a hit lands mid-flurry.
+	var stagger := apply_knockback(hit, _facing) # shove (may be 0 -- e.g. a ranged hit with no knockback)
+	# FLINCH policy (see the flinch_on_all_damage export): react to EVERY hit, or only staggering ones.
+	# Ranged enemy hits (baghel, kebus) carry knockback 0 + stun 0, so a stagger-only gate showed no
+	# reaction at all on those (just damage + a grunt). Hold HURT for at least the whole flinch anim so a
+	# tiny (or zero) stagger doesn't cut it short.
+	if flinch_on_all_damage or stagger > 0.0:
+		var flinch := maxf(stagger, _anim_duration(&"hurt"))
+		if _state == State.HURT:
+			# Already flinching (a barrage / multiple enemies): just extend it. Do NOT re-enter -- that
+			# restarts the anim at frame 0 every hit, so it never plays through (looks frozen). One smooth
+			# flinch plays and holds while he's pummelled.
+			_stun_left = maxf(_stun_left, flinch)
+		else:
+			_stun_left = flinch
+			_enter(State.HURT) # play the flinch anim (falls back to idle if he has no hurt sheet)
+		# A stagger interrupts any swing -- clear ALL of its flags, or they leak into the new state.
+		# `_flurry` especially: left true, it never gets cleared (that only happens inside _process_attack,
+		# which no longer runs), so _advance_combo's `if not _flurry` guard blocks ora-ora forever after.
 		_combo_playing = false
 		_flurry = false
 		_buffered_special = false
@@ -998,8 +1055,11 @@ func _physics_process(delta: float) -> void:
 		p.physics(self, delta)
 
 	_tick_special_invuln(delta) # count down the special's invuln window; end it cleanly
-	_shield_left = maxf(_shield_left - delta, 0.0) # count down the shield BLOCK window
 	_parry_left = maxf(_parry_left - delta, 0.0) # count down the perfect-parry (reflect) window -- NOT refreshed while held
+	if _shake_left > 0.0: # sprite shake (hurt flinch / shield vibrate): decaying jitter, then snap home
+		_shake_left = maxf(_shake_left - delta, 0.0)
+		var amp := _shake_amp * (_shake_left / _shake_dur)
+		_sprite.position = Vector2(randf_range(-amp, amp), randf_range(-amp, amp)) if _shake_left > 0.0 else Vector2.ZERO
 
 	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
@@ -1021,7 +1081,10 @@ func _process_stun(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += gravity * delta
 	velocity.x = move_toward(velocity.x, 0.0, friction * 0.5 * delta)
-	_state = State.IDLE
+	# Hold the HURT flinch for the whole stagger; any other stun just reads as idle. Either way, when
+	# the timer lapses the dispatch falls through to _process_normal, which re-enters the right state.
+	if _state != State.HURT:
+		_state = State.IDLE
 
 
 func _process_dash(delta: float) -> void:
@@ -1325,8 +1388,10 @@ func _start_special() -> void:
 		if not is_shield:
 			grant_special_invuln()
 	if is_shield:
-		_shield_left = shield_time # its effect fires regardless of Ruh (like every non-default special)
-		_parry_left = parry_window # the perfect-parry window opens NOW (only at the raise, not while held)
+		# The guard is active for as long as we STAY in the shield special (see _is_shielding) -- no
+		# lingering timer, so a hit after it drops lands normally. Only the perfect-parry (reflect)
+		# window is timed: it opens NOW, at the raise, and is NOT refreshed while the guard is held.
+		_parry_left = parry_window
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
@@ -1353,17 +1418,17 @@ func _process_special(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 	if not is_on_floor():
 		velocity.y += gravity * delta
-	# HELD guard (Redere Shield): keep the block/reflect window fresh, and while the special button is
-	# still held, FREEZE on the last frame (shield up) instead of finishing the cast. Release -> drop it.
+	# HELD guard (Redere Shield): while the special button is still held, FREEZE on the last frame
+	# (shield up) instead of finishing the cast. The guard blocks the whole time we're in this state
+	# (see _is_shielding), so there's no window to refresh here. Release -> drop it back to IDLE.
 	if _current_special != null and _current_special.tags.has("held"):
-		_shield_left = shield_time
 		var last := _sprite.sprite_frames.get_frame_count(_current_special.animation) - 1
 		if _sprite.frame >= last:
 			if Input.is_action_pressed("special"):
 				if _sprite.is_playing():
 					_sprite.pause() # hold the guard pose -- the block stays up until release
 			else:
-				_active_hit = {} # released: end the special now (the shield_time tail lingers briefly)
+				_active_hit = {} # released: end the special now -> IDLE drops the guard immediately
 				_enter(State.IDLE)
 
 
@@ -1551,6 +1616,14 @@ func _enter(state: State) -> void:
 				_do_blink()
 		State.ATTACK:
 			velocity.x = 0.0
+		State.HURT:
+			# A flinch: KEEP the knockback velocity (already applied), just (re)start the hurt anim from
+			# frame 0 so a fresh hit re-flinches. No hurt sheet -> fall back to idle (the old behaviour).
+			if has_anim(&"hurt"):
+				_sprite.play(&"hurt")
+				_sprite.set_frame_and_progress(0, 0.0)
+			else:
+				_state = State.IDLE
 		State.DEATH:
 			velocity.x = 0.0 # collapse in place; _process_death lets the body fall
 		State.SPAWN:
@@ -1574,6 +1647,7 @@ func _animation_for(state: State) -> StringName:
 		State.SLAM: return &"slam"
 		State.DEATH: return &"death"
 		State.SPAWN: return &"spawn"
+		State.HURT: return &"hurt"
 		_: return &"idle"
 
 

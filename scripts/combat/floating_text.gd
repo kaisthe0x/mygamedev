@@ -59,6 +59,11 @@ func _setup(cfg: Dictionary, local_pos: Vector2, text: String, magnitude: float)
 		label.add_theme_font_override("font", load(font_path))
 	add_child(label)
 
+	# Fake ITALIC: a Label has no italic flag, so slant the whole node (shear). The label is centred on
+	# our origin, so it leans symmetrically. `italic` = on at a default lean; `italic_deg` sets the angle.
+	if cfg.get("italic", false):
+		skew = deg_to_rad(cfg.get("italic_deg", 12.0))
+
 	_life = cfg.get("life", 0.8)
 	_hold = cfg.get("hold", 0.4)
 	_pop_scale = cfg.get("pop_scale", 0.7)
