@@ -11,7 +11,7 @@ extends Node2D
 @export var pull_y_band: float = 48.0   ## only grab enemies within this vertical band of Khalid -- SAME LEVEL, not platforms above/below
 @export var arrive_dist: float = 64.0   ## enemies stop + get stunned once this close to Khalid (kept out of sprite overlap)
 @export var pull_speed: float = 340.0   ## magnet drag speed, px/s
-@export var stun_time: float = 3.0      ## seconds each grabbed enemy is stunned on arrival
+@export var stun_time: float = 1.5      ## seconds each grabbed enemy is stunned on arrival
 @export var life: float = 1.6           ## how long the field lingers before self-freeing (visual)
 
 

@@ -156,6 +156,7 @@ func _die() -> void:
 ## Build the arrival blast: a hostile Strike with a box hitbox (from this orb's tuning) plus the
 ## particle-only explosion look, centred on the orb. Same pattern as Nasen's rage / the lob blast.
 func _spawn_explosion() -> void:
+	Sfx.play_at("ein.explosion", global_position) # the eruption is a code event, not a sprite frame
 	var strike := Strike.new()
 	strike.hostile = true
 	strike.friendly_fire = friendly_fire

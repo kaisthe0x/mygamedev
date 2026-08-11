@@ -45,8 +45,8 @@ const ATTACKS := {
 	"cherry_shots": {
 		"name": "Cherry Shots", "icon": "res://vfx/shared/textures/soft_dot.png", "tier": "elite",
 		"hit": {"type": "projectile", "segments": [
-			{"damage": 22, "knockback": 40}, # small bolt
-			{"damage": 42, "knockback": 90}, # big bolt (stronger)
+			{"damage": 4, "knockback": 0}, # small bolt
+			{"damage": 7, "knockback": 0}, # big bolt (stronger)
 		]},
 	},
 	# Twin Reaper: a spinning FLURRY -- hold attack and the spin loops, each pass firing its Slash nodes.
@@ -109,7 +109,7 @@ const SPECIALS := {
 	# Shield is equipped (configs/rewards_catalog.gd) -- the special-side twin of Twin Reaper -> Dual Executioner.
 	"redere_frisbee": {
 		"name": "Frisbee", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "tags": ["shield"],
-		"hit": {"type": "projectile", "segments": {"damage": 30, "knockback": 120}},
+		"hit": {"type": "projectile", "segments": {"damage": 15, "knockback": 120}},
 	},
 }
 
@@ -138,5 +138,5 @@ const MOVEMENTS := {
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "redere_shield" # the upgraded shield is Khalid's default special (not the baseline Impervious)
+const DEFAULT_SPECIAL := "come_closer"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

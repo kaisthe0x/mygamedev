@@ -15,6 +15,7 @@ class_name SfxEnemies
 
 const CUES := {
 	"enemy_death":         "res://sfx/enemy/death.wav",  # any enemy dies (positional)
+	"ein.explosion":       "res://sfx/enemy/ein/attack/ein_explosion.wav",
 	# --- attack starts (<id>.<type>) ---
 	"kebus.melee":         "res://sfx/enemy/kebus/attack/melee.wav",
 	"kebus.projectile":    "res://sfx/enemy/kebus/attack/projectile.wav",
@@ -33,4 +34,6 @@ const FRAMES := {
 	"baghel": {"attack_projectile": {4: "baghel.projectile.4"}},
 	"kebus":  {"attack_projectile": {3: "kebus.projectile.3"}},
 	"nasen":  {"attack": {2: "nasen.melee.2"}},  # the rage AoE erupts on this frame
+	# (ein's explosion is a CODE event on arrival, not a sprite animation -- it's played positionally
+	#  from ein.gd _spawn_explosion via the "ein.explosion" CUE, so it needs no FRAMES row.)
 }
