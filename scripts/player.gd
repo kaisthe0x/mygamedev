@@ -103,6 +103,7 @@ func begin_run() -> void:
 	_death_finished = false
 	_end_special_invuln() # drop any active special invuln + aura on run restart
 	_shield_left = 0.0
+	_parry_left = 0.0
 	damage_mult = 1.0
 	run_mult = 1.0
 	damage_taken_mult = 1.0
@@ -270,13 +271,16 @@ var _special_invuln_left: float = 0.0
 var special_invuln_bonus: float = 0.0
 ## The red aura VFX shown while invuln (freed on expiry), or null.
 var _special_aura: Node2D = null
-## SHIELD window (Redere Shield special): while > 0 the player BLOCKS all incoming damage and REFLECTS
-## it back at the attacker (a parry). Unlike the pass-through invuln, the hurtbox stays ACTIVE so hits
-## arrive to _on_hurt to be blocked + reflected. Set on casting a "shield"-tagged special; ticks down
-## in _physics_process; reset by begin_run. Tune the window/reflect with the two exports below.
+## SHIELD (Redere Shield special): while `_shield_left` > 0 the player BLOCKS all front-side damage (no
+## reflect). `_parry_left` is a SHORT window opened ONLY at the moment the shield is raised (the cast) --
+## a hit blocked while it's still > 0 is a PERFECT PARRY and gets reflected at the attacker. So just
+## HOLDING the guard blocks; timing the raise right before a hit lands reflects. The hurtbox stays ACTIVE
+## (unlike the pass-through invuln) so hits reach _on_hurt. Both reset by begin_run. Tune with the exports.
 var _shield_left: float = 0.0
-@export var shield_time: float = 1.2         ## seconds the shield blocks + reflects after a cast
-@export var shield_reflect_mult: float = 1.0 ## reflected damage = incoming × this (0 = block only, no reflect)
+var _parry_left: float = 0.0
+@export var shield_time: float = 1.2          ## seconds the shield keeps BLOCKING after a cast (refreshed while held)
+@export var parry_window: float = 0.25        ## seconds after RAISING the shield in which a block also REFLECTS (perfect parry)
+@export var shield_reflect_mult: float = 1.0  ## reflected (parried) damage = incoming × this (0 = never reflect)
 ## Countdown until the next special can fire (SPECIAL_COOLDOWN), so specials can't be spammed.
 var _special_cd: float = 0.0
 ## Countdown until the CURRENT attack can fire again -- only for a cooldown attack (Action.cooldown
@@ -707,16 +711,27 @@ func active_hit() -> Dictionary:
 ## Take a hit: damage, optional shove, optional freeze/overlay.
 ## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
 func _on_hurt(hit: Hit) -> void:
-	# SHIELD (Redere Shield): block the hit entirely, and reflect it back at the attacker (a parry).
+	# SHIELD (Redere Shield): block hits from the FRONT (the facing side) entirely and reflect them at
+	# the attacker (a parry) -- but it's OPEN from behind, so a hit from the back side lands normally.
 	if _shield_left > 0.0:
-		if shield_reflect_mult > 0.0 and hit.source is Enemy and hit.amount > 0.0:
-			var back := Hit.new()
-			back.amount = hit.amount * shield_reflect_mult
-			back.knockback = 120.0
-			back.source = self # credited to the player, so a reflect kill still banks Ruh
-			(hit.source as Enemy).apply_hit(back)
-		flash(_sprite) # block flash -- no damage taken
-		return
+		var from_behind := hit.source is Node2D \
+			and int(signf((hit.source as Node2D).global_position.x - global_position.x)) == -_facing
+		if not from_behind:
+			# PERFECT PARRY (parry window still open at the moment of the hit): reflect + a bright cue.
+			# A plain hold just blocks with a duller cue -- neither takes damage.
+			if _parry_left > 0.0:
+				if shield_reflect_mult > 0.0 and hit.source is Enemy and hit.amount > 0.0:
+					var back := Hit.new()
+					back.amount = hit.amount * shield_reflect_mult
+					back.knockback = 120.0
+					back.source = self # credited to the player, so a reflect kill still banks Ruh
+					(hit.source as Enemy).apply_hit(back)
+				Sfx.play("redere_shield_parry") # perfect-parry cue (missing file = silent)
+			else:
+				Sfx.play("redere_shield_block") # standard block cue
+			flash(_sprite) # block flash -- no damage taken (reflected or not)
+			return
+		# hit from behind -> falls through and lands as a normal hit
 	take_damage(hit.amount)
 	if _dead:
 		return # the killing blow: death takes over -- no knockback/stun/reactions
@@ -980,7 +995,8 @@ func _physics_process(delta: float) -> void:
 		p.physics(self, delta)
 
 	_tick_special_invuln(delta) # count down the special's invuln window; end it cleanly
-	_shield_left = maxf(_shield_left - delta, 0.0) # count down the shield block+reflect window
+	_shield_left = maxf(_shield_left - delta, 0.0) # count down the shield BLOCK window
+	_parry_left = maxf(_parry_left - delta, 0.0) # count down the perfect-parry (reflect) window -- NOT refreshed while held
 
 	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
@@ -1307,6 +1323,7 @@ func _start_special() -> void:
 			grant_special_invuln()
 	if is_shield:
 		_shield_left = shield_time # its effect fires regardless of Ruh (like every non-default special)
+		_parry_left = parry_window # the perfect-parry window opens NOW (only at the raise, not while held)
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false
@@ -1333,6 +1350,18 @@ func _process_special(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 	if not is_on_floor():
 		velocity.y += gravity * delta
+	# HELD guard (Redere Shield): keep the block/reflect window fresh, and while the special button is
+	# still held, FREEZE on the last frame (shield up) instead of finishing the cast. Release -> drop it.
+	if _current_special != null and _current_special.tags.has("held"):
+		_shield_left = shield_time
+		var last := _sprite.sprite_frames.get_frame_count(_current_special.animation) - 1
+		if _sprite.frame >= last:
+			if Input.is_action_pressed("special"):
+				if _sprite.is_playing():
+					_sprite.pause() # hold the guard pose -- the block stays up until release
+			else:
+				_active_hit = {} # released: end the special now (the shield_time tail lingers briefly)
+				_enter(State.IDLE)
 
 
 ## An air-down ground slam: committed like a special. Horizontal drift bleeds off

@@ -1067,7 +1067,7 @@ animations = [{
 "duration": 0.25,
 "texture": SubResource("special_redere_frisbee_2")
 }, {
-"duration": 1.0,
+"duration": 2.0,
 "texture": SubResource("special_redere_frisbee_3")
 }],
 "loop": 0,

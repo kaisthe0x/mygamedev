@@ -124,7 +124,7 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # New specials: short casts, hold the last pose so the beckon / shield / throw reads.
     ("khalid", "special_come_closer"): {"fps": 9.0, "hold_last": 1.5},
     ("khalid", "special_redere_shield"): {"fps": 9.0, "hold_last": 2.0},
-    ("khalid", "special_redere_frisbee"): {"fps": 11.0, "hold_last": 1.0},
+    ("khalid", "special_redere_frisbee"): {"fps": 11.0, "hold_last": 2.0},
     ("khalid", "death"): {"fps": 7.0},
     # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)

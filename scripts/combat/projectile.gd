@@ -50,6 +50,10 @@ extends Node2D
 @export_group("Look / lifecycle")
 ## Optional one-shot effect spawned at the point of contact when it hits (a spark/puff).
 @export var impact_effect: PackedScene
+## Optional Sfx CUE KEY played POSITIONALLY at the point of contact on hit (an impact/clang). "" = silent.
+## Same pattern as LobProjectile.explosion_sfx -- the sound of the shot LANDING, separate from the frame-
+## synced firing sound. E.g. the frisbee sets "redere_frisbee.impact" (see SfxCharacters.CUES).
+@export var impact_sfx: String = ""
 ## Optional drawn END animation (SpriteFrames, its "default" anim) played in place when
 ## it reaches max_range/max_life WITHOUT hitting -- so it dissolves rather than blinking
 ## out. Empty = fade any particle trail, else just vanish.
@@ -239,6 +243,8 @@ func _hitbox() -> Hitbox:
 func _on_struck(_victim: Hurtbox) -> void:
 	if impact_effect != null:
 		_spawn_impact()
+	if impact_sfx != "":
+		Sfx.play_at(impact_sfx, global_position) # positional -- the clang lands at the point of contact
 	queue_free()
 
 

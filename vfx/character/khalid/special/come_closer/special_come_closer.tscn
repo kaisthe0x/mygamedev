@@ -1,31 +1,24 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://8eaq6wvthe05"]
 
-; Come Closer special -- the magnet FIELD. Its script (magnet_field.gd) grabs nearby enemies + stuns
-; them on arrival (tune the pull there). The particles are a placeholder inward "pull" swirl -- reskin
-; the texture / gradient / shape below. The Strike-less pull is all in the script; this is pure visual.
-
-[ext_resource type="Script" path="res://scripts/combat/magnet_field.gd" id="1_field"]
-[ext_resource type="Texture2D" path="res://vfx/shared/textures/pixel_ember.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://c6163fme2evuw" path="res://scripts/combat/magnet_field.gd" id="1_field"]
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_4ywwh"]
 
 [sub_resource type="Gradient" id="grad"]
-offsets = PackedFloat32Array(0, 1)
-colors = PackedColorArray(0.75, 0.45, 1.6, 0.9, 0.35, 0.1, 0.7, 0)
+offsets = PackedFloat32Array(0.6692607, 1)
+colors = PackedColorArray(1.2985549, 0, 0, 0.9019608, 0.35, 0.1, 0.7, 0)
 
-[node name="ComeCloserField" type="Node2D"]
+[node name="ComeCloserField" type="Node2D" unique_id=1962236644]
 script = ExtResource("1_field")
 
-[node name="Particles" type="CPUParticles2D" parent="."]
-texture = ExtResource("2_tex")
+[node name="Particles" type="CPUParticles2D" parent="." unique_id=1744929807]
 amount = 36
+texture = ExtResource("2_4ywwh")
 lifetime = 0.5
-one_shot = true
-explosiveness = 0.4
 emission_shape = 1
 emission_sphere_radius = 130.0
 direction = Vector2(0, 0)
-spread = 180.0
+spread = 8.44
 gravity = Vector2(0, 0)
-initial_velocity_min = 0.0
 initial_velocity_max = 20.0
 radial_accel_min = -620.0
 radial_accel_max = -420.0

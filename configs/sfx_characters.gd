@@ -46,7 +46,12 @@ const CUES := {
 	# New specials -- cast cues on the strike frame. Drop the .wav files at these paths (silent until then).
 	"come_closer": "res://sfx/character/special/come_closer/come_closer.wav",
 	"redere_shield": "res://sfx/character/special/redere_shield/redere_shield.wav",
-	"redere_frisbee": "res://sfx/character/special/redere_frisbee/redere_frisbee.wav",
+	# Shield BLOCK events -- played by CODE in Player._on_hurt when a hit lands on the guard (not frame-synced):
+	# a bright PERFECT-PARRY cue vs a duller plain-BLOCK cue. Generic (any shield-tagged special). Drop the files.
+	"redere_shield_parry": "res://sfx/character/special/redere_shield/redere_shield_parry.wav",
+	"redere_shield_block": "res://sfx/character/special/redere_shield/redere_shield_block.wav",
+	"redere_frisbee.1": "res://sfx/character/special/redere_frisbee/redere_frisbee_1.wav",
+	"redere_frisbee.impact": "res://sfx/character/special/redere_frisbee/redere_frisbee_impact.wav",
 }
 
 const FRAMES := {
@@ -62,6 +67,6 @@ const FRAMES := {
 		"special_default": {2: "special_default"},
 		"special_come_closer": {3: "come_closer"},
 		"special_redere_shield": {3: "redere_shield"},
-		"special_redere_frisbee": {3: "redere_frisbee"},
+		"special_redere_frisbee": {1: "redere_frisbee.1"},
 	},
 }
