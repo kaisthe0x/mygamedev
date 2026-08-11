@@ -138,5 +138,5 @@ const MOVEMENTS := {
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "redere_shield"
+const DEFAULT_SPECIAL := "come_closer"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}
