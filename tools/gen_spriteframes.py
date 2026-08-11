@@ -121,6 +121,10 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Default special (special_default): a short flex. The invuln window it grants is UNIVERSAL to
     # every special (Player.grant_special_invuln), not from here; hold_last just lands the pose.
     ("khalid", "special_default"): {"fps": 8.0, "hold_last": 3.0},
+    # New specials: short casts, hold the last pose so the beckon / shield / throw reads.
+    ("khalid", "special_come_closer"): {"fps": 9.0, "hold_last": 1.5},
+    ("khalid", "special_redere_shield"): {"fps": 9.0, "hold_last": 2.0},
+    ("khalid", "special_redere_frisbee"): {"fps": 11.0, "hold_last": 1.0},
     ("khalid", "death"): {"fps": 7.0},
     # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
@@ -146,6 +150,9 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
         3,
     ],  # the short stun blast fires on the forward-thrust frame
     ("khalid", "attack_bakshen"): [3],  # single charged hit on the last (slash) frame
+    ("khalid", "special_come_closer"): [3],  # beckon on the last frame -> spawn the magnet field
+    ("khalid", "special_redere_shield"): [3],  # shield fully up on the last frame (per spec)
+    ("khalid", "special_redere_frisbee"): [3],  # release the throw on the last frame
     # attack_twin_reaper: NONE on purpose -- it's a flurry (loops smooth), not a click-combo. Its 5
     # hits come from the emitter Slash1-5 rows firing on frames 3/4/6/7/9, not combo segments.
     ("khalid", "attack_cherry_shots"): [

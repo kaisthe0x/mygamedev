@@ -10,8 +10,8 @@ extends Node2D
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 const SPAWN_FX := preload("res://vfx/spawn/enemy_spawn.tscn")
 const REWARDS_OFFERED := 3
-## Where a floating damage number spawns relative to an enemy's origin (feet) -- upper body-ish. The
-## number jitters around this; nudge it if a taller/shorter enemy reads off (see DamageNumber).
+## Local position a floating damage number is parented at above an enemy's origin (feet) -- upper
+## body-ish. It rides along with the enemy from here; nudge it if a taller/shorter enemy reads off.
 const DAMAGE_NUMBER_OFFSET := Vector2(0, -42)
 ## Fall below this (well under the floor) -> reposition to the level spawn (NOT a life loss).
 const DEATH_Y := 320.0
@@ -353,7 +353,7 @@ func _set_time_scale(v: float) -> void:
 func _on_enemy_damaged(amount: float, source: Node, enemy: Enemy) -> void:
 	if _player != null and source == _player:
 		_player.notify_hit_dealt(amount, enemy)
-		DamageNumber.spawn(_content, enemy.global_position + DAMAGE_NUMBER_OFFSET, amount, enemy.last_hit_from_special)
+		DamageNumber.spawn(enemy, DAMAGE_NUMBER_OFFSET, amount, enemy.last_hit_from_special)
 
 
 func _spawn_next_wave() -> bool:

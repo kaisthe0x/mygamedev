@@ -27,6 +27,12 @@ const CUES := {
 	"twin_reaper.9": "res://sfx/character/attack/twin_reaper/twin_reaper_9.wav",
 	"ora_ora.2": "res://sfx/character/attack/ora_ora/ora_ora_2.wav",
 	"ora_ora.4": "res://sfx/character/attack/ora_ora/ora_ora_4.wav",
+	"cherry_shots.3": "res://sfx/character/attack/cherry_shots/cherry_shots_3.wav",
+	"cherry_shots.7": "res://sfx/character/attack/cherry_shots/cherry_shots_7.wav",
+	"spear.6": "res://sfx/character/attack/spear/spear_6.wav",
+	"spear.9": "res://sfx/character/attack/spear/spear_9.wav",
+	"spear.13": "res://sfx/character/attack/spear/spear_13.wav",
+	"bakshen": "res://sfx/character/attack/bakshen/bakshen.wav", # one big charged slash (no per-frame hits)
 	# Dual Executioner (upgraded Twin Reaper) -- hit frames 6/9/14/16. Drop the .wav files at these paths
 	# (or trim to the frames you actually want a sound on; a missing/omitted cue is just silent).
 	"dual_executioner.6": "res://sfx/character/attack/dual_executioner/dual_executioner_6.wav",
@@ -34,9 +40,13 @@ const CUES := {
 	"dual_executioner.14": "res://sfx/character/attack/dual_executioner/dual_executioner_14.wav",
 	"dual_executioner.16": "res://sfx/character/attack/dual_executioner/dual_executioner_16.wav",
 	"frenemy": "res://sfx/character/special/frenemy/frenemy.wav",
-	"special_ground_breaker.3": "res://sfx/character/special/ground_breaker/ground_breaker_3.wav",
-	"special_ground_breaker": "res://sfx/character/special/ground_breaker/ground_breaker.wav",
+	"ground_breaker.3": "res://sfx/character/special/ground_breaker/ground_breaker_3.wav",
+	"ground_breaker": "res://sfx/character/special/ground_breaker/ground_breaker.wav",
 	"special_default": "res://sfx/character/special/default/special_default.wav",
+	# New specials -- cast cues on the strike frame. Drop the .wav files at these paths (silent until then).
+	"come_closer": "res://sfx/character/special/come_closer/come_closer.wav",
+	"redere_shield": "res://sfx/character/special/redere_shield/redere_shield.wav",
+	"redere_frisbee": "res://sfx/character/special/redere_frisbee/redere_frisbee.wav",
 }
 
 const FRAMES := {
@@ -44,8 +54,14 @@ const FRAMES := {
 		"attack_twin_reaper": {3: "twin_reaper.3", 4: "twin_reaper.4", 6: "twin_reaper.6", 7: "twin_reaper.7", 9: "twin_reaper.9"},
 		"attack_dual_executioner": {6: "dual_executioner.6", 9: "dual_executioner.9", 14: "dual_executioner.14", 16: "dual_executioner.16"},
 		"attack_ora_ora": {2: "ora_ora.2", 4: "ora_ora.4"},
-		"special_ground_breaker": {1: "special_ground_breaker", 3: "special_ground_breaker.3"},
+		"attack_cherry_shots": {3: "cherry_shots.3", 7: "cherry_shots.7"},
+		"attack_spear": {6: "spear.6", 9: "spear.9", 13: "spear.13"},
+		"attack_bakshen": {1: "bakshen"},
+		"special_ground_breaker": {1: "ground_breaker", 3: "ground_breaker.3"},
 		"special_frenemy": {3: "frenemy"},
 		"special_default": {2: "special_default"},
+		"special_come_closer": {3: "come_closer"},
+		"special_redere_shield": {3: "redere_shield"},
+		"special_redere_frisbee": {3: "redere_frisbee"},
 	},
 }

@@ -41,5 +41,12 @@ const POOLS := {
 		{"id": "longer_imp",    "name": "Fortitude",   "desc": "+3s Impervious duration"},
 		{"id": "imp_until_hit", "name": "Last Stand",  "desc": "Impervious until you're hit (WIP)"},
 		{"id": "bigger_blast",  "name": "Wide Impact", "desc": "+20% special hit radius (WIP)"},
+		# UPGRADED SPECIAL: only offered once Redere Shield is equipped -- swaps it for the thrown
+		# Frisbee version. The special-side twin of Dual Executioner (see the attack pool).
+		{"id": "redere_frisbee", "name": "Redere Frisbee",
+			"desc": "Upgrade Shield — hurl it as a returning projectile",
+			"icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "unique": true,
+			"upgrades": "redere_shield", "requires": {"equipped": "redere_shield"},
+			"equip": {"category": "special", "id": "redere_frisbee"}},
 	],
 }

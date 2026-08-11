@@ -91,6 +91,25 @@ const SPECIALS := {
 		"name": "Impervious", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
 		"animation": "special_default",
 	},
+	# Come Closer: a magnet pull -- drags nearby enemies in front of Khalid and STUNS them on arrival
+	# (no damage). No `hit`; the magnet FIELD scene (EmittersCharacters -> scripts/combat/magnet_field.gd)
+	# + Enemy.magnetize() do the work. Tune range/stun/speed on that field scene.
+	"come_closer": {
+		"name": "Come Closer", "icon": "res://vfx/shared/textures/pixel_ember.png", "tags": ["control"],
+	},
+	# Redere Shield: a guard that BLOCKS incoming damage and REFLECTS it back if a hit lands during the
+	# window (a parry). No `hit`; player-side -- Player reads the "shield" tag on cast (see _start_special
+	# / _on_hurt). Tune the window/reflect on the Player (shield_time / shield_reflect_mult).
+	"redere_shield": {
+		"name": "Shield", "icon": "res://vfx/shared/impervious/shield.png", "tier": "elite", "tags": ["shield"],
+	},
+	# Redere Frisbee: the UPGRADED shield -- throws it as a PROJECTILE (EmittersCharacters fires a shot on
+	# the release frame, fed this `hit`). Not offered freely; a conditional reward swaps it in once Redere
+	# Shield is equipped (configs/rewards_catalog.gd) -- the special-side twin of Twin Reaper -> Dual Executioner.
+	"redere_frisbee": {
+		"name": "Frisbee", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "tags": ["shield"],
+		"hit": {"type": "projectile", "segments": {"damage": 30, "knockback": 120}},
+	},
 }
 
 ## Khalid's MOVEMENT actions -- run / jump / dash / slam, one pool per category, each a swappable
@@ -118,5 +137,5 @@ const MOVEMENTS := {
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "ground_breaker"
+const DEFAULT_SPECIAL := "come_closer"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

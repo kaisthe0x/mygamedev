@@ -10,13 +10,13 @@ point_count = 2
 [sub_resource type="RectangleShape2D" id="shape_small"]
 size = Vector2(30, 9)
 
-[node name="ShotSmall" type="Node2D"]
+[node name="ShotSmall" type="Node2D" unique_id=1887835819]
 script = ExtResource("1_proj")
 speed = 660.0
 homing = 0.0
 max_range = 460.0
 
-[node name="Bolt" type="Line2D" parent="."]
+[node name="Bolt" type="Line2D" parent="." unique_id=333610185]
 points = PackedVector2Array(-26, 0, 0, 0)
 width = 7.0
 width_curve = SubResource("curve_taper")
@@ -24,7 +24,7 @@ default_color = Color(1.7, 0.18, 0.16, 1)
 begin_cap_mode = 2
 end_cap_mode = 2
 
-[node name="Hitbox" type="Area2D" parent="."]
+[node name="Hitbox" type="Area2D" parent="." unique_id=418144513]
 position = Vector2(-13, 0)
 collision_layer = 32
 collision_mask = 16
@@ -32,5 +32,5 @@ script = ExtResource("2_hb")
 damage = 22.0
 knockback = 40.0
 
-[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=961304631]
 shape = SubResource("shape_small")

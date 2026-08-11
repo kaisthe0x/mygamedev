@@ -417,6 +417,19 @@ and his **Ground Breaker** special (an overhead-slam AOE `Strike`, damage from
 the `Actions` catalog) — is wired in the `Emitters` config, all in his red-teal-gold palette. Only his
 light **attack** still lacks an effect scene, so it deals no damage for now.)
 
+**Khalid's specials** (all in the `Actions` catalog; presentation keyed by `special_<id>` animation):
+- **Ground Breaker** — AOE slam `Strike` (stun + a ground-crack).
+- **Frenemy** — a charm blast: the hit enemy becomes a temporary ally (`Hit.frenemy_time` → `Enemy.become_frenemy`).
+- **Impervious** (`special_default`) — the baseline flex; just the universal invuln window every special grants.
+- **Come Closer** — a magnet: the `special_come_closer` effect scene (`scripts/combat/magnet_field.gd`) grabs
+  enemies in range and `Enemy.magnetize()`s them toward Khalid, stunning each on arrival (no damage). Tune the
+  pull on the field scene.
+- **Redere Shield** — a guard: casting a `"shield"`-tagged special opens `Player._shield_left`, a window that
+  **blocks** all damage and **reflects** it to the attacker (`_on_hurt` → `Enemy.apply_hit`). Tune `shield_time` /
+  `shield_reflect_mult` on the Player.
+- **Redere Frisbee** — the *upgraded* shield: throws it as a `Projectile` (fed the Action's `hit`). A conditional
+  reward that swaps in once Redere Shield is equipped — the special-side twin of Dual Executioner.
+
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
 air, press `special` to plunge straight down at `slam_speed` (1200 — far faster than
 a normal fall, so it reads as committed). Like a special it's committed (no cancel
@@ -860,9 +873,12 @@ to hand-wire. Key traits:
   `color_for_ratio`, so the HUD player HP bar reads from the exact same bands).
 - **Floating damage numbers** (`scripts/combat/damage_number.gd`, Risk-of-Rain style): every hit the
   player lands pops a number that scales/colours by magnitude (white → hot gold; magenta for a
-  special) and drifts up + fades. Spawned off the existing `enemy.damaged` signal in
-  `RunManager._on_enemy_damaged` (world-space, in the enemy content layer); all feel is `DamageNumber`
-  exports. One per hit, so a flurry throws up a cascade.
+  special) and floats up + fades. Spawned off the existing `enemy.damaged` signal in
+  `RunManager._on_enemy_damaged`, **parented to the enemy** and animated (an explicit per-frame lerp,
+  no Tween) in the enemy's *local* space — so it rides above the enemy's head, immune to both the
+  camera chasing the player and the enemy's own knockback/patrol (the two things that dragged
+  world-space / screen-space versions across the screen). All feel is `DamageNumber` exports. One per
+  hit, so a flurry throws up a cascade.
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
   hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
   plays that animation once and **vanishes the instant it finishes** (`_on_anim_finished` →

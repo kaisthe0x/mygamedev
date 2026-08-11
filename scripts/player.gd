@@ -102,6 +102,7 @@ func begin_run() -> void:
 	_dead = false
 	_death_finished = false
 	_end_special_invuln() # drop any active special invuln + aura on run restart
+	_shield_left = 0.0
 	damage_mult = 1.0
 	run_mult = 1.0
 	damage_taken_mult = 1.0
@@ -269,6 +270,13 @@ var _special_invuln_left: float = 0.0
 var special_invuln_bonus: float = 0.0
 ## The red aura VFX shown while invuln (freed on expiry), or null.
 var _special_aura: Node2D = null
+## SHIELD window (Redere Shield special): while > 0 the player BLOCKS all incoming damage and REFLECTS
+## it back at the attacker (a parry). Unlike the pass-through invuln, the hurtbox stays ACTIVE so hits
+## arrive to _on_hurt to be blocked + reflected. Set on casting a "shield"-tagged special; ticks down
+## in _physics_process; reset by begin_run. Tune the window/reflect with the two exports below.
+var _shield_left: float = 0.0
+@export var shield_time: float = 1.2         ## seconds the shield blocks + reflects after a cast
+@export var shield_reflect_mult: float = 1.0 ## reflected damage = incoming × this (0 = block only, no reflect)
 ## Countdown until the next special can fire (SPECIAL_COOLDOWN), so specials can't be spammed.
 var _special_cd: float = 0.0
 ## Countdown until the CURRENT attack can fire again -- only for a cooldown attack (Action.cooldown
@@ -699,6 +707,16 @@ func active_hit() -> Dictionary:
 ## Take a hit: damage, optional shove, optional freeze/overlay.
 ## A dash grants i-frames (the hurtbox is off), so this only fires when vulnerable.
 func _on_hurt(hit: Hit) -> void:
+	# SHIELD (Redere Shield): block the hit entirely, and reflect it back at the attacker (a parry).
+	if _shield_left > 0.0:
+		if shield_reflect_mult > 0.0 and hit.source is Enemy and hit.amount > 0.0:
+			var back := Hit.new()
+			back.amount = hit.amount * shield_reflect_mult
+			back.knockback = 120.0
+			back.source = self # credited to the player, so a reflect kill still banks Ruh
+			(hit.source as Enemy).apply_hit(back)
+		flash(_sprite) # block flash -- no damage taken
+		return
 	take_damage(hit.amount)
 	if _dead:
 		return # the killing blow: death takes over -- no knockback/stun/reactions
@@ -962,6 +980,7 @@ func _physics_process(delta: float) -> void:
 		p.physics(self, delta)
 
 	_tick_special_invuln(delta) # count down the special's invuln window; end it cleanly
+	_shield_left = maxf(_shield_left - delta, 0.0) # count down the shield block+reflect window
 
 	# Dash grants invulnerability: hitboxes/projectiles can't detect the hurtbox.
 	# Only during the lunge (dash_time), not the animation's tail recovery, so the
@@ -1279,9 +1298,15 @@ func _start_special() -> void:
 	if is_default and not has_ruh:
 		return
 	_special_cd = SPECIAL_COOLDOWN
+	# A "shield"-tagged special (Redere Shield) runs its OWN block+reflect window instead of the
+	# pass-through invuln -- the hurtbox must stay active so incoming hits reach _on_hurt to be parried.
+	var is_shield := _current_special != null and _current_special.tags.has("shield")
 	if has_ruh:
 		spend_special() # a charge buys the Impervious window (invuln + aura)
-		grant_special_invuln()
+		if not is_shield:
+			grant_special_invuln()
+	if is_shield:
+		_shield_left = shield_time # its effect fires regardless of Ruh (like every non-default special)
 	_combo_step = 0
 	_combo_window = 0.0
 	_combo_playing = false

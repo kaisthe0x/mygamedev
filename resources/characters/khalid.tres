@@ -15,9 +15,12 @@
 [ext_resource type="Texture2D" uid="uid://cvo6weherngml" path="res://sprites/characters/khalid/khalid_attack_ora_ora_frames.png" id="13_attack_ora_ora"]
 [ext_resource type="Texture2D" uid="uid://dkyvjdmxgwfcr" path="res://sprites/characters/khalid/khalid_attack_spear_frames.png" id="14_attack_spear"]
 [ext_resource type="Texture2D" uid="uid://xpwfw3cthnwy" path="res://sprites/characters/khalid/khalid_attack_twin_reaper_frames.png" id="15_attack_twin_reaper"]
-[ext_resource type="Texture2D" uid="uid://bct86rb447ejl" path="res://sprites/characters/khalid/khalid_special_default_frames.png" id="16_special_default"]
-[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_frenemy_frames.png" id="17_special_frenemy"]
-[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="18_special_ground_breaker"]
+[ext_resource type="Texture2D" uid="uid://b7klmtwwd1pki" path="res://sprites/characters/khalid/khalid_special_come_closer_frames.png" id="16_special_come_closer"]
+[ext_resource type="Texture2D" uid="uid://bct86rb447ejl" path="res://sprites/characters/khalid/khalid_special_default_frames.png" id="17_special_default"]
+[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_frenemy_frames.png" id="18_special_frenemy"]
+[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="19_special_ground_breaker"]
+[ext_resource type="Texture2D" uid="uid://cbxpdo67tickj" path="res://sprites/characters/khalid/khalid_special_redere_frisbee_frames.png" id="20_special_redere_frisbee"]
+[ext_resource type="Texture2D" uid="uid://cfqrx78j45pde" path="res://sprites/characters/khalid/khalid_special_redere_shield_frames.png" id="21_special_redere_shield"]
 
 [sub_resource type="AtlasTexture" id="attack_bakshen_1"]
 atlas = ExtResource("10_attack_bakshen")
@@ -479,57 +482,93 @@ region = Rect2(1024, 0, 128, 80)
 atlas = ExtResource("9_spawn")
 region = Rect2(1152, 0, 128, 80)
 
+[sub_resource type="AtlasTexture" id="special_come_closer_1"]
+atlas = ExtResource("16_special_come_closer")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_come_closer_2"]
+atlas = ExtResource("16_special_come_closer")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_come_closer_3"]
+atlas = ExtResource("16_special_come_closer")
+region = Rect2(384, 0, 128, 80)
+
 [sub_resource type="AtlasTexture" id="special_default_1"]
-atlas = ExtResource("16_special_default")
+atlas = ExtResource("17_special_default")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_default_2"]
-atlas = ExtResource("16_special_default")
+atlas = ExtResource("17_special_default")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_frenemy_1"]
-atlas = ExtResource("17_special_frenemy")
+atlas = ExtResource("18_special_frenemy")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_frenemy_2"]
-atlas = ExtResource("17_special_frenemy")
+atlas = ExtResource("18_special_frenemy")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_frenemy_3"]
-atlas = ExtResource("17_special_frenemy")
+atlas = ExtResource("18_special_frenemy")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_frenemy_4"]
-atlas = ExtResource("17_special_frenemy")
+atlas = ExtResource("18_special_frenemy")
 region = Rect2(512, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_1"]
-atlas = ExtResource("18_special_ground_breaker")
+atlas = ExtResource("19_special_ground_breaker")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_2"]
-atlas = ExtResource("18_special_ground_breaker")
+atlas = ExtResource("19_special_ground_breaker")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_3"]
-atlas = ExtResource("18_special_ground_breaker")
+atlas = ExtResource("19_special_ground_breaker")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_4"]
-atlas = ExtResource("18_special_ground_breaker")
+atlas = ExtResource("19_special_ground_breaker")
 region = Rect2(512, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_5"]
-atlas = ExtResource("18_special_ground_breaker")
+atlas = ExtResource("19_special_ground_breaker")
 region = Rect2(640, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_6"]
-atlas = ExtResource("18_special_ground_breaker")
+atlas = ExtResource("19_special_ground_breaker")
 region = Rect2(768, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_7"]
-atlas = ExtResource("18_special_ground_breaker")
+atlas = ExtResource("19_special_ground_breaker")
 region = Rect2(896, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_redere_frisbee_1"]
+atlas = ExtResource("20_special_redere_frisbee")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_redere_frisbee_2"]
+atlas = ExtResource("20_special_redere_frisbee")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_redere_frisbee_3"]
+atlas = ExtResource("20_special_redere_frisbee")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_redere_shield_1"]
+atlas = ExtResource("21_special_redere_shield")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_redere_shield_2"]
+atlas = ExtResource("21_special_redere_shield")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="special_redere_shield_3"]
+atlas = ExtResource("21_special_redere_shield")
+region = Rect2(384, 0, 128, 80)
 
 [resource]
 animations = [{
@@ -954,6 +993,20 @@ animations = [{
 "speed": 10.0
 }, {
 "frames": [{
+"duration": 0.25,
+"texture": SubResource("special_come_closer_1")
+}, {
+"duration": 0.25,
+"texture": SubResource("special_come_closer_2")
+}, {
+"duration": 1.5,
+"texture": SubResource("special_come_closer_3")
+}],
+"loop": 0,
+"name": &"special_come_closer",
+"speed": 9.0
+}, {
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("special_default_1")
 }, {
@@ -1006,13 +1059,44 @@ animations = [{
 "loop": 0,
 "name": &"special_ground_breaker",
 "speed": 15.0
+}, {
+"frames": [{
+"duration": 0.25,
+"texture": SubResource("special_redere_frisbee_1")
+}, {
+"duration": 0.25,
+"texture": SubResource("special_redere_frisbee_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("special_redere_frisbee_3")
+}],
+"loop": 0,
+"name": &"special_redere_frisbee",
+"speed": 11.0
+}, {
+"frames": [{
+"duration": 0.25,
+"texture": SubResource("special_redere_shield_1")
+}, {
+"duration": 0.25,
+"texture": SubResource("special_redere_shield_2")
+}, {
+"duration": 2.0,
+"texture": SubResource("special_redere_shield_3")
+}],
+"loop": 0,
+"name": &"special_redere_shield",
+"speed": 9.0
 }]
 metadata/hit_frames = {
 "attack_bakshen": [2],
 "attack_cherry_shots": [2, 6],
 "attack_spear": [5, 8, 12],
+"special_come_closer": [2],
 "special_frenemy": [0, 1, 2],
-"special_ground_breaker": [1, 2, 3, 4, 5]
+"special_ground_breaker": [1, 2, 3, 4, 5],
+"special_redere_frisbee": [2],
+"special_redere_shield": [2]
 }
 metadata/sheet_start = {
 "attack_bakshen": 1,
@@ -1030,7 +1114,10 @@ metadata/sheet_start = {
 "run": 1,
 "slam": 1,
 "spawn": 1,
+"special_come_closer": 1,
 "special_default": 1,
 "special_frenemy": 1,
-"special_ground_breaker": 1
+"special_ground_breaker": 1,
+"special_redere_frisbee": 1,
+"special_redere_shield": 1
 }

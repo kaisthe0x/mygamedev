@@ -160,6 +160,13 @@ var _point_b := 0.0
 var _patrol_target := 0.0
 var _idle_timer := 0.0
 var _stun_left := 0.0
+## MAGNET pull (Come Closer special): while `_magnet_anchor` is valid, AI is overridden and this enemy
+## is dragged toward the anchor at `_magnet_speed`; on arriving within `_magnet_arrive` it stuns for
+## `_magnet_stun` and releases. Set by Enemy.magnetize() (called by the magnet field scene). No damage.
+var _magnet_anchor: Node2D = null
+var _magnet_arrive := 60.0
+var _magnet_speed := 320.0
+var _magnet_stun := 3.0
 ## Seconds left CHARMED as a "frenemy": while > 0 this enemy fights FOR the player -- it targets the
 ## other enemies, its attacks hit them (not the player), and its contact damage is off. See
 ## become_frenemy / _end_frenemy. Set by the frenemy special (Hit.frenemy_time).
@@ -319,6 +326,27 @@ func _physics_process(delta: float) -> void:
 			_end_hitstop()
 		move_and_slide()
 		return
+
+	# MAGNET (Come Closer): drag toward the anchor, overriding AI; stun + release on arrival.
+	if _magnet_anchor != null:
+		if not is_instance_valid(_magnet_anchor):
+			_magnet_anchor = null
+		else:
+			# Horizontal only -- same-level pull (the field already filtered to Khalid's floor).
+			var dx: float = _magnet_anchor.global_position.x - global_position.x
+			if absf(dx) <= _magnet_arrive:
+				velocity.x = 0.0 # STOP dead -- no momentum, or it slides past Khalid during the stun
+				_stun_left = maxf(_stun_left, _magnet_stun)
+				_set_state(State.STUN)
+				_status.show_for(Color(0.6, 0.4, 1.0, 0.6), _magnet_stun) # a faint pull/stun tint
+				_magnet_anchor = null
+			else:
+				# Ease down over the last stretch so a strong pull doesn't rocket past the arrive point.
+				var speed: float = _magnet_speed * clampf(absf(dx) / (_magnet_arrive * 2.0), 0.25, 1.0)
+				velocity.x = signf(dx) * speed
+				_face(int(signf(dx)))
+				move_and_slide()
+				return
 
 	if _state == State.STUN:
 		# Frozen: keep sliding on knockback momentum, but take no actions.
@@ -859,6 +887,24 @@ func become_frenemy(duration: float) -> void:
 ## The charm wore off -- back to a normal hostile enemy (re-arm contact next _tick_contact).
 func _end_frenemy() -> void:
 	_frenemy_left = 0.0
+
+
+## MAGNET the enemy toward `anchor` (Come Closer special): AI is overridden and it's dragged in at
+## `speed` px/s until within `arrive_dist`, then stunned for `stun_time`. No damage. See _physics_process.
+func magnetize(anchor: Node2D, arrive_dist: float, speed: float, stun_time: float) -> void:
+	if _state == State.DEAD or anchor == null:
+		return
+	_magnet_anchor = anchor
+	_magnet_arrive = arrive_dist
+	_magnet_speed = speed
+	_magnet_stun = stun_time
+
+
+## Apply a Hit directly (bypassing a physical hitbox) -- e.g. a shield's REFLECTED damage. Routes
+## through the same hurt path as any attack.
+func apply_hit(hit: Hit) -> void:
+	if _hurtbox != null:
+		_hurtbox.take_hit(hit)
 
 
 func _face(dir: int) -> void:

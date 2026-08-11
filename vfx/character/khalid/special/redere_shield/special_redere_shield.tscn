@@ -1,0 +1,33 @@
+[gd_scene load_steps=4 format=3]
+
+; Redere Shield special -- a deploy FLASH. The block/reflect is player-side (Player._shield_left); the
+; shield itself is drawn on Khalid's sprite, so this is just a punchy red ring to sell the guard going
+; up. Pure visual, self-frees (one_shot). Reskin the texture / gradient below.
+
+[ext_resource type="Texture2D" path="res://vfx/shared/impervious/shield.png" id="1_tex"]
+
+[sub_resource type="Gradient" id="grad"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1.8, 0.25, 0.2, 1, 0.5, 0.03, 0.03, 0)
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 0.9), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="ShieldDeploy" type="CPUParticles2D"]
+texture = ExtResource("1_tex")
+amount = 18
+lifetime = 0.35
+one_shot = true
+explosiveness = 1.0
+emission_shape = 1
+emission_sphere_radius = 10.0
+direction = Vector2(0, -1)
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 120.0
+initial_velocity_max = 220.0
+scale_amount_min = 0.2
+scale_amount_max = 0.35
+scale_amount_curve = SubResource("curve_shrink")
+color_ramp = SubResource("grad")

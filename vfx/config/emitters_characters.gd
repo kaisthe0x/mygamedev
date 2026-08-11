@@ -64,6 +64,14 @@ const TABLE := {
 		],
 		"special_ground_breaker": [ {"scene": preload("res://vfx/character/khalid/special/ground_breaker/special_ground_breaker.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(0, 0), "clip_to_ground": true}],
 		"special_frenemy": [ {"scene": preload("res://vfx/character/khalid/special/frenemy/special_frenemy.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(40, -20)}], # the frenemy blast fires on the forward-thrust frame (its sound: SfxCharacters.FRAMES)
+		# Come Closer: the magnet FIELD spawns in front of Khalid on the beckon frame (grabs + stuns enemies
+		# in range -- see scripts/combat/magnet_field.gd). Particles are placeholder.
+		"special_come_closer": [ {"scene": preload("res://vfx/character/khalid/special/come_closer/special_come_closer.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(60, -18)}],
+		# Redere Shield: a deploy flash (block/reflect is player-side; the shield is on the sprite).
+		"special_redere_shield": [ {"scene": preload("res://vfx/character/khalid/special/redere_shield/special_redere_shield.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(0, -20)}],
+		# Redere Frisbee: the thrown-shield Projectile, launched forward on the release frame (fed the
+		# Action's `hit` damage by the director). Placeholder disc texture.
+		"special_redere_frisbee": [ {"scene": preload("res://vfx/character/khalid/special/redere_frisbee/special_redere_frisbee.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(20, -22)}],
 		# special_default: the baseline "flex" has NO particles -- so no emitter row. Its cast sound lives
 		# in SfxCharacters.FRAMES (played by the director on the flex frame, independent of any particle).
 		"slam": [
