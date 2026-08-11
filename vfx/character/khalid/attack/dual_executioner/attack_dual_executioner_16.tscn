@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://blga5y3x338rq"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_gyk1e"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_whsy2"]
+[ext_resource type="Texture2D" uid="uid://c7j5ubxiby3wu" path="res://vfx/character/khalid/attack/dual_executioner/dual_executioner_texture_slash.png" id="3_gyk1e"]
+
+[sub_resource type="RectangleShape2D" id="box_de"]
+size = Vector2(60, 64)
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(0.55, 0.55), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[node name="DualExecutioner" type="Node2D" unique_id=354740859]
+script = ExtResource("1_gyk1e")
+lifetime = 0.32
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1575578955]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_whsy2")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1346432233]
+position = Vector2(18, -0.7)
+shape = SubResource("box_de")
+
+[node name="Slash" type="CPUParticles2D" parent="." unique_id=581332580]
+texture_filter = 1
+position = Vector2(4, 1)
+rotation = 0.19170153
+amount = 4
+texture = ExtResource("3_gyk1e")
+lifetime = 0.26
+explosiveness = 1.0
+local_coords = true
+spread = 6.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 90.0
+initial_velocity_max = 260.0
+scale_amount_min = 0.18
+scale_amount_max = 0.4
+scale_amount_curve = SubResource("curve_shrink")
+color = Color(1, 0, 0, 1)

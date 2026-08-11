@@ -28,9 +28,9 @@ const ATTACKS := {
 	"spear": {
 		"name": "Spear", "icon": "res://vfx/shared/textures/blast1.png", "tier": "elite",
 		"hit": {"type": "melee", "segments": [
-			{"damage": 10, "knockback": 40},   # thrust
-			{"damage": 20, "knockback": 60},   # thrust
-			{"damage": 35, "knockback": 140},  # finisher (strongest)
+			{"damage": 10, "knockback": 40}, # thrust
+			{"damage": 20, "knockback": 60}, # thrust
+			{"damage": 35, "knockback": 140}, # finisher (strongest)
 		]},
 	},
 	# Bakshen: a charged slash -- ~1s wind-up then one heavy hit on the last frame. COOLDOWN cadence
@@ -45,8 +45,8 @@ const ATTACKS := {
 	"cherry_shots": {
 		"name": "Cherry Shots", "icon": "res://vfx/shared/textures/soft_dot.png", "tier": "elite",
 		"hit": {"type": "projectile", "segments": [
-			{"damage": 22, "knockback": 40},   # small bolt
-			{"damage": 42, "knockback": 90},   # big bolt (stronger)
+			{"damage": 22, "knockback": 40}, # small bolt
+			{"damage": 42, "knockback": 90}, # big bolt (stronger)
 		]},
 	},
 	# Twin Reaper: a spinning FLURRY -- hold attack and the spin loops, each pass firing its Slash nodes.
@@ -56,12 +56,13 @@ const ATTACKS := {
 		"tags": ["reaper"], "hit": {"type": "melee", "segments": {"damage": 12, "knockback": 0}},
 	},
 	# Dual Executioner: the UPGRADED Twin Reaper -- not offered freely; a conditional reward swaps it in
-	# once Twin Reaper is equipped (see configs/rewards_catalog.gd). Reuses Twin Reaper's spin anim +
-	# particles + sounds (keyed by `animation`), just deadlier per hit.
+	# once Twin Reaper is equipped (see configs/rewards_catalog.gd). Its OWN animation (attack_dual_executioner,
+	# default for this id), so it carries its own particles (EmittersCharacters) + sounds (SfxCharacters) --
+	# a beefier spin, deadlier per hit. The sprite sheet stands in on Twin Reaper's spin until reskinned.
 	"dual_executioner": {
 		"name": "Dual Executioner", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken",
-		"style": "flurry", "animation": "attack_twin_reaper", "tags": ["reaper"],
-		"hit": {"type": "melee", "segments": {"damage": 22, "knockback": 0}},
+		"style": "flurry", "tags": ["reaper"],
+		"hit": {"type": "melee", "segments": {"damage": 22, "knockback": 0, "stun": 0.3}},
 	},
 }
 
@@ -78,7 +79,7 @@ const SPECIALS := {
 	# (victim_effect) surrounds it while charmed. A control/utility special.
 	"frenemy": {
 		"name": "Frenemy", "icon": "res://vfx/shared/textures/pixel_ember.png", "tier": "elite",
-		"tags": ["charm"],  # build tag -- reward synergies key off it (e.g. reach ×3, see rewards_catalog)
+		"tags": ["charm"], # build tag -- reward synergies key off it (e.g. reach ×3, see rewards_catalog)
 		"hit": {"type": "blast", "segments": {"damage": 4, "knockback": 0, "frenemy": 8.0,
 			"victim_effect": "res://vfx/status/frenemy_stun.tscn", "victim_time": 8.0}},
 	},
@@ -100,22 +101,22 @@ const SPECIALS := {
 const MOVEMENTS := {
 	"run": {
 		"standard_stride": {"name": "Standard Stride", "icon": "res://vfx/shared/textures/pixel_ember.png",
-			"move": {"run_speed": 230.0}},  # Khalid runs faster than the 160 baseline
+			"move": {"run_speed": 230.0}}, # Khalid runs faster than the 160 baseline
 	},
 	"jump": {
 		"standard_leap": {"name": "Standard Leap", "icon": "res://vfx/shared/textures/soft_dot.png",
-			"move": {}},  # baseline arc (velocity -330, double jump)
+			"move": {}}, # baseline arc (velocity -330, double jump)
 	},
 	"dash": {
 		"blink_dash": {"name": "Blink Dash", "icon": "res://vfx/shared/impervious/bolt.png",
-			"move": {"blink": true}},  # Khalid teleports instead of the glide-lunge
+			"move": {"blink": true}}, # Khalid teleports instead of the glide-lunge
 	},
 	"slam": {
 		"standard_slam": {"name": "Standard Slam", "icon": "res://vfx/shared/textures/blast1.png",
-			"move": {}},  # baseline plunge
+			"move": {}}, # baseline plunge
 	},
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "special_default"
+const DEFAULT_SPECIAL := "ground_breaker"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

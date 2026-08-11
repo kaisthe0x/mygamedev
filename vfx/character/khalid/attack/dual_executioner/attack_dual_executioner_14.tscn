@@ -1,0 +1,74 @@
+[gd_scene format=3 uid="uid://b8vbjardqnbcp"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_2gh05"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_m33k4"]
+[ext_resource type="Texture2D" uid="uid://vp0n02b3oisk" path="res://vfx/character/khalid/attack/dual_executioner/dual_executioner_texture_14.png" id="3_2gh05"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2gh05"]
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 0.14534879), 0.0, 0.0, 0, 0, Vector2(0.55, 0.55), 0.0, 0.0, 0, 0, Vector2(1, 0.9883721), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="grad"]
+offsets = PackedFloat32Array(0, 0.3732484, 0.7452229, 0.8955414)
+colors = PackedColorArray(0.9, 0.1, 0.06, 1, 0.99215686, 0.019607844, 0.019607844, 1, 0.9411765, 0, 0, 0.5294118, 0, 0, 0, 0)
+
+[sub_resource type="Curve" id="Curve_m33k4"]
+_limits = [-200.0, 200.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1e-05, 200), 0.0, 0.0, 0, 0, Vector2(1, -200), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_2gh05"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="DualExecutioner" type="Node2D" unique_id=354740859]
+script = ExtResource("1_2gh05")
+lifetime = 0.32
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1575578955]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_m33k4")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1346432233]
+position = Vector2(-2, 1)
+scale = Vector2(7.3886366, 7.669548)
+shape = SubResource("CircleShape2D_2gh05")
+
+[node name="Slash" type="CPUParticles2D" parent="." unique_id=581332580]
+texture_filter = 1
+rotation = 1.5859629
+amount = 3
+texture = ExtResource("3_2gh05")
+lifetime = 0.4
+local_coords = true
+direction = Vector2(0, 0)
+spread = 0.0
+gravity = Vector2(-600, 0)
+initial_velocity_min = 80.0
+initial_velocity_max = 80.0
+scale_amount_min = 0.4
+scale_amount_max = 0.4
+scale_amount_curve = SubResource("curve_shrink")
+color = Color(0.8627451, 0.10980392, 0.09019608, 1)
+color_ramp = SubResource("grad")
+
+[node name="Particles" type="CPUParticles2D" parent="." unique_id=1135000432]
+amount = 100
+lifetime = 0.45
+emission_shape = 1
+emission_sphere_radius = 81.05
+gravity = Vector2(0, 0)
+initial_velocity_min = 5.0
+initial_velocity_max = 100.0
+orbit_velocity_min = -429.63
+orbit_velocity_max = 344.66
+tangential_accel_min = 57.78
+tangential_accel_max = 57.78
+tangential_accel_curve = SubResource("Curve_m33k4")
+scale_amount_min = 2.0
+scale_amount_max = 3.0
+scale_amount_curve = SubResource("Curve_2gh05")
+color = Color(0.90588236, 0.101960786, 0.07058824, 1)

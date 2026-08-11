@@ -10,6 +10,9 @@ extends Node2D
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 const SPAWN_FX := preload("res://vfx/spawn/enemy_spawn.tscn")
 const REWARDS_OFFERED := 3
+## Where a floating damage number spawns relative to an enemy's origin (feet) -- upper body-ish. The
+## number jitters around this; nudge it if a taller/shorter enemy reads off (see DamageNumber).
+const DAMAGE_NUMBER_OFFSET := Vector2(0, -42)
 ## Fall below this (well under the floor) -> reposition to the level spawn (NOT a life loss).
 const DEATH_Y := 320.0
 
@@ -27,9 +30,9 @@ const CAM_ZOOM_SPAWN := Vector2(2, 2)
 const DEATH_HOLD := 0.7
 ## "You did it!" clear beat: a brief slow-motion the moment the LAST REQUIRED enemy falls and the
 ## exit opens (optional enemies never trigger it). Slam time down, hold, ramp back to normal.
-const CLEAR_SLOWMO_SCALE := 0.3   ## time scale at the peak of the beat
-const CLEAR_SLOWMO_HOLD := 0.7   ## REAL seconds held slow before ramping back
-const CLEAR_SLOWMO_RAMP := 0.55   ## REAL seconds ramping time back to 1.0
+const CLEAR_SLOWMO_SCALE := 0.3 ## time scale at the peak of the beat
+const CLEAR_SLOWMO_HOLD := 0.7 ## REAL seconds held slow before ramping back
+const CLEAR_SLOWMO_RAMP := 0.55 ## REAL seconds ramping time back to 1.0
 ## The "soul" that floats from a dead enemy to the player on a Ruh-granting kill (see _spawn_ruh_orb).
 const RUH_ORB := preload("res://vfx/shared/ruh_orb/ruh_orb.tscn")
 
@@ -345,10 +348,12 @@ func _set_time_scale(v: float) -> void:
 
 ## Spawn the next enemy batch if one remains. Returns false when they're all spent (finite now --
 ## no infinite refill), which is how a level ends: clear every batch and the exit opens.
-## When the player deals damage, feed their passives' on_hit_dealt hook (Leech lifesteal, on-hit procs).
-func _on_enemy_damaged(amount: float, source: Node, enemy: Node) -> void:
+## When the player deals damage: feed their passives' on_hit_dealt hook (Leech lifesteal, on-hit procs)
+## and pop a floating damage number over the enemy (world-space, in the content layer with the enemies).
+func _on_enemy_damaged(amount: float, source: Node, enemy: Enemy) -> void:
 	if _player != null and source == _player:
 		_player.notify_hit_dealt(amount, enemy)
+		DamageNumber.spawn(_content, enemy.global_position + DAMAGE_NUMBER_OFFSET, amount, enemy.last_hit_from_special)
 
 
 func _spawn_next_wave() -> bool:

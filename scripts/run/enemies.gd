@@ -11,7 +11,7 @@ extends RefCounted
 ## dangerous/high-HP (and pay the most lahm, since lahm = HP); CHIP enemies are fodder. Use it
 ## to keep waves fair — e.g. "3 strong" vs "5 chip + 1 strong". It's advisory, not enforced.
 
-enum Tier { CHIP, MID, STRONG }
+enum Tier {CHIP, MID, STRONG}
 
 # --- the types --------------------------------------------------------------
 
@@ -32,5 +32,5 @@ const MAZAB := {
 	"ranged_damage": 16.0, "ranged_knockback": 160.0, "ranged_stun": 0.25,
 	"lob_arc_time": 0.9, "lob_dwell": 1.0, "lob_explosion_extents": Vector2(48, 26),
 }
-const NASEN := {"scene": "res://scenes/nasen.tscn", "tier": Tier.STRONG, "optional": true}  # optional: needn't be killed to clear; rage cue = attack/melee.wav
+const NASEN := {"scene": "res://scenes/nasen.tscn", "tier": Tier.STRONG, "optional": true} # optional: needn't be killed to clear; rage cue = attack/melee.wav
 const EIN := {"scene": "res://scenes/ein.tscn", "tier": Tier.MID}

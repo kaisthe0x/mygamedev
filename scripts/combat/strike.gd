@@ -47,8 +47,8 @@ extends Node2D
 var source: Node = null
 
 var _hitbox: Hitbox
-var _tick_timer: Timer  # the DoT re-pulse timer, if any (see _start_ticking)
-var _fading := false  # true once _fade_out has begun -- so it runs only once
+var _tick_timer: Timer # the DoT re-pulse timer, if any (see _start_ticking)
+var _fading := false # true once _fade_out has begun -- so it runs only once
 
 
 func _ready() -> void:
@@ -109,11 +109,11 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 		# Dynamic per-attack victim VFX: a res:// scene path spawned on whoever this hits.
 		if t.has("victim_effect"):
 			_hitbox.victim_vfx = load(t["victim_effect"])
-			_hitbox.victim_vfx_time = t.get("victim_time", 0.0)  # 0 -> defaults to the stun/status window
+			_hitbox.victim_vfx_time = t.get("victim_time", 0.0) # 0 -> defaults to the stun/status window
 		if t.has("from_special"):
-			_hitbox.from_special = t["from_special"]  # a special-kill doesn't refill Ruh
+			_hitbox.from_special = t["from_special"] # a special-kill doesn't refill Ruh
 		if t.has("frenemy"):
-			_hitbox.frenemy_time = t["frenemy"]  # charm the victim into a temporary ally
+			_hitbox.frenemy_time = t["frenemy"] # charm the victim into a temporary ally
 		_resize_hitbox(t)
 	# Wielder-effects act on the striker (option A): lunge shoves them forward, armor
 	# lets them shrug off stagger during the swing. No-op when the field/method is absent.
@@ -130,7 +130,7 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 	# Hold the striker's pose while a timed emission plays out (the caster frozen on the
 	# inferno cast frame until the fire finishes) -- option A: the strike drives its wielder.
 	if emit_duration > 0.0 and source != null and source.has_method("hold_animation"):
-		source.hold_animation(emit_duration, self)  # pass self so the caster can cancel us
+		source.hold_animation(emit_duration, self) # pass self so the caster can cancel us
 	# Damage-over-time from a move's tuning: re-hit everyone in the box every `tick`s (inferno =
 	# 10 dmg every 0.25s). Only if the scene didn't already author one (_ready starts that).
 	if t.has("tick") and _hitbox != null and not is_instance_valid(_tick_timer):

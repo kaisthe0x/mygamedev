@@ -31,8 +31,8 @@ resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
 scripts/              player, hud
 scripts/run/          the roguelite run: levels, batches, Ruh, reward doors, attack picker (see scripts/run/README.md)
-scripts/abilities/    Per-character abilities, named <character_id>.gd
-scripts/combat/       Hurtbox, hitbox, combatant base, health bar (constants -> configs/combat.gd)
+scripts/abilities/    Passive base + per-character abilities + reward passives, named <id>.gd
+scripts/combat/       Hurtbox, hitbox, combatant base, health bar, floating damage numbers (constants -> configs/combat.gd)
 scripts/enemies/      Enemy base + projectile
 sprites/characters/   Source pixel-art sheets, one folder per character
 sprites/enemies/      Source enemy sheets, one folder per enemy
@@ -858,6 +858,11 @@ to hand-wire. Key traits:
   **colour-coded by fill** — green when healthy, orange as it drops, red when low
   (`FloatingHealthBar.ratio_colors`; the thresholds/colours live in one place,
   `color_for_ratio`, so the HUD player HP bar reads from the exact same bands).
+- **Floating damage numbers** (`scripts/combat/damage_number.gd`, Risk-of-Rain style): every hit the
+  player lands pops a number that scales/colours by magnitude (white → hot gold; magenta for a
+  special) and drifts up + fades. Spawned off the existing `enemy.damaged` signal in
+  `RunManager._on_enemy_damaged` (world-space, in the enemy content layer); all feel is `DamageNumber`
+  exports. One per hit, so a flurry throws up a cascade.
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
   hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
   plays that animation once and **vanishes the instant it finishes** (`_on_anim_finished` →

@@ -5,10 +5,10 @@ extends RefCounted
 ## be added without changing every signature. A Hitbox / Projectile fills one in
 ## and hands it to Hurtbox.take_hit(); the victim reads what it needs.
 
-var amount: float = 0.0        ## damage
-var knockback: float = 0.0     ## px/s shove away from the source (0 = none)
-var stun: float = 0.0          ## seconds frozen / staggered (0 = none)
-var source: Node = null        ## who dealt it (for knockback direction)
+var amount: float = 0.0 ## damage
+var knockback: float = 0.0 ## px/s shove away from the source (0 = none)
+var stun: float = 0.0 ## seconds frozen / staggered (0 = none)
+var source: Node = null ## who dealt it (for knockback direction)
 ## True if this came from a Projectile (a ranged shot), false for a melee/Strike box. Lets
 ## a victim react differently to ranged vs melee -- e.g. nasen is only stunned by melee.
 var ranged: bool = false

@@ -17,7 +17,7 @@ var _phase: float = 0.0
 func setup(target: AnimatedSprite2D) -> void:
 	_target = target
 	_overlay = AnimatedSprite2D.new()
-	_overlay.z_index = 1  # above the base sprite
+	_overlay.z_index = 1 # above the base sprite
 	_overlay.visible = false
 	var mat := CanvasItemMaterial.new()
 	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
@@ -60,4 +60,4 @@ func _sync() -> void:
 	_overlay.flip_h = _target.flip_h
 	_overlay.centered = _target.centered
 	_overlay.offset = _target.offset
-	_overlay.scale = _target.scale  # track the hit-react squash so the tint deforms with the body
+	_overlay.scale = _target.scale # track the hit-react squash so the tint deforms with the body

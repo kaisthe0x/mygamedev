@@ -41,6 +41,15 @@ const TABLE := {
 			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_7.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(14, -18)},
 			{"scene": preload("res://vfx/character/khalid/attack/twin_reaper/attack_twin_reaper_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(14, -18)},
 		],
+		# Dual Executioner: the upgraded Twin Reaper -- its own 17-frame spin sheet. Hit frames 6/9/14/16
+		# (sheet-relative), each its OWN scene file (Strike + hitbox + particles), named _<sheetframe> so
+		# the filename tells you which frame it fires on -- edit each hit in isolation.
+		"attack_dual_executioner": [
+			{"scene": preload("res://vfx/character/khalid/attack/dual_executioner/attack_dual_executioner_6.tscn"), "mode": "burst", "frames": [6], "pos": Vector2(14, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/dual_executioner/attack_dual_executioner_9.tscn"), "mode": "burst", "frames": [9], "pos": Vector2(10, -18)},
+			{"scene": preload("res://vfx/character/khalid/attack/dual_executioner/attack_dual_executioner_14.tscn"), "mode": "burst", "frames": [14], "pos": Vector2(4, -27)},
+			{"scene": preload("res://vfx/character/khalid/attack/dual_executioner/attack_dual_executioner_16.tscn"), "mode": "burst", "frames": [16], "pos": Vector2(14, -18)},
+		],
 		# Cherry Shots: two laser Projectiles, each its own file (see the twin_reaper split note) --
 		# attack_cherry_shots_3.tscn launches the small bolt on frame 3, _7 the big one on frame 7.
 		"attack_cherry_shots": [

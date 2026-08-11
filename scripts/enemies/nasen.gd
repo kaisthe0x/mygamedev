@@ -28,20 +28,20 @@ extends Enemy
 @export var rage_knockback: float = 130.0
 @export var rage_extents := Vector2(52, 22)
 
-var _rage_left := 0.0  ## seconds of rage remaining; refreshed while the player is in the zone
+var _rage_left := 0.0 ## seconds of rage remaining; refreshed while the player is in the zone
 
 
 ## Stationary sleeper AI -- no patrol. Wake + rage when the player is in the zone (and on
 ## our level); the linger timer keeps him raging a bit after they leave. He never moves.
 func _act(delta: float) -> void:
-	velocity.x = 0.0  # rooted -- he only ever sleeps or rages in place
+	velocity.x = 0.0 # rooted -- he only ever sleeps or rages in place
 	_rage_left = maxf(_rage_left - delta, 0.0)
 
 	var player := _player()
 	if player != null:
 		var to := player.global_position - global_position
 		if absf(to.y) <= attack_align_y and absf(to.x) <= rage_zone:
-			_rage_left = rage_linger  # disturbed -> (re)fill the linger timer
+			_rage_left = rage_linger # disturbed -> (re)fill the linger timer
 			if to.x != 0.0:
 				_face(int(sign(to.x)))
 
@@ -49,7 +49,7 @@ func _act(delta: float) -> void:
 	# loop) is handled in _on_anim_finished so a swing always completes before he dozes.
 	if _rage_left > 0.0 and _state == State.IDLE:
 		_engaged = true
-		_start_rage()  # first cycle: the full attack, including the wake-up
+		_start_rage() # first cycle: the full attack, including the wake-up
 
 
 ## Play (a cycle of) the rage attack. `from_frame` is the EMITTED frame to begin at -- 0 for
@@ -58,15 +58,15 @@ func _act(delta: float) -> void:
 func _start_rage(from_frame := 0) -> void:
 	_set_state(State.RAGE)
 	if from_frame == 0:
-		_play_attack_start_sfx(&"attack")  # the wake/attack cue -- once per rage, not every yell loop
+		_play_attack_start_sfx(&"attack") # the wake/attack cue -- once per rage, not every yell loop
 	_attack_fired = false
 	_impacted = false
-	_replay_from(&"attack", from_frame)  # base helper: skip to `from_frame`, then play to the end
+	_replay_from(&"attack", from_frame) # base helper: skip to `from_frame`, then play to the end
 
 
 ## Erupt the AoE on the attack's hit frame while raging.
 func _on_frame_changed() -> void:
-	_play_frame_sfx()  # per-frame hit sounds (e.g. a future melee_<frame>.wav) work during rage too
+	_play_frame_sfx() # per-frame hit sounds (e.g. a future melee_<frame>.wav) work during rage too
 	if _state == State.RAGE and not _attack_fired and _sprite.frame in _hit_frames(&"attack"):
 		_attack_fired = true
 		_spawn_rage_aoe()
@@ -77,7 +77,7 @@ func _on_frame_changed() -> void:
 ## death anim has played out, matching the base.)
 func _on_anim_finished() -> void:
 	if _state == State.DEAD:
-		queue_free()  # death anim done -> disappear immediately (no lingering hold/fade)
+		queue_free() # death anim done -> disappear immediately (no lingering hold/fade)
 		return
 	if _state == State.RAGE:
 		if _rage_left > 0.0:
@@ -86,7 +86,7 @@ func _on_anim_finished() -> void:
 			_start_rage(_loop_from(&"attack"))
 		else:
 			_engaged = false
-			_set_state(State.IDLE)  # doze off
+			_set_state(State.IDLE) # doze off
 
 
 ## Melee halts him (stun -> rage restarts after); a projectile only chips health, so ranged
@@ -121,8 +121,8 @@ func _spawn_rage_aoe() -> void:
 	hb.source = self
 	hb.add_child(Shapes.make_box(rage_extents * 2.0, Vector2(0, -rage_extents.y)))
 	strike.add_child(hb)
-	var fx := _make_vfx("rage")  # rage LOOK + emit point from the Emitters config (null if none)
+	var fx := _make_vfx("rage") # rage LOOK + emit point from the Emitters config (null if none)
 	if fx != null:
 		strike.add_child(fx)
-	add_child(strike)  # centred on nasen (his feet); Strike._ready sets team layers, frees itself
+	add_child(strike) # centred on nasen (his feet); Strike._ready sets team layers, frees itself
 	hb.activate()

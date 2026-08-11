@@ -18,33 +18,33 @@ var _player: Player
 var _target: float = 0.0
 
 # Built-in-code widgets (direct children of this CanvasLayer, explicit positions).
-var _root: Control            ## a plain container we show/hide as one
+var _root: Control ## a plain container we show/hide as one
 var _portrait: TextureRect
 var _name_label: Label
-var _bar: ProgressBar         ## HP
+var _bar: ProgressBar ## HP
 var _value_label: Label
-var _ruh_area: Control       ## holds the block cells
-var _ruh_cells: Array = []   ## [{bg, fill}] -- one per ruh block, rebuilt when the cap changes
+var _ruh_area: Control ## holds the block cells
+var _ruh_cells: Array = [] ## [{bg, fill}] -- one per ruh block, rebuilt when the cap changes
 var _ruh_cell_w: float = 0.0
 var _ruh_label: Label
-var _levels_label: Label      ## levels cleared this run + the best-ever record
+var _levels_label: Label ## levels cleared this run + the best-ever record
 var _controls: Label
 var _stats: PanelContainer
 var _stats_label: Label
 
 const RUH_METER_SIZE := Vector2(248, 16)
 const RUH_CELL_GAP := 3.0
-const RUH_FILL := Color(0.80, 0.16, 0.20)    ## filled block: crimson
-const RUH_EMPTY := Color(0.16, 0.08, 0.10, 0.9)  ## empty block slot
+const RUH_FILL := Color(0.80, 0.16, 0.20) ## filled block: crimson
+const RUH_EMPTY := Color(0.16, 0.08, 0.10, 0.9) ## empty block slot
 
 
 func _ready() -> void:
-	layer = 100  # keep the HUD above every other CanvasLayer
+	layer = 100 # keep the HUD above every other CanvasLayer
 	_build_hud()
 	_build_stats()
 	_set_shown(false)
 	get_tree().node_added.connect(_on_node_added)
-	set_process(true)  # always process: the safety net in _process re-binds if we miss one
+	set_process(true) # always process: the safety net in _process re-binds if we miss one
 	var existing := _find_player()
 	if existing != null:
 		_bind(existing)
@@ -53,7 +53,7 @@ func _ready() -> void:
 # --- construction (all in code, no scene layout) ----------------------------
 
 func _build_hud() -> void:
-	_root = Control.new()  # holds the top-left cluster; toggled by _set_shown
+	_root = Control.new() # holds the top-left cluster; toggled by _set_shown
 	_root.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
@@ -75,13 +75,13 @@ func _build_hud() -> void:
 	_name_label = _mk_label(Vector2(info_x, 14), 20, Color(0.93, 0.87, 0.62))
 	_name_label.text = "CHARACTER"
 
-	_bar = _mk_bar(Vector2(info_x, 48), Vector2(248, 20), Color(0.78, 0.13, 0.18))  # HP: red
+	_bar = _mk_bar(Vector2(info_x, 48), Vector2(248, 20), Color(0.78, 0.13, 0.18)) # HP: red
 	_value_label = _mk_label(Vector2(info_x, 48), 13, Color(0.9, 0.9, 0.95))
 	_value_label.size = Vector2(248, 20)
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
-	_ruh_area = Control.new()  # the block cells live here; rebuilt on cap change
+	_ruh_area = Control.new() # the block cells live here; rebuilt on cap change
 	_ruh_area.position = Vector2(info_x, 76)
 	_ruh_area.size = RUH_METER_SIZE
 	_ruh_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -91,7 +91,7 @@ func _build_hud() -> void:
 	_ruh_label.size = Vector2(120, 18)
 	_ruh_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
-	_levels_label = _mk_label(Vector2(info_x, 100), 15, Color(0.85, 0.72, 0.18))  # gold, like the frame
+	_levels_label = _mk_label(Vector2(info_x, 100), 15, Color(0.85, 0.72, 0.18)) # gold, like the frame
 
 	_controls = _mk_label(Vector2(16, 140), 12, Color(0.62, 0.62, 0.68))
 	_controls.text = "A/D move   Space jump   Shift dash   LMB attack   RMB special/slam   Z hurt   X +ruh   0 rebuild"
@@ -143,7 +143,7 @@ func _build_ruh_meter(block_count: int) -> void:
 		_ruh_area.add_child(bg)
 		var fill := ColorRect.new()
 		fill.position = Vector2(x, 0)
-		fill.size = Vector2(0, RUH_METER_SIZE.y)  # width set per-frame from the ruh value
+		fill.size = Vector2(0, RUH_METER_SIZE.y) # width set per-frame from the ruh value
 		fill.color = RUH_FILL
 		_ruh_area.add_child(fill)
 		_ruh_cells.append(fill)
@@ -198,7 +198,7 @@ func _bind(player: Player) -> void:
 	_on_health_changed(_player.health, _player.max_health)
 	_on_ruh_changed(_player.ruh, _player.ruh_cap)
 	_bar.value = _target
-	_recolor_hp()  # colour the full bar green now that _bar.value is seeded (see _on_health_changed)
+	_recolor_hp() # colour the full bar green now that _bar.value is seeded (see _on_health_changed)
 	_set_shown(true)
 
 
@@ -227,7 +227,7 @@ func _process(delta: float) -> void:
 		return
 	if not is_equal_approx(_bar.value, _target):
 		_bar.value = move_toward(_bar.value, _target, drain_speed * delta)
-		_recolor_hp()  # shift the fill green->orange->red as the animated drain crosses thresholds
+		_recolor_hp() # shift the fill green->orange->red as the animated drain crosses thresholds
 	_levels_label.text = "LEVELS  %d   ·   BEST %d" % [SaveData.current_cleared, SaveData.levels_record()]
 	_stats_label.text = _stats_text()
 

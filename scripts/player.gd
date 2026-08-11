@@ -134,29 +134,29 @@ func begin_run() -> void:
 var run_speed: float = 160.0
 var acceleration: float = 1200.0
 var friction: float = 1400.0
-var run_anim_speed: float = 1.5       ## run-cycle cadence vs ground speed (visual; >1 = busier legs)
+var run_anim_speed: float = 1.5 ## run-cycle cadence vs ground speed (visual; >1 = busier legs)
 # jump / vertical arc
 var jump_velocity: float = -330.0
-var max_air_jumps: int = 2            ## the jump Locomotion's air_jumps + air_jump_bonus (buff); each air jump spawns particles
+var max_air_jumps: int = 2 ## the jump Locomotion's air_jumps + air_jump_bonus (buff); each air jump spawns particles
 var gravity: float = 900.0
-var fall_gravity_scale: float = 1.35  ## >1 = falls faster than it rises (less floaty)
+var fall_gravity_scale: float = 1.35 ## >1 = falls faster than it rises (less floaty)
 # dash
 var dash_speed: float = 420.0
 var dash_time: float = 0.18
 var dash_cooldown: float = 0.45
-var dash_anim_time: float = 0.30      ## dash ANIMATION length, decoupled from the lunge (dash_time)
-var dash_gravity_scale: float = 0.35  ## gravity kept during an air dash (0 = hang, 1 = fall normally)
+var dash_anim_time: float = 0.30 ## dash ANIMATION length, decoupled from the lunge (dash_time)
+var dash_gravity_scale: float = 0.35 ## gravity kept during an air dash (0 = hang, 1 = fall normally)
 # slam
 var slam_speed: float = 1200.0
-var slam_min_clearance: float = 50.0  ## min clear space below the feet to allow a slam (0 = always)
-var slam_hold_frame: int = 2          ## slam frame to LOCK on during a tall plunge (sheet-relative)
-var slam_impact_distance: float = 30.0    ## px above ground a held slam releases its impact frames
-var slam_min_drop: float = 120.0      ## slam damage scales from mult 1.0 at this drop...
-var slam_max_drop: float = 700.0      ## ...up to slam_max_damage_mult at this drop (lerped between)
+var slam_min_clearance: float = 50.0 ## min clear space below the feet to allow a slam (0 = always)
+var slam_hold_frame: int = 2 ## slam frame to LOCK on during a tall plunge (sheet-relative)
+var slam_impact_distance: float = 30.0 ## px above ground a held slam releases its impact frames
+var slam_min_drop: float = 120.0 ## slam damage scales from mult 1.0 at this drop...
+var slam_max_drop: float = 700.0 ## ...up to slam_max_damage_mult at this drop (lerped between)
 var slam_max_damage_mult: float = 2.5
 # landing
-var land_min_fall_speed: float = 140.0    ## min touchdown speed to play the landing squash
-var land_predict_distance: float = 22.0   ## px above ground the LAND anim starts (plays through touchdown)
+var land_min_fall_speed: float = 140.0 ## min touchdown speed to play the landing squash
+var land_predict_distance: float = 22.0 ## px above ground the LAND anim starts (plays through touchdown)
 
 @export_group("Attack")
 ## How long the sprite holds on a hit frame before returning to idle, if the
@@ -1347,7 +1347,7 @@ func _slam_release() -> void:
 	_slam_impacting = true
 	_sprite.visible = true
 	_sprite.speed_scale = 1.0
-	Sfx.play("slam")  # ground-impact hit
+	Sfx.play("slam") # ground-impact hit
 	var drop := global_position.y - _slam_start_y # how far we plunged (px)
 	var t := clampf((drop - slam_min_drop) / maxf(slam_max_drop - slam_min_drop, 1.0), 0.0, 1.0)
 	_active_hit = {"damage_scale": lerpf(1.0, slam_max_damage_mult, t) * slam_damage_mult} # Meteor reward
@@ -1471,7 +1471,7 @@ func _enter(state: State) -> void:
 			_dash_left = dash_time
 			_dash_anim_left = maxf(dash_anim_time, dash_time)
 			_dash_cd = dash_cooldown
-			Sfx.play("dash")  # player-centric -- non-positional
+			Sfx.play("dash") # player-centric -- non-positional
 			# Fire this dash's effect at the spot we're leaving (before the lunge/blink moves us). Its
 			# "Trail" follows the player, the rest lingers here (see ParticleDirector). Clear _active_hit
 			# first so a dropped Strike uses its OWN authored damage, not a stale attack's tuning.

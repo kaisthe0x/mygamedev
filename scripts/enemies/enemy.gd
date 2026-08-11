@@ -20,7 +20,7 @@ const FRAMES_PATH := "res://resources/enemies/%s.tres"
 
 ## Emitted once when this enemy dies, carrying the lahm it pays out (its HP value). The run
 ## manager awards it to the player and counts the kill toward clearing the wave.
-signal died  ## this enemy died -- RunManager counts it toward clearing the arena (wave refill)
+signal died ## this enemy died -- RunManager counts it toward clearing the arena (wave refill)
 ## Emitted every time this enemy takes damage: (actual HP removed, the attacker). RunManager
 ## pays the player lahm = damage they dealt (the harvest is per-hit now, not a lump on kill).
 signal damaged(amount: float, source: Node)
@@ -92,7 +92,7 @@ const DEFAULT_MUZZLE := Vector2(20, -46)
 ## the blast reuses ranged_damage/knockback/stun. Dodge by clearing the landing spot.
 @export_enum("aimed", "forward", "lob") var ranged_mode := "aimed"
 @export var ranged_travel: float = 100.0
-@export var ranged_color := Color(0.55, 1.0, 0.45)  # tints the built-in orb
+@export var ranged_color := Color(0.55, 1.0, 0.45) # tints the built-in orb
 ## The projectile's visual scene (Baghel's wave, Kebus' bolt, Mazab's rock) is NOT set here --
 ## it comes from the Emitters config (`<id> -> projectile -> scene`); empty there = the built-in
 ## orb. Same for the lob blast (`<id> -> explosion -> scene`). One place for every enemy emitter.
@@ -143,11 +143,11 @@ const DEFAULT_MUZZLE := Vector2(20, -46)
 ## Peak jitter (px) of the shake during the hit-stop; decays to 0 over it.
 @export var attack_shake: float = 2.5
 
-enum State { IDLE, PATROL, MELEE, RANGE, STUN, DEAD, RAGE, CHARGE }  # RAGE: nasen; CHARGE: ein's dive
+enum State {IDLE, PATROL, MELEE, RANGE, STUN, DEAD, RAGE, CHARGE} # RAGE: nasen; CHARGE: ein's dive
 
 var health: float
 var _state: State = State.IDLE
-var _facing: int = -1  # enemies commonly face left toward a right-approaching player
+var _facing: int = -1 # enemies commonly face left toward a right-approaching player
 var _has_melee := false
 var _has_ranged := false
 var _has_death := false
@@ -176,7 +176,7 @@ var _engaged := false
 var _alert_left := 0.0
 var _hitstop_left := 0.0
 var _hitstop_dur := 0.0
-var _impacted := false  # this attack already fired its hit-stop
+var _impacted := false # this attack already fired its hit-stop
 
 var _sprite: AnimatedSprite2D
 var _hurtbox: Hurtbox
@@ -219,7 +219,7 @@ func _ready() -> void:
 	_sprite.animation_finished.connect(_on_anim_finished)
 	_sprite.animation_looped.connect(_on_anim_looped)
 	_face(_facing)
-	_play(&"patrol" if _has_patrol else &"idle")  # a patrolless enemy (sleeper) just idles
+	_play(&"patrol" if _has_patrol else &"idle") # a patrolless enemy (sleeper) just idles
 
 
 # --- construction -----------------------------------------------------------
@@ -286,12 +286,12 @@ func _floor_ahead(dir: int) -> bool:
 
 func _build_health_bar() -> void:
 	_bar = FloatingHealthBar.new()
-	_bar.ratio_colors = true  # health: green (full) -> orange -> red (low)
+	_bar.ratio_colors = true # health: green (full) -> orange -> red (low)
 	add_child(_bar)
 	_bar.setup(display_name)
 	# Just above the head (sprite is drawn from feet at y=0 upward).
 	var frame := _sprite.sprite_frames.get_frame_texture(&"idle", 0)
-	var head_y := -(frame.get_height() if frame else 70) + 8
+	var head_y := - (frame.get_height() if frame else 70) + 8
 	_bar.position = Vector2(0, head_y)
 
 
@@ -301,7 +301,7 @@ func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
 		return
 
-	if _frenemy_left > 0.0:  # count down the charm; revert to hostile when it runs out
+	if _frenemy_left > 0.0: # count down the charm; revert to hostile when it runs out
 		_frenemy_left -= delta
 		if _frenemy_left <= 0.0:
 			_end_frenemy()
@@ -327,7 +327,7 @@ func _physics_process(delta: float) -> void:
 		if _stun_left <= 0.0:
 			_set_state(State.IDLE)
 	elif _state == State.MELEE or _state == State.RANGE:
-		velocity.x = move_toward(velocity.x, 0.0, 600.0 * delta)  # rooted while attacking
+		velocity.x = move_toward(velocity.x, 0.0, 600.0 * delta) # rooted while attacking
 	else:
 		_act(delta)
 
@@ -349,11 +349,11 @@ func _idle_scratch(delta: float) -> void:
 			_sprite.pause()
 		return
 	if idle_loop_to <= idle_loop_from or _scratch_full_cycle:
-		return  # not configured, or letting a full idle play (_on_anim_looped ends it)
+		return # not configured, or letting a full idle play (_on_anim_looped ends it)
 	_scratch_timer -= delta
 	if _scratch_timer <= 0.0:
 		_scratch_full_cycle = true
-		_sprite.set_frame_and_progress(0, 0.0)  # play one full idle from the top
+		_sprite.set_frame_and_progress(0, 0.0) # play one full idle from the top
 
 
 ## The sub-range loop is clamped here (on the render frame it changes) rather
@@ -375,10 +375,10 @@ func _on_anim_looped() -> void:
 
 func _tick_contact(delta: float) -> void:
 	if _contact_hitbox == null or is_frenemy():
-		return  # a charmed frenemy doesn't touch-damage the player
+		return # a charmed frenemy doesn't touch-damage the player
 	_contact_cd = maxf(_contact_cd - delta, 0.0)
 	if _contact_cd <= 0.0:
-		_contact_hitbox.activate()  # re-arm; hits the player if still overlapping
+		_contact_hitbox.activate() # re-arm; hits the player if still overlapping
 		_contact_cd = contact_interval
 
 
@@ -386,7 +386,7 @@ func _act(delta: float) -> void:
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
 	_alert_left = maxf(_alert_left - delta, 0.0)
 
-	var player := _target()  # the player normally; the nearest OTHER enemy while charmed (frenemy)
+	var player := _target() # the player normally; the nearest OTHER enemy while charmed (frenemy)
 	if player != null:
 		var to_player := player.global_position.x - global_position.x
 		var dist: float = absf(to_player)
@@ -420,7 +420,7 @@ func _act(delta: float) -> void:
 				_set_state(State.IDLE)
 			return
 
-	_engaged = false  # nobody in reach -> back to normal patrol/idle
+	_engaged = false # nobody in reach -> back to normal patrol/idle
 	_patrol(delta)
 
 
@@ -455,7 +455,7 @@ func _start_attack(state: State, anim: StringName, player: Node2D) -> void:
 	velocity.x = 0.0
 	_attack_fired = false
 	_impacted = false
-	_engaged = true  # attacking means we're in combat, so the idle stays a stance
+	_engaged = true # attacking means we're in combat, so the idle stays a stance
 	_face(int(sign(player.global_position.x - global_position.x)))
 	_play(anim)
 
@@ -517,14 +517,14 @@ func _begin_hitstop() -> void:
 	_impacted = true
 	_hitstop_dur = attack_hitstop
 	_hitstop_left = attack_hitstop
-	_sprite.pause()  # hold the impact frame; resumes in _end_hitstop
+	_sprite.pause() # hold the impact frame; resumes in _end_hitstop
 
 
 func _end_hitstop() -> void:
 	_hitstop_left = 0.0
-	_sprite.position = Vector2.ZERO  # undo the shake
+	_sprite.position = Vector2.ZERO # undo the shake
 	if _state == State.MELEE or _state == State.RANGE or _state == State.RAGE:
-		_sprite.play()  # let the swing (or nasen's rage) follow through to its finish
+		_sprite.play() # let the swing (or nasen's rage) follow through to its finish
 
 
 ## Decaying jitter over the hit-stop: strongest on impact, settling to nothing.
@@ -538,7 +538,7 @@ func _apply_shake() -> void:
 
 func _on_anim_finished() -> void:
 	if _state == State.DEAD:
-		queue_free()  # death anim played out in full -> vanish immediately (no lingering hold/fade)
+		queue_free() # death anim played out in full -> vanish immediately (no lingering hold/fade)
 		return
 	# A looping melee keeps swinging while the player stays in reach, re-playing from its
 	# loop_from frame so the wind-up only plays once. Otherwise it's one-and-done.
@@ -601,7 +601,7 @@ func _replay_from(anim: StringName, from: int) -> void:
 ## Is the player still within melee reach + on our level (the condition a looping melee
 ## keeps swinging on)?
 func _in_melee_reach() -> bool:
-	var t := _target()  # frenemy-aware: the enemy it's fighting while charmed, else the player
+	var t := _target() # frenemy-aware: the enemy it's fighting while charmed, else the player
 	if t == null:
 		return false
 	var to := t.global_position - global_position
@@ -614,8 +614,8 @@ func _in_melee_reach() -> bool:
 ## in front of the body for the swing.
 func _spawn_melee_strike() -> void:
 	var strike := Strike.new()
-	strike.hostile = not is_frenemy()  # a charmed frenemy's swing hits enemies, not the player
-	strike.friendly_fire = friendly_fire  # also catch other enemies, if flagged
+	strike.hostile = not is_frenemy() # a charmed frenemy's swing hits enemies, not the player
+	strike.friendly_fire = friendly_fire # also catch other enemies, if flagged
 	strike.lifetime = 0.15
 	strike.source = self
 	var hb := Hitbox.new()
@@ -625,26 +625,26 @@ func _spawn_melee_strike() -> void:
 	hb.source = self
 	hb.add_child(Shapes.make_box(melee_hitbox_extents * 2.0, Vector2(0, -melee_hitbox_extents.y)))
 	strike.add_child(hb)
-	add_child(strike)                                  # _ready: team layers + free timer
+	add_child(strike) # _ready: team layers + free timer
 	strike.position = Vector2(melee_hitbox_x * _facing, 0)
 	hb.activate()
 
 
 func _fire_projectile() -> void:
 	if ranged_mode == "lob":
-		_fire_lob()  # a thrown bomb (LobProjectile), not a straight-line shot
+		_fire_lob() # a thrown bomb (LobProjectile), not a straight-line shot
 		return
-	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE)  # config-driven launch point
+	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE) # config-driven launch point
 	# One shared Projectile class for players AND enemies -- hostile = true puts it on the
 	# enemy-hit layer scanning player hurtboxes, homing = 0 flies straight, and the look/damage
 	# are the `projectile` scene (the Emitters config) + a Hitbox built from this enemy's tuning.
 	var proj := Projectile.new()
-	proj.hostile = not is_frenemy()  # a charmed frenemy's shot hits enemies, not the player
-	proj.friendly_fire = friendly_fire  # also catch other enemies, if flagged
-	proj.homing = 0.0                # aim once / surge forward -- no steering
-	proj.rotate_to_heading = false   # visual authored blasting +x -> mirror, don't rotate
+	proj.hostile = not is_frenemy() # a charmed frenemy's shot hits enemies, not the player
+	proj.friendly_fire = friendly_fire # also catch other enemies, if flagged
+	proj.homing = 0.0 # aim once / surge forward -- no steering
+	proj.rotate_to_heading = false # visual authored blasting +x -> mirror, don't rotate
 	proj.source = self
-	var vis := _vfx_scene("projectile")  # null -> the projectile's built-in orb fallback
+	var vis := _vfx_scene("projectile") # null -> the projectile's built-in orb fallback
 	if vis != null:
 		proj.add_child(vis.instantiate())
 
@@ -661,12 +661,12 @@ func _fire_projectile() -> void:
 		# Surge straight ahead along the ground; capped distance via max_range.
 		proj.velocity = Vector2(projectile_speed * _facing, 0.0)
 		proj.max_range = ranged_travel
-		proj.ground_trail = true  # scorch the floor red as it rolls past
+		proj.ground_trail = true # scorch the floor red as it rolls past
 	else:
 		# Aim at the TARGET's torso (the player, or the nearest enemy while charmed) so a high
 		# muzzle still connects with a short body; fall back to straight ahead if the target
 		# vanished mid-cast. Fizzle after a few seconds if it misses everything.
-		var aim := _target()  # frenemy-aware: nearest enemy while charmed, else the player
+		var aim := _target() # frenemy-aware: nearest enemy while charmed, else the player
 		var target := (aim.global_position + Vector2(0, -15)) if aim != null \
 			else muzzle + Vector2(_facing, 0)
 		proj.velocity = (target - muzzle).normalized() * projectile_speed
@@ -685,7 +685,7 @@ func _fire_projectile() -> void:
 func _fire_lob() -> void:
 	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE)
 	var lob := LobProjectile.new()
-	lob.hostile = not is_frenemy()  # a charmed frenemy's lob hits enemies, not the player
+	lob.hostile = not is_frenemy() # a charmed frenemy's lob hits enemies, not the player
 	lob.friendly_fire = friendly_fire
 	lob.source = self
 	lob.arc_time = lob_arc_time
@@ -696,7 +696,7 @@ func _fire_lob() -> void:
 	lob.explosion_damage = ranged_damage
 	lob.explosion_knockback = ranged_knockback
 	lob.explosion_stun = ranged_stun
-	lob.explosion_effect = _vfx_scene("explosion")  # blast look (config); null -> Strike's own flash
+	lob.explosion_effect = _vfx_scene("explosion") # blast look (config); null -> Strike's own flash
 	# detached from us at detonation, so raw pos (no facing mirror)
 	lob.explosion_effect_pos = Emitters.enemy_effect(enemy_id, "explosion").get("pos", Vector2.ZERO)
 	# The delayed POP cue -- the lob plays it at the detonation point (see LobProjectile). Key
@@ -708,7 +708,7 @@ func _fire_lob() -> void:
 
 	# Land it next to the TARGET (the player, or the nearest enemy while charmed), biased toward
 	# us so it drops at their feet, not behind. Fall back to a short toss ahead if none.
-	var aim := _target()  # frenemy-aware: nearest enemy while charmed, else the player
+	var aim := _target() # frenemy-aware: nearest enemy while charmed, else the player
 	var land := muzzle + Vector2(_facing * 90.0, 30.0)
 	if aim != null:
 		var side := -signf(aim.global_position.x - global_position.x)
@@ -745,7 +745,7 @@ func _on_hurt(hit: Hit) -> void:
 	last_hit_from_special = hit.from_special
 	var before := health
 	health = maxf(health - hit.amount, 0.0)
-	damaged.emit(before - health, hit.source)  # harvest = actual HP removed (overkill isn't paid)
+	damaged.emit(before - health, hit.source) # harvest = actual HP removed (overkill isn't paid)
 	_bar.set_ratio(health / max_health)
 	hit_react(_sprite, hit.amount)
 	# Getting hit alerts us: pursue the attacker for a while even if it struck from beyond
@@ -773,7 +773,7 @@ func _on_hurt(hit: Hit) -> void:
 		# overwrite a long control stun with its own 0.18s stagger and wake them early. Take the max,
 		# so a hit can EXTEND a stun but never cut it short.
 		_stun_left = maxf(_stun_left, stagger)
-		_set_state(State.STUN)  # freezes the sprite on whatever frame it was on (see _set_state)
+		_set_state(State.STUN) # freezes the sprite on whatever frame it was on (see _set_state)
 		if hit.status_color.a > 0.0:
 			_status.show_for(hit.status_color, hit.status_time)
 
@@ -781,24 +781,24 @@ func _on_hurt(hit: Hit) -> void:
 ## Enter the DEAD state and stop receiving hits. The body stays for the death
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
-	_set_state(State.DEAD)  # _physics_process bails on DEAD, so the AI stops here
-	Sfx.play_at("enemy_death", global_position)  # positional -- pans with where it fell
-	died.emit()  # count the kill (RunManager banks Ruh + tracks arena clear)
-	remove_from_group("enemies")  # stop being a homing target NOW -- the death anim/fade below
+	_set_state(State.DEAD) # _physics_process bails on DEAD, so the AI stops here
+	Sfx.play_at("enemy_death", global_position) # positional -- pans with where it fell
+	died.emit() # count the kill (RunManager banks Ruh + tracks arena clear)
+	remove_from_group("enemies") # stop being a homing target NOW -- the death anim/fade below
 	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse
 	_hurtbox.set_deferred("monitorable", false)
 	set_deferred("collision_layer", 0)
 	if _has_death:
-		_play(&"death")  # play it out; _on_anim_finished frees it the instant the anim ends
+		_play(&"death") # play it out; _on_anim_finished frees it the instant the anim ends
 	else:
-		_fade_and_free()  # no death sheet -> a straight alpha-fade (there's no anim to play out)
+		_fade_and_free() # no death sheet -> a straight alpha-fade (there's no anim to play out)
 
 
 ## Let the final (dead) pose sit a beat, then fade the corpse out and free. The graceful
 ## tail of a death animation, or the whole thing for an enemy with no death sheet.
 func _fade_and_free() -> void:
 	var tw := create_tween()
-	tw.tween_interval(0.4)  # hold the dead pose so the death reads before it clears
+	tw.tween_interval(0.4) # hold the dead pose so the death reads before it clears
 	tw.tween_property(_sprite, "modulate:a", 0.0, 0.6)
 	tw.tween_callback(queue_free)
 
@@ -853,7 +853,7 @@ func become_frenemy(duration: float) -> void:
 		return
 	_frenemy_left = maxf(_frenemy_left, duration)
 	if _contact_hitbox != null:
-		_contact_hitbox.set_deferred("monitoring", false)  # don't touch-hurt the player while allied
+		_contact_hitbox.set_deferred("monitoring", false) # don't touch-hurt the player while allied
 
 
 ## The charm wore off -- back to a normal hostile enemy (re-arm contact next _tick_contact).
@@ -865,7 +865,7 @@ func _face(dir: int) -> void:
 	if dir == 0:
 		return
 	_facing = dir
-	_sprite.flip_h = dir < 0  # sheets face right; flip when facing left
+	_sprite.flip_h = dir < 0 # sheets face right; flip when facing left
 
 
 func _set_state(state: State) -> void:
@@ -875,12 +875,12 @@ func _set_state(state: State) -> void:
 	match state:
 		State.IDLE:
 			_play(&"idle")
-			_scratch_timer = idle_loop_time  # fresh scratch loop each time he rests
+			_scratch_timer = idle_loop_time # fresh scratch loop each time he rests
 			_scratch_full_cycle = false
-			if _engaged:  # combat: snap straight to the held ready-stance, no flicker
+			if _engaged: # combat: snap straight to the held ready-stance, no flicker
 				_sprite.set_frame_and_progress(0, 0.0)
 				_sprite.pause()
-		State.STUN: _sprite.pause()  # freeze on the current frame -- don't snap to idle
+		State.STUN: _sprite.pause() # freeze on the current frame -- don't snap to idle
 		State.PATROL: _play(&"patrol" if _has_patrol else &"idle")
 
 

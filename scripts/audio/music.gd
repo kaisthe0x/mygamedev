@@ -15,19 +15,19 @@ extends Node
 
 ## key -> res:// path. ONE line per track. >>> ADD TRACKS HERE <<<
 const TRACKS := {
-	"level": "res://music/the_omnific_the_stoic.mp3",  # main gameplay loop (The Omnific - The Stoic)
-	"base_rest": "res://music/base_rest.mp3",  # calmer bed while a cleared level's exit/reward is open
+	"level": "res://music/the_omnific_the_stoic.mp3", # main gameplay loop (The Omnific - The Stoic)
+	"base_rest": "res://music/base_rest.mp3", # calmer bed while a cleared level's exit/reward is open
 }
 
-const BUS := &"Music"            ## own volume, separate from SFX; falls back to Master if absent
+const BUS := &"Music" ## own volume, separate from SFX; falls back to Master if absent
 const DEFAULT_VOLUME_DB := -17.0 ## the "full" music level once faded in (sits under the SFX)
-const SILENCE_DB := -60.0        ## treated as silence at the ends of a fade
-const FADE := 1.5                ## default crossfade / fade seconds
+const SILENCE_DB := -60.0 ## treated as silence at the ends of a fade
+const FADE := 1.5 ## default crossfade / fade seconds
 
 var _players: Array[AudioStreamPlayer] = []
 var _tweens: Array = [null, null]
-var _active := 0    ## index of the player holding the CURRENT track
-var _current := ""  ## key of the current track ("" = none)
+var _active := 0 ## index of the player holding the CURRENT track
+var _current := "" ## key of the current track ("" = none)
 var _cache := {}
 
 
@@ -37,7 +37,7 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		p.bus = bus
 		p.volume_db = SILENCE_DB
-		p.process_mode = Node.PROCESS_MODE_ALWAYS  # keep music going if the game pauses
+		p.process_mode = Node.PROCESS_MODE_ALWAYS # keep music going if the game pauses
 		add_child(p)
 		_players.append(p)
 
@@ -80,13 +80,13 @@ func play(key: String, fade := FADE, volume_db := DEFAULT_VOLUME_DB) -> void:
 	var out_i := _active
 	var in_i := 1 - _active
 	_active = in_i
-	_fade_to(out_i, SILENCE_DB, fade, true)  # old track: fade out, then stop
+	_fade_to(out_i, SILENCE_DB, fade, true) # old track: fade out, then stop
 	var p := _players[in_i]
 	p.stream = s
 	p.volume_db = SILENCE_DB
 	p.stream_paused = false
 	p.play()
-	_fade_to(in_i, volume_db, fade, false)  # new track: fade in from silence
+	_fade_to(in_i, volume_db, fade, false) # new track: fade in from silence
 
 
 ## Fade the current track out to silence over `fade` seconds, then stop -- leaving nothing playing.
@@ -119,11 +119,11 @@ func _fade_to(i: int, to_db: float, dur: float, stop_after: bool) -> void:
 
 ## --- user-facing MUSIC volume (bind a settings slider to these; controls the whole Music bus,
 ## independent of the per-track fade envelope on the players) ---
-func set_volume(v: float) -> void:  # 0..1
+func set_volume(v: float) -> void: # 0..1
 	AudioBus.set_volume_linear(BUS, v)
 
 
-func get_volume() -> float:  # 0..1
+func get_volume() -> float: # 0..1
 	return AudioBus.get_volume_linear(BUS)
 
 

@@ -10,9 +10,9 @@ extends RefCounted
 ## (a reward already taken). An empty `{}` is always true. A reward's `requires` gates whether it's
 ## offered; its `synergy` condition boosts its roll weight when it holds.
 
-var equipped: Dictionary = {}   ## category -> equipped Action id (attack/special/run/jump/dash/slam)
-var rewards: Array = []          ## reward ids taken this run, in pick order
-var tags: Dictionary = {}        ## tag -> true, unioned from every equipped Action's `tags`
+var equipped: Dictionary = {} ## category -> equipped Action id (attack/special/run/jump/dash/slam)
+var rewards: Array = [] ## reward ids taken this run, in pick order
+var tags: Dictionary = {} ## tag -> true, unioned from every equipped Action's `tags`
 
 
 ## category ("attack"/"special") -> Actions pool kind (plural); movement categories map 1:1.

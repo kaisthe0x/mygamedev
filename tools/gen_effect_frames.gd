@@ -84,7 +84,7 @@ func _build(png_path: String) -> void:
 		push_warning("gen_effect_frames: %s width %d isn't divisible by %d frames; "
 			% [stem, w, frames] + "frames will be %dpx and the remainder is ignored" % fw)
 
-	var sf := SpriteFrames.new()  # comes with an empty "default" animation
+	var sf := SpriteFrames.new() # comes with an empty "default" animation
 	sf.set_animation_loop(&"default", loop)
 	sf.set_animation_speed(&"default", fps)
 	for i in frames:

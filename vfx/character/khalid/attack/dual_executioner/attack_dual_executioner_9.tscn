@@ -1,0 +1,68 @@
+[gd_scene format=3 uid="uid://xh3eb51e4tab"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_3wqto"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_t0yrk"]
+[ext_resource type="Texture2D" uid="uid://dhsogm6x06r2y" path="res://vfx/character/khalid/attack/dual_executioner/dual_executioner_texture_9.png" id="3_3wqto"]
+
+[sub_resource type="RectangleShape2D" id="box_de"]
+size = Vector2(127, 64)
+
+[sub_resource type="Curve" id="curve_shrink"]
+_data = [Vector2(0, 0.81686044), 0.0, 0.0, 0, 0, Vector2(0.55, 0.55), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="grad"]
+offsets = PackedFloat32Array(0, 0, 0.5)
+colors = PackedColorArray(0.59708846, 0.044490933, 0.019734811, 1, 1, 0, 0, 1, 0.35, 0.02, 0.02, 0)
+
+[sub_resource type="Curve" id="Curve_3wqto"]
+_limits = [-200.0, 200.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1e-05, 167.44186), 0.0, 0.0, 0, 0, Vector2(0.531995, 50), 0.0, 0.0, 0, 0, Vector2(1, 134.88373), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="DualExecutioner" type="Node2D" unique_id=354740859]
+script = ExtResource("1_3wqto")
+lifetime = 0.32
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1575578955]
+collision_layer = 32
+collision_mask = 16
+script = ExtResource("2_t0yrk")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1346432233]
+position = Vector2(13.5, -0.7)
+shape = SubResource("box_de")
+
+[node name="Slash" type="CPUParticles2D" parent="." unique_id=581332580]
+texture_filter = 1
+rotation = 0.011216998
+amount = 1
+texture = ExtResource("3_3wqto")
+lifetime = 0.3
+local_coords = true
+spread = 6.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 90.0
+initial_velocity_max = 260.0
+scale_amount_min = 0.3
+scale_amount_max = 0.3
+scale_amount_curve = SubResource("curve_shrink")
+color = Color(0.8980392, 0.09803922, 0.05882353, 1)
+color_ramp = SubResource("grad")
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1815007932]
+position = Vector2(61, 14)
+amount = 50
+lifetime = 0.3
+explosiveness = 1.0
+emission_shape = 2
+emission_sphere_radius = 6.4
+direction = Vector2(-1, 0)
+spread = 0.0
+gravity = Vector2(0, -100)
+initial_velocity_min = 261.73
+initial_velocity_max = 511.1
+tangential_accel_max = 37.69
+tangential_accel_curve = SubResource("Curve_3wqto")
+scale_amount_max = 3.0
+color = Color(1, 0.13725491, 0.14901961, 1)

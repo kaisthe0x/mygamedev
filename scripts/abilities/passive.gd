@@ -14,7 +14,7 @@ extends RefCounted
 ##
 ## Override only the hooks you need.
 
-var id: String = ""   ## stable id (for Build queries / dedup / debug); reward passives set it in _init
+var id: String = "" ## stable id (for Build queries / dedup / debug); reward passives set it in _init
 
 
 ## Called once, right after this passive is added (character equip or reward grant). One-off setup --

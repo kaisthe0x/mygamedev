@@ -30,9 +30,9 @@ func apply_knockback(hit: Hit, facing: int) -> float:
 	if hit.knockback > 0.0 and is_instance_valid(hit.source):
 		var dir := signi(int(sign(global_position.x - (hit.source as Node2D).global_position.x)))
 		if dir == 0:
-			dir = -facing
+			dir = - facing
 		velocity.x = dir * hit.knockback
-		velocity.y = -hit.knockback * Combat.KNOCKBACK_POP
+		velocity.y = - hit.knockback * Combat.KNOCKBACK_POP
 		stagger = maxf(stagger, Combat.MIN_STAGGER)
 	return stagger
 
@@ -53,13 +53,13 @@ var _react_tw: Tween
 func hit_react(sprite: AnimatedSprite2D, damage: float) -> void:
 	if is_instance_valid(_react_tw):
 		_react_tw.kill()
-	var punch := clampf(damage / 40.0, 0.14, 0.5)   # ora_ora ~0.19 .. ground_breaker 0.5
+	var punch := clampf(damage / 40.0, 0.14, 0.5) # ora_ora ~0.19 .. ground_breaker 0.5
 	var dur := 0.18 + punch * 0.12
-	sprite.scale = Vector2(1.0 + punch, 1.0 - punch)  # squash: wider + shorter, pivots at the feet
-	sprite.modulate = Color(2.2, 0.9, 0.9)            # hot red-white pop, >1 so the bloom catches it
+	sprite.scale = Vector2(1.0 + punch, 1.0 - punch) # squash: wider + shorter, pivots at the feet
+	sprite.modulate = Color(2.2, 0.9, 0.9) # hot red-white pop, >1 so the bloom catches it
 	_react_tw = create_tween().set_parallel(true)
 	_react_tw.tween_property(sprite, "scale", Vector2.ONE, dur) \
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)  # springy recover -> a little overshoot
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT) # springy recover -> a little overshoot
 	_react_tw.tween_property(sprite, "modulate", Color.WHITE, dur).set_ease(Tween.EASE_OUT)
 
 
@@ -86,7 +86,7 @@ func spawn_victim_vfx(scene: PackedScene, duration: float, fit_h: float = 0.0) -
 	if fit_h > 0.0 and fx is Node2D:
 		(fx as Node2D).scale = Vector2.ONE * (fit_h / VICTIM_VFX_REF_H)
 	if duration <= 0.0:
-		return  # a self-freeing one-shot (like a Strike / particle burst)
+		return # a self-freeing one-shot (like a Strike / particle burst)
 	# Otherwise WE own its lifetime: after `duration`, fade it out then free.
 	get_tree().create_timer(duration).timeout.connect(func() -> void:
 		if not is_instance_valid(fx):

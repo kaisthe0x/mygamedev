@@ -36,26 +36,26 @@ func ground_wave() -> CPUParticles2D:
 	p.amount = 64
 	p.lifetime = 0.4
 	p.lifetime_randomness = 0.25
-	p.local_coords = false          # stays in world -> trails into a rolling wave
+	p.local_coords = false # stays in world -> trails into a rolling wave
 	p.explosiveness = 0.05
 	# Emit from a short line hugging the ground so the crest has a base, not a point.
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	p.emission_rect_extents = Vector2(5, 2)
-	p.direction = Vector2(0.45, -1)  # up + forward -> the crest leans as it rolls
+	p.direction = Vector2(0.45, -1) # up + forward -> the crest leans as it rolls
 	p.spread = 24.0
-	p.gravity = Vector2(0, 560)      # yanked back down -> the arc/curl
+	p.gravity = Vector2(0, 560) # yanked back down -> the arc/curl
 	p.initial_velocity_min = 120.0
-	p.initial_velocity_max = 205.0   # varied crest height
+	p.initial_velocity_max = 205.0 # varied crest height
 	p.scale_amount_min = 0.7
 	p.scale_amount_max = 1.7
 	p.scale_amount_curve = _crest_curve()
 	var ramp := Gradient.new()
 	ramp.offsets = PackedFloat32Array([0.0, 0.3, 0.65, 1.0])
 	ramp.colors = PackedColorArray([
-		Color8(255, 255, 255, 255),  # hot white core
-		Color8(255, 130, 55, 255),   # orange
-		Color8(214, 44, 26, 255),    # red
-		Color8(110, 20, 14, 0),      # fades out
+		Color8(255, 255, 255, 255), # hot white core
+		Color8(255, 130, 55, 255), # orange
+		Color8(214, 44, 26, 255), # red
+		Color8(110, 20, 14, 0), # fades out
 	])
 	p.color_ramp = ramp
 	return p

@@ -9,12 +9,12 @@ extends Node2D
 ## player is gone. On contact it shrinks into the chest and fires the absorb reaction
 ## (Player.on_ruh_absorbed). Pure feedback: the Ruh is already banked when this spawns.
 
-enum Phase { FLY, ABSORB }
+enum Phase {FLY, ABSORB}
 
 var _target: Node2D = null
 var _completed_charge := false
-var _p0 := Vector2.ZERO   # launch point -- the fixed anchor the arc is drawn from
-var _t := 0.0             # 0..1 progress along the arc
+var _p0 := Vector2.ZERO # launch point -- the fixed anchor the arc is drawn from
+var _t := 0.0 # 0..1 progress along the arc
 var _phase := Phase.FLY
 
 ## Seconds from launch to the player. The soul always arrives at the end -- arrival time, not a cap.
@@ -40,7 +40,7 @@ func launch(target: Node2D, completed_charge := false) -> void:
 
 func _process(delta: float) -> void:
 	if _phase == Phase.ABSORB:
-		return  # the absorb tween owns motion + its own free
+		return # the absorb tween owns motion + its own free
 	# A soul with nowhere to go (the player's gone) can't land -- drop it.
 	if _target == null or not is_instance_valid(_target):
 		queue_free()
@@ -50,16 +50,16 @@ func _process(delta: float) -> void:
 	_t += delta / maxf(flight_time, 0.01)
 	if _t >= 1.0:
 		global_position = dest
-		_absorb(dest)  # arrived -- shrink into the body + flash the player
+		_absorb(dest) # arrived -- shrink into the body + flash the player
 		return
 
 	# Quadratic Bezier p0 -> control -> dest, the control bowed perpendicular to the straight line
 	# (upward-biased) by arc_height. `dest` is re-read each frame so the arc tracks the moving player.
 	var mid := _p0.lerp(dest, 0.5)
 	var line := dest - _p0
-	var perp := Vector2(-line.y, line.x).normalized()  # 90deg; zero-safe if line ~ 0
+	var perp := Vector2(-line.y, line.x).normalized() # 90deg; zero-safe if line ~ 0
 	if perp.y > 0.0:
-		perp = -perp  # bow upward -- the soul arcs over, then curves down into him
+		perp = - perp # bow upward -- the soul arcs over, then curves down into him
 	var control := mid + perp * arc_height
 	global_position = _bezier(_p0, control, dest, _t)
 

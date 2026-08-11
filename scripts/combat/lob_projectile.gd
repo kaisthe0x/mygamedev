@@ -60,7 +60,7 @@ var target: Vector2 = Vector2.INF
 ## Who threw it (knockback credit + friendly-fire exemption); set by the spawner.
 var source: Node = null
 
-enum Phase { ARC, DWELL, SPENT }
+enum Phase {ARC, DWELL, SPENT}
 var _phase := Phase.ARC
 var _vel := Vector2.ZERO
 var _t := 0.0
@@ -70,7 +70,7 @@ var _visual: Node2D
 
 
 func _ready() -> void:
-	add_to_group("projectiles")  # so a respawn can clear bombs in mid-air
+	add_to_group("projectiles") # so a respawn can clear bombs in mid-air
 	_visual = _find_visual()
 
 
@@ -94,12 +94,12 @@ func _physics_process(delta: float) -> void:
 			# can't tunnel through a thin ledge.
 			var surface := _surface_between(from, to) if _vel.y > 0.0 else Vector2.INF
 			if surface != Vector2.INF:
-				global_position = surface  # rest on the surface it actually hit
+				global_position = surface # rest on the surface it actually hit
 				_land()
 			else:
 				global_position = to
 				if _life >= max_life:
-					_explode()  # never found ground (thrown over a ledge) -> blow mid-air
+					_explode() # never found ground (thrown over a ledge) -> blow mid-air
 		Phase.DWELL:
 			_t += delta
 			if _t >= dwell_time:
@@ -126,7 +126,7 @@ func _surface_between(from: Vector2, to: Vector2) -> Vector2:
 		to = from + Vector2(0.0, 0.5)
 	var space := get_world_2d().direct_space_state
 	var q := PhysicsRayQueryParameters2D.create(from, to, Combat.L_WORLD)
-	q.hit_from_inside = true  # catch a ledge we start the step already inside
+	q.hit_from_inside = true # catch a ledge we start the step already inside
 	var r := space.intersect_ray(q)
 	return r.position if not r.is_empty() else Vector2.INF
 
@@ -148,7 +148,7 @@ func _land() -> void:
 func _explode() -> void:
 	_phase = Phase.SPENT
 	if explosion_sfx != "":
-		Sfx.play_at(explosion_sfx, global_position)  # the delayed POP, at the detonation point
+		Sfx.play_at(explosion_sfx, global_position) # the delayed POP, at the detonation point
 	var parent := get_parent()
 	if parent == null:
 		queue_free()
@@ -166,7 +166,7 @@ func _explode() -> void:
 	hb.damage = explosion_damage
 	hb.knockback = explosion_knockback
 	hb.stun = explosion_stun
-	hb.ranged = true  # a thrown-bomb blast reads as ranged (nasen etc. react by hit type)
+	hb.ranged = true # a thrown-bomb blast reads as ranged (nasen etc. react by hit type)
 	hb.source = src
 	hb.add_child(Shapes.make_box(explosion_extents * 2.0, Vector2(0, -explosion_extents.y)))
 	strike.add_child(hb)
@@ -175,7 +175,7 @@ func _explode() -> void:
 		if fx is Node2D:
 			(fx as Node2D).position = explosion_effect_pos
 		strike.add_child(fx)
-	parent.add_child(strike)  # _ready: team layers + self-free timer
+	parent.add_child(strike) # _ready: team layers + self-free timer
 	Nodes.place_at(strike, global_position)
 	hb.activate()
 	queue_free()

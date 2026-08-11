@@ -153,13 +153,13 @@ func _spawn(scene: PackedScene, node_name := "") -> Node2D:
 			root.queue_free()
 			return null
 		root.remove_child(child)
-		child.owner = null  # was owned by the palette root we're about to drop
+		child.owner = null # was owned by the palette root we're about to drop
 		root.queue_free()
 		node = child
 	if _emitters_of(node).is_empty() and not (node is Projectile) and not (node is Strike):
 		var where := scene.resource_path if node_name == "" else "%s -> %s" % [scene.resource_path, node_name]
 		push_warning("ParticleDirector: %s has no CPUParticles2D/GPUParticles2D " % where
-			+ "(as its root or a child) and is not a Projectile/Strike, got %s" % node.get_class())
+			+"(as its root or a child) and is not a Projectile/Strike, got %s" % node.get_class())
 		node.queue_free()
 		return null
 	return node
@@ -177,14 +177,14 @@ func _spawn_followers(root: Node2D, m: float) -> void:
 		var f := child as Node2D
 		if f == null:
 			continue
-		var authored := f.position  # its offset relative to the body
+		var authored := f.position # its offset relative to the body
 		root.remove_child(f)
 		f.owner = null
-		add_child(f)  # onto the director -> it tracks the player
+		add_child(f) # onto the director -> it tracks the player
 		_face(f, _capture(f), authored, m)
 		var ems := _emitters_of(f)
 		for em in ems:
-			em.one_shot = true  # a brief trail: emit the pool once as the dash moves, then stop + free
+			em.one_shot = true # a brief trail: emit the pool once as the dash moves, then stop + free
 			em.emitting = true
 		_free_when_done(f, ems)
 
@@ -284,7 +284,7 @@ func _boost(node: Node2D, boost: Dictionary) -> void:
 			float(boost.get("scale", 1.0)))
 	elif boost.has("speed") or boost.has("scale"):
 		push_warning("ParticleDirector: 'speed'/'scale' boost needs a "
-			+ "CPUParticles2D (GPUParticles2D keeps those on a shared material)")
+			+"CPUParticles2D (GPUParticles2D keeps those on a shared material)")
 
 
 ## Per-row property overrides, so one shared scene covers several variants without a
@@ -351,7 +351,7 @@ func _refresh() -> void:
 
 	for entry in _sustained:
 		if not is_instance_valid(entry.node):
-			continue  # a self-freeing effect (Strike/Projectile) shouldn't be sustained,
+			continue # a self-freeing effect (Strike/Projectile) shouldn't be sustained,
 			# but guard anyway so a freed node never reaches _face
 		var on: bool = entry.anim == anim and entry.frames.has(frame)
 		_face(entry.node, entry.base, entry.pos, m)
@@ -361,7 +361,7 @@ func _refresh() -> void:
 		# the box arms fresh each strike (a Hitbox dedupes hits per activation).
 		if on != entry.active:
 			if on:
-				_inject_tuning(entry.node, entry.hitboxes)  # feed moves.gd numbers on arm
+				_inject_tuning(entry.node, entry.hitboxes) # feed moves.gd numbers on arm
 			for hb in entry.hitboxes:
 				if on:
 					hb.activate()
@@ -435,7 +435,7 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 		world.add_child(node)
 	else:
 		add_child(node)
-	Nodes.place_at(node, target)  # snap to the strike point without interpolation smear
+	Nodes.place_at(node, target) # snap to the strike point without interpolation smear
 	var hitboxes := _hitboxes_of(node)
 	# Keep a ground blast from spilling past the platform edge into open air: clip
 	# its emission band and hitbox to the surface underfoot before it fires.
@@ -451,7 +451,7 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 			get_tree().create_timer(emit_dur).timeout.connect(func() -> void:
 				if is_instance_valid(em):
 					em.emitting = false)
-	_inject_tuning(node, hitboxes)  # feed moves.gd numbers before the box goes live
+	_inject_tuning(node, hitboxes) # feed moves.gd numbers before the box goes live
 	for hb in hitboxes:
 		hb.source = _attacker()
 		hb.activate()
@@ -482,7 +482,7 @@ func _launch_lob(lob: LobProjectile, b: Dictionary, m: float) -> void:
 		world.add_child(lob)
 	else:
 		add_child(lob)
-	Nodes.place_at(lob, muzzle)  # snap to the throwing point; _launch solves the arc next tick
+	Nodes.place_at(lob, muzzle) # snap to the throwing point; _launch solves the arc next tick
 
 
 ## World position of the nearest enemy to `from`, or a short toss ahead (facing `m`) if there are
@@ -507,7 +507,7 @@ func _ground_edges_at(world_pos: Vector2) -> Vector2:
 		return Vector2(-INF, INF)
 	var space := get_world_2d().direct_space_state
 	if space == null:
-		return Vector2(-INF, INF)  # physics space not ready -> skip clipping
+		return Vector2(-INF, INF) # physics space not ready -> skip clipping
 	var q := PhysicsRayQueryParameters2D.create(
 		world_pos + Vector2(0, -30), world_pos + Vector2(0, 60), Combat.L_WORLD)
 	var hit := space.intersect_ray(q)
@@ -530,7 +530,7 @@ func _ground_edges_at(world_pos: Vector2) -> Vector2:
 func _clip_to_ground(node: Node2D, emitters: Array, hitboxes: Array) -> void:
 	var edges := _ground_edges_at(node.global_position)
 	if edges.x == -INF:
-		return  # no ground underfoot -> leave the blast at full reach
+		return # no ground underfoot -> leave the blast at full reach
 	for em in emitters:
 		if em is CPUParticles2D and em.emission_shape == CPUParticles2D.EMISSION_SHAPE_RECTANGLE:
 			var sx: float = maxf(absf(em.global_scale.x), 0.001)
@@ -543,7 +543,7 @@ func _clip_to_ground(node: Node2D, emitters: Array, hitboxes: Array) -> void:
 	for hb in hitboxes:
 		for cs in Nodes.find_all(hb, "CollisionShape2D", false):
 			if cs.shape is RectangleShape2D:
-				var rect: RectangleShape2D = cs.shape.duplicate()  # per-instance, don't touch the shared resource
+				var rect: RectangleShape2D = cs.shape.duplicate() # per-instance, don't touch the shared resource
 				cs.shape = rect
 				var sx: float = maxf(absf(cs.global_scale.x), 0.001)
 				var r := MathUtil.clip_band(cs.global_position.x, rect.size.x * 0.5 * sx, edges.x, edges.y)
@@ -557,7 +557,7 @@ func _clip_to_ground(node: Node2D, emitters: Array, hitboxes: Array) -> void:
 ## Free `root` once all its one-shot emitters have emitted and their particles
 ## have died.
 func _free_when_done(root: Node, emitters: Array) -> void:
-	var left := [emitters.size()]  # boxed so the bound handler can count down
+	var left := [emitters.size()] # boxed so the bound handler can count down
 	for em in emitters:
 		em.finished.connect(_on_emitter_finished.bind(left, root))
 

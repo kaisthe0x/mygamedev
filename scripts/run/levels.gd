@@ -18,7 +18,7 @@ extends RefCounted
 ## Design the batches by tier (EnemyKits.Tier): open soft (~4-5), ramp up each batch. "3 strong" is
 ## brutal; prefer "some chip + one strong" early, more strong later. All tunable here, one place.
 
-static var _cache: Array  ## built once from _build() (can't be a const -- refs EnemyKits consts)
+static var _cache: Array ## built once from _build() (can't be a const -- refs EnemyKits consts)
 
 
 static func count() -> int:
@@ -69,9 +69,9 @@ static func _build() -> Array:
 			{"kit": EnemyKits.EIN, "pos": Vector2(0.0, -220.0)},
 		],
 		"waves": [
-			[{"kit": EnemyKits.EIN, "pos": Vector2(-100.0, -200.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(300.0, -220.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(0.0, 0.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(280.0, -140.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(-200.0, 0.0)}],
-			[{"kit": EnemyKits.MAZAB, "pos": Vector2(-40.0, -190.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(430.0, -240.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-350.0, -120.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(200.0, 0.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(400.0, 0.0)}],
-			[{"kit": EnemyKits.NASEN, "pos": Vector2(-40.0, -190.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(280.0, -140.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-150.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(100.0, -240.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-250.0, -160.0)}],
+			[ {"kit": EnemyKits.EIN, "pos": Vector2(-100.0, -200.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(300.0, -220.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(0.0, 0.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(280.0, -140.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(-200.0, 0.0)}],
+			[ {"kit": EnemyKits.MAZAB, "pos": Vector2(-40.0, -190.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(430.0, -240.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-350.0, -120.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(200.0, 0.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(400.0, 0.0)}],
+			[ {"kit": EnemyKits.NASEN, "pos": Vector2(-40.0, -190.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(280.0, -140.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-150.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(100.0, -240.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-250.0, -160.0)}],
 		],
 	},
 	# ── 3 · The Gullet ── nasen sleepers guarding, tighter. Gate 6 blocks. ──────────────────
@@ -90,9 +90,9 @@ static func _build() -> Array:
 			{"kit": EnemyKits.EIN, "pos": Vector2(0.0, -220.0)},
 		],
 		"waves": [
-			[{"kit": EnemyKits.EIN, "pos": Vector2(0.0, -220.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-200.0, -180.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-280.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(360.0, -120.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(200.0, 0.0)}],
-			[{"kit": EnemyKits.NASEN, "pos": Vector2(-120.0, -250.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(80.0, -160.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(360.0, -120.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-100.0, 0.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(250.0, 0.0)}],
-			[{"kit": EnemyKits.KEBUS, "pos": Vector2(-280.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(80.0, -160.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(300.0, 0.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(-120.0, -250.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -230.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(200.0, -200.0)}],
+			[ {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -220.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-200.0, -180.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-280.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(360.0, -120.0)}, {"kit": EnemyKits.BAGHEL, "pos": Vector2(200.0, 0.0)}],
+			[ {"kit": EnemyKits.NASEN, "pos": Vector2(-120.0, -250.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(80.0, -160.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(360.0, -120.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-100.0, 0.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(250.0, 0.0)}],
+			[ {"kit": EnemyKits.KEBUS, "pos": Vector2(-280.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(80.0, -160.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(300.0, 0.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(-120.0, -250.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -230.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(200.0, -200.0)}],
 		],
 	},
 	# ── 4 · Ossuary ── strong-heavy, orbs everywhere. Gate 7 blocks. ────────────────────────
@@ -112,9 +112,9 @@ static func _build() -> Array:
 			{"kit": EnemyKits.MAZAB, "pos": Vector2(-330.0, -100.0)},
 		],
 		"waves": [
-			[{"kit": EnemyKits.KEBUS, "pos": Vector2(-330.0, -100.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(220.0, -130.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(0.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -230.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(300.0, -230.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-200.0, 0.0)}],
-			[{"kit": EnemyKits.NASEN, "pos": Vector2(-60.0, -170.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(60.0, -270.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(420.0, -220.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-200.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(250.0, -250.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-150.0, -200.0)}],
-			[{"kit": EnemyKits.KEBUS, "pos": Vector2(-330.0, -100.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-60.0, -170.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(220.0, -130.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(60.0, -270.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(300.0, 0.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-180.0, 0.0)}],
+			[ {"kit": EnemyKits.KEBUS, "pos": Vector2(-330.0, -100.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(220.0, -130.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(0.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -230.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(300.0, -230.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-200.0, 0.0)}],
+			[ {"kit": EnemyKits.NASEN, "pos": Vector2(-60.0, -170.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(60.0, -270.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(420.0, -220.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-200.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(250.0, -250.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-150.0, -200.0)}],
+			[ {"kit": EnemyKits.KEBUS, "pos": Vector2(-330.0, -100.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-60.0, -170.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(220.0, -130.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(60.0, -270.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(300.0, 0.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-180.0, 0.0)}],
 		],
 	},
 	# ── 5 · Way of All Flesh ── the culmination: everything, expensive gate (8 blocks). ─────
@@ -134,9 +134,9 @@ static func _build() -> Array:
 			{"kit": EnemyKits.EIN, "pos": Vector2(-300.0, -160.0)},
 		],
 		"waves": [
-			[{"kit": EnemyKits.KEBUS, "pos": Vector2(-350.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(200.0, -140.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(-80.0, -180.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(100.0, -240.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(300.0, -240.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-250.0, 0.0)}],
-			[{"kit": EnemyKits.KEBUS, "pos": Vector2(0.0, 0.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(420.0, -230.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-200.0, 0.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(200.0, -140.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-350.0, -110.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(250.0, 0.0)}],
-			[{"kit": EnemyKits.NASEN, "pos": Vector2(-200.0, -260.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(-80.0, -180.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-350.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(200.0, -140.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(320.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -240.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-300.0, -200.0)}],
+			[ {"kit": EnemyKits.KEBUS, "pos": Vector2(-350.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(200.0, -140.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(-80.0, -180.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(100.0, -240.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(300.0, -240.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-250.0, 0.0)}],
+			[ {"kit": EnemyKits.KEBUS, "pos": Vector2(0.0, 0.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(420.0, -230.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-200.0, 0.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(200.0, -140.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(-350.0, -110.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(250.0, 0.0)}],
+			[ {"kit": EnemyKits.NASEN, "pos": Vector2(-200.0, -260.0)}, {"kit": EnemyKits.NASEN, "pos": Vector2(-80.0, -180.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(-350.0, -110.0)}, {"kit": EnemyKits.KEBUS, "pos": Vector2(200.0, -140.0)}, {"kit": EnemyKits.MAZAB, "pos": Vector2(320.0, 0.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(0.0, -240.0)}, {"kit": EnemyKits.EIN, "pos": Vector2(-300.0, -200.0)}],
 		],
 	},
 ]

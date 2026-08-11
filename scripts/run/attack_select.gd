@@ -13,7 +13,7 @@ signal chosen(id: String)
 
 const COLUMNS := 4
 const CARD := Vector2(150, 150)
-const VIEW := Vector2(660, 470)  ## scroll viewport max size; grid overflows -> scrollbar
+const VIEW := Vector2(660, 470) ## scroll viewport max size; grid overflows -> scrollbar
 
 
 func _init() -> void:
@@ -72,7 +72,7 @@ func open(character: String) -> void:
 		if first == null:
 			first = grid.get_child(grid.get_child_count() - 1)
 	if first != null:
-		first.grab_focus()  # keyboard/controller can pick without a mouse
+		first.grab_focus() # keyboard/controller can pick without a mouse
 
 
 func _make_card(id: String, action: Action) -> Button:

@@ -18,11 +18,11 @@ extends Node2D
 
 # Shared health-fill thresholds + colours, so every health bar (this one AND the HUD's ProgressBar)
 # reads the SAME green/orange/red from one place. Tweak here to retune every health bar at once.
-const LOW_RATIO := 0.25   ## at/below -> red (danger)
-const MID_RATIO := 0.5    ## at/below (but above LOW) -> orange; above -> green
-const COLOR_HIGH := Color(0.30, 0.80, 0.32)  ## green -- healthy
-const COLOR_MID := Color(0.95, 0.62, 0.16)   ## orange -- getting low
-const COLOR_LOW := Color(0.86, 0.22, 0.22)   ## red -- danger
+const LOW_RATIO := 0.25 ## at/below -> red (danger)
+const MID_RATIO := 0.5 ## at/below (but above LOW) -> orange; above -> green
+const COLOR_HIGH := Color(0.30, 0.80, 0.32) ## green -- healthy
+const COLOR_MID := Color(0.95, 0.62, 0.16) ## orange -- getting low
+const COLOR_LOW := Color(0.86, 0.22, 0.22) ## red -- danger
 
 var _ratio: float = 1.0
 var _label: Label

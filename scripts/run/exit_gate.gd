@@ -9,16 +9,16 @@ extends Area2D
 ## label — telling the player what reward they'll pick. The door is LOCKED (red) until the arena is
 ## CLEARED (every enemy dead), then it OPENS (its type colour) and walking in ends the level.
 
-signal touched  ## the player body entered the gate
+signal touched ## the player body entered the gate
 
 const SIZE := Vector2(44, 96)
 
 ## door type -> label + accent colour (also used to tint the door when open).
 const TYPES := {
-	"health":   {"label": "HEALTH",   "color": Color(0.35, 0.85, 0.45)},
+	"health": {"label": "HEALTH", "color": Color(0.35, 0.85, 0.45)},
 	"athletic": {"label": "ATHLETIC", "color": Color(0.45, 0.75, 1.0)},
-	"attack":   {"label": "ATTACK",   "color": Color(1.0, 0.55, 0.35)},
-	"special":  {"label": "SPECIAL",  "color": Color(0.9, 0.5, 1.0)},
+	"attack": {"label": "ATTACK", "color": Color(1.0, 0.55, 0.35)},
+	"special": {"label": "SPECIAL", "color": Color(0.9, 0.5, 1.0)},
 }
 
 var door_type := "health"
@@ -32,13 +32,13 @@ var _open := false
 func setup(type: String) -> void:
 	door_type = type if TYPES.has(type) else "health"
 	collision_layer = 0
-	collision_mask = Combat.L_PLAYER_BODY  # detect the player's body
+	collision_mask = Combat.L_PLAYER_BODY # detect the player's body
 	add_child(Shapes.make_box(SIZE, Vector2(0, -SIZE.y / 2.0)))
 
 	_fill = ColorRect.new()
 	_fill.size = SIZE
 	_fill.position = Vector2(-SIZE.x / 2.0, -SIZE.y)
-	_fill.color = Color(0.7, 0.2, 0.2, 0.5)  # locked (red) until the arena is cleared
+	_fill.color = Color(0.7, 0.2, 0.2, 0.5) # locked (red) until the arena is cleared
 	add_child(_fill)
 
 	# The reward-type icon, centred on the door (from the Icons registry — temp art for now).

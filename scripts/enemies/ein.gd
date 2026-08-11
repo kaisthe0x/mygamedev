@@ -39,16 +39,16 @@ extends Enemy
 # explosion): which scene, where it emits, and whether it exists at all. Delete a row there and
 # Ein stops wearing that trail -- no code change. (No patrol_trail row today = no patrol trail.)
 
-var _home_y := 0.0  ## the y he bobs around on patrol
+var _home_y := 0.0 ## the y he bobs around on patrol
 var _bob_t := 0.0
-var _charge_target := Vector2.ZERO  ## the LOCKED point he dives at (player's pos at detection)
+var _charge_target := Vector2.ZERO ## the LOCKED point he dives at (player's pos at detection)
 var _trail: Node
-var _contact: Area2D  ## body-sized detector; touching the player erupts him (see _build_contact_detector)
+var _contact: Area2D ## body-sized detector; touching the player erupts him (see _build_contact_detector)
 
 
 func _ready() -> void:
 	super._ready()
-	collision_mask = 0  # float freely -- ignore terrain (we move by global_position, not slide)
+	collision_mask = 0 # float freely -- ignore terrain (we move by global_position, not slide)
 	_home_y = global_position.y
 	_build_contact_detector()
 	_set_trail("patrol_trail")
@@ -62,8 +62,8 @@ func _ready() -> void:
 ## isn't detected here (nor caught by the blast) -- dashing through him is safe, as intended.
 func _build_contact_detector() -> void:
 	_contact = Area2D.new()
-	_contact.collision_layer = 0  # nothing needs to detect US; we only scan
-	_contact.collision_mask = Combat.L_PLAYER_HURT  # the player's hurtbox (off during a dash)
+	_contact.collision_layer = 0 # nothing needs to detect US; we only scan
+	_contact.collision_mask = Combat.L_PLAYER_HURT # the player's hurtbox (off during a dash)
 	_contact.add_child(Shapes.make_box(hurtbox_size, Vector2(0, -hurtbox_size.y / 2.0)))
 	add_child(_contact)
 	_contact.area_entered.connect(_on_contact)
@@ -71,7 +71,7 @@ func _build_contact_detector() -> void:
 
 func _on_contact(area: Area2D) -> void:
 	if _state == State.DEAD:
-		return  # already erupting -- don't double-fire
+		return # already erupting -- don't double-fire
 	if area is Hurtbox:
 		# Touched the player (who can't be dashing -- their hurtbox is off then) -> erupt here.
 		# Deferred: we're inside the physics area-flush, where spawning the blast's hitbox
@@ -86,7 +86,7 @@ func _physics_process(delta: float) -> void:
 	if _state == State.CHARGE:
 		_charge(delta)
 	else:
-		_float_patrol(delta)  # PATROL / IDLE: drift + bob, watch for the player
+		_float_patrol(delta) # PATROL / IDLE: drift + bob, watch for the player
 
 
 ## Drift + bob in place until the player enters detect_range, then lock his position and charge.
@@ -129,9 +129,9 @@ func _charge(delta: float) -> void:
 ## Erupt: AoE explosion + death burst. Fired by reaching the locked point OR by contact.
 func _arrive() -> void:
 	if _state == State.DEAD:
-		return  # guard: contact + arrival could both land the same frame
+		return # guard: contact + arrival could both land the same frame
 	_spawn_explosion()
-	_die()  # DEAD state + the death burst; our _die override frees the trail + detector first
+	_die() # DEAD state + the death burst; our _die override frees the trail + detector first
 
 
 ## A hit chips + flashes him; lethal -> death burst. No stun/knockback: once he's diving he
@@ -147,9 +147,9 @@ func _on_hurt(hit: Hit) -> void:
 
 
 func _die() -> void:
-	_set_trail("")  # stop trailing before the death burst
+	_set_trail("") # stop trailing before the death burst
 	if _contact != null:
-		_contact.set_deferred("monitoring", false)  # stop detecting contact while the corpse fades
+		_contact.set_deferred("monitoring", false) # stop detecting contact while the corpse fades
 	super._die()
 
 
@@ -165,14 +165,14 @@ func _spawn_explosion() -> void:
 	hb.damage = explosion_damage
 	hb.knockback = explosion_knockback
 	hb.stun = explosion_stun
-	hb.ranged = true  # an AoE blast, not a melee stab (nasen-style reactions read this)
+	hb.ranged = true # an AoE blast, not a melee stab (nasen-style reactions read this)
 	hb.source = self
 	hb.add_child(Shapes.make_box(explosion_extents * 2.0, explosion_offset))
 	strike.add_child(hb)
-	var fx := _make_vfx("explosion")  # blast LOOK from config (null if no scene listed)
+	var fx := _make_vfx("explosion") # blast LOOK from config (null if no scene listed)
 	if fx != null:
 		strike.add_child(fx)
-	get_parent().add_child(strike)  # live in the level, centred where the orb arrived
+	get_parent().add_child(strike) # live in the level, centred where the orb arrived
 	Nodes.place_at(strike, global_position)
 	hb.activate()
 
@@ -188,6 +188,6 @@ func _set_trail(effect: String) -> void:
 	_trail = null
 	if effect.is_empty():
 		return
-	_trail = _make_vfx(effect)  # null when the config lists no scene for this effect
+	_trail = _make_vfx(effect) # null when the config lists no scene for this effect
 	if _trail != null:
 		add_child(_trail)

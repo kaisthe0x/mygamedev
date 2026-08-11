@@ -10,7 +10,7 @@ signal chosen(id: String)
 
 func _init() -> void:
 	layer = 50
-	process_mode = Node.PROCESS_MODE_ALWAYS  # keep working while the tree is paused
+	process_mode = Node.PROCESS_MODE_ALWAYS # keep working while the tree is paused
 
 
 ## Show a card per reward ({id, name, desc}) and pause the game until one is picked. `door_type`
@@ -21,7 +21,7 @@ func open(rewards: Array, door_type := "") -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.62)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP  # eat clicks behind the popup
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP # eat clicks behind the popup
 	add_child(dim)
 
 	var center := CenterContainer.new()
@@ -77,7 +77,7 @@ func open(rewards: Array, door_type := "") -> void:
 		if first == null:
 			first = card
 	if first != null:
-		first.grab_focus()  # so keyboard/controller can pick without a mouse
+		first.grab_focus() # so keyboard/controller can pick without a mouse
 
 
 func _pick(id: String) -> void:

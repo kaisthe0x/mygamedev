@@ -29,7 +29,7 @@ static func report_run(cleared: int) -> bool:
 		return false
 	_record = cleared
 	var cfg := ConfigFile.new()
-	cfg.load(PATH)  # keep any other keys already saved
+	cfg.load(PATH) # keep any other keys already saved
 	cfg.set_value("run", "levels_record", _record)
 	cfg.save(PATH)
 	return true
