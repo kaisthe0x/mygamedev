@@ -8,7 +8,7 @@ extends RefCounted
 ## The numbers stay as tuning DICTS (damage / knockback / stun / extents / x + effect tags like
 ## victim_effect / frenemy / lunge) rather than typed fields -- that keeps the combat resolve seam
 ## (Player.resolve_tuning -> ParticleDirector._inject_tuning -> the effect scene's own Hitbox)
-## byte-for-byte the same as it was under `Move.tuning`, and the effect tags are an open, evolving set
+## the same shape the resolve seam always used, and the effect tags are an open, evolving set
 ## that a dict models better than a fixed schema. Fully typing them is a future refinement.
 
 ## Delivery type -- descriptive taxonomy for the build UI (labels the move); does NOT drive behavior,

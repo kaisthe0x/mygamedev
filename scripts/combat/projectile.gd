@@ -152,11 +152,11 @@ func _physics_process(delta: float) -> void:
 		_expire()
 
 
-## Configure this shot's hitbox from a resolved tuning dict (moves.gd via the player's
-## resolve seam), so combat numbers live in code, not baked in the scene. Called by the
-## spawner (director) after add_child. Absent fields keep the hitbox's authored values,
+## Configure this shot's hitbox from a resolved tuning dict (the Actions catalog via the
+## player's resolve seam), so combat numbers live in code, not baked in the scene. Called by
+## the spawner (director) after add_child. Absent fields keep the hitbox's authored values,
 ## so a shot whose move leaves `tuning` empty keeps its scene-authored per-shot damage
-## (the finger-guns case, where two shots differ and one move dict can't express both).
+## (the cherry_shots case, where two shots differ and one tuning dict can't express both).
 func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 	if striker != null:
 		source = striker

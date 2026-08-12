@@ -26,7 +26,6 @@ const PATHS := {
 	# --- buffs (by reward id; keep in sync as pools grow in rewards.gd) ---
 	"buff:mend":     "res://vfx/shared/textures/soft_dot.png",
 	"buff:max_hp":   "res://vfx/shared/textures/soft_dot.png",
-	"buff:damage":   "res://vfx/shared/textures/blast1.png",
 	"buff:ruh_cap":  "res://vfx/shared/impervious/shield.png",
 	"buff:air_jump": "res://vfx/shared/textures/pixel_ember.png",
 	"buff:run":      "res://vfx/shared/textures/pixel_ember.png",

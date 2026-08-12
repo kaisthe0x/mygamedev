@@ -133,8 +133,8 @@ func _sheet_start(anim: String) -> int:
 ## CPUParticles2D/GPUParticles2D, OR a Node2D grouping several of them (a composite attack).
 ##
 ## `node_name` addresses ONE named child of a "palette" scene -- a scene that bundles several
-## independently-scheduled emitters (e.g. attack_finger_guns holds a `Shot` and a `ShotLast`,
-## each fired on its own frames). We instantiate the palette, lift the named child out on its
+## independently-scheduled emitters (e.g. a palette could hold a `Shot` and a `ShotLast`, each
+## fired on its own frames; no shipped move uses this today). We instantiate the palette, lift the named child out on its
 ## own, and drop the rest -- so listing the same palette `scene` with different `node`s fires
 ## different children at different frames. Empty node_name = the whole scene.
 ##

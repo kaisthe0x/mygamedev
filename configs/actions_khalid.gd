@@ -55,10 +55,11 @@ const ATTACKS := {
 		"name": "Twin Reaper", "icon": "res://vfx/shared/textures/blast1.png", "tier": "elite", "style": "flurry",
 		"tags": ["reaper"], "hit": {"type": "melee", "segments": {"damage": 12, "knockback": 0}},
 	},
-	# Dual Executioner: the UPGRADED Twin Reaper -- not offered freely; a conditional reward swaps it in
-	# once Twin Reaper is equipped (see configs/rewards_catalog.gd). Its OWN animation (attack_dual_executioner,
-	# default for this id), so it carries its own particles (EmittersCharacters) + sounds (SfxCharacters) --
-	# a beefier spin, deadlier per hit. The sprite sheet stands in on Twin Reaper's spin until reskinned.
+	# Dual Executioner: an INDEPENDENT attack (no longer an upgrade of Twin Reaper) -- selectable at run
+	# start and as an attack reward (configs/rewards_catalog.gd), upgraded via its OWN buffs. Its OWN
+	# animation (attack_dual_executioner, default for this id), so it carries its own particles
+	# (EmittersCharacters) + sounds (SfxCharacters) -- a beefier spin, deadlier per hit. The sprite sheet
+	# stands in on Twin Reaper's spin until reskinned.
 	"dual_executioner": {
 		"name": "Dual Executioner", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken",
 		"style": "flurry", "tags": ["reaper"],
@@ -83,12 +84,13 @@ const SPECIALS := {
 		"hit": {"type": "blast", "segments": {"damage": 4, "knockback": 0, "frenemy": 8.0,
 			"victim_effect": "res://vfx/status/frenemy_stun.tscn", "victim_time": 8.0}},
 	},
-	# Impervious (special_default): the BASELINE special the player always starts with -- no damage, no
-	# extra effect (hence no `hit`). Its only job is the invincibility window + aura that EVERY special
-	# grants on cast (Player.grant_special_invuln). Its id keeps the "special_" prefix, so it names its
-	# own animation explicitly.
+	# Flex (special_default): the BASELINE special the player always starts with -- no damage, no effect
+	# (hence no `hit`). On its own it does nothing; it only matters once the Impervious BUFF is equipped
+	# (then, like any special, a cast spends Ruh to go invincible). NOT named "Impervious" any more --
+	# that's the buff now (scripts/abilities/impervious.gd), and two same-named cards was confusing. Its id
+	# keeps the "special_" prefix, so it names its own animation explicitly.
 	"special_default": {
-		"name": "Impervious", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
+		"name": "Flex", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
 		"animation": "special_default",
 	},
 	# Come Closer: a magnet pull -- drags nearby enemies in front of Khalid and STUNS them on arrival
@@ -102,13 +104,13 @@ const SPECIALS := {
 	# perfect parry), but just holding only blocks. No `hit`; player-side (the "shield"/"held" tags drive
 	# _start_special / _process_special / _on_hurt). Tune on the Player (parry_window / shield_reflect_mult).
 	"redere_shield": {
-		"name": "Shield", "icon": "res://vfx/shared/impervious/shield.png", "tier": "elite", "tags": ["shield", "held"],
+		"name": "Redere Shield", "icon": "res://vfx/shared/impervious/shield.png", "tier": "elite", "tags": ["shield", "held"],
 	},
-	# Redere Frisbee: the UPGRADED shield -- throws it as a PROJECTILE (EmittersCharacters fires a shot on
-	# the release frame, fed this `hit`). Not offered freely; a conditional reward swaps it in once Redere
-	# Shield is equipped (configs/rewards_catalog.gd) -- the special-side twin of Twin Reaper -> Dual Executioner.
+	# Redere Frisbee: an INDEPENDENT special (no longer an upgrade of Redere Shield) -- throws the shield as
+	# a PROJECTILE (EmittersCharacters fires a shot on the release frame, fed this `hit`). Selectable as a
+	# special swap (configs/rewards_catalog.gd), upgraded via its own buffs.
 	"redere_frisbee": {
-		"name": "Frisbee", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "tags": ["shield"],
+		"name": "Redere Frisbee", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "tags": ["shield"],
 		"hit": {"type": "projectile", "segments": {"damage": 15, "knockback": 120}},
 	},
 }
@@ -125,7 +127,7 @@ const MOVEMENTS := {
 	},
 	"jump": {
 		"standard_leap": {"name": "Standard Leap", "icon": "res://vfx/shared/textures/soft_dot.png",
-			"move": {}}, # baseline arc (velocity -330, double jump)
+			"move": {"air_jumps": 1}}, # baseline arc (velocity -330); ONE air jump (ground + 1 = a double jump)
 	},
 	"dash": {
 		"blink_dash": {"name": "Blink Dash", "icon": "res://vfx/shared/impervious/bolt.png",
@@ -138,5 +140,5 @@ const MOVEMENTS := {
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "come_closer"
+const DEFAULT_SPECIAL := "redere_shield"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

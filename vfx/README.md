@@ -102,10 +102,11 @@ frames. Adding an effect is a scene + a table row, no code.
    - `node` — *optional* **palette addressing**. A "palette" scene bundles several
      *independently-scheduled* emitters as named children; `node` names the one this
      row fires. List the **same `scene`** with different `node`s to fire different
-     children on different frames — e.g. `attack_finger_guns` holds a `Shot` (fired
+     children on different frames — e.g. a palette scene could hold a `Shot` (fired
      on `[2,4]`) and a `ShotLast` (a different-textured projectile, fired on `[7]`),
-     each its own self-contained `Shot`/`Hitbox`. Omit `node` for the whole scene
-     (single or composite). Note: `node` **lifts one child out and drops the rest**
+     each its own self-contained `Shot`/`Hitbox`. (No shipped move uses `node` today —
+     Cherry Shots' two differing shots are two separate per-frame scenes instead.) Omit
+     `node` for the whole scene (single or composite). Note: `node` **lifts one child out and drops the rest**
      (including sibling hitboxes) — to just reskin a shared scene per hit, use `set`,
      not `node`.
    - **Per-hit split files (preferred for multi-hit attacks).** Rather than bundle

@@ -42,7 +42,7 @@ Ruh  : 0 .. ruh_cap.  The SPECIAL meter, shown in CHARGES/BLOCKS (1 block = RUH_
 |---|---|
 | **Kill an enemy** | `ruh += RUH_PER_KILL` (25 → 4 kills = 1 charge). **No decay.** |
 | **Kill *with the special*** | **no Ruh** — so the special can't self-loop its own Impervious (buffable later) |
-| **Cast a special (with Ruh)** | `ruh -= SPECIAL_COST` (one charge) → **Impervious** for `SPECIAL_INVULN_TIME` (10s) |
+| **Cast a special (with the Impervious buff + Ruh)** | `ruh -= SPECIAL_COST` (one charge) → **Impervious** for `SPECIAL_INVULN_TIME` (10s). Without the buff, the special just fires its own effect and Ruh is untouched. |
 | **Take damage** | `HP -= amount × damage_taken_mult`. Ruh untouched. |
 | **Death** | `HP <= 0` → **run over, start from scratch** |
 
@@ -57,14 +57,17 @@ Ruh  : 0 .. ruh_cap.  The SPECIAL meter, shown in CHARGES/BLOCKS (1 block = RUH_
 
 ## 3. Specials & Impervious  **[CONFIRMED]**
 
-- **`special_default`** is the baseline special everyone loads with — no damage, no effect. Its only
-  job is the Impervious window, so it *requires* Ruh (no Ruh → nothing happens).
+- **`special_default`** is the baseline special everyone loads with — no damage, no effect. On its own
+  it does nothing; it's only useful once the **Impervious buff** is equipped (then a cast spends a Ruh
+  charge to go invincible).
 - **Other specials** (via the Special door) do their own thing — a ground crack, a stun blast — and
-  are **always usable** (a short cooldown stops spam). Impervious is a **bonus**: if you have Ruh when
-  you cast, a charge is spent to *also* go invincible; no Ruh → the effect fires without it.
+  are **always usable** (a short cooldown stops spam).
+- **Impervious is now an earned BUFF, not a baseline** ([`scripts/abilities/impervious.gd`](../scripts/abilities/impervious.gd),
+  a shared special buff). With it equipped, casting a special *also* spends a Ruh charge to go
+  invincible; without it, specials never grant invuln. (It used to be hardcoded into every special.)
 - **Impervious** = the hurtbox is off (same channel as dash i-frames) + the shared **Impervious aura**
-  ([`vfx/shared/impervious/`](../vfx/shared/impervious/)). Every special uses that one aura.
-- Wired in [`player.gd`](../scripts/player.gd) (`grant_special_invuln`, `_start_special`); the
+  ([`vfx/shared/impervious/`](../vfx/shared/impervious/)). The buff grants that one aura.
+- Wired via the buff's `on_special_cast` hook → `grant_special_invuln` in [`player.gd`](../scripts/player.gd); the
   no-refill twist rides a `from_special` flag through `Hit → Hitbox → Enemy → RunManager`.
 
 ---
@@ -88,8 +91,8 @@ Ruh  : 0 .. ruh_cap.  The SPECIAL meter, shown in CHARGES/BLOCKS (1 block = RUH_
 - **Attack is chosen at run start and LOCKED.** A scrollable **attack picker**
   ([`attack_select.gd`](../scripts/run/attack_select.gd), built to scale to 12+) opens on every fresh
   run; the chosen attack can't change mid-run — only get **buffed** (the Attack door).
-- **Specials CAN change** (the Special door offers change-special swaps) — but every special still
-  grants Impervious on top of its effect.
+- **Specials CAN change** (the Special door offers change-special swaps). Impervious is no longer
+  automatic — it's an earned buff (see §3) that layers the invuln window onto any special cast.
 - **Typed reward pools** ([`rewards.gd`](../scripts/run/rewards.gd)), all per-run (reset on death):
   - **Health** — Mend (+HP), Second Skin (+max HP).
   - **Athletic** — +air jump, +run speed, Thick Hide (−dmg taken), Meteor (+slam dmg).

@@ -127,40 +127,41 @@ func begin_run() -> void:
 	velocity = Vector2.ZERO
 	spawn()
 
-# --- Movement runtime state -- seeded from the equipped movement Actions' Locomotions ---
-# NOT inspector @exports anymore: every movement/physics value lives in typed config -- the shared
-# baseline in configs/locomotion.gd, per-character deviations in each character's MOVEMENTS catalog
-# (configs/actions_<char>.gd). Player._apply_movement copies the equipped run/jump/dash/slam Locomotion
-# into these runtime vars on character change / swap; buffs then layer on top (run_mult, air_jump_bonus).
-# The initial values below are placeholders, overwritten before the first physics step. To RETUNE, edit
-# the Locomotion baseline or the character catalog -- never here.
+# --- Movement runtime state -- SEEDED FROM CONFIG; do NOT set values here ---
+# Every movement/physics value lives in typed config: the shared baseline in configs/locomotion.gd, with
+# per-character deviations in each character's MOVEMENTS catalog (configs/actions_<char>.gd). On character
+# change / swap, Player._apply_movement copies the equipped run/jump/dash/slam Locomotion INTO these vars
+# (buffs then layer on top: run_mult, air_jump_bonus). They are declared with NO initial value on purpose
+# -- they default to 0 and are overwritten before the first physics step, so a literal written here would
+# be dead (this is the trap that made someone edit max_air_jumps in vain). To RETUNE, edit the Locomotion
+# baseline or the character catalog -- never here. The trailing comments document what each value MEANS.
 # run
-var run_speed: float = 160.0
-var acceleration: float = 1200.0
-var friction: float = 1400.0
-var run_anim_speed: float = 1.5 ## run-cycle cadence vs ground speed (visual; >1 = busier legs)
+var run_speed: float
+var acceleration: float
+var friction: float
+var run_anim_speed: float ## run-cycle cadence vs ground speed (visual; >1 = busier legs)
 # jump / vertical arc
-var jump_velocity: float = -330.0
-var max_air_jumps: int = 2 ## the jump Locomotion's air_jumps + air_jump_bonus (buff); each air jump spawns particles
-var gravity: float = 900.0
-var fall_gravity_scale: float = 1.35 ## >1 = falls faster than it rises (less floaty)
+var jump_velocity: float
+var max_air_jumps: int ## the jump Locomotion's air_jumps + air_jump_bonus (buff); each air jump spawns particles
+var gravity: float
+var fall_gravity_scale: float ## >1 = falls faster than it rises (less floaty)
 # dash
-var dash_speed: float = 420.0
-var dash_time: float = 0.18
-var dash_cooldown: float = 0.45
-var dash_anim_time: float = 0.30 ## dash ANIMATION length, decoupled from the lunge (dash_time)
-var dash_gravity_scale: float = 0.35 ## gravity kept during an air dash (0 = hang, 1 = fall normally)
+var dash_speed: float
+var dash_time: float
+var dash_cooldown: float
+var dash_anim_time: float ## dash ANIMATION length, decoupled from the lunge (dash_time)
+var dash_gravity_scale: float ## gravity kept during an air dash (0 = hang, 1 = fall normally)
 # slam
-var slam_speed: float = 1200.0
-var slam_min_clearance: float = 50.0 ## min clear space below the feet to allow a slam (0 = always)
-var slam_hold_frame: int = 2 ## slam frame to LOCK on during a tall plunge (sheet-relative)
-var slam_impact_distance: float = 30.0 ## px above ground a held slam releases its impact frames
-var slam_min_drop: float = 120.0 ## slam damage scales from mult 1.0 at this drop...
-var slam_max_drop: float = 700.0 ## ...up to slam_max_damage_mult at this drop (lerped between)
-var slam_max_damage_mult: float = 2.5
+var slam_speed: float
+var slam_min_clearance: float ## min clear space below the feet to allow a slam (0 = always)
+var slam_hold_frame: int ## slam frame to LOCK on during a tall plunge (sheet-relative)
+var slam_impact_distance: float ## px above ground a held slam releases its impact frames
+var slam_min_drop: float ## slam damage scales from mult 1.0 at this drop...
+var slam_max_drop: float ## ...up to slam_max_damage_mult at this drop (lerped between)
+var slam_max_damage_mult: float
 # landing
-var land_min_fall_speed: float = 140.0 ## min touchdown speed to play the landing squash
-var land_predict_distance: float = 22.0 ## px above ground the LAND anim starts (plays through touchdown)
+var land_min_fall_speed: float ## min touchdown speed to play the landing squash
+var land_predict_distance: float ## px above ground the LAND anim starts (plays through touchdown)
 
 @export_group("Attack")
 ## How long the sprite holds on a hit frame before returning to idle, if the
@@ -180,8 +181,8 @@ enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPA
 var _state: State = State.IDLE
 var _facing: int = 1
 ## The active attack + special for this character (from the Actions catalog). They
-## decide which animation plays and its hit tuning; swap them with set_move() (a
-## future UI hook). Seeded to the character's defaults on every character change.
+## decide which animation plays and its hit tuning; swap them with equip(category, id).
+## Seeded to the character's defaults on every character change.
 var _current_attack: Action
 var _current_special: Action
 ## The equipped loadout: {category -> option_id} for attack/special/run/jump/dash/slam. Empty =
@@ -279,15 +280,15 @@ var _special_aura: Node2D = null
 ## PARRY and gets reflected. So just HOLDING the guard blocks; timing the raise right before a hit
 ## reflects. The hurtbox stays ACTIVE (unlike the pass-through invuln) so hits reach _on_hurt.
 var _parry_left: float = 0.0
-@export var parry_window: float = 0.25        ## seconds after RAISING the shield in which a block also REFLECTS (perfect parry)
-@export var shield_reflect_mult: float = 1.0  ## reflected (parried) damage = incoming × this (0 = never reflect)
+@export var parry_window: float = 0.25 ## seconds after RAISING the shield in which a block also REFLECTS (perfect parry)
+@export var shield_reflect_mult: float = 1.0 ## reflected (parried) damage = incoming × this (0 = never reflect)
 ## Sprite VIBRATE when the shield takes a hit (a blocked/parried impact): a quick decaying jitter of
 ## _sprite.position. `_shake_left`/`_shake_dur` drive it in _physics_process; reset by begin_run.
 var _shake_left: float = 0.0
 var _shake_dur: float = 0.0
-var _shake_amp: float = 0.0                   ## amplitude of the CURRENT shake (set by _shake())
-@export var shield_shake_amp: float = 4.0    ## px the sprite jitters on a shield hit
-@export var shield_shake_time: float = 0.18  ## seconds the shield vibration lasts (decays to 0)
+var _shake_amp: float = 0.0 ## amplitude of the CURRENT shake (set by _shake())
+@export var shield_shake_amp: float = 4.0 ## px the sprite jitters on a shield hit
+@export var shield_shake_time: float = 0.18 ## seconds the shield vibration lasts (decays to 0)
 ## FLINCH POLICY. true = Khalid plays the HURT flinch on ANY hit that lands. false = he only flinches on
 ## hits that STAGGER him (knockback > 0, e.g. mazab/ein/nasen) -- chip/ranged hits with no knockback
 ## (baghel, kebus) then just deal damage + a grunt, no anim interrupt. Toggle in the inspector or here.
@@ -497,7 +498,16 @@ func _seed_passives() -> void:
 
 
 ## Add a passive (a reward grant, or the character ability) and run its setup(). See Passive.
+## REPLACE-IN-PLACE: if the new passive is a Buff with a non-empty `family`, any existing buff of that
+## same family is torn down and removed first -- so a tiered upgrade supersedes its predecessor (Ricochet
+## I -> II -> III) instead of stacking. Buffs with no family (and plain passives) never auto-replace.
 func add_passive(p: Passive) -> void:
+	if p is Buff and not (p as Buff).family.is_empty():
+		var fam := (p as Buff).family
+		for existing in _passives.duplicate():
+			if existing is Buff and (existing as Buff).family == fam:
+				existing.teardown(self)
+				_passives.erase(existing)
 	_passives.append(p)
 	p.setup(self)
 
@@ -552,23 +562,6 @@ func _anim_duration(anim: StringName) -> float:
 	for i in sf.get_frame_count(anim):
 		total += sf.get_frame_duration(anim, i) / fps
 	return total
-
-
-## Switch the active attack or special to `id` -- one of Actions.ids(character, kind).
-## `kind` is "attacks" or "specials". This is the hook a future move-select UI calls;
-## until then the character's catalog defaults are used. An unknown id falls back to
-## the default. (To change the *default*, edit configs/actions_<char>.gd.)
-func set_move(kind: String, id: String) -> void:
-	if kind == "attacks":
-		_current_attack = Actions.get_action(character, "attacks", id)
-	elif kind == "specials":
-		_current_special = Actions.get_action(character, "specials", id)
-
-
-## Which way the character faces (+1 right, -1 left) -- for abilities that spawn
-## directional effects.
-func get_facing() -> int:
-	return _facing
 
 
 ## Fire a code-triggered particle burst by its the Emitters config key (a key that isn't a
@@ -739,6 +732,10 @@ func resolve_tuning(action: Action, seg: int = 0) -> Dictionary:
 			base["extents"] = (base["extents"] as Vector2) * attack_reach_mult
 		if base.has("x"):
 			base["x"] = float(base["x"]) * attack_reach_mult
+	# Per-move / shared BUFFS layer on last -- each passive gets to alter this move's numbers (a Buff
+	# gates on action.id/.category/.tags via applies_to_action; a bare Passive no-ops). See Buff.
+	for p in _passives:
+		base = p.modify_tuning(self, action, seg, base)
 	return base
 
 
@@ -776,6 +773,8 @@ func _on_hurt(hit: Hit) -> void:
 					back.source = self # credited to the player, so a reflect kill still banks Ruh
 					(hit.source as Enemy).apply_hit(back)
 				Sfx.play("redere_shield_parry") # perfect-parry cue (missing file = silent)
+				for p in _passives:
+					p.on_parry(self, hit) # parry-payoff buffs (e.g. heal-on-parry)
 			else:
 				Sfx.play("redere_shield_block") # standard block cue
 			flash(_sprite) # block flash -- no damage taken (reflected or not)
@@ -1383,10 +1382,11 @@ func _start_special() -> void:
 	# A "shield"-tagged special (Redere Shield) runs its OWN block+reflect window instead of the
 	# pass-through invuln -- the hurtbox must stay active so incoming hits reach _on_hurt to be parried.
 	var is_shield := _current_special != null and _current_special.tags.has("shield")
-	if has_ruh:
-		spend_special() # a charge buys the Impervious window (invuln + aura)
-		if not is_shield:
-			grant_special_invuln()
+	# Cast-triggered buffs react here. Impervious (a shared special buff) grants its Ruh-bought invuln
+	# window in on_special_cast -- it used to be a hardcoded default; now specials only turn invulnerable
+	# if that buff is equipped. (`has_ruh` is still read above to gate the pointless default special.)
+	for p in _passives:
+		p.on_special_cast(self, _current_special)
 	if is_shield:
 		# The guard is active for as long as we STAY in the shield special (see _is_shielding) -- no
 		# lingering timer, so a hit after it drops lands normally. Only the perfect-parry (reflect)

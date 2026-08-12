@@ -41,6 +41,27 @@ func on_special_strike(_player: Player) -> void:
 	pass
 
 
+## Called the instant a special is CAST (in _start_special), with the special Action. The place for a
+## cast-triggered effect -- e.g. the Impervious buff grants its invuln window here. Fires at cast, before
+## the wind-up plays, so effects cover the whole animation (unlike on_special_strike, mid-animation).
+func on_special_cast(_player: Player, _action: Action) -> void:
+	pass
+
+
+## Called on a PERFECT PARRY with the Redere Shield (the reflect branch of _on_hurt), with the parried
+## `hit`. For a parry payoff -- heal, a counter buff, etc. (A plain block does NOT fire this.)
+func on_parry(_player: Player, _hit: Hit) -> void:
+	pass
+
+
+## THE OUTGOING-TUNING HOOK. Called from Player.resolve_tuning for EVERY attack/special swing, letting a
+## passive/buff alter that move's per-hit numbers (damage, knockback, extents, or a new key a consumer
+## reads). `tuning` is a private copy -- mutate + return it (or return it untouched). `action` is the move
+## being resolved, `seg` its combo segment, so a per-move buff can gate on action.id / .category / .tags.
+func modify_tuning(_player: Player, _action: Action, _seg: int, tuning: Dictionary) -> Dictionary:
+	return tuning
+
+
 ## Called when the player takes a combat hit (as it lands). `hit` carries amount/knockback/stun/source.
 ## For a retaliation, a defensive reaction, etc.
 func on_hurt(_player: Player, _hit: Hit) -> void:

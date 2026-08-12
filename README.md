@@ -70,18 +70,19 @@ debug damage/heal, `0` rebuild-level) live in that same file.
 **The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). At run start
 you **pick an attack** (locked for the run; scrollable picker built to scale to 12+). You drop into
 low, mostly-horizontal **arena levels** that spawn enemies in **escalating batches**; **killing** them
-charges **Ruh** — the special meter, shown in charges (100 each), no decay. Spend Ruh on a **special**
-to go **Impervious** (~10s invincible); every special grants it on top of its own effect (the baseline
-`special_default` is *only* that). **HP is separate**: damage hits it only, heals *only* from rewards.
-Clear every batch → the **reward door** opens (one random type per level: **Health / Athletic / Attack
-/ Special**, each iconned) → **pick one buff** → next level. The instant the **last required** enemy
-falls and the exit unlocks, a brief **"you did it!" slow-motion** plays (`RunManager._celebrate_clear`
-drops `Engine.time_scale` and ramps it back via a real-time tween) — **optional** enemies (Nasen)
-never trigger it, since only required kills reach the clear. Attacks are run-locked (buffed, or
-**upgraded** by a conditional reward); specials can be swapped at the Special door. Rewards are
-**build-aware** — a reward can `require` something equipped (Dual Executioner only shows once Twin
-Reaper is), weight its odds by `synergy`, or grant a **behavioural passive** (Leech's lifesteal) — see
-the *Passives & abilities* section + [`configs/rewards_catalog.gd`](configs/rewards_catalog.gd). Take 0
+charges **Ruh** — the special meter, shown in charges (100 each), no decay. Spend Ruh on a **special**;
+with the **Impervious** buff equipped that cast also turns you ~10s invincible (it used to be baseline
+on every special — now it's an earned buff, see below). **HP is separate**: damage hits it only, heals
+*only* from rewards. Clear every batch → the **reward door** opens (one random type per level: **Health
+/ Athletic / Attack / Special**, each iconned) → **pick one buff** → next level. The instant the **last
+required** enemy falls and the exit unlocks, a brief **"you did it!" slow-motion** plays
+(`RunManager._celebrate_clear` drops `Engine.time_scale` and ramps it back via a real-time tween) —
+**optional** enemies (Nasen) never trigger it, since only required kills reach the clear. Moves are
+independent — they **upgrade by layering buffs**, not by turning into a different move (Dual Executioner
+& Redere Frisbee are now standalone swaps, not successors). Rewards are **build-aware** — a reward can
+`require` something equipped (a per-move buff like *Reaper's Edge* only shows once Twin Reaper is),
+weight its odds by `synergy`, or grant a **behavioural passive / buff** (Leech, Impervious) — see the
+*Passives, abilities & buffs* section + [`configs/rewards_catalog.gd`](configs/rewards_catalog.gd). Take 0
 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pools, the attack
 picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s root;
 `Levels` / `EnemyKits` / `Rewards` / `RewardsCatalog` / `Build` / `Icons` are the data + logic). The `.tscn` stays minimal because the editor
@@ -411,7 +412,7 @@ sheets for it:
   with no `land` sheet skips straight to idle/run.
 
 Each phase is **opt-in per character** by the presence of the `fall` / `land` sheet.
-**All five characters now have both.** (Khalid's full kit — movement VFX
+**Khalid has both** (the working game is Khalid-only; other characters are parked in `playground/`). (Khalid's full kit — movement VFX
 (run/jump/fall/dash/double-jump), a **ground slam** (`slam_default` + `slam_wind_streaks`),
 and his **Ground Breaker** special (an overhead-slam AOE `Strike`, damage from
 the `Actions` catalog) — is wired in the `Emitters` config, all in his red-teal-gold palette. Only his
@@ -420,7 +421,9 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
 **Khalid's specials** (all in the `Actions` catalog; presentation keyed by `special_<id>` animation):
 - **Ground Breaker** — AOE slam `Strike` (stun + a ground-crack).
 - **Frenemy** — a charm blast: the hit enemy becomes a temporary ally (`Hit.frenemy_time` → `Enemy.become_frenemy`).
-- **Impervious** (`special_default`) — the baseline flex; just the universal invuln window every special grants.
+- **Flex** (`special_default`) — a bare flex with no hit; does nothing on its own, useful only once the
+  **Impervious buff** is equipped (which grants the invuln window on any special cast). Renamed from
+  "Impervious" — that's the buff now (`scripts/abilities/impervious.gd`), not this default special.
 - **Come Closer** — a magnet: the `special_come_closer` effect scene (`scripts/combat/magnet_field.gd`) grabs
   enemies in range and `Enemy.magnetize()`s them toward Khalid, stunning each on arrival (no damage). Tune the
   pull on the field scene.
@@ -430,8 +433,8 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
   damage; a hit caught in the brief `parry_window` right after the raise is a **perfect parry** that reflects
   to the attacker (`_on_hurt` → `Enemy.apply_hit`) — just holding only blocks. Tune `parry_window` /
   `shield_reflect_mult` on the Player.
-- **Redere Frisbee** — the *upgraded* shield: throws it as a `Projectile` (fed the Action's `hit`). A conditional
-  reward that swaps in once Redere Shield is equipped — the special-side twin of Dual Executioner.
+- **Redere Frisbee** — an independent special that throws the shield as a `Projectile` (fed the Action's `hit`).
+  A standalone Special-door swap (no longer gated on owning Redere Shield); it upgrades via its own buffs.
 
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
 air, press `special` to plunge straight down at `slam_speed` (1200 — far faster than
@@ -578,7 +581,7 @@ shield's block/parry is a separate feedback (a `_shake` sprite vibrate, not a st
 
 ---
 
-## Passives & abilities
+## Passives, abilities & buffs
 
 **This is the place to add behavioural rules** — event-driven code that reacts to the game — the
 Player itself stays generic, with no per-character or per-reward branching. A **`Passive`** is one
@@ -606,9 +609,12 @@ Hooks, all optional (override only what you need):
 | `setup(player)` / `teardown(player)` | Once, on add / remove | One-off changes; undo them on teardown so nothing leaks across runs |
 | `physics(player, delta)` | Every physics frame, **after** the state machine sets velocity and **before** `move_and_slide()` | Movement overrides — whatever you set here wins |
 | `on_special_strike(player)` | The special's strike frame | Spawn a code-driven effect/projectile on connect |
+| `on_special_cast(player, action)` | The instant a special is cast (before wind-up) | Cast-triggered effects — e.g. the Impervious window |
 | `on_hurt(player, hit)` | Player takes a combat hit | React to damage — retaliation, defensive buff |
+| `on_parry(player, hit)` | A **perfect parry** with Redere Shield (reflect branch only) | Parry payoffs — heal, counter buff |
 | `on_land(player, fall_distance, fall_speed)` | Every touchdown | Fall damage, landing shockwaves (`fall_distance` = px dropped from the apex) |
 | `on_hit_dealt(player, amount, target)` | Player deals damage (via RunManager) | Lifesteal, on-hit procs, stacks |
+| `modify_tuning(player, action, seg, tuning) → Dictionary` | Inside `resolve_tuning`, for every swing | **Alter a move's numbers** — damage/knockback/keys; the buff path |
 
 `physics` runs last on purpose, so a passive can override anything the state machine decided.
 `player.get_state()` exposes the current state, and the whole Player API — `take_damage()`,
@@ -624,6 +630,29 @@ ACTION"; add new event hooks to `passive.gd` + fire them from the player as more
   hook set. The parked characters in `playground/` had abilities (fall-damage-on-land, a channeled
   special that cancels when hit) — reference for what the hooks can do. Khalid used to carry the blink
   as an ability; it's now a **per-character dash option** (see **Blink dash** above).
+
+### Buffs — move-scoped passives (`scripts/abilities/buff.gd`)
+
+A **`Buff` IS a `Passive`** (so it grants, dispatches, and tears down through the exact same machinery —
+a reward row's `passive: "<id>"` → `add_passive`), plus two extras that make it the **item/build layer**:
+
+- **`applies_to`** — *which* move(s) it touches: a move id (`"twin_reaper"`), a family keyword
+  (`"attack"`/`"special"`, matched on `Action.category`), a tag (matched on `Action.tags`), or `"*"`.
+  Empty = all. One field expresses both a **tailor-made per-attack** buff and a **shared** one. Gate a
+  `modify_tuning` override with `applies_to_action(action)`; behavioural hooks (`on_parry`, …) already
+  self-scope to their fire site, so `applies_to` there is for reward gating / display.
+- **`family`** — a **replace-in-place** group: granting a buff whose `family` is already held tears down
+  the old one first (in `add_passive`), so tiered upgrades *supersede* (Ricochet I→II→III) rather than
+  stack. `""` = independent.
+
+Two ways a buff acts (either/both): **numbers** — override `modify_tuning` to change a move's tuning
+dict (folded in last inside `resolve_tuning`); **behaviour** — override an event hook. Current buffs:
+
+- **Impervious** (`impervious.gd`, shared `["special"]`) — grants the invuln window on a special cast
+  (`on_special_cast`, spends a Ruh charge, skips shield specials). *Was a hardcoded default; now earned.*
+- **Reaper's Edge** (`reaper_edge.gd`, `["twin_reaper"]`) — +25% Twin Reaper damage via `modify_tuning`.
+  The worked example of the numbers path (a single move, unlike the global "+12% attack damage" reward).
+- **Guardian's Mend** (`parry_mend.gd`, `["redere_shield"]`) — a perfect parry also heals, via `on_parry`.
 
 ---
 
@@ -815,7 +844,7 @@ to hand-wire. Key traits:
     (default off) is what makes an enemy *chase* — leave it off to have them guard.
   - `"forward"` — a `projectile.gd` that surges straight ahead in the enemy's facing for
     `ranged_travel` px then fizzles, hitting whatever it passes — ignores where you are
-    (Baghel's red energy). Tint via `ranged_color`.
+    (Baghel's red energy). The look comes from the Emitters `projectile` scene.
   - `"lob"` — a **`LobProjectile`** (`scripts/combat/lob_projectile.gd`), a *thrown bomb*
     (Mazab). It arcs out of the muzzle **aimed** at a spot next to the player (`lob_land_offset`,
     biased toward the thrower), then **flies ballistically** until it lands on a real surface,
@@ -1089,8 +1118,11 @@ attack; `hit` is `null` when the effect scene carries its own numbers):
 
 **How a hit reaches the box (and the buff seam):** on each segment/special start the
 player resolves the effective tuning via **`resolve_tuning(action, seg)`** (→ `action.segment(seg)`)
-into `_active_hit` — *this is where the future item/build system layers its modifiers*
-(damage ×1.3, +reach, hits twice). When the director arms the attack's `Hitbox` it calls
+into `_active_hit`. This is the **live buff seam**: after the global reward mults (`damage_mult`,
+`attack_reach_mult`) it loops `_passives` calling **`modify_tuning(player, action, seg, tuning)`**, so a
+per-move/shared **Buff** layers its changes here (e.g. *Reaper's Edge* +25% on Twin Reaper only). A new
+tuning key a buff injects must be handled by the consumer (`Strike.apply_tuning` / `Projectile.apply_tuning`).
+When the director arms the attack's `Hitbox` it calls
 `_inject_tuning`, passing `_active_hit` to the node's `apply_tuning()` — which sets
 damage/knockback/stun and, for a `Strike`, resizes the box from `extents`/`x` and fires
 lunge/armor. A **null** `hit` (empty `segments`) means "the effect scene carries its own numbers"
@@ -1108,9 +1140,9 @@ lunge/armor. A **null** `hit` (empty `segments`) means "the effect scene carries
   `speed_mult` on `run_speed`, wrapped in the aura scene at `buff_effect` (parented to the
   player, freed on expiry). It ticks down in `_physics_process` and clears on death /
   run-restart. **No shipped special uses it right now** — the old *Built Different* was
-  folded into the **universal Impervious window** every special now grants — but the seam
-  is live for the future item/build system: drop `buff_time`/`speed_mult`/`buff_effect` on
-  any special and it becomes a self-buff.
+  folded into the **Impervious buff** (`scripts/abilities/impervious.gd`, granted on a
+  special cast) — but the seam is live for the item/build system: drop
+  `buff_time`/`speed_mult`/`buff_effect` on any special and it becomes a self-buff.
 - **Projectile attacks** put `Projectile` nodes (not `Strike`s) in the effect scene; the
   director world-parents them at the muzzle and reads facing from `scale.x` so they fly
   off. Khalid's **Cherry Shots** fires two — a small bolt on frame 3, a big one on frame 7,

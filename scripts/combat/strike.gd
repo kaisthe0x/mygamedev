@@ -9,8 +9,9 @@ extends Node2D
 ## attached to the player for a dash-through hitbox. Team-agnostic via `hostile`.
 ##
 ## Combat NUMBERS (damage / knockback / stun / reach, plus the lunge / super-armor /
-## multi-hit knobs) come from configs/moves.gd via the player's resolve seam and are
-## applied through apply_tuning() at spawn -- they are NOT baked here. This class owns
+## multi-hit knobs) come from the Actions catalog (configs/actions_<char>.gd) via the
+## player's resolve seam and are applied through apply_tuning() at spawn -- they are NOT
+## baked here. This class owns
 ## the LOOK and the strike BEHAVIOR (grow/fade, multi-hit re-arm, lunge/armor callbacks).
 
 ## false = a player strike (hits enemies); true = an enemy strike (hits the player).
@@ -85,8 +86,8 @@ func _ready() -> void:
 		_start_ticking(tick)
 
 
-## Configure this strike from a resolved tuning dict (moves.gd via the player's resolve
-## seam, or an enemy's exports): set the hitbox's numbers + reach, and trigger the
+## Configure this strike from a resolved tuning dict (the Actions catalog via the player's
+## resolve seam, or an enemy's exports): set the hitbox's numbers + reach, and trigger the
 ## wielder-effects (lunge, super-armor) on `source`. Called by the spawner after
 ## add_child, before the hitbox is armed. Absent fields keep the hitbox's authored
 ## values, so a bare Strike still works with no tuning at all.

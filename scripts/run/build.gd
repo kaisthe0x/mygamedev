@@ -38,10 +38,6 @@ static func of(player: Player) -> Build:
 	return b
 
 
-func equipped_id(category: String) -> String:
-	return equipped.get(category, "")
-
-
 ## Is `id` the equipped Action in ANY slot?
 func has_action(id: String) -> bool:
 	return id in equipped.values()
@@ -53,10 +49,6 @@ func has_tag(tag: String) -> bool:
 
 func has_reward(id: String) -> bool:
 	return id in rewards
-
-
-func count_reward(id: String) -> int:
-	return rewards.count(id)
 
 
 ## Does this build satisfy a condition dict? ALL present keys must hold (AND). Supported: `equipped`

@@ -28,12 +28,15 @@ const POOLS := {
 		# PASSIVE reward: grants the Leech behavioral passive (on_hit_dealt lifesteal).
 		{"id": "lifesteal", "name": "Leech",     "desc": "Heal 8% of damage dealt", "passive": "leech"},
 		{"id": "multishot", "name": "Split Shot", "desc": "+1 projectile (WIP)"},
-		# UPGRADED MOVE: only offered once Twin Reaper is equipped (requires), a once-only (unique) swap to
-		# the stronger Dual Executioner attack (equip). The conditional-reward showcase.
+		# PER-MOVE BUFF: +25% damage on Twin Reaper only (the modify_tuning path). Offered once Twin
+		# Reaper is equipped; unique so it can't double up. Grants scripts/abilities/reaper_edge.gd.
+		{"id": "reaper_edge", "name": "Reaper's Edge", "desc": "+25% Twin Reaper damage", "unique": true,
+			"requires": {"equipped": "twin_reaper"}, "passive": "reaper_edge"},
+		# INDEPENDENT MOVE (was an upgrade of Twin Reaper): now a standalone attack you can swap to, no
+		# longer gated on owning Twin Reaper. It upgrades via its OWN buffs, not by superseding another move.
 		{"id": "dual_executioner", "name": "Dual Executioner",
-			"desc": "Upgrade Twin Reaper — a bigger, deadlier spin",
+			"desc": "A bigger, deadlier twin-blade spin",
 			"icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "unique": true,
-			"upgrades": "twin_reaper", "requires": {"equipped": "twin_reaper"},
 			"equip": {"category": "attack", "id": "dual_executioner"}},
 	],
 	"special": [
@@ -41,12 +44,19 @@ const POOLS := {
 		{"id": "longer_imp",    "name": "Fortitude",   "desc": "+3s Impervious duration"},
 		{"id": "imp_until_hit", "name": "Last Stand",  "desc": "Impervious until you're hit (WIP)"},
 		{"id": "bigger_blast",  "name": "Wide Impact", "desc": "+20% special hit radius (WIP)"},
-		# UPGRADED SPECIAL: only offered once Redere Shield is equipped -- swaps it for the thrown
-		# Frisbee version. The special-side twin of Dual Executioner (see the attack pool).
-		{"id": "redere_frisbee", "name": "Redere Frisbee",
-			"desc": "Upgrade Shield — hurl it as a returning projectile",
-			"icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "unique": true,
-			"upgrades": "redere_shield", "requires": {"equipped": "redere_shield"},
-			"equip": {"category": "special", "id": "redere_frisbee"}},
+		# SHARED SPECIAL BUFF: Impervious is no longer a default -- it's earned here. Grants the invuln
+		# window on any special cast (spends a Ruh charge). Unique. Grants scripts/abilities/impervious.gd.
+		{"id": "impervious", "name": "Impervious", "unique": true,
+			"desc": "Casting a special turns you Impervious for a few seconds (spends Ruh)",
+			"passive": "impervious"},
+		# PER-MOVE BUFF: a perfect parry with Redere Shield also heals. Offered once the Shield is equipped.
+		{"id": "parry_mend", "name": "Guardian's Mend", "unique": true,
+			"desc": "Perfect parry also heals you", "requires": {"equipped": "redere_shield"},
+			"passive": "parry_mend"},
+		# NOTE: no explicit "swap to Redere Frisbee" card here on purpose. Specials are freely swappable, so
+		# Rewards.offer_for already mixes in a change-special swap card for EVERY special option (built from
+		# the character's catalog) -- an explicit equip reward would double it up (the "Redere Frisbee" +
+		# "Frisbee" pair). Attacks differ: they're NOT swap-carded, so Dual Executioner's equip reward in the
+		# attack pool IS its only acquisition and stays.
 	],
 }

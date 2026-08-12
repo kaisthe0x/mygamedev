@@ -92,7 +92,6 @@ const DEFAULT_MUZZLE := Vector2(20, -46)
 ## the blast reuses ranged_damage/knockback/stun. Dodge by clearing the landing spot.
 @export_enum("aimed", "forward", "lob") var ranged_mode := "aimed"
 @export var ranged_travel: float = 100.0
-@export var ranged_color := Color(0.55, 1.0, 0.45) # tints the built-in orb
 ## The projectile's visual scene (Baghel's wave, Kebus' bolt, Mazab's rock) is NOT set here --
 ## it comes from the Emitters config (`<id> -> projectile -> scene`); empty there = the built-in
 ## orb. Same for the lob blast (`<id> -> explosion -> scene`). One place for every enemy emitter.
