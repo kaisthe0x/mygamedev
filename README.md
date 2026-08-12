@@ -47,7 +47,7 @@ tools/                Generator + verification scripts (not shipped)
 | S / ↓ | `drop` | Tap to fall through the one-way platform you're on (ground only; a no-op on solid floor). Controller: D-pad down / left-stick down; remappable in the Input Map |
 | Space | `jump` | Press again in the air to **double jump** (`max_air_jumps`) — the air jump re-boosts and spawns the character's jump particles; the ground jump is silent |
 | Shift | `dash` | Has a cooldown |
-| Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** (no air attacks) |
+| Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
@@ -290,6 +290,7 @@ with wind-up / in-between frames between the hits:
 |---|---|---|
 | khalid | `attack_spear` | `[6, 9, 13]` — thrust, thrust, big spinning finisher (his Elite swap) |
 | khalid | `attack_bakshen` | `[3]` — one charged slash on the last frame (~1s wind-up) |
+| khalid | `attack_zahluq` | `[2]` — the burst frame; the Strike + `lunge` slide fire here (dash-attack) |
 | khalid | `attack_cherry_shots` | `[3, 7]` — two laser Projectiles: small bolt, then a bigger one |
 | khalid | `special_ground_breaker` | `[6]` — the overhead ground crack |
 | khalid | `special_stay` | `[3]` — a short stun blast (little dmg, 5s stun) |
@@ -526,6 +527,34 @@ ready or for any attack with `cooldown 0`. The timer starts the instant the swin
 resets to 0 on run-start / character swap. This is the per-**attack** cooldown; specials have
 their own separate anti-spam window (`SPECIAL_COOLDOWN`). A cooldown attack is effectively a
 single heavy hit — the gate blocks re-entry, so it doesn't chain combo segments.
+
+**Dash-attacks (the `lunge` seam).** Khalid's **`zahluq`** is a `COOLDOWN` attack that *bursts him
+forward* — a heavy hit that's less than `bakshen` but slides him a long way. Its tuning keys, read by
+`_process_attack` and the `Strike` at spawn:
+- **`lunge`** — the burst speed. `Strike.apply_tuning` → `Player.apply_lunge` sets `velocity.x`.
+- **`hold`** — seconds to **freeze on the strike frame** while sliding. During this window a lunge
+  attack keeps its velocity **constant** (no friction), so the dash covers a predictable **`lunge × hold`**
+  (~1100 × 0.4 ≈ 440px) with the sprite paused on the burst pose, then **stops crisply** (velocity zeroed)
+  — no run-off. Non-lunge attacks are unaffected (still friction-rooted, `attack_recovery` freeze).
+- **`super_armor`** — commits the dash so a hit mid-slide won't stagger him out of it (set ≈ `hold`).
+- **`extents`** — the hitbox, made wide + tall so it **surrounds him** as he slides through enemies.
+
+The hitbox *sweeps* with him via the emitter row's **`follow: true`** — the director parents the effect
+(and its hitbox) onto **itself** (a child of the player, so it tracks him, centered on his body) instead
+of anchoring it in the world (`ParticleDirector._fire_burst`). So it fires on a **single** frame (one
+following box; multiple frames would double-hit) and the Strike's `lifetime` spans the whole animation,
+keeping the box live the entire dash — you connect no matter how far from an enemy you start. Recipe for
+any dash-attack: `lunge` + `hold` + `super_armor` in the tuning, `follow: true` on the emitter.
+
+**Air attacks (opt-in).** Attacks are grounded-only *except* those whose Action carries an `"air"` tag —
+the air-attack allow-list (`Player._air_attack_ok`, checked at every attack gate). Zahluq is tagged `"air"`,
+so it doubles as an aerial dash. A dash-attack flies **level** in the air: while it holds the strike frame
+`_process_attack` pins `velocity.y = 0` (gravity off), so it goes straight instead of arcing down; gravity
+resumes the instant the dash ends. Untagged attacks stay ground-only.
+
+**RUN needs input.** `_process_normal` enters `State.RUN` only when a move key is *actually held* (not
+merely `velocity.x > 5`), so residual momentum from a dash-attack slide or a knockback decelerates in
+IDLE instead of reading as a phantom run.
 
 Two separate timers, which matters — coupling them once made the hit frame
 freeze for the whole chain window:

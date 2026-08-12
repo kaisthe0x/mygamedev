@@ -549,6 +549,13 @@ func has_anim(anim: StringName) -> bool:
 	return _sprite != null and _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(anim)
 
 
+## Attacks are grounded-only by default (no air attacks). The EXCEPTION is an attack tagged "air" -- it
+## may be triggered mid-air (e.g. Zahluq, an air dash-attack). This is the air-attack allow-list: opt an
+## attack in by giving its Action a "air" tag (configs/actions_<char>.gd). Checked at every attack gate.
+func _air_attack_ok() -> bool:
+	return _current_attack != null and _current_attack.tags.has("air")
+
+
 ## Total play time (seconds) of a one-shot animation -- the sum of each frame's real duration (frames
 ## carry a relative length, so hold_last / FRAME_DURATIONS are honoured), or 0 if it doesn't exist.
 func _anim_duration(anim: StringName) -> float:
@@ -1146,8 +1153,8 @@ func _process_normal(delta: float) -> void:
 		elif not is_on_floor() and _has_slam() and _slam_has_clearance():
 			_enter(State.SLAM) # air special = ground slam (only with room below)
 			return
-	# Attacks are grounded-only -- no air attacks.
-	if Input.is_action_just_pressed("attack") and is_on_floor():
+	# Attacks are grounded-only, EXCEPT an "air"-tagged attack (the exception list -- see _air_attack_ok).
+	if Input.is_action_just_pressed("attack") and (is_on_floor() or _air_attack_ok()):
 		_advance_combo()
 		return
 	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
@@ -1170,7 +1177,9 @@ func _process_normal(delta: float) -> void:
 		_set_airborne_state()
 	elif _just_landed and _has_land():
 		_enter(State.LAND)
-	elif absf(velocity.x) > 5.0:
+	elif input != 0.0 and absf(velocity.x) > 5.0:
+		# RUN only when the player is actually holding a move key -- residual velocity from a
+		# dash-attack slide / knockback decelerates in IDLE instead of reading as a phantom run.
 		_state = State.RUN
 	else:
 		_state = State.IDLE
@@ -1255,9 +1264,12 @@ func _process_land(delta: float) -> void:
 			return
 		velocity.y += gravity * fall_gravity_scale * delta
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
-		# Air-rule cancels (specials become the slam, attacks are grounded-only).
+		# Air-rule cancels (specials become the slam; attacks are grounded-only unless "air"-tagged).
 		if Input.is_action_just_pressed("special") and _has_slam() and _slam_has_clearance():
 			_enter(State.SLAM)
+			return
+		if Input.is_action_just_pressed("attack") and _air_attack_ok():
+			_advance_combo()
 			return
 		if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
 			_enter(State.DASH)
@@ -1316,10 +1328,18 @@ func _near_ground(dist := land_predict_distance) -> bool:
 
 
 func _process_attack(delta: float) -> void:
-	# Rooted in place, but gravity still applies so air attacks fall.
-	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
-	if not is_on_floor():
-		velocity.y += gravity * delta
+	# A DASH-ATTACK (a `lunge` in its tuning, e.g. Zahluq) flies STRAIGHT while it holds the strike frame:
+	# its burst velocity stays CONSTANT (skip friction) so it covers a predictable distance (lunge x hold)
+	# with the hitbox on him, and vertical is PINNED to 0 -- no gravity arc mid-air, so a slide triggered in
+	# the air goes level. Gravity resumes the instant the dash ends. Every other attack is rooted: friction
+	# bleeds any residual to a stop while gravity keeps air attacks falling.
+	var dashing := _active_hit.has("lunge") and _recovery_left > 0.0
+	if dashing:
+		velocity.y = 0.0
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+		if not is_on_floor():
+			velocity.y += gravity * delta
 
 	# A special pressed any time during the swing is remembered and fires the moment
 	# the current hit lands -- so a fast light->special always cancels into the special
@@ -1346,7 +1366,9 @@ func _process_attack(delta: float) -> void:
 			_sprite.set_frame_and_progress(_seg_end, 0.0)
 			_sprite.pause()
 			_combo_playing = false
-			_recovery_left = attack_recovery
+			# Hold the strike frame for `hold` s if the attack asks (a dash-attack holds the burst pose
+			# for its whole slide); otherwise the short global recovery. Per-attack via the tuning.
+			_recovery_left = maxf(attack_recovery, float(_active_hit.get("hold", 0.0)))
 			_combo_window = combo_reset_time
 			if _buffered_special: # cancel straight into the buffered special
 				_start_special()
@@ -1364,6 +1386,8 @@ func _process_attack(delta: float) -> void:
 	_combo_window = maxf(_combo_window - delta, 0.0)
 	_recovery_left -= delta
 	if _recovery_left <= 0.0:
+		if _active_hit.has("lunge"):
+			velocity.x = 0.0 # a dash-attack stops crisply where its slide ends -- no run-off into idle
 		_enter(State.IDLE)
 
 

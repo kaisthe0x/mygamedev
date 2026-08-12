@@ -38,6 +38,7 @@ const CUES := {
 	"spear.9": "res://sfx/character/attack/spear/spear_9.wav",
 	"spear.13": "res://sfx/character/attack/spear/spear_13.wav",
 	"bakshen": "res://sfx/character/attack/bakshen/bakshen.wav", # one big charged slash (no per-frame hits)
+	"zahluq": "res://sfx/character/attack/zahluq/zahluq.wav", # the dash-attack whoosh (played on the burst frame)
 	# Dual Executioner (upgraded Twin Reaper) -- hit frames 6/9/14/16. Drop the .wav files at these paths
 	# (or trim to the frames you actually want a sound on; a missing/omitted cue is just silent).
 	"dual_executioner.6": "res://sfx/character/attack/dual_executioner/dual_executioner_6.wav",
@@ -67,6 +68,7 @@ const FRAMES := {
 		"attack_cherry_shots": {3: "cherry_shots.3", 7: "cherry_shots.7"},
 		"attack_spear": {6: "spear.6", 9: "spear.9", 13: "spear.13"},
 		"attack_bakshen": {1: "bakshen"},
+		"attack_zahluq": {2: "zahluq"},
 		"special_ground_breaker": {1: "ground_breaker", 3: "ground_breaker.3"},
 		"special_frenemy": {3: "frenemy"},
 		"special_default": {2: "special_default"},

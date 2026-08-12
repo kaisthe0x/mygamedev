@@ -119,6 +119,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Bakshen: a charged slash. fps 10 so the per-frame math is clean (see FRAME_DURATIONS: the
     # wind-up frame holds 1s); hold_last lets the final slash pose linger while its VFX plays.
     ("khalid", "attack_bakshen"): {"fps": 10.0, "hold_last": 10.0},
+    # Zahluq: a fast burst-forward dash-attack (COOLDOWN). Snappy so the lunge reads as a
+    # quick slide; hold_last lets the follow-through pose settle after he stops.
+    ("khalid", "attack_zahluq"): {"fps": 14.0, "hold_last": 2.0},
     # Default special (special_default): a short flex. The invuln window it grants is UNIVERSAL to
     # every special (Player.grant_special_invuln), not from here; hold_last just lands the pose.
     ("khalid", "special_default"): {"fps": 8.0, "hold_last": 3.0},
@@ -154,6 +157,7 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
         3,
     ],  # the short stun blast fires on the forward-thrust frame
     ("khalid", "attack_bakshen"): [3],  # single charged hit on the last (slash) frame
+    ("khalid", "attack_zahluq"): [2],  # burst frame -- the Strike + lunge fire here
     ("khalid", "special_come_closer"): [3],  # beckon on the last frame -> spawn the magnet field
     ("khalid", "special_redere_shield"): [3],  # shield fully up on the last frame (per spec)
     ("khalid", "special_redere_frisbee"): [3],  # release the throw on the last frame

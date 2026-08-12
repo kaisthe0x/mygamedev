@@ -40,6 +40,22 @@ const ATTACKS := {
 		"style": "cooldown", "cooldown": 3.0,
 		"hit": {"type": "melee", "segments": {"damage": 65, "knockback": 0, "stun": 0.0}},
 	},
+	# Zahluq: a burst-forward DASH-ATTACK -- Khalid slides forward at great speed for a set distance,
+	# damaging everything he passes (its Strike + hitbox FOLLOW him during the slide -- see the emitter
+	# row's `follow`). COOLDOWN cadence (3s, overhead recharge bar); a big single hit, but LESS than
+	# bakshen. The `lunge` tuning IS the slide (friction bleeds it off into a decelerating dash);
+	# `super_armor` commits the dash so a hit mid-slide won't stagger him out of it. Tune to taste.
+	"zahluq": {
+		"name": "Zahluq", "icon": "res://vfx/shared/impervious/bolt.png", "tier": "elite",
+		"style": "cooldown", "cooldown": 3.0, "tags": ["air"], # "air" -> usable mid-air (see Player._air_attack_ok)
+		"hit": {"type": "melee", "segments": {
+			"damage": 45, "knockback": 90, "stun": 0.2,
+			# lunge = burst speed; hold = seconds the burst pose is held while the hitbox rides ON him.
+			# Constant-velocity dash, so distance ~= lunge x hold (~1100 x 0.4 = ~440px). super_armor
+			# commits it. extents are wide + tall so the box surrounds him as he slides through enemies.
+			"lunge": 1100.0, "hold": 0.4, "super_armor": 0.4, "extents": Vector2(40, 28),
+		}},
+	},
 	# Cherry Shots: a two-shot laser volley -- a small bolt then a bigger/stronger one (2-segment combo,
 	# one press each). The director spawns the per-frame Projectile scenes; damage per shot below.
 	"cherry_shots": {

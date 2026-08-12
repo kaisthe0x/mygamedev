@@ -21,6 +21,8 @@ extends Node2D
 ##            automatically when facing left. A composite (Node2D) root mirrors by flipping
 ##            scale.x, so its child textures flip too; a single particle root mirrors
 ##            direction/gravity, keeping its texture.
+## - follow : (burst only) parent the effect onto the director so it SWEEPS with the player instead of
+##            anchoring in the world -- a dash-attack whose hitbox should hit everything it slides through.
 ## - node/set/boost/clip_to_ground : optional (see Emitters + the row handlers below).
 ##
 ## The director is a child of the player; emitter scenes use local_coords=false so their
@@ -86,6 +88,7 @@ func set_character(id: String) -> void:
 					"anim": anim, "frames": frames, "pos": pos, "scene": scene,
 					"node": row.get("node", ""), "set": row.get("set", {}),
 					"boost": boost, "clip_to_ground": row.get("clip_to_ground", false),
+					"follow": row.get("follow", false), # ride the player (a dash-attack's sweeping hitbox)
 				})
 	_refresh()
 
@@ -430,11 +433,14 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 	# walks and hit enemies away from the blast. Anchor it in the world at the strike
 	# point instead, so it stays put once fired.
 	var target := global_position + Vector2(b.pos.x * m, b.pos.y)
+	# A burst normally anchors in the WORLD so it stays put once fired. `follow: true` instead parents it
+	# onto the director (which tracks the player), so the effect AND its hitbox SWEEP with the player --
+	# for a dash-attack that slides forward and should damage everything it passes (Khalid's Zahluq).
 	var world := _world()
-	if world != null:
-		world.add_child(node)
-	else:
+	if b.get("follow", false) or world == null:
 		add_child(node)
+	else:
+		world.add_child(node)
 	Nodes.place_at(node, target) # snap to the strike point without interpolation smear
 	var hitboxes := _hitboxes_of(node)
 	# Keep a ground blast from spilling past the platform edge into open air: clip
@@ -451,7 +457,7 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 			get_tree().create_timer(emit_dur).timeout.connect(func() -> void:
 				if is_instance_valid(em):
 					em.emitting = false)
-	_inject_tuning(node, hitboxes) # feed moves.gd numbers before the box goes live
+	_inject_tuning(node, hitboxes) # feed the resolved tuning numbers before the box goes live
 	for hb in hitboxes:
 		hb.source = _attacker()
 		hb.activate()
