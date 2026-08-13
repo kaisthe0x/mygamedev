@@ -128,12 +128,13 @@ const SPECIALS := {
 ## duration). On trigger it plays a brief activation flex (the "surge_<id>" sprite anim) + SFX; the aura
 ## VFX is the invuln aura (Player.SPECIAL_AURA) spawned for the effect's duration.
 const SURGES := {
-	# Aegis: full damage IMMUNITY for `duration` s, then an 8s reset. This is the old `special_default`
-	# Impervious flex, promoted out of the specials into its own system. Reuses the invuln + aura machinery
-	# (Player.grant_special_invuln); the "Fortitude" reward's +invuln bonus still stacks onto the duration.
+	# Aegis: full damage IMMUNITY for `duration` s. Gated by RUH -- each use spends `cost` (100 = one
+	# charge); no cooldown. This is the old `special_default` Impervious flex, promoted into its own
+	# system. Reuses the invuln + aura machinery (Player.grant_special_invuln); the "Fortitude" reward's
+	# +invuln bonus still stacks onto the duration.
 	"aegis": {
 		"name": "Aegis", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
-		"cooldown": 8.0, "surge": {"duration": 5.0, "invuln": true},
+		"surge": {"duration": 5.0, "invuln": true, "cost": 100.0},
 	},
 }
 

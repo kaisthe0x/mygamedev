@@ -40,16 +40,16 @@ var health: float = 100.0:
 		health = clamped
 		health_changed.emit(health, max_health)
 
-@export_group("Ruh (special meter)")
-## Ruh is the SPECIAL meter -- the "spirit" you spend to cast a special. You START a run with 3 charges
-## and every special cast SPENDS one (SPECIAL_COST); no Ruh = no special. It fills back by landing HITS
-## (RUH_PER_HIT each -- not kills), never decays, and is measured in CHARGES/BLOCKS (RUH_PER_BLOCK each).
-## `ruh_cap` (raised by rewards) is the ceiling; consumables will top it up later.
-const RUH_PER_BLOCK := 100.0 ## one HUD "block" = one special charge
+@export_group("Ruh (surge meter)")
+## Ruh is the "spirit" you spend on SURGES (each surge use costs its SurgeSpec.cost; specials are FREE).
+## You START a run with 3 charges and refill by landing HITS (RUH_PER_HIT each -- not kills); it never
+## decays, and is measured in CHARGES/BLOCKS (RUH_PER_BLOCK each). `ruh_cap` (raised by rewards) is the
+## ceiling; consumables will top it up later.
+const RUH_PER_BLOCK := 100.0 ## one HUD "block" = one charge (the default surge cost)
 const RUH_PER_HIT := 20.0 ## Ruh gained per HIT landed (5 hits = 1 charge); collected by fighting, not killing
-const SPECIAL_COST := 100.0 ## Ruh a special cast consumes (= one block/charge)
 const MAX_RUH_CAP := 500.0 ## hard ceiling: 5 charges (rewards raise ruh_cap up to here)
-## Short lag between special casts so a special (no longer Ruh-gated) can't be spammed.
+## Short lag between special casts so a free special can't fire every single frame (a tiny anti-spam,
+## not a real limiter -- specials cost no Ruh).
 const SPECIAL_COOLDOWN := 0.6
 @export var ruh_cap: float = 300.0: # 3 charges/blocks to start; rewards raise it toward MAX_RUH_CAP (5)
 	set(value):
@@ -124,7 +124,6 @@ func begin_run() -> void:
 	_apply_character() # re-applies moves + run/jump/dash/slam/surge from the (now default) loadout
 	health = max_health
 	ruh = ruh_cap # START a run with a full meter -- 3 charges (BASE_RUH_CAP)
-	_surge_cd = 0.0
 	velocity = Vector2.ZERO
 	spawn()
 
@@ -186,11 +185,9 @@ var _facing: int = 1
 ## Seeded to the character's defaults on every character change.
 var _current_attack: Action
 var _current_special: Action
-## The equipped SURGE (a passive ability on the `surge` button -- Aegis by default). `_surge_cd` is the
-## reset lockout: it counts down after a trigger, and the surge can't fire again until it hits 0. See
-## _try_surge. Both seeded/reset on character change + begin_run.
+## The equipped SURGE (an ability on the `surge` button -- Aegis by default). Gated by Ruh, not a timer
+## (each use spends its `cost`); seeded on character change / begin_run. See _try_surge.
 var _current_surge: Action
-var _surge_cd: float = 0.0
 ## The equipped loadout: {category -> option_id} for attack/special/run/jump/dash/slam. Empty =
 ## every category on its default (Typical). Rewards call equip() to swap one; begin_run() clears
 ## it back to defaults. See configs/loadout.gd.
@@ -640,11 +637,6 @@ func heal(amount: float) -> void:
 	health = minf(health + amount, max_health)
 
 
-## True if there's enough Ruh to cast a special right now.
-func can_special() -> bool:
-	return ruh >= SPECIAL_COST
-
-
 ## Bank Ruh for landing a HIT (not a kill). RunManager calls this on every hit the player deals. The
 ## setter caps at ruh_cap. Returns true if this hit completed a fresh charge (crossed a RUH_PER_BLOCK
 ## boundary), so the caller can play the soul-orb feedback only then instead of on every hit.
@@ -688,14 +680,6 @@ func _set_hair_mix(f: float) -> void:
 	_tint_mat.set_shader_parameter("base_red", (_hair_base["base_red"] as Color).lerp(HAIR_ABSORB_BASE, f))
 	_tint_mat.set_shader_parameter("accent_a", (_hair_base["accent_a"] as Color).lerp(HAIR_ABSORB_A, f))
 	_tint_mat.set_shader_parameter("accent_b", (_hair_base["accent_b"] as Color).lerp(HAIR_ABSORB_B, f))
-
-
-## Spend one special charge. Returns false (spends nothing) if there isn't enough Ruh.
-func spend_special() -> bool:
-	if not can_special():
-		return false
-	ruh -= SPECIAL_COST
-	return true
 
 
 ## Build the combat boxes and register on the "player" group so enemies find us.
@@ -877,19 +861,20 @@ func grant_special_invuln(duration := SPECIAL_INVULN_TIME) -> void:
 			add_child(_special_aura)
 
 
-## SURGE: a passive ability on the dedicated `surge` button (CTRL / RT). One press, if the surge is off
-## cooldown, applies its timed self-buff (SurgeSpec) WITHOUT locking the player's state -- you keep
-## attacking/moving. The reset lockout is `duration + cooldown` (the effect runs, THEN the reset waits),
-## so `cooldown` is the "wait another N seconds after it expires" the design calls for. Aegis = invuln.
-## On trigger it plays a brief activation flex (State.SURGE, the "surge_<id>" sprite anim) + SFX. Extend the match
-## as more surge effects land. Fires in any state (checked in _physics_process); no-op while dead.
+## SURGE: an ability on the dedicated `surge` button (CTRL / RT). One press applies its timed self-buff
+## (SurgeSpec). There is NO cooldown -- **RUH is the gate**: each use SPENDS `cost` Ruh, so you surge as
+## long as you have Ruh (refilled by landing hits; specials are free). Aegis = invuln for `duration`.
+## On trigger it plays a brief activation flex (State.SURGE, the "surge_<id>" sprite anim) + SFX. Extend the
+## match as more surge effects land. Fires in any state (checked in _physics_process); no-op while dead.
 func _try_surge() -> void:
-	if _dead or _current_surge == null or _current_surge.surge == null or _surge_cd > 0.0:
+	if _dead or _current_surge == null or _current_surge.surge == null:
 		return
 	if not Input.is_action_just_pressed("surge"):
 		return
 	var s := _current_surge.surge
-	_surge_cd = s.duration + _current_surge.cooldown # effect window + the reset wait after it expires
+	if ruh < s.cost:
+		return # not enough Ruh -- the only gate; no cooldown
+	ruh -= s.cost # spend it (the setter clamps + emits ruh_changed for the HUD)
 	if s.invuln:
 		grant_special_invuln(s.duration) # spawns the surge's aura (SPECIAL_AURA) for the duration -- the ONE visual
 	flash(_sprite) # a quick activation pop on the sprite
@@ -1039,8 +1024,7 @@ func _physics_process(delta: float) -> void:
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 	_special_cd = maxf(_special_cd - delta, 0.0)
-	_surge_cd = maxf(_surge_cd - delta, 0.0)
-	_try_surge() # SURGE (passive ability): fires in ANY state on the `surge` button if off cooldown
+	_try_surge() # SURGE: fires in ANY state on the `surge` button if you have the Ruh (no cooldown)
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
 	_update_cooldown_bar()
 	_ruh_flash_cd = maxf(_ruh_flash_cd - delta, 0.0)
@@ -1433,10 +1417,7 @@ func _process_attack(delta: float) -> void:
 func _start_special() -> void:
 	if _special_cd > 0.0:
 		return # short lag between specials (anti-spam)
-	# Specials now COST Ruh: no charge, no cast. Spend one on cast (Ruh refills by landing hits).
-	if not can_special():
-		return
-	spend_special()
+	# Specials are FREE now -- cast as often as you like. Ruh is spent on SURGES, not specials (see _try_surge).
 	_special_cd = SPECIAL_COOLDOWN
 	# A "shield"-tagged special (Redere Shield) runs its OWN block+reflect window instead of the
 	# pass-through invuln -- the hurtbox must stay active so incoming hits reach _on_hurt to be parried.

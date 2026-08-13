@@ -525,4 +525,4 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_damage"):
 		_player.take_damage(12.0)
 	elif event.is_action_pressed("debug_heal"):
-		_player.ruh += Player.SPECIAL_COST # +1 Ruh charge (test the special meter)
+		_player.ruh += Player.RUH_PER_BLOCK # +1 Ruh charge (test the surge meter)

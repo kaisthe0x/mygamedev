@@ -29,14 +29,14 @@ sandbox scene (`scenes/tile_paint.tscn`) — see [`docs/painting-levels.md`](../
 
 Related, but not in this folder:
 - **Player HP + Ruh** live on the `Player` (`scripts/player.gd`) as **two independent pools**:
-  `health` (damage hits this only; heals ONLY via rewards) and `ruh` — the **special meter**, in
+  `health` (damage hits this only; heals ONLY via rewards) and `ruh` — the **surge meter**, in
   charges/blocks of `RUH_PER_BLOCK` (100), capped by `ruh_cap`. You **start a run with 3 charges**
   (`BASE_RUH_CAP` = 300 — `begin_run` sets it full) and **refill by landing HITS** (`RUH_PER_HIT` = 20,
   so ~5 hits = 1 charge) — **not kills** — and it **never decays**. API: `gain_ruh_on_hit` /
-  `can_special` / `spend_special` (one cast = `SPECIAL_COST` = one charge, and a special **requires** one) /
-  `take_damage` (HP only) / `heal` / `begin_run`. Rewards raise `ruh_cap` (toward `MAX_RUH_CAP` = 500, 5 charges).
+  `take_damage` (HP only) / `heal` / `begin_run`. **Specials are free** now; **surges spend Ruh** (each
+  use costs its `SurgeSpec.cost`, 100 = one charge). Rewards raise `ruh_cap` (toward `MAX_RUH_CAP` = 500, 5 charges).
 - **The Ruh block meter** is built in `scripts/hud.gd` next to the HP bar (crimson cells) — one cell
-  per charge; each cast empties one.
+  per charge; each surge empties one.
 - **The Aegis surge grants a timed invulnerability window + aura** (`Player.grant_special_invuln(duration)`,
   fired by `Player._try_surge` on the dedicated `surge` button) — no longer tied to casting a special.
 - **Enemies** emit `damaged` (→ RunManager awards Ruh via `gain_ruh_on_hit`, skipping a special's own
@@ -47,9 +47,9 @@ Related, but not in this folder:
 
 1. `RunManager._build_level(i)` sets the `bg`, builds `platforms` + the `ExitGate` (LOCKED), and
    spawns the `start` enemy batch. Player is placed at `player_spawn`.
-2. **Hitting** an enemy → `damaged` → `gain_ruh_on_hit()` charges the special meter (a special's own
-   hits are skipped). Killing an enemy → `died` → `_alive--` (counts toward clearing; grants no Ruh). A
-   special fires only when the meter has a charge → `spend_special()` consumes one.
+2. **Hitting** an enemy → `damaged` → `gain_ruh_on_hit()` charges the surge meter (a special's own
+   hits are skipped). Killing an enemy → `died` → `_alive--` (counts toward clearing; grants no Ruh).
+   Specials are **free**; a **surge** fires only when you have the Ruh → `_try_surge()` spends its `cost`.
 3. When `_alive` hits 0 the current batch is clear → **the next batch spawns** (puff at each spot).
    Batches are **finite**: once the last one is cleared the level is **done** and the exit **opens**.
 4. Walk into the open exit → **pick a reward** → next level (HP, Ruh, and Ruh cap all carry over — no reset).
@@ -66,9 +66,9 @@ Related, but not in this folder:
 - **Make a level harder/easier** → its `start`/`waves` (batches) in `levels.gd` — more strong-tier
   enemies, more per batch, or more batches. The level ends when they're all dead.
 - **Change an enemy's stats** → its kit in `enemies.gd` (combat).
-- **Change the special economy** → `Player.RUH_PER_HIT` (fill rate per hit), `RUH_PER_BLOCK` / `SPECIAL_COST`
-  (charge size), `BASE_RUH_CAP` (starting charges), and the Aegis surge's `duration` / `cooldown` in
-  `configs/actions_khalid.gd` (`SURGES`) for the invuln window + its reset.
+- **Change the Ruh / surge economy** → `Player.RUH_PER_HIT` (fill rate per hit), `RUH_PER_BLOCK`
+  (charge size), `BASE_RUH_CAP` (starting charges), and the Aegis surge's `cost` / `duration` in
+  `configs/actions_khalid.gd` (`SURGES`) for its Ruh price + invuln window. (Specials are free — no cost knob.)
 - **Add/change a reward** → add a row to `configs/rewards_catalog.gd` (pure data); wire its effect in
   `rewards.gd` `_buff()` unless it's a `passive`/`equip` reward (those are handled generically). Keep a
   heal in the pool — it's the only way to mend HP.

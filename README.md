@@ -9,10 +9,11 @@ stays fully character-agnostic, so bringing one back is just its assets + data r
 Main scene: `scenes/level.tscn`. Press F5 to run.
 
 **Game premise & the run loop:** see [`docs/game-design.md`](docs/game-design.md) — a roguelite
-arena crawler: clear each level's enemy batches, cast **specials** (each costs one **Ruh** charge —
-you start a run with 3, and refill Ruh by **landing hits**), fire your **Aegis** surge for an
-on-demand burst of invincibility, and pick a buff at one random **reward door** per level. Attack is
-chosen at run start and locked; die and the run restarts.
+arena crawler: clear each level's enemy batches, cast **specials** (now **free and unlimited**), and
+spend **Ruh** on your **Aegis** surge for an on-demand burst of invincibility (each use costs one
+**Ruh** charge — you start a run with 3, and refill Ruh by **landing hits**; Ruh is the only gate, no
+cooldown), then pick a buff at one random **reward door** per level. Attack is chosen at run start and
+locked; die and the run restarts.
 
 > Potential names for the game:
 > - Index32
@@ -49,8 +50,8 @@ tools/                Generator + verification scripts (not shipped)
 | Space | `jump` | Press again in the air to **double jump** (`max_air_jumps`) — the air jump re-boosts and spawns the character's jump particles; the ground jump is silent |
 | Shift | `dash` | Has a cooldown |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
-| Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **costs one Ruh charge and won't fire without one**. **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
-| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility) applied *without* interrupting your attacking/moving, then a reset cooldown before it can fire again. RT on the pad because dash owns LT |
+| Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free and unlimited** (a tiny anti-spam lag only, no Ruh cost). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
+| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility) applied *without* interrupting your attacking/moving. **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
 
@@ -72,11 +73,11 @@ debug damage/heal, `0` rebuild-level) live in that same file.
 **The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). At run start
 you **pick an attack** (locked for the run; scrollable picker built to scale to 12+). You drop into
 low, mostly-horizontal **arena levels** that spawn enemies in **escalating batches**. You **start each
-run with 3 Ruh charges** — the special meter, shown in charges (100 each), no decay — and refill it by
+run with 3 Ruh charges** — the surge meter, shown in charges (100 each), no decay — and refill it by
 **landing hits** (~5 hits = 1 charge; kills don't count, and a special's own hits don't self-pay).
-**Every special COSTS — and REQUIRES — one charge**, so a special won't fire on an empty meter.
-Separately, the **Aegis surge** (a passive on its own button) grants ~5s of invincibility on demand
-without interrupting you, then resets before it can fire again (see below). **HP is separate**: damage hits it only, heals
+**Specials are now free and unlimited** (only a tiny anti-spam lag). Ruh instead fuels the **Aegis
+surge** (a passive on its own button): it grants ~5s of invincibility on demand without interrupting
+you, and **each use spends one Ruh charge** — Ruh is the only gate, no cooldown (see below). **HP is separate**: damage hits it only, heals
 *only* from rewards. Clear every batch → the **reward door** opens (one random type per level: **Health
 / Athletic / Attack / Special**, each iconned) → **pick one buff** → next level. The instant the **last
 required** enemy falls and the exit unlocks, a brief **"you did it!" slow-motion** plays
@@ -439,16 +440,17 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
   A standalone Special-door swap (no longer gated on owning Redere Shield); it upgrades via its own buffs.
 
 **Surges (abilities on the `surge` button).** Separate from specials: a **Surge** is an ability fired with
-one press (Ctrl / RT) that applies a **timed self-buff** which runs independently for its full duration,
-then a reset cooldown before it can fire again. On trigger it plays a **brief activation flex**
+one press (Ctrl / RT) that applies a **timed self-buff** which runs independently for its full duration.
+There is **no cooldown** — **Ruh is the only gate**: each use spends its `SurgeSpec.cost` (100 Ruh = one
+charge), so you surge as long as you have the Ruh (re-triggering, if you can pay, refreshes it). On trigger it plays a **brief activation flex**
 (`State.SURGE`, the `surge_<id>` sprite anim, ~0.5s) — a short commit — while the buff carries on
 regardless; the SFX plays on trigger and the aura VFX is the invuln aura (`SPECIAL_AURA`) spawned for the
 buff's duration. `Player._try_surge()` runs every frame in `_physics_process` (any state, no-op while dead
-or spawning). The data lives as `Action.Category.SURGE` rows carrying a **`SurgeSpec`**
-(`configs/surge_spec.gd`: `duration` + `invuln`) in the `ActionsKhalid.SURGES` catalog (`DEFAULT_SURGE =
+or spawning) and gates on `if ruh < s.cost: return` then `ruh -= s.cost`. The data lives as `Action.Category.SURGE` rows carrying a **`SurgeSpec`**
+(`configs/surge_spec.gd`: `cost` + `duration` + `invuln`) in the `ActionsKhalid.SURGES` catalog (`DEFAULT_SURGE =
 "aegis"`). The one shipped Surge is **Aegis** (`aegis`) — the old `special_default` "Flex/Impervious"
 promoted out of the specials pool: full
-damage **immunity for 5s** (`duration`), then an **8s reset** (`cooldown`), a 13s total lockout. It reuses
+damage **immunity for 5s** (`duration`), **costs 100 Ruh / 1 charge, no cooldown — Ruh-gated**. It reuses
 `grant_special_invuln(duration)` + the shared Impervious aura + a flash. The old **Fortitude** reward now
 reads *"+3s Aegis (invuln) duration"* and **Last Stand** is *"Aegis lasts until you're hit (WIP)."*
 
@@ -604,11 +606,11 @@ falling at `dash_gravity_scale` so they arc instead of hanging on an invisible
 floor.
 
 **API for other systems:** `take_damage()` (HP only) / `heal()` (the only HP restore),
-`gain_ruh_on_hit()` / `can_special()` / `spend_special()` (the Ruh special meter — see
+`gain_ruh_on_hit()` (the Ruh surge meter — see
 [`docs/game-design.md`](docs/game-design.md)), `grant_special_invuln(duration)` (the invuln window, now
 the **Aegis surge**'s effect), `begin_run()`, `is_dead()`, `death_complete()`, `spawn()`, `set_character()`,
 `portrait_path()`, and the `health_changed` / `ruh_changed` / `character_changed` signals. Ruh fills
-by landing hits (no decay) and is **required + spent** to cast a special; it never shields HP. (Enemies deal real damage;
+by landing hits (no decay) and is **spent on surges** (specials are free); it never shields HP. (Enemies deal real damage;
 a lethal hit runs the full death lifecycle — see **Death** / **Spawn** below.)
 
 **Getting hit.** A landed hit (past the shield/super-armor/death guards) drops Khalid into a brief `HURT`
