@@ -48,7 +48,10 @@ const CUES := {
 	"frenemy": "res://sfx/character/special/frenemy/frenemy.wav",
 	"ground_breaker.3": "res://sfx/character/special/ground_breaker/ground_breaker_3.wav",
 	"ground_breaker": "res://sfx/character/special/ground_breaker/ground_breaker.wav",
-	"special_default": "res://sfx/character/special/default/special_default.wav",
+	# SURGES (passive abilities on the `surge` button) -- an activation cue played by CODE on trigger
+	# (Player._try_surge), NOT frame-synced. Key convention: "surge_<id>". (This is the old special_default
+	# cast sound, renamed 1:1 to surge_aegis.)
+	"surge_aegis": "res://sfx/character/surge/aegis/surge_aegis.wav",
 	# New specials -- cast cues on the strike frame. Drop the .wav files at these paths (silent until then).
 	"come_closer": "res://sfx/character/special/come_closer/come_closer.wav",
 	"redere_shield": "res://sfx/character/special/redere_shield/redere_shield.wav",
@@ -71,7 +74,6 @@ const FRAMES := {
 		"attack_zahluq": {2: "zahluq"},
 		"special_ground_breaker": {1: "ground_breaker", 3: "ground_breaker.3"},
 		"special_frenemy": {3: "frenemy"},
-		"special_default": {2: "special_default"},
 		"special_come_closer": {3: "come_closer"},
 		"special_redere_shield": {3: "redere_shield"},
 		"special_redere_frisbee": {1: "redere_frisbee.1"},

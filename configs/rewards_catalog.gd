@@ -41,14 +41,9 @@ const POOLS := {
 	],
 	"special": [
 		{"id": "ruh_cap",       "name": "Deeper Ruh",  "desc": "+1 Ruh charge (max 5)"},
-		{"id": "longer_imp",    "name": "Fortitude",   "desc": "+3s Impervious duration"},
-		{"id": "imp_until_hit", "name": "Last Stand",  "desc": "Impervious until you're hit (WIP)"},
+		{"id": "longer_imp",    "name": "Fortitude",   "desc": "+3s Aegis (invuln) duration"}, # special_invuln_bonus stacks onto the surge window
+		{"id": "imp_until_hit", "name": "Last Stand",  "desc": "Aegis lasts until you're hit (WIP)"},
 		{"id": "bigger_blast",  "name": "Wide Impact", "desc": "+20% special hit radius (WIP)"},
-		# SHARED SPECIAL BUFF: Impervious is no longer a default -- it's earned here. Grants the invuln
-		# window on any special cast (spends a Ruh charge). Unique. Grants scripts/abilities/impervious.gd.
-		{"id": "impervious", "name": "Impervious", "unique": true,
-			"desc": "Casting a special turns you Impervious for a few seconds (spends Ruh)",
-			"passive": "impervious"},
 		# PER-MOVE BUFF: a perfect parry with Redere Shield also heals. Offered once the Shield is equipped.
 		{"id": "parry_mend", "name": "Guardian's Mend", "unique": true,
 			"desc": "Perfect parry also heals you", "requires": {"equipped": "redere_shield"},

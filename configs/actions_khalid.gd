@@ -100,15 +100,6 @@ const SPECIALS := {
 		"hit": {"type": "blast", "segments": {"damage": 4, "knockback": 0, "frenemy": 8.0,
 			"victim_effect": "res://vfx/status/frenemy_stun.tscn", "victim_time": 8.0}},
 	},
-	# Flex (special_default): the BASELINE special the player always starts with -- no damage, no effect
-	# (hence no `hit`). On its own it does nothing; it only matters once the Impervious BUFF is equipped
-	# (then, like any special, a cast spends Ruh to go invincible). NOT named "Impervious" any more --
-	# that's the buff now (scripts/abilities/impervious.gd), and two same-named cards was confusing. Its id
-	# keeps the "special_" prefix, so it names its own animation explicitly.
-	"special_default": {
-		"name": "Flex", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
-		"animation": "special_default",
-	},
 	# Come Closer: a magnet pull -- drags nearby enemies in front of Khalid and STUNS them on arrival
 	# (no damage). No `hit`; the magnet FIELD scene (EmittersCharacters -> scripts/combat/magnet_field.gd)
 	# + Enemy.magnetize() do the work. Tune range/stun/speed on that field scene.
@@ -128,6 +119,21 @@ const SPECIALS := {
 	"redere_frisbee": {
 		"name": "Redere Frisbee", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "tags": ["shield"],
 		"hit": {"type": "projectile", "segments": {"damage": 15, "knockback": 120}},
+	},
+}
+
+## Khalid's SURGES -- passive abilities on the dedicated `surge` button (CTRL / RT). One press applies a
+## timed self-buff WITHOUT locking the player's state (keep attacking/moving), then `cooldown` is the
+## RESET wait *after* the effect expires before it can fire again. `surge` = the SurgeSpec (effect +
+## duration). On trigger it plays a brief activation flex (the "surge_<id>" sprite anim) + SFX; the aura
+## VFX is the invuln aura (Player.SPECIAL_AURA) spawned for the effect's duration.
+const SURGES := {
+	# Aegis: full damage IMMUNITY for `duration` s, then an 8s reset. This is the old `special_default`
+	# Impervious flex, promoted out of the specials into its own system. Reuses the invuln + aura machinery
+	# (Player.grant_special_invuln); the "Fortitude" reward's +invuln bonus still stacks onto the duration.
+	"aegis": {
+		"name": "Aegis", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
+		"cooldown": 8.0, "surge": {"duration": 5.0, "invuln": true},
 	},
 }
 
@@ -157,4 +163,5 @@ const MOVEMENTS := {
 
 const DEFAULT_ATTACK := "bakshen"
 const DEFAULT_SPECIAL := "redere_shield"
+const DEFAULT_SURGE := "aegis"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

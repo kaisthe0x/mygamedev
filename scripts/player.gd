@@ -41,17 +41,17 @@ var health: float = 100.0:
 		health_changed.emit(health, max_health)
 
 @export_group("Ruh (special meter)")
-## Ruh is the SPECIAL meter -- the "spirit" you spend to cast a special. It fills by KILLING
-## enemies (RUH_PER_KILL each), never decays, and is measured in CHARGES/BLOCKS (RUH_PER_BLOCK
-## each). One special cast spends SPECIAL_COST (one full charge). `ruh_cap` (raised by rewards)
-## is the ceiling -- default one charge, so one cast empties it; a bigger cap banks more casts.
+## Ruh is the SPECIAL meter -- the "spirit" you spend to cast a special. You START a run with 3 charges
+## and every special cast SPENDS one (SPECIAL_COST); no Ruh = no special. It fills back by landing HITS
+## (RUH_PER_HIT each -- not kills), never decays, and is measured in CHARGES/BLOCKS (RUH_PER_BLOCK each).
+## `ruh_cap` (raised by rewards) is the ceiling; consumables will top it up later.
 const RUH_PER_BLOCK := 100.0 ## one HUD "block" = one special charge
-const RUH_PER_KILL := 25.0 ## Ruh gained per enemy killed (4 kills = 1 charge by default)
-const SPECIAL_COST := 100.0 ## Ruh a cast consumes to layer the Impervious effect on (= one block)
+const RUH_PER_HIT := 20.0 ## Ruh gained per HIT landed (5 hits = 1 charge); collected by fighting, not killing
+const SPECIAL_COST := 100.0 ## Ruh a special cast consumes (= one block/charge)
 const MAX_RUH_CAP := 500.0 ## hard ceiling: 5 charges (rewards raise ruh_cap up to here)
 ## Short lag between special casts so a special (no longer Ruh-gated) can't be spammed.
 const SPECIAL_COOLDOWN := 0.6
-@export var ruh_cap: float = 100.0: # 1 charge/block; rewards raise it toward MAX_RUH_CAP (5)
+@export var ruh_cap: float = 300.0: # 3 charges/blocks to start; rewards raise it toward MAX_RUH_CAP (5)
 	set(value):
 		ruh_cap = clampf(value, 0.0, MAX_RUH_CAP)
 		ruh = minf(ruh, ruh_cap)
@@ -66,7 +66,7 @@ var ruh: float = 0.0:
 
 ## Run-reward buffs applied on top of the character's base. `damage_mult` scales every hit
 ## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
-const BASE_RUH_CAP := 100.0 # 1 special charge
+const BASE_RUH_CAP := 300.0 # start a run with 3 special charges (rewards raise the cap toward MAX)
 const BASE_MAX_HEALTH := 100.0
 var damage_mult: float = 1.0
 ## Run-speed multiplier from rewards (Fleetfoot), applied OVER the equipped run option's base so a
@@ -121,9 +121,10 @@ func begin_run() -> void:
 	_rewards_taken.clear() # fresh build for the new run
 	max_health = BASE_MAX_HEALTH
 	_loadout.clear() # back to the character's default (Typical) moves + movement
-	_apply_character() # re-applies moves + run/jump/dash/slam from the (now default) loadout
+	_apply_character() # re-applies moves + run/jump/dash/slam/surge from the (now default) loadout
 	health = max_health
-	ruh = 0.0
+	ruh = ruh_cap # START a run with a full meter -- 3 charges (BASE_RUH_CAP)
+	_surge_cd = 0.0
 	velocity = Vector2.ZERO
 	spawn()
 
@@ -176,7 +177,7 @@ var land_predict_distance: float ## px above ground the LAND anim starts (plays 
 ## (~34°). The puff leans opposite to horizontal travel; 0 = straight down. Tune to taste.
 const DOUBLE_JUMP_LEAN := 0.6
 
-enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPAWN, HURT}
+enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPAWN, HURT, SURGE}
 
 var _state: State = State.IDLE
 var _facing: int = 1
@@ -185,6 +186,11 @@ var _facing: int = 1
 ## Seeded to the character's defaults on every character change.
 var _current_attack: Action
 var _current_special: Action
+## The equipped SURGE (a passive ability on the `surge` button -- Aegis by default). `_surge_cd` is the
+## reset lockout: it counts down after a trigger, and the surge can't fire again until it hits 0. See
+## _try_surge. Both seeded/reset on character change + begin_run.
+var _current_surge: Action
+var _surge_cd: float = 0.0
 ## The equipped loadout: {category -> option_id} for attack/special/run/jump/dash/slam. Empty =
 ## every category on its default (Typical). Rewards call equip() to swap one; begin_run() clears
 ## it back to defaults. See configs/loadout.gd.
@@ -318,10 +324,11 @@ var _hair_base := {}
 const HAIR_ABSORB_BASE := Color(2.6, 1.7, 0.5)
 const HAIR_ABSORB_A := Color(2.3, 1.0, 0.35)
 const HAIR_ABSORB_B := Color(1.9, 0.6, 0.25)
-## Base seconds of Impervious (invuln) every special grants (before `special_invuln_bonus`).
+## Base seconds of invuln (before `special_invuln_bonus`) -- the default for grant_special_invuln.
 const SPECIAL_INVULN_TIME := 10.0
-## The shared "Impervious" aura every special engulfs the player in while invulnerable.
-const SPECIAL_AURA: PackedScene = preload("res://vfx/shared/impervious/impervious_aura.tscn")
+## The aura engulfing the player while invulnerable. This IS the Aegis surge's effect -- spawned for
+## the invuln duration and freed on expiry -- so the surge shows ONE visual (this), not a separate pop.
+const SPECIAL_AURA: PackedScene = preload("res://vfx/character/khalid/surge/aegis/surge_aegis.tscn")
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
 var _particles: ParticleDirector
 ## Combat boxes, built in code (like the particle director) to avoid a scene edit.
@@ -416,6 +423,7 @@ func _apply_character() -> void:
 func _apply_loadout() -> void:
 	_current_attack = Actions.get_action(character, "attacks", _loadout.get("attack", ""))
 	_current_special = Actions.get_action(character, "specials", _loadout.get("special", ""))
+	_current_surge = Actions.get_action(character, "surges", _loadout.get("surge", ""))
 	for cat in Loadout.MOVEMENT_CATS:
 		_apply_movement(cat, _loadout.get(cat, "default"))
 
@@ -637,9 +645,13 @@ func can_special() -> bool:
 	return ruh >= SPECIAL_COST
 
 
-## Bank Ruh for a kill. RunManager calls this on every enemy death. The setter caps at ruh_cap.
-func gain_ruh_on_kill() -> void:
-	ruh += RUH_PER_KILL
+## Bank Ruh for landing a HIT (not a kill). RunManager calls this on every hit the player deals. The
+## setter caps at ruh_cap. Returns true if this hit completed a fresh charge (crossed a RUH_PER_BLOCK
+## boundary), so the caller can play the soul-orb feedback only then instead of on every hit.
+func gain_ruh_on_hit() -> bool:
+	var before := ruh
+	ruh += RUH_PER_HIT
+	return floori(ruh / RUH_PER_BLOCK) > floori(before / RUH_PER_BLOCK)
 
 
 ## A Ruh soul just reached the body (RuhOrb on arrival): pulse a crimson flash on Khalid.
@@ -852,19 +864,40 @@ func set_dash_effect(effect: String) -> void:
 	_dash_effect = effect
 
 
-## Turn ON a timed self-buff from a special's tuning (Built Different): `buff_time` seconds of
-## optional immunity (`invuln` -> the hurtbox stays off, folded into _physics_process) and a
-## `speed_mult` movement boost, wrapped in an optional aura scene (`buff_effect`, parented to us
-## and freed on expiry). Re-casting refreshes it cleanly. No-op when buff_time <= 0.
-## Make the player invulnerable for the special window and engulf them in the shared aura. Called
-## by EVERY special cast (special_default has no other effect; the rest add this on top of theirs).
-func grant_special_invuln() -> void:
-	_end_special_invuln() # clean refresh if re-cast within the window
-	_special_invuln_left = SPECIAL_INVULN_TIME + special_invuln_bonus
+## Make the player INVULNERABLE for `duration` seconds and engulf them in the shared aura. The hurtbox
+## stays off (folded into the _physics_process monitorable calc, same channel as dash i-frames); the
+## `special_invuln_bonus` reward stacks on top. Re-triggering refreshes it cleanly. Today this is the
+## Aegis surge's effect (Player._try_surge); it's parameterized so any surge/effect can set its own window.
+func grant_special_invuln(duration := SPECIAL_INVULN_TIME) -> void:
+	_end_special_invuln() # clean refresh if re-triggered within the window
+	_special_invuln_left = duration + special_invuln_bonus
 	if SPECIAL_AURA != null:
 		_special_aura = SPECIAL_AURA.instantiate() as Node2D
 		if _special_aura != null:
 			add_child(_special_aura)
+
+
+## SURGE: a passive ability on the dedicated `surge` button (CTRL / RT). One press, if the surge is off
+## cooldown, applies its timed self-buff (SurgeSpec) WITHOUT locking the player's state -- you keep
+## attacking/moving. The reset lockout is `duration + cooldown` (the effect runs, THEN the reset waits),
+## so `cooldown` is the "wait another N seconds after it expires" the design calls for. Aegis = invuln.
+## On trigger it plays a brief activation flex (State.SURGE, the "surge_<id>" sprite anim) + SFX. Extend the match
+## as more surge effects land. Fires in any state (checked in _physics_process); no-op while dead.
+func _try_surge() -> void:
+	if _dead or _current_surge == null or _current_surge.surge == null or _surge_cd > 0.0:
+		return
+	if not Input.is_action_just_pressed("surge"):
+		return
+	var s := _current_surge.surge
+	_surge_cd = s.duration + _current_surge.cooldown # effect window + the reset wait after it expires
+	if s.invuln:
+		grant_special_invuln(s.duration) # spawns the surge's aura (SPECIAL_AURA) for the duration -- the ONE visual
+	flash(_sprite) # a quick activation pop on the sprite
+	Sfx.play(String(_current_surge.animation)) # activation SFX ("surge_<id>"), silent until a file lands
+	# Play the surge's activation flex (a brief committed state; the buff above runs on its own timer).
+	# Skipped during death/spawn (materialize must finish) -- the buff still applied. No sheet -> no anim.
+	if _state != State.SPAWN and has_anim(_current_surge.animation):
+		_enter(State.SURGE)
 
 
 ## Tick down the special invuln; end it (drop the aura, re-enable the hurtbox next frame) at 0.
@@ -1006,6 +1039,8 @@ func _physics_process(delta: float) -> void:
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 	_special_cd = maxf(_special_cd - delta, 0.0)
+	_surge_cd = maxf(_surge_cd - delta, 0.0)
+	_try_surge() # SURGE (passive ability): fires in ANY state on the `surge` button if off cooldown
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
 	_update_cooldown_bar()
 	_ruh_flash_cd = maxf(_ruh_flash_cd - delta, 0.0)
@@ -1046,6 +1081,8 @@ func _physics_process(delta: float) -> void:
 		_process_attack(delta)
 	elif _state == State.SPECIAL:
 		_process_special(delta)
+	elif _state == State.SURGE:
+		_process_surge(delta)
 	elif _state == State.SLAM:
 		_process_slam(delta)
 	elif _state == State.LAND:
@@ -1396,19 +1433,15 @@ func _process_attack(delta: float) -> void:
 func _start_special() -> void:
 	if _special_cd > 0.0:
 		return # short lag between specials (anti-spam)
-	var is_default := _current_special != null and _current_special.id == "special_default"
-	var has_ruh := can_special()
-	# The default special is ONLY the Impervious trigger -- pointless without Ruh, so it's gated.
-	# Every OTHER special always fires its own effect; Impervious is a bonus layered on IF you have Ruh.
-	if is_default and not has_ruh:
+	# Specials now COST Ruh: no charge, no cast. Spend one on cast (Ruh refills by landing hits).
+	if not can_special():
 		return
+	spend_special()
 	_special_cd = SPECIAL_COOLDOWN
 	# A "shield"-tagged special (Redere Shield) runs its OWN block+reflect window instead of the
 	# pass-through invuln -- the hurtbox must stay active so incoming hits reach _on_hurt to be parried.
 	var is_shield := _current_special != null and _current_special.tags.has("shield")
-	# Cast-triggered buffs react here. Impervious (a shared special buff) grants its Ruh-bought invuln
-	# window in on_special_cast -- it used to be a hardcoded default; now specials only turn invulnerable
-	# if that buff is equipped. (`has_ruh` is still read above to gate the pointless default special.)
+	# Cast-triggered passives react here (the hook stays for extensibility; Impervious is a Surge now).
 	for p in _passives:
 		p.on_special_cast(self, _current_special)
 	if is_shield:
@@ -1421,8 +1454,8 @@ func _start_special() -> void:
 	_combo_playing = false
 	_buffered_special = false
 	_active_hit = resolve_tuning(_current_special, 0) # feed the special's Hitbox
-	# Kills dealt BY the special don't refill Ruh -- otherwise you'd self-loop Impervious. A future
-	# buff can flip this. (Attacks/other kills still fill it; see RunManager._on_enemy_died.)
+	# Hits dealt BY the special don't refill Ruh -- else a special would partly pay for itself and spam.
+	# Attack hits fill it; see RunManager._on_enemy_damaged, which skips from_special hits.
 	_active_hit["from_special"] = true
 	_enter(State.SPECIAL)
 	# Force-restart the special animation from frame 0. Mashing special re-enters SPECIAL the
@@ -1454,6 +1487,15 @@ func _process_special(delta: float) -> void:
 			else:
 				_active_hit = {} # released: end the special now -> IDLE drops the guard immediately
 				_enter(State.IDLE)
+
+
+## A SURGE activation: hold the flex pose, rooted, while gravity still applies (an air surge falls).
+## Ends via _on_animation_finished -> idle. The surge's buff was applied on trigger and runs on its
+## own timer, so this is purely the activation animation.
+func _process_surge(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+	if not is_on_floor():
+		velocity.y += gravity * delta
 
 
 ## An air-down ground slam: committed like a special. Horizontal drift bleeds off
@@ -1648,6 +1690,15 @@ func _enter(state: State) -> void:
 				_sprite.set_frame_and_progress(0, 0.0)
 			else:
 				_state = State.IDLE
+		State.SURGE:
+			# A SURGE activation: play the surge's flex pose once (rooted), then _on_animation_finished
+			# hands back to idle. The invuln/effect is already applied and runs on its own timer.
+			velocity.x = 0.0
+			if _current_surge != null and has_anim(_current_surge.animation):
+				_sprite.play(_current_surge.animation)
+				_sprite.set_frame_and_progress(0, 0.0)
+			else:
+				_state = State.IDLE # no flex sheet -> stay put, the buff still applied
 		State.DEATH:
 			velocity.x = 0.0 # collapse in place; _process_death lets the body fall
 		State.SPAWN:
@@ -1672,6 +1723,7 @@ func _animation_for(state: State) -> StringName:
 		State.DEATH: return &"death"
 		State.SPAWN: return &"spawn"
 		State.HURT: return &"hurt"
+		State.SURGE: return _current_surge.animation if _current_surge != null else &"idle"
 		_: return &"idle"
 
 
@@ -1755,3 +1807,6 @@ func _on_animation_finished() -> void:
 	if _state == State.DASH or _state == State.SPECIAL or _state == State.LAND or _state == State.SLAM:
 		_active_hit = {} # the swing/slam already fired; don't let its tuning bleed onward
 		_enter(State.IDLE)
+	# The surge activation flex played out -> hand back to idle (or the air state if airborne).
+	if _state == State.SURGE:
+		_enter(_airborne_default() if not is_on_floor() else State.IDLE)

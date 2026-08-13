@@ -77,8 +77,9 @@ const TABLE := {
 		# Redere Frisbee: the thrown-shield Projectile, launched forward on the release frame (fed the
 		# Action's `hit` damage by the director). Placeholder disc texture.
 		"special_redere_frisbee": [ {"scene": preload("res://vfx/character/khalid/special/redere_frisbee/special_redere_frisbee.tscn"), "mode": "burst", "frames": [3], "pos": Vector2(20, -22)}],
-		# special_default: the baseline "flex" has NO particles -- so no emitter row. Its cast sound lives
-		# in SfxCharacters.FRAMES (played by the director on the flex frame, independent of any particle).
+		# SURGES (passive abilities, e.g. Aegis): their visual is a single aura scene spawned for the effect's
+		# duration by Player.grant_special_invuln (SPECIAL_AURA -> vfx/character/khalid/surge/aegis/surge_aegis.tscn),
+		# NOT a director burst -- so no emitter row here (a per-frame burst would double up on the aura).
 		"slam": [
 			{"scene": preload("res://vfx/character/khalid/other/slam_wind_streaks.tscn"), "mode": "sustained", "frames": [0, 1, 2], "pos": Vector2(0, -12)},
 			{"scene": preload("res://vfx/character/khalid/slam/default/slam_default.tscn"), "mode": "burst", "frames": [3, 4], "pos": Vector2(0, 0), "clip_to_ground": true},

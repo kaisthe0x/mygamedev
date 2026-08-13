@@ -283,18 +283,11 @@ func _spawn_fx(pos: Vector2) -> void:
 			fx.queue_free())
 
 
-## An enemy died: bank Ruh (kills fill the special meter -- EXCEPT kills by the special itself, so
-## it can't self-loop Impervious), then either spawn the next batch or CLEAR the arena.
+## An enemy died: advance the batch or CLEAR the arena. (Ruh is earned by landing HITS now -- see
+## _on_enemy_damaged -- not by kills, so nothing to bank here.)
 func _on_enemy_died(enemy: Enemy) -> void:
-	if _player != null and not enemy.last_hit_from_special:
-		var ruh_before := _player.ruh
-		_player.gain_ruh_on_kill() # every kill charges Ruh -- optional enemies included
-		# Did THIS kill top off a full charge? (Ruh banks now, at the kill; the soul's arrival flash
-		# just reflects it.) Pass the flag to the orb so a charge-completing soul flashes bigger.
-		var completed := floori(_player.ruh / Player.RUH_PER_BLOCK) > floori(ruh_before / Player.RUH_PER_BLOCK)
-		_spawn_ruh_orb(enemy.global_position, completed) # a soul floats to Khalid to show the pickup
 	if enemy.optional:
-		return # optional enemies don't gate the level clear (kill them for Ruh, or skip them)
+		return # optional enemies don't gate the level clear
 	_alive -= 1
 	if _alive <= 0 and not _transitioning and not _cleared:
 		# This fires INSIDE a physics flush (a hit or the vortex's DoT tick killed the enemy).
@@ -353,6 +346,11 @@ func _set_time_scale(v: float) -> void:
 func _on_enemy_damaged(amount: float, source: Node, enemy: Enemy) -> void:
 	if _player != null and source == _player:
 		_player.notify_hit_dealt(amount, enemy)
+		# Ruh is charged by landing HITS now (not kills) -- except the special's own hits, so a special
+		# can't partly pay for itself. Only spawn the soul-orb when a hit COMPLETES a fresh charge (so it
+		# isn't a stream of orbs on every hit); the meter itself fills on every qualifying hit.
+		if amount > 0.0 and not enemy.last_hit_from_special and _player.gain_ruh_on_hit():
+			_spawn_ruh_orb(enemy.global_position, true)
 		var kind := "damage_special" if enemy.last_hit_from_special else "damage"
 		FloatingText.emit(kind, enemy, DAMAGE_NUMBER_OFFSET, str(roundi(amount)), amount)
 

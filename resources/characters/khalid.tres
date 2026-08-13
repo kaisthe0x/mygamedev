@@ -18,11 +18,11 @@
 [ext_resource type="Texture2D" uid="uid://xpwfw3cthnwy" path="res://sprites/characters/khalid/khalid_attack_twin_reaper_frames.png" id="16_attack_twin_reaper"]
 [ext_resource type="Texture2D" uid="uid://0yvcwkdtnct2" path="res://sprites/characters/khalid/khalid_attack_zahluq_frames.png" id="17_attack_zahluq"]
 [ext_resource type="Texture2D" uid="uid://b7klmtwwd1pki" path="res://sprites/characters/khalid/khalid_special_come_closer_frames.png" id="18_special_come_closer"]
-[ext_resource type="Texture2D" uid="uid://bct86rb447ejl" path="res://sprites/characters/khalid/khalid_special_default_frames.png" id="19_special_default"]
-[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_frenemy_frames.png" id="20_special_frenemy"]
-[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="21_special_ground_breaker"]
-[ext_resource type="Texture2D" uid="uid://cbxpdo67tickj" path="res://sprites/characters/khalid/khalid_special_redere_frisbee_frames.png" id="22_special_redere_frisbee"]
-[ext_resource type="Texture2D" uid="uid://cfqrx78j45pde" path="res://sprites/characters/khalid/khalid_special_redere_shield_frames.png" id="23_special_redere_shield"]
+[ext_resource type="Texture2D" uid="uid://cnw1o6571cck5" path="res://sprites/characters/khalid/khalid_special_frenemy_frames.png" id="19_special_frenemy"]
+[ext_resource type="Texture2D" uid="uid://3l40hu0wu0va" path="res://sprites/characters/khalid/khalid_special_ground_breaker_frames.png" id="20_special_ground_breaker"]
+[ext_resource type="Texture2D" uid="uid://cbxpdo67tickj" path="res://sprites/characters/khalid/khalid_special_redere_frisbee_frames.png" id="21_special_redere_frisbee"]
+[ext_resource type="Texture2D" uid="uid://cfqrx78j45pde" path="res://sprites/characters/khalid/khalid_special_redere_shield_frames.png" id="22_special_redere_shield"]
+[ext_resource type="Texture2D" uid="uid://chnfx3pscryuc" path="res://sprites/characters/khalid/khalid_surge_aegis_frames.png" id="23_surge_aegis"]
 
 [sub_resource type="AtlasTexture" id="attack_bakshen_1"]
 atlas = ExtResource("11_attack_bakshen")
@@ -524,81 +524,81 @@ region = Rect2(256, 0, 128, 80)
 atlas = ExtResource("18_special_come_closer")
 region = Rect2(384, 0, 128, 80)
 
-[sub_resource type="AtlasTexture" id="special_default_1"]
-atlas = ExtResource("19_special_default")
-region = Rect2(128, 0, 128, 80)
-
-[sub_resource type="AtlasTexture" id="special_default_2"]
-atlas = ExtResource("19_special_default")
-region = Rect2(256, 0, 128, 80)
-
 [sub_resource type="AtlasTexture" id="special_frenemy_1"]
-atlas = ExtResource("20_special_frenemy")
+atlas = ExtResource("19_special_frenemy")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_frenemy_2"]
-atlas = ExtResource("20_special_frenemy")
+atlas = ExtResource("19_special_frenemy")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_frenemy_3"]
-atlas = ExtResource("20_special_frenemy")
+atlas = ExtResource("19_special_frenemy")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_frenemy_4"]
-atlas = ExtResource("20_special_frenemy")
+atlas = ExtResource("19_special_frenemy")
 region = Rect2(512, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_1"]
-atlas = ExtResource("21_special_ground_breaker")
+atlas = ExtResource("20_special_ground_breaker")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_2"]
-atlas = ExtResource("21_special_ground_breaker")
+atlas = ExtResource("20_special_ground_breaker")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_3"]
-atlas = ExtResource("21_special_ground_breaker")
+atlas = ExtResource("20_special_ground_breaker")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_4"]
-atlas = ExtResource("21_special_ground_breaker")
+atlas = ExtResource("20_special_ground_breaker")
 region = Rect2(512, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_5"]
-atlas = ExtResource("21_special_ground_breaker")
+atlas = ExtResource("20_special_ground_breaker")
 region = Rect2(640, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_6"]
-atlas = ExtResource("21_special_ground_breaker")
+atlas = ExtResource("20_special_ground_breaker")
 region = Rect2(768, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_ground_breaker_7"]
-atlas = ExtResource("21_special_ground_breaker")
+atlas = ExtResource("20_special_ground_breaker")
 region = Rect2(896, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_redere_frisbee_1"]
-atlas = ExtResource("22_special_redere_frisbee")
+atlas = ExtResource("21_special_redere_frisbee")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_redere_frisbee_2"]
-atlas = ExtResource("22_special_redere_frisbee")
+atlas = ExtResource("21_special_redere_frisbee")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_redere_frisbee_3"]
-atlas = ExtResource("22_special_redere_frisbee")
+atlas = ExtResource("21_special_redere_frisbee")
 region = Rect2(384, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_redere_shield_1"]
-atlas = ExtResource("23_special_redere_shield")
+atlas = ExtResource("22_special_redere_shield")
 region = Rect2(128, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_redere_shield_2"]
-atlas = ExtResource("23_special_redere_shield")
+atlas = ExtResource("22_special_redere_shield")
 region = Rect2(256, 0, 128, 80)
 
 [sub_resource type="AtlasTexture" id="special_redere_shield_3"]
-atlas = ExtResource("23_special_redere_shield")
+atlas = ExtResource("22_special_redere_shield")
 region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_aegis_1"]
+atlas = ExtResource("23_surge_aegis")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_aegis_2"]
+atlas = ExtResource("23_surge_aegis")
+region = Rect2(256, 0, 128, 80)
 
 [resource]
 animations = [{
@@ -1002,7 +1002,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"run",
-"speed": 10.0
+"speed": 7.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1066,17 +1066,6 @@ animations = [{
 "loop": 0,
 "name": &"special_come_closer",
 "speed": 9.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("special_default_1")
-}, {
-"duration": 3.0,
-"texture": SubResource("special_default_2")
-}],
-"loop": 0,
-"name": &"special_default",
-"speed": 8.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1148,6 +1137,17 @@ animations = [{
 "loop": 0,
 "name": &"special_redere_shield",
 "speed": 9.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("surge_aegis_1")
+}, {
+"duration": 3.0,
+"texture": SubResource("surge_aegis_2")
+}],
+"loop": 0,
+"name": &"surge_aegis",
+"speed": 8.0
 }]
 metadata/hit_frames = {
 "attack_bakshen": [2],
@@ -1179,9 +1179,9 @@ metadata/sheet_start = {
 "slam": 1,
 "spawn": 1,
 "special_come_closer": 1,
-"special_default": 1,
 "special_frenemy": 1,
 "special_ground_breaker": 1,
 "special_redere_frisbee": 1,
-"special_redere_shield": 1
+"special_redere_shield": 1,
+"surge_aegis": 1
 }

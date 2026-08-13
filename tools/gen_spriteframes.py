@@ -122,9 +122,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Zahluq: a fast burst-forward dash-attack (COOLDOWN). Snappy so the lunge reads as a
     # quick slide; hold_last lets the follow-through pose settle after he stops.
     ("khalid", "attack_zahluq"): {"fps": 14.0, "hold_last": 2.0},
-    # Default special (special_default): a short flex. The invuln window it grants is UNIVERSAL to
-    # every special (Player.grant_special_invuln), not from here; hold_last just lands the pose.
-    ("khalid", "special_default"): {"fps": 8.0, "hold_last": 3.0},
+    # Aegis surge (surge_aegis, formerly special_default): the flex pose sheet. The surge is passive
+    # so this anim isn't played today, but keep the sheet + timing under its new name (renamed 1:1).
+    ("khalid", "surge_aegis"): {"fps": 8.0, "hold_last": 3.0},
     # New specials: short casts, hold the last pose so the beckon / shield / throw reads.
     ("khalid", "special_come_closer"): {"fps": 9.0, "hold_last": 1.5},
     ("khalid", "special_redere_shield"): {"fps": 9.0, "hold_last": 2.0},

@@ -12,8 +12,9 @@ extends RefCounted
 ## attack + current special and drives them (Player.resolve_tuning / _start_special / _advance_combo).
 
 ## The slot / kind of thing this is. Maps 1:1 to a loadout category. ATTACK/SPECIAL carry a `hit`;
-## RUN/JUMP/DASH/SLAM carry a `move` (Locomotion). OTHER is a catch-all.
-enum Category { ATTACK, SPECIAL, RUN, JUMP, DASH, SLAM, OTHER }
+## RUN/JUMP/DASH/SLAM carry a `move` (Locomotion); SURGE carries a `surge` (SurgeSpec -- a button-
+## triggered timed self-buff, e.g. Aegis). OTHER is a catch-all.
+enum Category { ATTACK, SPECIAL, RUN, JUMP, DASH, SLAM, SURGE, OTHER }
 ## How input drives the action:
 ##  STANDARD -- one click per combo segment, freezing on each hit frame (the default swing).
 ##  FLURRY   -- hold the button; the anim loops fast and its punch frames fire the hit every pass.
@@ -32,8 +33,9 @@ var tier: String = "typical"      ## loadout rarity: typical / elite / broken (L
 var tags: Array = []              ## descriptive tags for build queries / reward synergies (e.g. ["charm"] on frenemy)
 var animation: StringName         ## SpriteFrames anim -> particles + sounds follow it
 var cooldown: float = 0.0         ## per-attack recharge in seconds (0 = none); drives the overhead bar (Player._attack_cd)
-var hit: StrikeSpec = null        ## the damage component (ATTACK/SPECIAL); null = no hitbox (e.g. special_default's Impervious flex)
+var hit: StrikeSpec = null        ## the damage component (ATTACK/SPECIAL); null = no hitbox (a control special, a surge)
 var move: Locomotion = null       ## the movement component (RUN/JUMP/DASH/SLAM); null for a combat action
+var surge: SurgeSpec = null       ## the timed self-buff component (SURGE, e.g. Aegis); null otherwise
 
 
 ## Build an Action from a catalog entry (see configs/actions_khalid.gd). For ATTACK/SPECIAL,
@@ -51,6 +53,10 @@ static func make(cat: Category, action_id: String, d: Dictionary) -> Action:
 	if cat == Category.ATTACK or cat == Category.SPECIAL:
 		var prefix := "attack" if cat == Category.ATTACK else "special"
 		a.animation = StringName(d.get("animation", "%s_%s" % [prefix, action_id]))
+	elif cat == Category.SURGE:
+		# `animation` = "surge_<id>": both the activation flex SPRITE anim (played briefly in State.SURGE)
+		# AND the key the SFX (Sfx "surge_<id>") hangs off. See Player._try_surge / _process_surge.
+		a.animation = StringName(d.get("animation", "surge_%s" % action_id))
 	else:
 		a.animation = StringName(d.get("animation", ""))
 	a.cooldown = float(d.get("cooldown", 0.0))
@@ -58,6 +64,8 @@ static func make(cat: Category, action_id: String, d: Dictionary) -> Action:
 		a.hit = StrikeSpec.make(d["hit"])
 	if d.has("move"):
 		a.move = Locomotion.make(d["move"])
+	if d.has("surge"):
+		a.surge = SurgeSpec.make(d["surge"])
 	return a
 
 

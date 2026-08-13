@@ -1,6 +1,6 @@
 # run — the roguelite loop
 
-Everything that makes the game a *run* lives here: the level flow, the wave spawner, the lahm
+Everything that makes the game a *run* lives here: the level flow, the wave spawner, the Ruh
 economy plumbing, the exit toll, and the reward pick. One folder, driven by data you can tune in
 one place each. The premise it implements is in [`docs/game-design.md`](../../docs/game-design.md).
 
@@ -10,7 +10,7 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 
 | File | What it is |
 |---|---|
-| `run_manager.gd` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, **awards lahm per point of damage dealt**, runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
+| `run_manager.gd` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, **awards Ruh per damaging hit landed** (via `gain_ruh_on_hit`, skipping a special's own hits — not per kill), runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
 | `levels.gd` (`Levels`) | **The 5 levels, as data** — per level: look (`bg`), `platforms`, `player_spawn`, `exit_pos`, `exit_cost`, `start` enemies, and escalating `waves`. Edit here to change *what a level is*. |
 | `enemies.gd` (`EnemyKits`) | **The enemy roster** — one named kit per type (combat tuning + which scene), plus a `Tier` for wave-building. Levels reference these by name. Edit here to change *who* the enemies are. |
 | `rewards.gd` (`Rewards`) | **The reward OFFER + EFFECT service** over the typed catalog (`configs/rewards_catalog.gd` data → `Reward` objects), **build-aware** (Phase 4): `offer_for()` filters by each reward's `requires` and weights by `synergy` against the queryable `Build`, then samples; `apply()` runs the effect — a stat buff, a granted **`Passive`**, or an **`equip`** (move upgrade). Still mixes in **loadout-swap cards** from `Loadout` (id `swap:<cat>:<opt>`) for a category with >1 option. |
@@ -30,29 +30,32 @@ sandbox scene (`scenes/tile_paint.tscn`) — see [`docs/painting-levels.md`](../
 Related, but not in this folder:
 - **Player HP + Ruh** live on the `Player` (`scripts/player.gd`) as **two independent pools**:
   `health` (damage hits this only; heals ONLY via rewards) and `ruh` — the **special meter**, in
-  charges/blocks of `RUH_PER_BLOCK` (100), capped by `ruh_cap`. It **fills by KILLING** enemies
-  (`RUH_PER_KILL` = 25, so 4 kills = 1 charge) and **never decays**. API: `gain_ruh_on_kill` /
-  `can_special` / `spend_special` (one cast = `SPECIAL_COST` = one charge) / `take_damage` (HP only) /
-  `heal` / `begin_run`. Rewards raise `ruh_cap`.
+  charges/blocks of `RUH_PER_BLOCK` (100), capped by `ruh_cap`. You **start a run with 3 charges**
+  (`BASE_RUH_CAP` = 300 — `begin_run` sets it full) and **refill by landing HITS** (`RUH_PER_HIT` = 20,
+  so ~5 hits = 1 charge) — **not kills** — and it **never decays**. API: `gain_ruh_on_hit` /
+  `can_special` / `spend_special` (one cast = `SPECIAL_COST` = one charge, and a special **requires** one) /
+  `take_damage` (HP only) / `heal` / `begin_run`. Rewards raise `ruh_cap` (toward `MAX_RUH_CAP` = 500, 5 charges).
 - **The Ruh block meter** is built in `scripts/hud.gd` next to the HP bar (crimson cells) — one cell
   per charge; each cast empties one.
-- **Every special grants a short invulnerability window + aura** (`Player.grant_special_invuln`,
-  fired on any cast) on top of its own effect — the universal "Built Different" effect.
-- **Enemies** emit `died` in `Enemy._die` → RunManager banks Ruh + counts it toward clearing.
+- **The Aegis surge grants a timed invulnerability window + aura** (`Player.grant_special_invuln(duration)`,
+  fired by `Player._try_surge` on the dedicated `surge` button) — no longer tied to casting a special.
+- **Enemies** emit `damaged` (→ RunManager awards Ruh via `gain_ruh_on_hit`, skipping a special's own
+  hits) and `died` in `Enemy._die` (→ counts toward clearing the batch; no longer banks Ruh).
 - **Spawn puff**: `vfx/spawn/enemy_spawn.tscn` (fired at each batch spawn spot).
 
 ## The loop (per level)
 
 1. `RunManager._build_level(i)` sets the `bg`, builds `platforms` + the `ExitGate` (LOCKED), and
    spawns the `start` enemy batch. Player is placed at `player_spawn`.
-2. Killing an enemy → `died` → `_alive--` and `gain_ruh_on_kill()` (charges the special meter). Cast
-   a special when the meter has a charge → `spend_special()` + a short invuln window.
+2. **Hitting** an enemy → `damaged` → `gain_ruh_on_hit()` charges the special meter (a special's own
+   hits are skipped). Killing an enemy → `died` → `_alive--` (counts toward clearing; grants no Ruh). A
+   special fires only when the meter has a charge → `spend_special()` consumes one.
 3. When `_alive` hits 0 the current batch is clear → **the next batch spawns** (puff at each spot).
    Batches are **finite**: once the last one is cleared the level is **done** and the exit **opens**.
-4. Walk into the open exit → **pick a reward** → next level (HP + Ruh cap carry over; Ruh resets).
+4. Walk into the open exit → **pick a reward** → next level (HP, Ruh, and Ruh cap all carry over — no reset).
    Until cleared the door is red/`LOCKED` and does nothing.
 5. **Death** (HP hits 0) → the whole run restarts at level 1 via `Player.begin_run` (buffs cleared,
-   100 HP / empty Ruh). Finishing level 5 loops back for now (a win screen is a TODO).
+   100 HP / a full 3-charge Ruh meter). Finishing level 5 loops back for now (a win screen is a TODO).
 
 > Note: reward **doors** (one random typed door per level: Health / Athletic / Attack / Special,
 > each with an icon) and the **run-start attack picker** are the next phase — see the top-level
@@ -63,8 +66,9 @@ Related, but not in this folder:
 - **Make a level harder/easier** → its `start`/`waves` (batches) in `levels.gd` — more strong-tier
   enemies, more per batch, or more batches. The level ends when they're all dead.
 - **Change an enemy's stats** → its kit in `enemies.gd` (combat).
-- **Change the special economy** → `Player.RUH_PER_KILL` (fill rate), `RUH_PER_BLOCK` / `SPECIAL_COST`
-  (charge size), `BASE_RUH_CAP` (starting charges), `SPECIAL_INVULN_TIME` (invuln window).
+- **Change the special economy** → `Player.RUH_PER_HIT` (fill rate per hit), `RUH_PER_BLOCK` / `SPECIAL_COST`
+  (charge size), `BASE_RUH_CAP` (starting charges), and the Aegis surge's `duration` / `cooldown` in
+  `configs/actions_khalid.gd` (`SURGES`) for the invuln window + its reset.
 - **Add/change a reward** → add a row to `configs/rewards_catalog.gd` (pure data); wire its effect in
   `rewards.gd` `_buff()` unless it's a `passive`/`equip` reward (those are handled generically). Keep a
   heal in the pool — it's the only way to mend HP.

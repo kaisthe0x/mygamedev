@@ -17,6 +17,7 @@ static func _tables(character: String) -> Dictionary:
 			var mv: Dictionary = ActionsKhalid.MOVEMENTS
 			return {
 				"attacks": ActionsKhalid.ATTACKS, "specials": ActionsKhalid.SPECIALS,
+				"surges": ActionsKhalid.SURGES,
 				"run": mv["run"], "jump": mv["jump"], "dash": mv["dash"], "slam": mv["slam"],
 			}
 	return {}
@@ -29,6 +30,7 @@ static func _default_id(character: String, kind: String) -> String:
 			match kind:
 				"attacks": return ActionsKhalid.DEFAULT_ATTACK
 				"specials": return ActionsKhalid.DEFAULT_SPECIAL
+				"surges": return ActionsKhalid.DEFAULT_SURGE
 				_: return ActionsKhalid.DEFAULT_MOVEMENTS.get(kind, "")
 	return ""
 
@@ -38,6 +40,7 @@ static func _category(kind: String) -> Action.Category:
 	match kind:
 		"attacks": return Action.Category.ATTACK
 		"specials": return Action.Category.SPECIAL
+		"surges": return Action.Category.SURGE
 		"run": return Action.Category.RUN
 		"jump": return Action.Category.JUMP
 		"dash": return Action.Category.DASH

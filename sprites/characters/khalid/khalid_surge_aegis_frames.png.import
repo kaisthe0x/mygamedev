@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bct86rb447ejl"
-path="res://.godot/imported/khalid_special_default_frames.png-2333315d73213912335b24e4bf11e61f.ctex"
+uid="uid://chnfx3pscryuc"
+path="res://.godot/imported/khalid_surge_aegis_frames.png-0131532a1d193908ab3b8e5387d3dfc5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/characters/khalid/khalid_special_default_frames.png"
-dest_files=["res://.godot/imported/khalid_special_default_frames.png-2333315d73213912335b24e4bf11e61f.ctex"]
+source_file="res://sprites/characters/khalid/khalid_surge_aegis_frames.png"
+dest_files=["res://.godot/imported/khalid_surge_aegis_frames.png-0131532a1d193908ab3b8e5387d3dfc5.ctex"]
 
 [params]
 

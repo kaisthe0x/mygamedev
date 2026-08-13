@@ -12,7 +12,7 @@ extends RefCounted
 ## id/name/tier/icon -- so a movement variant is added exactly like an attack variant: a new catalog
 ## row. To make a category swappable, give it >1 option in the catalog.
 
-const CATEGORIES := ["attack", "special", "run", "jump", "dash", "slam"]
+const CATEGORIES := ["attack", "special", "surge", "run", "jump", "dash", "slam"]
 const MOVEMENT_CATS := ["run", "jump", "dash", "slam"]
 
 ## Tier display, ordering, and colour (broken = rarest/strongest).
@@ -39,6 +39,8 @@ static func _kind(category: String) -> String:
 		return "attacks"
 	if category == "special":
 		return "specials"
+	if category == "surge":
+		return "surges"
 	return category  # run / jump / dash / slam
 
 
