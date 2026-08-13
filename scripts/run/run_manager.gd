@@ -34,7 +34,7 @@ const CLEAR_SLOWMO_SCALE := 0.3 ## time scale at the peak of the beat
 const CLEAR_SLOWMO_HOLD := 0.7 ## REAL seconds held slow before ramping back
 const CLEAR_SLOWMO_RAMP := 0.55 ## REAL seconds ramping time back to 1.0
 ## The "soul" that floats from a dead enemy to the player on a Ruh-granting kill (see _spawn_ruh_orb).
-const RUH_ORB := preload("res://vfx/shared/ruh_orb/ruh_orb.tscn")
+const RUH_ORB := preload("res://vfx/character/khalid/ruh_orb/ruh_orb.tscn")
 
 @export var player_path: NodePath = ^"Player"
 
@@ -303,6 +303,7 @@ func _spawn_ruh_orb(at: Vector2, completed_charge: bool) -> void:
 	if _player == null:
 		return
 	var orb := RUH_ORB.instantiate() as RuhOrb
+	VfxPalette.recolor_tree(orb) # honour the run's power-colour picks like every other character effect
 	add_child(orb)
 	Nodes.place_at(orb, at + Vector2(0, -18)) # lift off the body's centre, not the feet
 	orb.launch(_player, completed_charge)

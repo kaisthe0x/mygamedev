@@ -30,6 +30,11 @@ static func glow_floats() -> PackedFloat32Array:
 
 
 const BODY_SHADER := "res://vfx/shaders/sprite_palette.gdshader"
+const PORTRAIT_SHADER := "res://vfx/shaders/portrait_recolor.gdshader"
+
+## Portrait hue uniform -> the body material whose pick drives it (the portrait shares the sprite palette,
+## so its regions follow the same picks; the yellow eyes ride the trim/collar band on purpose).
+const PORTRAIT_MAP := {"hair_hue": "hair", "coat_hue": "jacket", "trim_hue": "trim", "skin_hue": "skin"}
 
 ## Effect params for the material-aware LUT -- the ONE source of truth shared by the preview and the
 ## in-game player, so what you tune in the picker is exactly what the run shows. Tune the look here.
@@ -66,6 +71,22 @@ static func make_material(body_picks: Dictionary = picks) -> ShaderMaterial:
 	# straight through -- NOT srgb_to_linear'd (that would double-convert and over-brighten it).
 	m.set_shader_parameter("hair_surge_color", Vector3(HAIR_SURGE_COLOR.r, HAIR_SURGE_COLOR.g, HAIR_SURGE_COLOR.b))
 	return m
+
+
+## A portrait ShaderMaterial whose hue uniforms follow `body_picks` (an unpicked family stays -1 = the
+## portrait's original colour there). Used by the HUD portrait + the preview.
+static func make_portrait_material(body_picks: Dictionary = picks) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load(PORTRAIT_SHADER)
+	apply_portrait_hues(m, body_picks)
+	return m
+
+
+## Set an existing portrait material's hue uniforms from `body_picks` (live update on a pick change).
+static func apply_portrait_hues(m: ShaderMaterial, body_picks: Dictionary) -> void:
+	for uni in PORTRAIT_MAP:
+		var mat: String = PORTRAIT_MAP[uni]
+		m.set_shader_parameter(uni, (body_picks[mat] as Color).h if body_picks.has(mat) else -1.0)
 
 ## material -> [5 shades + rim], hex, LIGHT -> DARK. From repalette.py PALETTE (keep in sync if the
 ## masters are ever re-swatched). Human-readable families noted above.

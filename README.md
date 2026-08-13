@@ -815,8 +815,31 @@ the part to black (the nearest-shade anchor keeps the shift small).
 > loads `level.tscn`. In `player.gd`, `_apply_character()` builds Khalid's body material from
 > `PaletteConfig.make_material()` (the SAME builder the preview uses, so run == preview), and
 > the Ruh-absorb hair flare now drives the LUT's `hair_surge` uniform. The old tint shader
-> (`khalid_tint.tres`) is retained only as a legacy path for non-Khalid characters. Picks
-> persist for the session; saving them across sessions (via `SaveData`) is the next step.
+> (`khalid_tint.tres`) is retained only as a legacy path for non-Khalid characters.
+>
+> **Scheme slots (saved across sessions).** The picker holds up to `SaveData.MAX_SCHEMES` (5)
+> **schemes** plus an **active** index, persisted to `user://save.cfg` (`[colors]` section,
+> alongside the run record; ConfigFile serialises `Color`/`Dictionary`/`Array` natively).
+> Selecting a slot loads it and makes it active; **Save scheme** writes the current picks into
+> the active slot; **Start run** only *applies* the picks to the run (it does **not** save —
+> Save is the explicit commit). On boot the preview opens on the active scheme, so it "applies
+> on startup". Power families are labelled **Power 1/2/3** (internal keys stay red/gold/teal for
+> `VfxPalette`). Filled slots show a `•` on their button.
+
+#### Portrait recolour (`vfx/shaders/portrait_recolor.gdshader`)
+
+The HUD portrait (`assets/portraits/Khalid.png`) is painted in the same stylised palette as the
+sprite (red hair, teal skin, yellow collar+eyes, brown coat), so it follows the **body** picks by
+hue. The shader classifies each pixel into a family — hair (red) / coat (brown) / trim (yellow) /
+skin (teal) — and swaps only its **hue** to that family's picked hue, keeping the pixel's painted
+saturation + value. Only families with a pick recolour (a `-1` target hue = leave untouched), so an
+un-customised portrait renders as-is. The **yellow eyes ride the trim/collar band on purpose** — they
+track the trim pick. `PaletteConfig.make_portrait_material()` maps picks → hue uniforms; the HUD sets
+it in `_on_character_changed`, the preview shows it live next to the sprite.
+
+- **Tuning** — the hue bands + `sat_floor` are uniforms in `portrait_recolor.gdshader`; if a region is
+  mis-classified (e.g. the dark background teal grabbing the skin band), narrow the band or raise
+  `sat_floor`. Hue-only swap is ~gamma-invariant, so it needs no linear/sRGB conversion.
 
 #### Power / VFX recolour (`configs/vfx_palette.gd`)
 
@@ -826,26 +849,27 @@ colours collapse to **three well-separated hue families** — red (~0°, the sig
 cores) and rare outliers (come_closer's purple). Because the families are far apart in hue,
 **nothing is pre-baked**: effects recolour at *spawn time*.
 
-`VfxPalette.recolor_tree(node)` walks a freshly-instantiated effect and, for every particle
-colour / gradient stop / `self_modulate`, classifies it by hue into a family and swaps **only
-the hue** to the player's picked colour — keeping the stop's saturation, brightness (incl.
-HDR `>1` for bloom) and alpha. So "blue attacks" is today's red effect rotated in hue: the
-glow, fade and HDR bloom all survive. Neutrals (below `SAT_FLOOR`) and unmatched hues (the
-purple, `> HUE_TOL` from any family) are left untouched, so white-hot cores and smoke stay
-neutral. This is the same "only colour moves" philosophy as the body.
+`VfxPalette.recolor_tree(node)` walks a freshly-instantiated effect and, for every colour it
+carries — `color` / `self_modulate` / `Line2D.default_color`, both particle ramps
+(`color_ramp` / `color_initial_ramp`), the `ParticleProcessMaterial` colour + ramps, **and any
+`GradientTexture` assigned to a `texture`** (a common trick: the dash Trail colours its particles
+via a gradient set as the *texture*, not `color_ramp` — miss this and the dash stays red) —
+classifies it by hue into a family and swaps **only the hue** to the player's picked colour,
+keeping saturation, brightness (incl. HDR `>1` for bloom) and alpha. Gradients / process
+materials are **copied before edit** (scene sub-resources are shared across instances, so an
+in-place swap would compound across spawns). So "blue attacks" is today's red effect rotated in
+hue: glow, fade and HDR bloom all survive. Neutrals (below `SAT_FLOOR`) and unmatched hues (the
+purple, `> HUE_TOL`) are left untouched.
 
 - **`VfxPalette.picks`** — `{family -> Color}`, set once per run (`set_picks`); empty = the
   default red/gold/teal look. **Dedicated to VFX**, independent of the body pickers.
 - **Single choke point** — `ParticleDirector._spawn()` calls `recolor_tree` on every effect it
-  fires (dash / run / all attacks / all specials / slam / spawn / death / blink). The surge
-  aura recolours its code-set `moon_color` in `player.gd`'s `grant_special_invuln`.
-- **Where to tweak** — family hue centres, `SAT_FLOOR` (raise if too many neutrals recolour),
-  and `HUE_TOL` (widen to catch more, narrow to protect outliers) all live in `vfx_palette.gd`.
-- The preview screen's **Powers / VFX** pickers drive it live against a looping sample effect.
-
-> **Not yet wired into the run flow:** the preview screen is standalone today. Persisting the
-> chosen body tint + `VfxPalette.picks` from a pre-game character screen into the actual run
-> (a profile/loadout hop) is the remaining integration step.
+  fires (dash / run / all attacks / all specials / slam / spawn / death / blink). The surge aura
+  recolours its code-set `moon_color` in `player.gd`; the **Ruh orb** (moved to
+  `vfx/character/khalid/ruh_orb/` for consistency) is recoloured at its spawn in `run_manager`.
+  Every `.tscn` under `vfx/character/` is covered — a regression test instantiates all of them
+  under picks and asserts no red survives.
+- **Where to tweak** — family hue centres, `SAT_FLOOR`, `HUE_TOL` in `vfx_palette.gd`.
 
 ---
 

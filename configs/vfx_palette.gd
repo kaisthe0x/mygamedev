@@ -89,26 +89,40 @@ static func _recolor_node(n: Node) -> void:
 	# CPUParticles2D: flat colour + the two ramps.
 	if n is CPUParticles2D:
 		n.color = recolor(n.color)
-		_recolor_gradient(n.color_ramp)
-		_recolor_gradient(n.color_initial_ramp)
-	# GPUParticles2D: colour lives on the ParticleProcessMaterial.
+		n.color_ramp = _recolored_gradient(n.color_ramp)
+		n.color_initial_ramp = _recolored_gradient(n.color_initial_ramp)
+	# GPUParticles2D: colour lives on the ParticleProcessMaterial (duplicated so instances don't share).
 	if n is GPUParticles2D:
 		var pm: Material = n.process_material
 		if pm is ParticleProcessMaterial:
-			pm.color = recolor(pm.color)
-			_recolor_gradient_tex(pm.color_ramp)
-			_recolor_gradient_tex(pm.color_initial_ramp)
+			var dup := pm.duplicate() as ParticleProcessMaterial
+			dup.color = recolor(dup.color)
+			dup.color_ramp = _recolored_gradient_tex(dup.color_ramp)
+			dup.color_initial_ramp = _recolored_gradient_tex(dup.color_initial_ramp)
+			n.process_material = dup
+	# Gradient-as-texture trick: MANY effects colour their particles by assigning a GradientTexture to
+	# `texture` (e.g. the dash Trail), not to `color`/`color_ramp` -- recolour that too. A normal sprite
+	# texture is returned untouched.
+	if "texture" in n:
+		n.texture = _recolored_gradient_tex(n.texture)
 
 
-## Recolour a Gradient's stops in place (duplicating so a resource shared across instances is untouched).
-static func _recolor_gradient(g: Gradient) -> void:
+## A recoloured COPY of a Gradient (never mutates the original -- scene sub-resources are shared across
+## instances, so in-place edits would compound the one-way hue swap across spawns). Null-safe.
+static func _recolored_gradient(g: Gradient) -> Gradient:
 	if g == null:
-		return
-	for i in g.get_point_count():
-		g.set_color(i, recolor(g.get_color(i)))
+		return null
+	var dup := g.duplicate() as Gradient
+	for i in dup.get_point_count():
+		dup.set_color(i, recolor(dup.get_color(i)))
+	return dup
 
 
-## Same, for a GradientTexture1D/2D wrapping a Gradient.
-static func _recolor_gradient_tex(t: Texture2D) -> void:
+## A recoloured COPY of a GradientTexture1D/2D (with a fresh recoloured gradient). Any other texture
+## (a normal sprite) is returned unchanged, so this is safe to call on every `texture` property.
+static func _recolored_gradient_tex(t: Texture2D) -> Texture2D:
 	if t is GradientTexture1D or t is GradientTexture2D:
-		_recolor_gradient(t.gradient)
+		var dt := t.duplicate() as Texture2D
+		dt.gradient = _recolored_gradient(t.gradient)
+		return dt
+	return t

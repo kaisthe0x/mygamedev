@@ -236,6 +236,8 @@ func _on_character_changed(id: String) -> void:
 	_name_label.text = id.to_upper()
 	var path := _player.portrait_path()
 	_portrait.texture = load(path) if ResourceLoader.exists(path) else null
+	# Recolour the portrait to follow the run's body colour scheme (unpicked families stay original).
+	_portrait.material = PaletteConfig.make_portrait_material()
 	_stats_label.text = _stats_text()
 
 
