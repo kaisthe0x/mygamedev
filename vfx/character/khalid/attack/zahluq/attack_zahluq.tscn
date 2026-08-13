@@ -43,6 +43,7 @@ script = ExtResource("2_hb")
 shape = SubResource("box_zahluq")
 
 [node name="Dust" type="CPUParticles2D" parent="." unique_id=1900000005]
+visible = false
 z_index = -1
 texture_filter = 1
 position = Vector2(-10, -3)

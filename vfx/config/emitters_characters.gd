@@ -32,7 +32,7 @@ const TABLE := {
 		# the whole slide (see ParticleDirector._fire_burst), damaging everyone he passes -- so it fires on a
 		# SINGLE frame (multiple frames would spawn overlapping hitboxes and double-hit). Strike lifetime
 		# (in the scene) covers the whole dash, so the hitbox is live the entire animation, not just on impact.
-		"attack_zahluq": [ {"scene": preload("res://vfx/character/khalid/attack/zahluq/attack_zahluq.tscn"), "mode": "burst", "frames": [2], "pos": Vector2(0, 0), "follow": true}],
+		"attack_zahluq": [ {"scene": preload("res://vfx/character/khalid/attack/zahluq/attack_zahluq.tscn"), "mode": "continuous", "frames": [0, 1, 2, 3], "pos": Vector2(0, 0), "follow": true}],
 		# Twin Reaper: a 5-hit spinning flurry -- each hit is its OWN scene file (Strike + hitbox +
 		# particles), named attack_twin_reaper_<sheetframe>.tscn so the filename tells you which frame it
 		# fires on. One row per file, no "node" key -> the whole file fires. This split (vs one bundled
