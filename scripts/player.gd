@@ -250,6 +250,9 @@ var _recovery_left: float = 0.0
 ## A special press during a light swing, held until the current hit lands so a fast
 ## light->special cancels into the special instead of being swallowed by recovery.
 var _buffered_special: bool = false
+## An attack press during a DASH, held until the lunge finishes so dash->attack cancels the dash's
+## recovery tail instead of the press being swallowed by the dash animation. See _process_dash.
+var _buffered_attack: bool = false
 ## True while a "flurry" attack (Khalid's ora-ora) is held: the animation loops and its
 ## punch frames fire the hit every pass; releasing the button ends it. See _process_attack.
 var _flurry: bool = false
@@ -410,6 +413,7 @@ func _apply_character() -> void:
 	_combo_window = 0.0
 	_combo_playing = false
 	_buffered_special = false
+	_buffered_attack = false
 	_flurry = false
 	_attack_cd = 0.0 # a fresh run/swap starts every attack ready (no leftover cooldown)
 	# Drop back to idle: a state-specific animation (e.g. slam) may not exist on the
@@ -1142,6 +1146,20 @@ func _process_dash(delta: float) -> void:
 	# run, not brake to a stop and re-accelerate.
 	var input := Input.get_axis("move_left", "move_right")
 	var holding_dash_dir := input != 0.0 and signf(input) == float(_facing)
+
+	# Dash-cancel into attack: an attack pressed any time during the dash is buffered and fires the
+	# instant the lunge/i-frame window (_dash_left, = dash_time) finishes -- cancelling the recovery tail
+	# -- so "dash then attack" is responsive instead of the press being swallowed by the dash animation.
+	# Gated on _dash_left (NOT _dash_custom): a blink dash teleports instantly but still holds i-frames for
+	# dash_time, so we wait those out before attacking rather than cancelling the dodge on frame one.
+	if Input.is_action_just_pressed("attack"):
+		_buffered_attack = true
+	if _buffered_attack and _dash_left <= 0.0 and (is_on_floor() or _air_attack_ok()):
+		_buffered_attack = false
+		_advance_combo()
+		if _state != State.DASH:
+			return # an attack actually started -- leave the dash
+
 	if _dash_custom:
 		# The ability already displaced us (teleport). No lunge -- keep the i-frame
 		# window ticking, and settle horizontal velocity toward a run (if held) or a
@@ -1662,6 +1680,7 @@ func _enter(state: State) -> void:
 			_dash_left = dash_time
 			_dash_anim_left = maxf(dash_anim_time, dash_time)
 			_dash_cd = dash_cooldown
+			_buffered_attack = false # a fresh dash starts with no held attack
 			Sfx.play("dash") # player-centric -- non-positional
 			# Fire this dash's effect at the spot we're leaving (before the lunge/blink moves us). Its
 			# "Trail" follows the player, the rest lingers here (see ParticleDirector). Clear _active_hit

@@ -400,6 +400,15 @@ within the window) and the i-frames still last only the lunge. Set
 `dash_anim_time <= dash_time` for the old squeezed-into-the-lunge look; raise it to
 see the frames more.
 
+**Dash-cancel into attack.** An `attack` pressed any time during a dash is **buffered**
+(`_buffered_attack`) and fires the instant the lunge/i-frame window (`dash_time`) ends,
+cancelling the dash's *recovery tail* (`dash_anim_time − dash_time`). So dash→attack is
+responsive: the press isn't swallowed by the dash animation and you don't have to re-press.
+It's gated on `_dash_left` (not `_dash_custom`), so a **blink** dash still holds its full
+i-frame window before the attack comes out — the dodge isn't cancelled on frame one. Mirrors
+the existing `_buffered_special` light→special buffer. The buffer clears on dash entry and
+on character swap.
+
 **Airborne arc: `JUMP → FALL → LAND`.** The full sequence when a character has the
 sheets for it:
 - **`JUMP`** plays the launch/rise once (its launch only replays on a *real* jump —
