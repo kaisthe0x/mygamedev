@@ -777,6 +777,76 @@ that's the linear-vs-sRGB trap — key it off `khsv`, not `hsv`.
 > The shader + HDR bloom only fully render in the running game (F5) — a `--headless`
 > still shows the raw sprite, so tune it live, not from screenshots.
 
+#### Colour-picker preview (`scenes/palette_preview.tscn`)
+
+A standalone pre-game screen (`godot res://scenes/palette_preview.tscn`, controller
+`scripts/ui/palette_preview.gd`) runs Khalid's `run` cycle on a black (adjustable)
+backdrop with one picker per body part **and** per power-colour family.
+
+**Body recolour = the material-aware palette LUT** (`vfx/shaders/sprite_palette.gdshader`
++ `configs/palette_config.gd`), *not* the tint shader. The repalette baked the sprite to
+exactly 36 known colours (6 materials × 6 shades). The shader matches each pixel to its
+`src` slot and outputs the `dst` slot, so a picker that rewrites `dst` recolours **every**
+pixel of a part — fixing the old tint-shader problem where the hair *hue-key* only caught
+the bright red pixels and left the darker hair unchanged. Because the shader knows each
+pixel's material (`slot / 6`) and shade (`slot % 6`), it layers the effects back on:
+per-material **HDR glow** (`glow[6]`) and the living-hair **flow** (dark accents rippling
+through the bright shades on a moving wave). Same effects, now on an exact + complete
+recolour. All six parts recolour — **including pants** (no hue-key gap anymore).
+
+`PaletteConfig.derive()` is **anchor-by-value**: the picked colour lands verbatim on the
+shade whose lightness is nearest it, and the rest of the ramp shifts by the same delta —
+so the colour you pick is the colour that covers most of the part (fixing "I picked bright
+but it showed deeper"), the light→dark shading survives, and a dark pick doesn't collapse
+the part to black (the nearest-shade anchor keeps the shift small).
+
+**Where to tweak:**
+- **Glow / vibrance / flow** — `_apply_body_effects()` in the controller (`glow`, `vibrancy`,
+  `flow_speed`/`flow_amount`/`flow_freq`/`flow_shift`) + the per-material defaults in
+  `PaletteConfig.MATERIAL_GLOW`. The flow maths itself is in `sprite_palette.gdshader`.
+- **"Colour chosen == colour shown" (accuracy)** — `PaletteConfig.derive()`. It anchors the
+  pick to its natural shade; adjust how the ramp shifts there if you want a different feel.
+- **Gauntlets vs boots** — still one `metal` material; split it into two materials (add a
+  seventh to `MATERIALS`/`DEFAULT`, re-swatch the sprite) to pick them independently. TODO.
+
+> **Wired into the run.** The preview screen is now the **boot scene** (`project.godot`
+> `main_scene`), and its **Start run** button stamps the picks into `PaletteConfig.picks`
+> (body) + `VfxPalette.picks` (powers) — both statics that survive the scene change — then
+> loads `level.tscn`. In `player.gd`, `_apply_character()` builds Khalid's body material from
+> `PaletteConfig.make_material()` (the SAME builder the preview uses, so run == preview), and
+> the Ruh-absorb hair flare now drives the LUT's `hair_surge` uniform. The old tint shader
+> (`khalid_tint.tres`) is retained only as a legacy path for non-Khalid characters. Picks
+> persist for the session; saving them across sessions (via `SaveData`) is the next step.
+
+#### Power / VFX recolour (`configs/vfx_palette.gd`)
+
+The emitter-side counterpart to the body tint. A colour audit showed Khalid's ~40 effect
+colours collapse to **three well-separated hue families** — red (~0°, the signature crimson
++ its HDR/pink/brown variants), gold (~50°), teal (~176°) — plus neutrals (white/grey/black
+cores) and rare outliers (come_closer's purple). Because the families are far apart in hue,
+**nothing is pre-baked**: effects recolour at *spawn time*.
+
+`VfxPalette.recolor_tree(node)` walks a freshly-instantiated effect and, for every particle
+colour / gradient stop / `self_modulate`, classifies it by hue into a family and swaps **only
+the hue** to the player's picked colour — keeping the stop's saturation, brightness (incl.
+HDR `>1` for bloom) and alpha. So "blue attacks" is today's red effect rotated in hue: the
+glow, fade and HDR bloom all survive. Neutrals (below `SAT_FLOOR`) and unmatched hues (the
+purple, `> HUE_TOL` from any family) are left untouched, so white-hot cores and smoke stay
+neutral. This is the same "only colour moves" philosophy as the body.
+
+- **`VfxPalette.picks`** — `{family -> Color}`, set once per run (`set_picks`); empty = the
+  default red/gold/teal look. **Dedicated to VFX**, independent of the body pickers.
+- **Single choke point** — `ParticleDirector._spawn()` calls `recolor_tree` on every effect it
+  fires (dash / run / all attacks / all specials / slam / spawn / death / blink). The surge
+  aura recolours its code-set `moon_color` in `player.gd`'s `grant_special_invuln`.
+- **Where to tweak** — family hue centres, `SAT_FLOOR` (raise if too many neutrals recolour),
+  and `HUE_TOL` (widen to catch more, narrow to protect outliers) all live in `vfx_palette.gd`.
+- The preview screen's **Powers / VFX** pickers drive it live against a looping sample effect.
+
+> **Not yet wired into the run flow:** the preview screen is standalone today. Persisting the
+> chosen body tint + `VfxPalette.picks` from a pre-game character screen into the actual run
+> (a profile/loadout hop) is the remaining integration step.
+
 ---
 
 ## Audio (SFX + Music)

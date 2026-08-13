@@ -165,6 +165,9 @@ func _spawn(scene: PackedScene, node_name := "") -> Node2D:
 			+"(as its root or a child) and is not a Projectile/Strike, got %s" % node.get_class())
 		node.queue_free()
 		return null
+	# Honour the player's power-colour picks: swap each family's hue, keep the effect intact (no-op if
+	# no picks are set). Single choke point -- covers every director-fired effect (dash/attacks/specials).
+	VfxPalette.recolor_tree(node)
 	return node
 
 

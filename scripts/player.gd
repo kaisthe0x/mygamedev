@@ -315,6 +315,7 @@ var _hair_tween: Tween = null
 ## Per-instance DUPLICATE of the tint material (so absorb tweens stay local and never write back to
 ## the shared .tres), plus the resting hair colours captured from it.
 var _tint_mat: ShaderMaterial = null
+var _body_is_lut := false  ## true when _tint_mat is the palette LUT (Khalid) vs the legacy hue-key tint
 var _hair_base := {}
 # Hair "absorb surge" palette -- the flowing hair gradient (base_red / accent_a / accent_b) smoothly
 # lerps toward these as a Ruh soul lands, then eases back to rest. Play with the gradient here.
@@ -373,18 +374,30 @@ func _apply_character() -> void:
 	var mat_path := "res://resources/%s_tint.tres" % character
 	# Duplicate the tint material so the hair-colour surge on a Ruh pickup stays instance-local and
 	# never writes back to the shared .tres; capture the resting hair gradient to lerp from.
-	var mat: Material = load(mat_path) if ResourceLoader.exists(mat_path) else null
-	if mat is ShaderMaterial:
-		_tint_mat = (mat as ShaderMaterial).duplicate()
+	if character == "khalid":
+		# Khalid's sprite is repaletted to PaletteConfig's 36 shades, so he wears the material-aware
+		# PALETTE LUT: it recolours from the run's chosen picks (PaletteConfig.picks, set at the picker
+		# screen; empty = default look) AND carries the glow / hair-flow effects. Its hair_surge uniform
+		# replaces the old base_red/accent lerp for the Ruh-absorb flare (see _set_hair_mix).
+		_tint_mat = PaletteConfig.make_material()
+		_body_is_lut = true
 		sprite.material = _tint_mat
-		var br: Variant = _tint_mat.get_shader_parameter("base_red")
-		var aa: Variant = _tint_mat.get_shader_parameter("accent_a")
-		var ab: Variant = _tint_mat.get_shader_parameter("accent_b")
-		_hair_base = {"base_red": br, "accent_a": aa, "accent_b": ab} if (br is Color and aa is Color and ab is Color) else {}
-	else:
-		_tint_mat = null
 		_hair_base = {}
-		sprite.material = mat
+	else:
+		# Other characters (legacy): optional res://resources/<id>_tint.tres hue-key tint, or plain.
+		var mat: Material = load(mat_path) if ResourceLoader.exists(mat_path) else null
+		_body_is_lut = false
+		if mat is ShaderMaterial:
+			_tint_mat = (mat as ShaderMaterial).duplicate()
+			sprite.material = _tint_mat
+			var br: Variant = _tint_mat.get_shader_parameter("base_red")
+			var aa: Variant = _tint_mat.get_shader_parameter("accent_a")
+			var ab: Variant = _tint_mat.get_shader_parameter("accent_b")
+			_hair_base = {"base_red": br, "accent_a": aa, "accent_b": ab} if (br is Color and aa is Color and ab is Color) else {}
+		else:
+			_tint_mat = null
+			_hair_base = {}
+			sprite.material = mat
 	# Seed the attack/special + movement stats from the current LOADOUT (defaults until a
 	# reward swaps one in). This is the per-character feel + which moves are equipped.
 	_apply_loadout()
@@ -664,7 +677,7 @@ func on_ruh_absorbed(completed_charge: bool) -> void:
 ## Smoothly lerp the hair gradient toward the absorb palette (0 -> `strength`) then ease it back to
 ## rest (-> 0) over `dur` via a mix factor. No-op if this character has no tint material.
 func _hair_surge(strength: float, dur: float) -> void:
-	if _tint_mat == null or _hair_base.is_empty():
+	if _tint_mat == null or (not _body_is_lut and _hair_base.is_empty()):
 		return
 	if _hair_tween != null and _hair_tween.is_valid():
 		_hair_tween.kill()
@@ -676,6 +689,10 @@ func _hair_surge(strength: float, dur: float) -> void:
 ## Blend each hair colour `f` of the way from its resting value toward the absorb palette.
 func _set_hair_mix(f: float) -> void:
 	if _tint_mat == null:
+		return
+	if _body_is_lut:
+		# The LUT flares the hair toward its baked hair_surge_color; one uniform drives the whole mix.
+		_tint_mat.set_shader_parameter("hair_surge", f)
 		return
 	_tint_mat.set_shader_parameter("base_red", (_hair_base["base_red"] as Color).lerp(HAIR_ABSORB_BASE, f))
 	_tint_mat.set_shader_parameter("accent_a", (_hair_base["accent_a"] as Color).lerp(HAIR_ABSORB_A, f))
@@ -858,6 +875,11 @@ func grant_special_invuln(duration := SPECIAL_INVULN_TIME) -> void:
 	if SPECIAL_AURA != null:
 		_special_aura = SPECIAL_AURA.instantiate() as Node2D
 		if _special_aura != null:
+			# Power-colour picks: the aura tints its moons from `moon_color` in code, so recolour that
+			# property directly (the tree walk only catches baked particle colours). No-op without picks.
+			if "moon_color" in _special_aura:
+				_special_aura.moon_color = VfxPalette.recolor(_special_aura.moon_color)
+			VfxPalette.recolor_tree(_special_aura)
 			add_child(_special_aura)
 
 
