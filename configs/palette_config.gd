@@ -32,9 +32,9 @@ static func glow_floats() -> PackedFloat32Array:
 const BODY_SHADER := "res://vfx/shaders/sprite_palette.gdshader"
 const PORTRAIT_SHADER := "res://vfx/shaders/portrait_recolor.gdshader"
 
-## Portrait hue uniform -> the body material whose pick drives it (the portrait shares the sprite palette,
-## so its regions follow the same picks; the yellow eyes ride the trim/collar band on purpose).
-const PORTRAIT_MAP := {"hair_hue": "hair", "coat_hue": "jacket", "trim_hue": "trim", "skin_hue": "skin"}
+## Portrait colour uniform -> the body material whose pick drives it (the portrait shares the sprite
+## palette, so its regions follow the same picks; the yellow eyes ride the trim/collar band on purpose).
+const PORTRAIT_MAP := {"hair_col": "hair", "coat_col": "jacket", "trim_col": "trim", "skin_col": "skin"}
 
 ## Effect params for the material-aware LUT -- the ONE source of truth shared by the preview and the
 ## in-game player, so what you tune in the picker is exactly what the run shows. Tune the look here.
@@ -43,7 +43,10 @@ const FLOW_SPEED := 1.1
 const FLOW_AMOUNT := 0.6
 const FLOW_FREQ := 8.0
 const FLOW_SHIFT := 2
-const HAIR_SURGE_COLOR := Color(2.6, 1.7, 0.5)  ## Ruh-absorb flare target (HDR gold); player drives the mix
+## The Ruh orb's bright core colour (red family, HDR). The hair-absorb flare uses THIS, recoloured by the
+## power picks, so the flare matches the recoloured Ruh soul (pick Power 1 = blue -> blue orb + blue flare)
+## instead of a fixed gold. See make_material().
+const RUH_CORE := Color(1.9, 0.45, 0.5)
 
 ## The player's chosen BODY picks {material -> Color}, set once at run start from the picker screen;
 ## empty == the default palette. Static so it survives the pre-game screen -> run scene change.
@@ -67,9 +70,12 @@ static func make_material(body_picks: Dictionary = picks) -> ShaderMaterial:
 	m.set_shader_parameter("flow_amount", FLOW_AMOUNT)
 	m.set_shader_parameter("flow_freq", FLOW_FREQ)
 	m.set_shader_parameter("flow_shift", FLOW_SHIFT)
-	# HAIR_SURGE_COLOR is already a linear working-space HDR value (like the old base_red), so it is fed
-	# straight through -- NOT srgb_to_linear'd (that would double-convert and over-brighten it).
-	m.set_shader_parameter("hair_surge_color", Vector3(HAIR_SURGE_COLOR.r, HAIR_SURGE_COLOR.g, HAIR_SURGE_COLOR.b))
+	# The Ruh-absorb flare follows the RECOLOURED Ruh: swap RUH_CORE's hue to the Power-1 pick (keeping its
+	# HDR magnitude), matching the orb. VfxPalette.recolor is a no-op with no picks (default red flare).
+	# Already a linear working-space HDR value, so fed straight through (no srgb_to_linear -- that would
+	# double-convert and over-brighten it).
+	var flare := VfxPalette.recolor(RUH_CORE)
+	m.set_shader_parameter("hair_surge_color", Vector3(flare.r, flare.g, flare.b))
 	return m
 
 
@@ -82,11 +88,16 @@ static func make_portrait_material(body_picks: Dictionary = picks) -> ShaderMate
 	return m
 
 
-## Set an existing portrait material's hue uniforms from `body_picks` (live update on a pick change).
+## Set an existing portrait material's colour uniforms from `body_picks` (live update on a pick change).
+## Each is the pick colour (hue+sat adopted); an unpicked family gets alpha -1 so the shader leaves it.
 static func apply_portrait_hues(m: ShaderMaterial, body_picks: Dictionary) -> void:
 	for uni in PORTRAIT_MAP:
 		var mat: String = PORTRAIT_MAP[uni]
-		m.set_shader_parameter(uni, (body_picks[mat] as Color).h if body_picks.has(mat) else -1.0)
+		if body_picks.has(mat):
+			var c: Color = body_picks[mat]
+			m.set_shader_parameter(uni, Color(c.r, c.g, c.b, 1.0))
+		else:
+			m.set_shader_parameter(uni, Color(0.0, 0.0, 0.0, -1.0))
 
 ## material -> [5 shades + rim], hex, LIGHT -> DARK. From repalette.py PALETTE (keep in sync if the
 ## masters are ever re-swatched). Human-readable families noted above.

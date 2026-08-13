@@ -59,15 +59,16 @@ var _power_picks := {}  ## family -> picked Color (missing = family default)
 var _body_pickers := {} ## material -> ColorPickerButton (to refresh on scheme load)
 var _power_pickers := {}
 var _slot_buttons: Array = []
-var _active_slot := 0
+var _save_button: Button
+var _active_slot := -1  ## -1 == the built-in DEFAULT look; 0..MAX-1 == a saved slot
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	# Open on the active saved scheme (applies on startup).
+	# Open on the active scheme (applies on startup) -- may be the DEFAULT look (-1).
 	_active_slot = SaveData.active_scheme()
-	_read_scheme_into_working(SaveData.color_schemes()[_active_slot])
+	_load_active()
 
 	_backdrop = ColorRect.new()
 	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -128,6 +129,13 @@ func _reposition() -> void:
 
 
 # --- scheme <-> working picks -------------------------------------------------------------------------
+
+## Load the active scheme into the working picks -- the DEFAULT look (empty picks) when _active_slot < 0,
+## otherwise the saved slot. (Never index the array with -1: that would wrap to the last slot.)
+func _load_active() -> void:
+	var scheme: Dictionary = {"body": {}, "power": {}} if _active_slot < 0 else SaveData.color_schemes()[_active_slot]
+	_read_scheme_into_working(scheme)
+
 
 ## Load a scheme {"body":{}, "power":{}} into the working picks (defaults fill the gaps).
 func _read_scheme_into_working(scheme: Dictionary) -> void:
@@ -198,16 +206,25 @@ func _build_controls() -> void:
 	sub.add_theme_color_override("font_color", INK_DIM)
 	col.add_child(sub)
 
-	# Scheme slots: radio toggles. Selecting a slot loads + activates it.
+	# Scheme selector: radio toggles. "Default" (always available, never overwritten) + the 5 saved slots.
 	col.add_child(_header("SCHEME"))
 	var slot_row := HBoxContainer.new()
-	slot_row.add_theme_constant_override("separation", 6)
+	slot_row.add_theme_constant_override("separation", 5)
 	var group := ButtonGroup.new()
+	var def := Button.new()
+	def.toggle_mode = true
+	def.button_group = group
+	def.text = "Default"
+	def.custom_minimum_size = Vector2(66, 34)
+	def.button_pressed = (_active_slot == -1)
+	_style_slot(def)
+	def.pressed.connect(_on_slot.bind(-1))
+	slot_row.add_child(def)
 	for i in SaveData.MAX_SCHEMES:
 		var b := Button.new()
 		b.toggle_mode = true
 		b.button_group = group
-		b.custom_minimum_size = Vector2(46, 34)
+		b.custom_minimum_size = Vector2(38, 34)
 		b.button_pressed = (i == _active_slot)
 		_style_slot(b)
 		b.pressed.connect(_on_slot.bind(i))
@@ -239,6 +256,8 @@ func _build_controls() -> void:
 	save.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(save, false)
 	save.pressed.connect(_on_save)
+	save.disabled = (_active_slot < 0)  # can't overwrite the built-in Default -- pick a slot to save
+	_save_button = save
 	buttons.add_child(save)
 	var start := Button.new()
 	start.text = "Start run  ▶"
@@ -379,16 +398,22 @@ func _on_power_colour(colour: Color, fam: String) -> void:
 	_rebuild_sample()
 
 
-## Select a slot: make it active (persist so it applies on startup) and load its colours into the pickers.
+## Select a scheme: make it active (persist so it applies on startup) and load its colours into the
+## pickers. i == -1 is the built-in DEFAULT look; Save is disabled there (nothing to overwrite).
 func _on_slot(i: int) -> void:
 	_active_slot = i
 	SaveData.set_active(i)
-	_read_scheme_into_working(SaveData.color_schemes()[i])
+	_load_active()
 	_refresh_all()
+	if _save_button != null:
+		_save_button.disabled = (i < 0)
 
 
 ## Write the current picks into the active slot (and keep it active). Explicit commit -- Start does not.
+## No-op on Default (there's no slot to write to; the button is disabled there anyway).
 func _on_save() -> void:
+	if _active_slot < 0:
+		return
 	SaveData.save_scheme(_active_slot, _body_picks, _power_picks)
 	_refresh_slot_labels()
 

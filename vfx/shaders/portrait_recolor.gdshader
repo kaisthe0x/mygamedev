@@ -2,20 +2,21 @@ shader_type canvas_item;
 
 // PORTRAIT recolour -- makes the HUD portrait follow the body colour scheme. The portrait is painted in
 // the same stylised palette as the sprite (red hair, teal skin, yellow collar+eyes, brown coat), so we
-// classify each pixel by HUE into a body family and swap it to that family's picked hue, keeping the
-// pixel's own saturation + value so the painted shading/gradients survive. Only families with a pick
-// recolour (target hue < 0 = leave alone), so an un-customised portrait renders untouched. The yellow
-// eyes share the collar's band on purpose -- they track the trim pick, as intended.
+// classify each pixel by HUE into a body family and adopt that family's picked HUE + SATURATION, keeping
+// the pixel's own VALUE so the painted shading/gradients survive -- the same recolour rule the body's
+// palette LUT uses. (Hue-ONLY was too weak on dark regions like the coat: swapping the hue of a near-black
+// pixel is invisible, so we take the pick's saturation too, giving a clearly-hued dark colour.)
 //
-// Hue-only swap -> nearly gamma-invariant, so it works whether TEXTURE is sampled in sRGB or (under
-// HDR 2D) linear, without a colour-space conversion.
+// Only families with a pick recolour (target alpha < 0 = leave alone), so an un-customised portrait
+// renders untouched. The yellow eyes share the collar's band on purpose -- they track the trim pick.
 
-// Target HUES (0..1) per family; -1 = no pick, leave those pixels unchanged. Set from PaletteConfig.picks.
-uniform float hair_hue = -1.0;   // red band
-uniform float coat_hue = -1.0;   // brown band (jacket pick)
-uniform float trim_hue = -1.0;   // yellow band (collar + eyes)
-uniform float skin_hue = -1.0;   // teal band
-uniform float sat_floor : hint_range(0.0, 1.0) = 0.15;  // greys/near-neutrals below this never recolour
+// Target COLOURS per family (only hue+sat used); alpha < 0 = no pick, leave those pixels. Set from
+// PaletteConfig.apply_portrait_hues.
+uniform vec4 hair_col = vec4(0.0, 0.0, 0.0, -1.0);   // red band
+uniform vec4 coat_col = vec4(0.0, 0.0, 0.0, -1.0);   // brown band (jacket pick)
+uniform vec4 trim_col = vec4(0.0, 0.0, 0.0, -1.0);   // yellow band (collar + eyes)
+uniform vec4 skin_col = vec4(0.0, 0.0, 0.0, -1.0);   // teal band
+uniform float sat_floor : hint_range(0.0, 1.0) = 0.10;  // greys/near-neutrals below this never recolour
 
 vec3 rgb2hsv(vec3 c) {
 	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -36,16 +37,18 @@ void fragment() {
 	vec4 tex = texture(TEXTURE, UV);
 	vec3 hsv = rgb2hsv(tex.rgb);
 	float h = hsv.x;
-	float target = -1.0;
+	vec4 target = vec4(0.0, 0.0, 0.0, -1.0);
 	if (hsv.y >= sat_floor) {
-		if (h < 0.035 || h > 0.95) target = hair_hue;        // red
-		else if (h < 0.11) target = coat_hue;                // brown
-		else if (h < 0.22) target = trim_hue;                // yellow
-		else if (h > 0.42 && h < 0.58) target = skin_hue;    // teal
+		if (h < 0.035 || h > 0.95) target = hair_col;        // red
+		else if (h < 0.11) target = coat_col;                // brown
+		else if (h < 0.22) target = trim_col;                // yellow
+		else if (h > 0.42 && h < 0.58) target = skin_col;    // teal
 	}
-	if (target >= 0.0) {
-		hsv.x = target;
-		tex.rgb = hsv2rgb(hsv);
+	if (target.a >= 0.0) {
+		vec3 thsv = rgb2hsv(target.rgb);
+		hsv.x = thsv.x;            // adopt the picked hue
+		hsv.y = thsv.y;            // ...and its saturation, so dark regions still read as the new colour
+		tex.rgb = hsv2rgb(hsv);    // keep the pixel's own value (its painted shading)
 	}
 	COLOR = vec4(tex.rgb, tex.a);
 }

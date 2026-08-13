@@ -50,12 +50,13 @@ static func _load_colors() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
 		_schemes = cfg.get_value("colors", "schemes", [])
-		_active = int(cfg.get_value("colors", "active", 0))
+		_active = int(cfg.get_value("colors", "active", -1))
 	# Normalise to exactly MAX_SCHEMES slots so the UI can index them freely.
 	_schemes = _schemes.slice(0, MAX_SCHEMES)
 	while _schemes.size() < MAX_SCHEMES:
 		_schemes.append({"body": {}, "power": {}})
-	_active = clampi(_active, 0, MAX_SCHEMES - 1)
+	# -1 == the built-in DEFAULT look (always available, never overwritten); 0..MAX-1 == a saved slot.
+	_active = clampi(_active, -1, MAX_SCHEMES - 1)
 	_colors_loaded = true
 
 
@@ -65,7 +66,7 @@ static func color_schemes() -> Array:
 	return _schemes
 
 
-## The slot index applied on startup (and currently selected in the picker).
+## The slot index applied on startup (and currently selected in the picker). -1 == the DEFAULT look.
 static func active_scheme() -> int:
 	_load_colors()
 	return _active
@@ -87,10 +88,10 @@ static func save_scheme(i: int, body: Dictionary, power: Dictionary, make_active
 	_persist_colors()
 
 
-## Just change which slot applies on startup (no scheme edit).
+## Just change which scheme applies on startup (no scheme edit). -1 == the DEFAULT look.
 static func set_active(i: int) -> void:
 	_load_colors()
-	_active = clampi(i, 0, MAX_SCHEMES - 1)
+	_active = clampi(i, -1, MAX_SCHEMES - 1)
 	_persist_colors()
 
 

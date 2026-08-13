@@ -817,29 +817,40 @@ the part to black (the nearest-shade anchor keeps the shift small).
 > the Ruh-absorb hair flare now drives the LUT's `hair_surge` uniform. The old tint shader
 > (`khalid_tint.tres`) is retained only as a legacy path for non-Khalid characters.
 >
-> **Scheme slots (saved across sessions).** The picker holds up to `SaveData.MAX_SCHEMES` (5)
-> **schemes** plus an **active** index, persisted to `user://save.cfg` (`[colors]` section,
-> alongside the run record; ConfigFile serialises `Color`/`Dictionary`/`Array` natively).
-> Selecting a slot loads it and makes it active; **Save scheme** writes the current picks into
-> the active slot; **Start run** only *applies* the picks to the run (it does **not** save —
-> Save is the explicit commit). On boot the preview opens on the active scheme, so it "applies
-> on startup". Power families are labelled **Power 1/2/3** (internal keys stay red/gold/teal for
+> **Scheme slots (saved across sessions).** The selector is **Default + up to `SaveData.MAX_SCHEMES`
+> (5) slots**, plus an **active** index, persisted to `user://save.cfg` (`[colors]` section, alongside
+> the run record; ConfigFile serialises `Color`/`Dictionary`/`Array` natively). **Default** (active
+> `= -1`) is the built-in palette — always selectable and never overwritten, so the default look stays
+> reachable even when all 5 slots are customised (Save is disabled while it's selected). Selecting a
+> slot loads it and makes it active; **Save scheme** writes the current picks into the active slot;
+> **Start run** only *applies* the picks to the run (it does **not** save — Save is the explicit
+> commit). On boot the preview opens on the active scheme, so it "applies on startup" (a fresh save
+> starts on Default). Power families are labelled **Power 1/2/3** (internal keys stay red/gold/teal for
 > `VfxPalette`). Filled slots show a `•` on their button.
 
 #### Portrait recolour (`vfx/shaders/portrait_recolor.gdshader`)
 
 The HUD portrait (`assets/portraits/Khalid.png`) is painted in the same stylised palette as the
-sprite (red hair, teal skin, yellow collar+eyes, brown coat), so it follows the **body** picks by
-hue. The shader classifies each pixel into a family — hair (red) / coat (brown) / trim (yellow) /
-skin (teal) — and swaps only its **hue** to that family's picked hue, keeping the pixel's painted
-saturation + value. Only families with a pick recolour (a `-1` target hue = leave untouched), so an
-un-customised portrait renders as-is. The **yellow eyes ride the trim/collar band on purpose** — they
-track the trim pick. `PaletteConfig.make_portrait_material()` maps picks → hue uniforms; the HUD sets
-it in `_on_character_changed`, the preview shows it live next to the sprite.
+sprite (red hair, teal skin, yellow collar+eyes, brown coat), so it follows the **body** picks. The
+shader classifies each pixel into a family — hair (red) / coat (brown) / trim (yellow) / skin (teal)
+— and adopts that family's picked **hue + saturation**, keeping the pixel's own **value** (its painted
+shading) — the same rule the body LUT's `derive()` uses. (Hue-*only* was too weak on the dark, mostly
+occluded coat: swapping the hue of a near-black pixel is invisible; taking the pick's saturation too
+makes even a dark coat read clearly as the new colour.) Only families with a pick recolour (target
+alpha `< 0` = leave untouched). The **yellow eyes ride the trim/collar band on purpose** — they track
+the trim pick. `PaletteConfig.make_portrait_material()` maps picks → colour uniforms; the HUD sets it
+in `_on_character_changed`, the preview shows it live next to the sprite.
 
-- **Tuning** — the hue bands + `sat_floor` are uniforms in `portrait_recolor.gdshader`; if a region is
-  mis-classified (e.g. the dark background teal grabbing the skin band), narrow the band or raise
-  `sat_floor`. Hue-only swap is ~gamma-invariant, so it needs no linear/sRGB conversion.
+- **Tuning** — the hue bands + `sat_floor` (0.10) are uniforms in `portrait_recolor.gdshader`; if a
+  region is mis-classified (e.g. the dark background teal grabbing the skin band), narrow the band or
+  raise `sat_floor`. The coat stays dark by design (dark in the source art) — it now reads as its hue,
+  but making it *brighter* would need a value lift, which would flatten its shading.
+
+**Ruh-absorb hair flare follows the scheme.** The flare (`player.gd` `_hair_surge`) drives the body
+LUT's `hair_surge` uniform toward `hair_surge_color`, which `make_material()` sets to
+`VfxPalette.recolor(PaletteConfig.RUH_CORE)` — the Ruh orb's core colour run through the *power* picks.
+So it matches the recoloured Ruh soul (pick Power 1 = blue → blue orb **and** blue flare) instead of a
+fixed gold. No picks → the default red flare (matching the default red Ruh).
 
 #### Power / VFX recolour (`configs/vfx_palette.gd`)
 
