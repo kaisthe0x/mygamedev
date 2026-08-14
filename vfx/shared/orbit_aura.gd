@@ -20,6 +20,7 @@ extends Node2D
 @export var far_alpha: float = 0.4                     ## moon alpha at the back
 @export var behind_z: int = -1                         ## z_index while behind the player sprite (< the sprite's 0)
 @export var front_z: int = 1                           ## z_index while in front (> 0)
+@export var spawn_time: float = 0.22                   ## seconds to GROW from nothing into the orbit (0 = instant)
 
 var _moons: Array[Sprite2D] = []
 var _t: float = 0.0
@@ -29,6 +30,10 @@ func _ready() -> void:
 	for i in count:
 		var m := Sprite2D.new()
 		m.texture = moon_texture
+		# Start at ZERO scale, never the texture's native size. near/far_scale are tiny multipliers of a
+		# large texture, so a moon shown unscaled (even for one frame before _layout) is a huge, cheap
+		# flash -- the grow-in below scales it up from nothing into the orbit instead.
+		m.scale = Vector2.ZERO
 		add_child(m)
 		_moons.append(m)
 	_layout()  # seed positions so there's no one-frame pop from the origin
@@ -42,6 +47,9 @@ func _process(delta: float) -> void:
 ## Place every moon on the tilted ellipse for the current time, flipping z + scaling/dimming by depth.
 func _layout() -> void:
 	var n := _moons.size()
+	# Grow-in: 0 -> 1 over spawn_time, so the moons scale up from nothing into the orbit rather than
+	# popping in at the texture's native size. (spawn_time <= 0 -> instantly full, but still never native.)
+	var grow := clampf(_t / spawn_time, 0.0, 1.0) if spawn_time > 0.0 else 1.0
 	for i in n:
 		var m := _moons[i]
 		var ang := _t * speed + TAU * float(i) / float(n)
@@ -49,6 +57,6 @@ func _layout() -> void:
 		var depth := (s + 1.0) * 0.5  # 0 = back, 1 = front
 		m.position = center + Vector2(cos(ang) * radius_x, s * radius_y)
 		m.z_index = behind_z if s < 0.0 else front_z
-		var sc := lerpf(far_scale, near_scale, depth)
+		var sc := lerpf(far_scale, near_scale, depth) * grow
 		m.scale = Vector2(sc, sc)
 		m.modulate = Color(moon_color.r, moon_color.g, moon_color.b, lerpf(far_alpha, 1.0, depth))
