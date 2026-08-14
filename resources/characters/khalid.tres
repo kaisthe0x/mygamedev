@@ -23,6 +23,8 @@
 [ext_resource type="Texture2D" uid="uid://cbxpdo67tickj" path="res://sprites/characters/khalid/khalid_special_redere_frisbee_frames.png" id="21_special_redere_frisbee"]
 [ext_resource type="Texture2D" uid="uid://cfqrx78j45pde" path="res://sprites/characters/khalid/khalid_special_redere_shield_frames.png" id="22_special_redere_shield"]
 [ext_resource type="Texture2D" uid="uid://chnfx3pscryuc" path="res://sprites/characters/khalid/khalid_surge_aegis_frames.png" id="23_surge_aegis"]
+[ext_resource type="Texture2D" uid="uid://dp31wboput87x" path="res://sprites/characters/khalid/khalid_surge_asra_frames.png" id="24_surge_asra"]
+[ext_resource type="Texture2D" uid="uid://jte6pq8lwx55" path="res://sprites/characters/khalid/khalid_surge_jnoon_frames.png" id="25_surge_jnoon"]
 
 [sub_resource type="AtlasTexture" id="attack_bakshen_1"]
 atlas = ExtResource("11_attack_bakshen")
@@ -600,6 +602,30 @@ region = Rect2(128, 0, 128, 80)
 atlas = ExtResource("23_surge_aegis")
 region = Rect2(256, 0, 128, 80)
 
+[sub_resource type="AtlasTexture" id="surge_asra_1"]
+atlas = ExtResource("24_surge_asra")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_asra_2"]
+atlas = ExtResource("24_surge_asra")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_asra_3"]
+atlas = ExtResource("24_surge_asra")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_jnoon_1"]
+atlas = ExtResource("25_surge_jnoon")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_jnoon_2"]
+atlas = ExtResource("25_surge_jnoon")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_jnoon_3"]
+atlas = ExtResource("25_surge_jnoon")
+region = Rect2(384, 0, 128, 80)
+
 [resource]
 animations = [{
 "frames": [{
@@ -1002,7 +1028,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"run",
-"speed": 7.0
+"speed": 10.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1148,6 +1174,34 @@ animations = [{
 "loop": 0,
 "name": &"surge_aegis",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("surge_asra_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("surge_asra_2")
+}, {
+"duration": 3.0,
+"texture": SubResource("surge_asra_3")
+}],
+"loop": 0,
+"name": &"surge_asra",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("surge_jnoon_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("surge_jnoon_2")
+}, {
+"duration": 3.0,
+"texture": SubResource("surge_jnoon_3")
+}],
+"loop": 0,
+"name": &"surge_jnoon",
+"speed": 8.0
 }]
 metadata/hit_frames = {
 "attack_bakshen": [2],
@@ -1183,5 +1237,7 @@ metadata/sheet_start = {
 "special_ground_breaker": 1,
 "special_redere_frisbee": 1,
 "special_redere_shield": 1,
-"surge_aegis": 1
+"surge_aegis": 1,
+"surge_asra": 1,
+"surge_jnoon": 1
 }

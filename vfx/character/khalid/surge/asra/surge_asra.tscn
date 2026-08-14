@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://casrasurge01"]
+
+[ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/orbit_aura.gd" id="1_orbit"]
+[ext_resource type="Texture2D" uid="uid://b7nhyn4fris5h" path="res://vfx/shared/textures/forward_arrow_texture.png" id="2_6sqb3"]
+
+[node name="SurgeAsra" type="Node2D" unique_id=1900001003]
+script = ExtResource("1_orbit")
+count = 14
+moon_texture = ExtResource("2_6sqb3")
+moon_color = Color(1.1250899, 0, 0.2521258, 1)
+center = Vector2(0, -20)
+near_scale = 0.01
+far_scale = 0.008

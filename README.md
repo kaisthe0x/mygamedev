@@ -51,7 +51,7 @@ tools/                Generator + verification scripts (not shipped)
 | Shift | `dash` | Has a cooldown |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free and unlimited** (a tiny anti-spam lag only, no Ruh cost). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
-| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility) applied *without* interrupting your attacking/moving. **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
+| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving. **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
 
@@ -453,15 +453,30 @@ one press (Ctrl / RT) that applies a **timed self-buff** which runs independentl
 There is **no cooldown** — **Ruh is the only gate**: each use spends its `SurgeSpec.cost` (100 Ruh = one
 charge), so you surge as long as you have the Ruh (re-triggering, if you can pay, refreshes it). On trigger it plays a **brief activation flex**
 (`State.SURGE`, the `surge_<id>` sprite anim, ~0.5s) — a short commit — while the buff carries on
-regardless; the SFX plays on trigger and the aura VFX is the invuln aura (`SPECIAL_AURA`) spawned for the
-buff's duration. `Player._try_surge()` runs every frame in `_physics_process` (any state, no-op while dead
-or spawning) and gates on `if ruh < s.cost: return` then `ruh -= s.cost`. The data lives as `Action.Category.SURGE` rows carrying a **`SurgeSpec`**
-(`configs/surge_spec.gd`: `cost` + `duration` + `invuln`) in the `ActionsKhalid.SURGES` catalog (`DEFAULT_SURGE =
-"aegis"`). The one shipped Surge is **Aegis** (`aegis`) — the old `special_default` "Flex/Impervious"
-promoted out of the specials pool: full
-damage **immunity for 5s** (`duration`), **costs 100 Ruh / 1 charge, no cooldown — Ruh-gated**. It reuses
-`grant_special_invuln(duration)` + the shared Impervious aura + a flash. The old **Fortitude** reward now
-reads *"+3s Aegis (invuln) duration"* and **Last Stand** is *"Aegis lasts until you're hit (WIP)."*
+regardless; the SFX plays on trigger and each surge names its **own** aura scene (`SurgeSpec.aura`,
+recoloured by the power picks) spawned for the buff's duration. `Player._try_surge()` runs every frame in
+`_physics_process` (any state, no-op while dead or spawning) and gates on `if ruh < s.cost: return` then
+`ruh -= s.cost`. `Player._begin_surge(s)` applies the effect flags on the `_surge_left` timer; `_end_surge`
+clears them together. The data lives as `Action.Category.SURGE` rows carrying a **`SurgeSpec`**
+(`configs/surge_spec.gd`: `cost` + `duration` + `invuln` + `damage_mult` + `damage_taken_mult` + `aura`)
+in the `ActionsKhalid.SURGES` catalog (`DEFAULT_SURGE = "aegis"`). Two ship:
+- **Aegis** (`aegis`) — full damage **immunity for 5s** (`invuln`; drops the hurtbox, same channel as dash
+  i-frames). The old `special_default` "Flex/Impervious" promoted out of the specials pool.
+- **Jnoon** (`jnoon`) — for 5s Khalid **deals ×2 damage and takes ×0.5** (`damage_mult 2.0` /
+  `damage_taken_mult 0.5`; *not* immune — hits still land, just softened). The mults **stack on** the
+  reward `damage_mult` / `damage_taken_mult` (folded in `resolve_tuning` / `take_damage`).
+- **Asra** (`asra`) — for 5s Khalid **moves ×2 as fast** (`speed_mult 2.0`, applied via `Player._run_speed()`
+  at the run/dash-blend movement sites; the anim-rate calc keeps base `run_speed`, so the run animation
+  speeds up on its own instead of sliding). The looping run **footsteps** pitch up by the same
+  `speed_ratio` (velocity ÷ base `run_speed`) so their tempo tracks his real speed — normal run stays 1.0,
+  Asra ≈ 2.0 (`_update_animation`, `State.RUN`).
+
+Jnoon's and Asra's auras + flex sheets (`surge_jnoon` / `surge_asra`) + activation cues are **placeholders**
+(copies of Aegis) pending art/audio.
+
+Both **cost 100 Ruh / 1 charge, no cooldown — Ruh-gated**, and last the same 5s (+ the **Fortitude** reward's
+`special_invuln_bonus`, which now extends any surge). Having two Surges makes the category **swappable** — a
+gate reward offers the trade (loadout convention: a category with >1 option becomes a swap).
 
 **Ground slam (`SLAM`).** A universal air move on the **`special` button**: in the
 air, press `special` to plunge straight down at `slam_speed` (1200 — far faster than

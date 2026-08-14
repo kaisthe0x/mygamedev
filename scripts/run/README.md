@@ -37,8 +37,10 @@ Related, but not in this folder:
   use costs its `SurgeSpec.cost`, 100 = one charge). Rewards raise `ruh_cap` (toward `MAX_RUH_CAP` = 500, 5 charges).
 - **The Ruh block meter** is built in `scripts/hud.gd` next to the HP bar (crimson cells) — one cell
   per charge; each surge empties one.
-- **The Aegis surge grants a timed invulnerability window + aura** (`Player.grant_special_invuln(duration)`,
-  fired by `Player._try_surge` on the dedicated `surge` button) — no longer tied to casting a special.
+- **Surges apply a timed effect + aura** (`Player._begin_surge(SurgeSpec)`, fired by `Player._try_surge`
+  on the dedicated `surge` button) — **Aegis** = invuln, **Jnoon** = ×2 damage dealt / ×0.5 taken; both
+  for `duration` (+ the Fortitude `special_invuln_bonus`). Effects run on the `_surge_left` timer and
+  clear together in `_end_surge`. Each surge names its own aura scene (`SurgeSpec.aura`).
 - **Enemies** emit `damaged` (→ RunManager awards Ruh via `gain_ruh_on_hit`, skipping a special's own
   hits) and `died` in `Enemy._die` (→ counts toward clearing the batch; no longer banks Ruh).
 - **Spawn puff**: `vfx/spawn/enemy_spawn.tscn` (fired at each batch spawn spot).

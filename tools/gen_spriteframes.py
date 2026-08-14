@@ -105,7 +105,7 @@ def anim_timing(anim: str, base: dict) -> tuple[float, bool]:
 # same numbering as HIT_FRAMES. Anything not listed here uses the ANIMS default.
 OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Khalid
-    ("khalid", "run"): {"fps": 7.0},
+    ("khalid", "run"): {"fps": 10.0},
     ("khalid", "attack_ora_ora"): {"loop": True, "fps": 18.0},
     # Twin Reaper: a spinning FLURRY -- hold attack and the whole spin LOOPS, each pass firing its
     # 5 Slash nodes on the emitter frames. loop is REQUIRED (a non-looping flurry hangs on the last
@@ -125,6 +125,14 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Aegis surge (surge_aegis, formerly special_default): the flex pose sheet. The surge is passive
     # so this anim isn't played today, but keep the sheet + timing under its new name (renamed 1:1).
     ("khalid", "surge_aegis"): {"fps": 8.0, "hold_last": 3.0},
+    ("khalid", "surge_jnoon"): {
+        "fps": 8.0,
+        "hold_last": 3.0,
+    },  # Jnoon surge flex -- same timing as aegis
+    ("khalid", "surge_asra"): {
+        "fps": 8.0,
+        "hold_last": 3.0,
+    },  # Asra surge flex -- same timing as aegis
     # New specials: short casts, hold the last pose so the beckon / shield / throw reads.
     ("khalid", "special_come_closer"): {"fps": 9.0, "hold_last": 1.5},
     ("khalid", "special_redere_shield"): {"fps": 9.0, "hold_last": 2.0},

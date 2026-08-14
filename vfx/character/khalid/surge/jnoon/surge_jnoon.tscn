@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://cjnoonsurge01"]
+
+[ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/orbit_aura.gd" id="1_orbit"]
+[ext_resource type="Texture2D" uid="uid://du6eawwgas0gr" path="res://vfx/shared/textures/skull_texture.png" id="2_du2gv"]
+
+[node name="SurgeJnoon" type="Node2D" unique_id=1900001002]
+script = ExtResource("1_orbit")
+count = 14
+moon_texture = ExtResource("2_du2gv")
+moon_color = Color(1.1250899, 0, 0.2521258, 1)
+radius_x = 20.0
+center = Vector2(0, -20)
+speed = 5.0
+near_scale = 0.01
+far_scale = 0.008
+far_alpha = 0.2

@@ -134,7 +134,22 @@ const SURGES := {
 	# +invuln bonus still stacks onto the duration.
 	"aegis": {
 		"name": "Aegis", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
-		"surge": {"duration": 5.0, "invuln": true, "cost": 100.0},
+		"surge": {"duration": 5.0, "invuln": true, "cost": 100.0,
+			"aura": "res://vfx/character/khalid/surge/aegis/surge_aegis.tscn"},
+	},
+	# Jnoon: for `duration` s Khalid hits TWICE as hard and takes HALF damage (not immune -- hits still
+	# land, just softened). Same Ruh gate + duration as Aegis; its own flex sheet, aura + activation cue.
+	"jnoon": {
+		"name": "Jnoon", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
+		"surge": {"duration": 5.0, "damage_mult": 2.0, "damage_taken_mult": 0.5, "cost": 100.0,
+			"aura": "res://vfx/character/khalid/surge/jnoon/surge_jnoon.tscn"},
+	},
+	# Asra: for `duration` s Khalid moves TWICE as fast (run/dash-blend top speed x2; the run anim speeds
+	# up on its own). Same Ruh gate + duration as the others; its own flex sheet, aura + activation cue.
+	"asra": {
+		"name": "Asra", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
+		"surge": {"duration": 5.0, "speed_mult": 2.0, "cost": 100.0,
+			"aura": "res://vfx/character/khalid/surge/asra/surge_asra.tscn"},
 	},
 }
 
@@ -164,5 +179,5 @@ const MOVEMENTS := {
 
 const DEFAULT_ATTACK := "bakshen"
 const DEFAULT_SPECIAL := "redere_shield"
-const DEFAULT_SURGE := "aegis"
+const DEFAULT_SURGE := "asra"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

@@ -101,7 +101,7 @@ var _dash_effect: String = STARTING_DASH_EFFECT
 func begin_run() -> void:
 	_dead = false
 	_death_finished = false
-	_end_special_invuln() # drop any active special invuln + aura on run restart
+	_end_surge() # drop any active surge effect + aura on run restart
 	_shake_left = 0.0
 	if _sprite != null:
 		_sprite.position = Vector2.ZERO
@@ -272,13 +272,17 @@ var _channel: Strike = null
 ## passives added during the run (Player.add_passive). Each hook is dispatched to every entry. Reset to
 ## just the character ability on character change / run restart (see _seed_passives).
 var _passives: Array[Passive] = []
-## Universal SPECIAL invulnerability: EVERY special cast makes the player untouchable for a short
-## window (the Built Different effect, now baked into every special). While > 0 the hurtbox stays
-## off (folded into _physics_process). Reward buffs will extend it via `special_invuln_bonus`.
-var _special_invuln_left: float = 0.0
-## Extra invuln seconds from rewards (e.g. "+0.5s invuln"). Reset by begin_run.
+## Active SURGE window: seconds left of the currently-triggered surge's effect (Player._begin_surge).
+## While > 0 its effect flags below apply and its aura is shown; ticked down each physics frame.
+var _surge_left: float = 0.0
+## The active surge's effects (set on trigger, cleared at 0). Aegis -> invuln; Jnoon -> the two mults.
+var _surge_invuln: bool = false            ## hurtbox off (untouchable) while the surge runs
+var _surge_dmg_mult: float = 1.0           ## OUTGOING damage x this while the surge runs (Jnoon 2.0)
+var _surge_dmg_taken_mult: float = 1.0     ## INCOMING damage x this while the surge runs (Jnoon 0.5)
+var _surge_speed_mult: float = 1.0         ## MOVEMENT speed x this while the surge runs (Asra 2.0)
+## Extra surge seconds from rewards (Fortitude: "+3s"). Reset by begin_run. Extends any surge's window.
 var special_invuln_bonus: float = 0.0
-## The red aura VFX shown while invuln (freed on expiry), or null.
+## The aura VFX shown for the surge window (freed on expiry), or null.
 var _special_aura: Node2D = null
 ## SHIELD (Redere Shield special): the player BLOCKS all front-side damage WHILE the shield special is
 ## up (see _is_shielding -- no lingering timer, so a hit after it drops lands normally). `_parry_left`
@@ -325,11 +329,6 @@ var _hair_base := {}
 const HAIR_ABSORB_BASE := Color(2.6, 1.7, 0.5)
 const HAIR_ABSORB_A := Color(2.3, 1.0, 0.35)
 const HAIR_ABSORB_B := Color(1.9, 0.6, 0.25)
-## Base seconds of invuln (before `special_invuln_bonus`) -- the default for grant_special_invuln.
-const SPECIAL_INVULN_TIME := 10.0
-## The aura engulfing the player while invulnerable. This IS the Aegis surge's effect -- spawned for
-## the invuln duration and freed on expiry -- so the surge shows ONE visual (this), not a separate pop.
-const SPECIAL_AURA: PackedScene = preload("res://vfx/character/khalid/surge/aegis/surge_aegis.tscn")
 ## Drives frame-indexed 2D particle effects; created at runtime (not in editor).
 var _particles: ParticleDirector
 ## Combat boxes, built in code (like the particle director) to avoid a scene edit.
@@ -629,7 +628,7 @@ func portrait_path() -> String:
 ## Damage hits HP ONLY -- Ruh is not a shield (that's the whole point of the rework). Flash the
 ## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
-	health -= amount * damage_taken_mult # Thick Hide reward reduces this
+	health -= amount * damage_taken_mult * _surge_dmg_taken_mult # Thick Hide reward + Jnoon surge (0.5x) reduce this
 	# Damage feedback: one of a few random hurt grunts (so he doesn't make the same noise every time),
 	# pitch-wobbled for variety. The visible flinch is the HURT animation, played from _on_hurt when a
 	# hit actually staggers him (a bare HP tick -- e.g. a future DoT -- just grunts, no anim interrupt).
@@ -747,8 +746,10 @@ func _build_combat() -> void:
 func resolve_tuning(action: Action, seg: int = 0) -> Dictionary:
 	var base: Dictionary = action.segment(seg).duplicate() # copy: never mutate the catalog
 	# Buff/item/event modifiers fold in here. `damage_mult` is a run reward ("+X% damage").
-	if not is_equal_approx(damage_mult, 1.0) and base.has("damage"):
-		base["damage"] = float(base["damage"]) * damage_mult
+	# `damage_mult` is a run reward; `_surge_dmg_mult` is the Jnoon surge (2x) -- they stack.
+	var dmg_mult := damage_mult * _surge_dmg_mult
+	if not is_equal_approx(dmg_mult, 1.0) and base.has("damage"):
+		base["damage"] = float(base["damage"]) * dmg_mult
 	# Long Arm reward scales reach for attacks that carry their hitbox size in tuning (ora_ora/bakshen);
 	# scene-authored boxes (spear/ground_breaker) are unaffected for now.
 	if not is_equal_approx(attack_reach_mult, 1.0):
@@ -869,15 +870,26 @@ func set_dash_effect(effect: String) -> void:
 	_dash_effect = effect
 
 
-## Make the player INVULNERABLE for `duration` seconds and engulf them in the shared aura. The hurtbox
-## stays off (folded into the _physics_process monitorable calc, same channel as dash i-frames); the
-## `special_invuln_bonus` reward stacks on top. Re-triggering refreshes it cleanly. Today this is the
-## Aegis surge's effect (Player._try_surge); it's parameterized so any surge/effect can set its own window.
-func grant_special_invuln(duration := SPECIAL_INVULN_TIME) -> void:
-	_end_special_invuln() # clean refresh if re-triggered within the window
-	_special_invuln_left = duration + special_invuln_bonus
-	if SPECIAL_AURA != null:
-		_special_aura = SPECIAL_AURA.instantiate() as Node2D
+## Effective run/movement speed with the active surge's speed multiplier (Asra x2). The anim-rate + lean
+## calcs keep using the BASE `run_speed`, so the run animation naturally plays faster (no moonwalk slide).
+func _run_speed() -> float:
+	return run_speed * _surge_speed_mult
+
+
+## Begin a SURGE: apply its effect flags for `duration` (+ the Fortitude `special_invuln_bonus`) and
+## engulf the player in its aura. Aegis grants invuln (hurtbox off, folded into _physics_process, same
+## channel as dash i-frames); Jnoon sets the damage mults (hits land but hurt half, deal double). Effects
+## run on the _surge_left timer and clear together in _end_surge. Re-triggering refreshes cleanly.
+func _begin_surge(s: SurgeSpec) -> void:
+	_end_surge() # clean refresh if re-triggered within the window
+	_surge_left = s.duration + special_invuln_bonus
+	_surge_invuln = s.invuln
+	_surge_dmg_mult = s.damage_mult
+	_surge_dmg_taken_mult = s.damage_taken_mult
+	_surge_speed_mult = s.speed_mult
+	if s.aura != "" and ResourceLoader.exists(s.aura):
+		var scene := load(s.aura) as PackedScene
+		_special_aura = scene.instantiate() as Node2D if scene != null else null
 		if _special_aura != null:
 			# Power-colour picks: the aura tints its moons from `moon_color` in code, so recolour that
 			# property directly (the tree walk only catches baked particle colours). No-op without picks.
@@ -889,9 +901,9 @@ func grant_special_invuln(duration := SPECIAL_INVULN_TIME) -> void:
 
 ## SURGE: an ability on the dedicated `surge` button (CTRL / RT). One press applies its timed self-buff
 ## (SurgeSpec). There is NO cooldown -- **RUH is the gate**: each use SPENDS `cost` Ruh, so you surge as
-## long as you have Ruh (refilled by landing hits; specials are free). Aegis = invuln for `duration`.
-## On trigger it plays a brief activation flex (State.SURGE, the "surge_<id>" sprite anim) + SFX. Extend the
-## match as more surge effects land. Fires in any state (checked in _physics_process); no-op while dead.
+## long as you have Ruh (refilled by landing hits; specials are free). Aegis = invuln, Jnoon = 2x/half
+## damage, both for `duration`. On trigger it plays a brief activation flex (State.SURGE, the "surge_<id>"
+## sprite anim) + SFX. Fires in any state (checked in _physics_process); no-op while dead.
 func _try_surge() -> void:
 	if _dead or _current_surge == null or _current_surge.surge == null:
 		return
@@ -901,8 +913,7 @@ func _try_surge() -> void:
 	if ruh < s.cost:
 		return # not enough Ruh -- the only gate; no cooldown
 	ruh -= s.cost # spend it (the setter clamps + emits ruh_changed for the HUD)
-	if s.invuln:
-		grant_special_invuln(s.duration) # spawns the surge's aura (SPECIAL_AURA) for the duration -- the ONE visual
+	_begin_surge(s) # apply the effect flags + spawn the surge's aura for the duration
 	flash(_sprite) # a quick activation pop on the sprite
 	Sfx.play(String(_current_surge.animation)) # activation SFX ("surge_<id>"), silent until a file lands
 	# Play the surge's activation flex (a brief committed state; the buff above runs on its own timer).
@@ -911,20 +922,24 @@ func _try_surge() -> void:
 		_enter(State.SURGE)
 
 
-## Tick down the special invuln; end it (drop the aura, re-enable the hurtbox next frame) at 0.
+## Tick down the active surge; end it (clear effects, drop the aura, re-enable the hurtbox) at 0.
 ## Called every physics frame.
-func _tick_special_invuln(delta: float) -> void:
-	if _special_invuln_left <= 0.0:
+func _tick_surge(delta: float) -> void:
+	if _surge_left <= 0.0:
 		return
-	_special_invuln_left -= delta
-	if _special_invuln_left <= 0.0:
-		_end_special_invuln()
+	_surge_left -= delta
+	if _surge_left <= 0.0:
+		_end_surge()
 
 
-## End the special invuln and drop its aura. The hurtbox re-enables on its own next frame
-## (_physics_process recomputes it once _special_invuln_left hits 0).
-func _end_special_invuln() -> void:
-	_special_invuln_left = 0.0
+## End the active surge: clear its effect flags and drop its aura. The hurtbox re-enables on its own next
+## frame (_physics_process recomputes monitorable once _surge_invuln/_surge_left clear).
+func _end_surge() -> void:
+	_surge_left = 0.0
+	_surge_invuln = false
+	_surge_dmg_mult = 1.0
+	_surge_dmg_taken_mult = 1.0
+	_surge_speed_mult = 1.0
 	if is_instance_valid(_special_aura):
 		var aura := _special_aura
 		var tw := create_tween()
@@ -994,7 +1009,7 @@ func _die() -> void:
 	_combo_playing = false
 	_flurry = false
 	_hold_left = 0.0
-	_end_special_invuln() # drop the invuln aura on death
+	_end_surge() # drop the surge effect + aura on death
 	if _channel != null and is_instance_valid(_channel):
 		_channel.cancel()
 	_channel = null
@@ -1107,7 +1122,7 @@ func _physics_process(delta: float) -> void:
 	for p in _passives:
 		p.physics(self, delta)
 
-	_tick_special_invuln(delta) # count down the special's invuln window; end it cleanly
+	_tick_surge(delta) # count down the active surge; end it cleanly (clears effects + aura)
 	_parry_left = maxf(_parry_left - delta, 0.0) # count down the perfect-parry (reflect) window -- NOT refreshed while held
 	if _shake_left > 0.0: # sprite shake (hurt flinch / shield vibrate): decaying jitter, then snap home
 		_shake_left = maxf(_shake_left - delta, 0.0)
@@ -1119,10 +1134,10 @@ func _physics_process(delta: float) -> void:
 	# i-frame window is unchanged by a longer dash_anim_time.
 	if _hurtbox != null:
 		# Off while dead, while spawning (protection so the materialize plays out), during the
-		# dash i-frame window, and while a Built-Different-style invuln buff is active.
+		# dash i-frame window, and while an invuln SURGE (Aegis) is active.
 		_hurtbox.monitorable = not _dead and _state != State.SPAWN \
 			and not (_state == State.DASH and _dash_left > 0.0) \
-			and not (_special_invuln_left > 0.0)
+			and not (_surge_invuln and _surge_left > 0.0)
 
 	move_and_slide()
 	_update_animation(delta)
@@ -1165,7 +1180,7 @@ func _process_dash(delta: float) -> void:
 		# window ticking, and settle horizontal velocity toward a run (if held) or a
 		# stop, so the exit flows the same as a normal dash.
 		_dash_left = maxf(_dash_left - delta, 0.0)
-		var target := run_speed * _facing if holding_dash_dir else 0.0
+		var target := _run_speed() * _facing if holding_dash_dir else 0.0
 		velocity.x = move_toward(velocity.x, target, (dash_speed / dash_time) * delta)
 	elif _dash_left > 0.0:
 		_dash_left -= delta
@@ -1174,7 +1189,7 @@ func _process_dash(delta: float) -> void:
 		# Lunge done: over the rest of the window, settle toward run speed if the player
 		# is still holding this direction (so it flows straight into a run), otherwise
 		# toward a stop -- while the dash frames finish either way.
-		var target := run_speed * _facing if holding_dash_dir else 0.0
+		var target := _run_speed() * _facing if holding_dash_dir else 0.0
 		var recovery := maxf(dash_anim_time - dash_time, 0.001)
 		velocity.x = move_toward(velocity.x, target, (dash_speed / recovery) * delta)
 	if is_on_floor():
@@ -1198,7 +1213,7 @@ func _process_normal(delta: float) -> void:
 
 	if input != 0.0:
 		_facing = 1 if input > 0.0 else -1
-		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
+		velocity.x = move_toward(velocity.x, input * _run_speed(), acceleration * delta)
 	else:
 		# Standing still: keep facing the way we last moved (movement/controller drives
 		# facing, not the mouse), so an attack goes where the character is actually facing.
@@ -1358,7 +1373,7 @@ func _process_land(delta: float) -> void:
 	var input := Input.get_axis("move_left", "move_right")
 	if input != 0.0: # walk straight out of the landing
 		_facing = 1 if input > 0.0 else -1
-		velocity.x = move_toward(velocity.x, input * run_speed, acceleration * delta)
+		velocity.x = move_toward(velocity.x, input * _run_speed(), acceleration * delta)
 		_state = State.RUN
 		return
 	velocity.x = move_toward(velocity.x, 0.0, friction * delta) # keep last facing when idle
@@ -1779,8 +1794,15 @@ func _update_animation(_delta: float) -> void:
 	# dash sets a stretch in _enter, attacks stay 1x, so only touch these.
 	match _state:
 		State.RUN:
-			_sprite.speed_scale = clampf(
-				absf(velocity.x) / maxf(run_speed, 1.0) * run_anim_speed, 0.4, 3.0)
+			# `run_speed` here is the BASE (unscaled by a surge), so a speed SURGE (Asra x2) lifts
+			# velocity above it -> speed_ratio rises. The legs quicken (speed_scale), and the looping
+			# footsteps pitch UP by the same speed_ratio so their tempo tracks how fast he's actually
+			# moving (normal run == 1.0, unchanged; Asra ~2.0). Kept off run_anim_speed so the baseline
+			# footstep sound is untouched.
+			var speed_ratio := absf(velocity.x) / maxf(run_speed, 1.0)
+			_sprite.speed_scale = clampf(speed_ratio * run_anim_speed, 0.4, 3.0)
+			if _run_sfx != null:
+				_run_sfx.pitch_scale = clampf(speed_ratio, 0.6, 3.0)
 		State.IDLE, State.JUMP, State.FALL, State.LAND:
 			_sprite.speed_scale = 1.0
 
