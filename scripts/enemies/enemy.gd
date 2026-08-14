@@ -787,7 +787,9 @@ func _on_hurt(hit: Hit) -> void:
 	# Dynamic per-attack hurt VFX (a stun effect, a slam shock, ...), placed by its own scene
 	# relative to our feet. fit_h scales it to this enemy's size.
 	if hit.victim_vfx != null:
-		spawn_victim_vfx(hit.victim_vfx, hit.victim_vfx_time, hurtbox_size.y)
+		# The victim is an enemy -> the effect is one of Khalid's powers (his stun overlay), so recolour it
+		# to his power picks. (The player-victim path in player.gd stays un-recoloured -- that's enemy VFX.)
+		spawn_victim_vfx(hit.victim_vfx, hit.victim_vfx_time, hurtbox_size.y, true)
 	# The frenemy special charms us into a temporary ally (it carries no stun, so we keep fighting --
 	# just for the player now).
 	if hit.frenemy_time > 0.0:

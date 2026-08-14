@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="3_dot"]
-[ext_resource type="PackedScene" uid="uid://cccugs2bcp6ic" path="res://vfx/status/ground_breaker_stun.tscn" id="4_8i7vn"]
+[ext_resource type="PackedScene" uid="uid://cccugs2bcp6ic" path="res://vfx/character/khalid/status/ground_breaker_stun.tscn" id="4_8i7vn"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="4_hitbox"]
 
 [sub_resource type="Curve" id="Curve_shrink"]

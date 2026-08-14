@@ -89,7 +89,7 @@ const SPECIALS := {
 	"ground_breaker": {
 		"name": "Ground Breaker", "icon": "res://vfx/shared/textures/blast1.png",
 		"hit": {"type": "aoe", "segments": {"damage": 40, "knockback": 160, "stun": 1.0,
-			"victim_effect": "res://vfx/status/ground_breaker_stun.tscn"}},
+			"victim_effect": "res://vfx/character/khalid/status/ground_breaker_stun.tscn"}},
 	},
 	# Frenemy: a short blast that CHARMS the enemy -- for `frenemy` seconds it becomes a temporary ALLY,
 	# stops targeting the player, and fights the OTHER enemies instead (not stunned). A red aura
@@ -98,7 +98,7 @@ const SPECIALS := {
 		"name": "Frenemy", "icon": "res://vfx/shared/textures/pixel_ember.png", "tier": "elite",
 		"tags": ["charm"], # build tag -- reward synergies key off it (e.g. reach ×3, see rewards_catalog)
 		"hit": {"type": "blast", "segments": {"damage": 4, "knockback": 0, "frenemy": 8.0,
-			"victim_effect": "res://vfx/status/frenemy_stun.tscn", "victim_time": 8.0}},
+			"victim_effect": "res://vfx/character/khalid/status/frenemy_stun.tscn", "victim_time": 8.0}},
 	},
 	# Come Closer: a magnet pull -- drags nearby enemies in front of Khalid and STUNS them on arrival
 	# (no damage). No `hit`; the magnet FIELD scene (EmittersCharacters -> scripts/combat/magnet_field.gd)

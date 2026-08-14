@@ -1,13 +1,13 @@
 [gd_scene format=3 uid="uid://caegissurge01"]
 
 [ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/orbit_aura.gd" id="1_orbit"]
-[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+[ext_resource type="Texture2D" uid="uid://csl8040d4baq2" path="res://vfx/shared/impervious/shield.png" id="2_vklmt"]
 
 [node name="SurgeAegis" type="Node2D" unique_id=1900001001]
 script = ExtResource("1_orbit")
 count = 14
-moon_texture = ExtResource("2_dot")
+moon_texture = ExtResource("2_vklmt")
 moon_color = Color(1.1250899, 0, 0.2521258, 1)
 center = Vector2(0, -20)
-near_scale = 0.3
-far_scale = 0.1
+near_scale = 0.01
+far_scale = 0.008

@@ -78,10 +78,14 @@ const VICTIM_VFX_REF_H := 34.0
 ## (e.g. frenemy_stun ~ (0,-17) to cover the torso; ground_breaker_stun ~ (0,0) to erupt from
 ## the feet). `fit_h` (0 = none) scales the effect's SIZE to the victim; the position you
 ## authored is left as-is.
-func spawn_victim_vfx(scene: PackedScene, duration: float, fit_h: float = 0.0) -> void:
+## `recolor` = honour Khalid's power-colour picks on this effect. Set it ONLY when the effect is one of
+## HIS powers (an enemy hit by Khalid's stun overlay) -- not for an enemy effect landing on the player.
+func spawn_victim_vfx(scene: PackedScene, duration: float, fit_h: float = 0.0, recolor: bool = false) -> void:
 	if scene == null:
 		return
 	var fx := scene.instantiate()
+	if recolor:
+		VfxPalette.recolor_tree(fx)
 	add_child(fx)
 	if fit_h > 0.0 and fx is Node2D:
 		(fx as Node2D).scale = Vector2.ONE * (fit_h / VICTIM_VFX_REF_H)

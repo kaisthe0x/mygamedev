@@ -883,12 +883,15 @@ purple, `> HUE_TOL`) are left untouched.
 
 - **`VfxPalette.picks`** — `{family -> Color}`, set once per run (`set_picks`); empty = the
   default red/gold/teal look. **Dedicated to VFX**, independent of the body pickers.
-- **Single choke point** — `ParticleDirector._spawn()` calls `recolor_tree` on every effect it
-  fires (dash / run / all attacks / all specials / slam / spawn / death / blink). The surge aura
-  recolours its code-set `moon_color` in `player.gd`; the **Ruh orb** (moved to
-  `vfx/character/khalid/ruh_orb/` for consistency) is recoloured at its spawn in `run_manager`.
-  Every `.tscn` under `vfx/character/` is covered — a regression test instantiates all of them
-  under picks and asserts no red survives.
+- **Choke points** — `ParticleDirector._spawn()` calls `recolor_tree` on every effect it fires
+  (dash / run / all attacks / all specials / slam / spawn / death / blink). The surge aura
+  recolours its code-set `moon_color` in `player.gd`; the **Ruh orb** (in
+  `vfx/character/khalid/ruh_orb/`) is recoloured at its spawn in `run_manager`; the **status
+  overlays** (`vfx/character/khalid/status/` — ground_breaker + frenemy stun) are recoloured in
+  `Combatant.spawn_victim_vfx(..., recolor: true)`, passed **only** from the enemy-victim path
+  (`enemy.gd`) so an enemy effect landing on the *player* keeps its own colour. Everything a
+  Khalid power emits lives under `vfx/character/` and is recoloured; a regression test
+  instantiates all 37 `.tscn` there under picks and asserts no red survives.
 - **Where to tweak** — family hue centres, `SAT_FLOOR`, `HUE_TOL` in `vfx_palette.gd`.
 
 ---
