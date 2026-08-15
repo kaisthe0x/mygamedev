@@ -54,6 +54,7 @@ const CUES := {
 	"surge_aegis": "res://sfx/character/surge/aegis/surge_aegis.wav",
 	"surge_jnoon": "res://sfx/character/surge/jnoon/surge_jnoon.wav", # PLACEHOLDER (copy of aegis) -- replace
 	"surge_asra": "res://sfx/character/surge/asra/surge_asra.wav", # PLACEHOLDER (copy of aegis) -- replace
+	"surge_nem": "res://sfx/character/surge/nem/surge_nem.wav", # PLACEHOLDER (copy of aegis) -- replace
 	# New specials -- cast cues on the strike frame. Drop the .wav files at these paths (silent until then).
 	"come_closer": "res://sfx/character/special/come_closer/come_closer.wav",
 	"redere_shield": "res://sfx/character/special/redere_shield/redere_shield.wav",

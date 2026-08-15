@@ -280,6 +280,14 @@ var _surge_invuln: bool = false            ## hurtbox off (untouchable) while th
 var _surge_dmg_mult: float = 1.0           ## OUTGOING damage x this while the surge runs (Jnoon 2.0)
 var _surge_dmg_taken_mult: float = 1.0     ## INCOMING damage x this while the surge runs (Jnoon 0.5)
 var _surge_speed_mult: float = 1.0         ## MOVEMENT speed x this while the surge runs (Asra 2.0)
+## Nem CHANNEL: a locking sleep/heal. `_surge_channel` marks it active; the anim winds up to the sleep
+## frame then `_surge_asleep` flips (paused + healing for the window). Heal rises toward `_surge_heal_target`
+## at `_surge_heal_rate` HP/s; a hit cancels it (keeps the health already gained). See _process_surge.
+var _surge_channel: bool = false
+var _surge_asleep: bool = false
+var _surge_heal_target: float = 0.0
+var _surge_heal_rate: float = 0.0
+var _surge_sleep_frame: int = 0
 ## Extra surge seconds from rewards (Fortitude: "+3s"). Reset by begin_run. Extends any surge's window.
 var special_invuln_bonus: float = 0.0
 ## The aura VFX shown for the surge window (freed on expiry), or null.
@@ -819,6 +827,12 @@ func _on_hurt(hit: Hit) -> void:
 		_hold_left = 0.0
 		_sprite.play()
 	_channel = null
+	# A Nem sleep/heal channel is CANCELLED when hit -- he wakes, keeping the health already gained. The
+	# flinch below (or idle, on a 0-stagger hit) takes over from the paused sleep pose.
+	if _surge_channel:
+		_end_surge()
+		if _state == State.SURGE:
+			_enter(State.IDLE)
 	# Super-armor: the hit still hurts, but no knockback/stagger and the swing isn't
 	# interrupted (a Strike granted it via set_armor from its tuning).
 	if _armor_left > 0.0:
@@ -882,11 +896,24 @@ func _run_speed() -> float:
 ## run on the _surge_left timer and clear together in _end_surge. Re-triggering refreshes cleanly.
 func _begin_surge(s: SurgeSpec) -> void:
 	_end_surge() # clean refresh if re-triggered within the window
-	_surge_left = s.duration + special_invuln_bonus
 	_surge_invuln = s.invuln
 	_surge_dmg_mult = s.damage_mult
 	_surge_dmg_taken_mult = s.damage_taken_mult
 	_surge_speed_mult = s.speed_mult
+	_surge_channel = s.channel
+	if s.channel:
+		# A locking CHANNEL (Nem): don't start the window yet -- healing begins when the wind-up reaches
+		# the sleep frame (see _process_surge). Heal pool = heal_frac of MAX hp, capped at max, so being
+		# already >=50% hp reaches full ("restore the whole bar"). Interruptible -- health rises live.
+		_surge_asleep = false
+		_surge_left = 0.0
+		_surge_heal_target = minf(health + s.heal_frac * max_health, max_health)
+		_surge_heal_rate = (_surge_heal_target - health) / maxf(s.duration, 0.01)
+		var anim := _current_surge.animation
+		var fcount: int = _sprite.sprite_frames.get_frame_count(anim) if _sprite.sprite_frames != null and _sprite.sprite_frames.has_animation(anim) else 0
+		_surge_sleep_frame = maxi(fcount - 2, 0) # second-to-last emitted frame (head down, asleep)
+	else:
+		_surge_left = s.duration + special_invuln_bonus # passive buff runs immediately for the window
 	if s.aura != "" and ResourceLoader.exists(s.aura):
 		var scene := load(s.aura) as PackedScene
 		_special_aura = scene.instantiate() as Node2D if scene != null else null
@@ -907,6 +934,8 @@ func _begin_surge(s: SurgeSpec) -> void:
 func _try_surge() -> void:
 	if _dead or _current_surge == null or _current_surge.surge == null:
 		return
+	if _surge_channel:
+		return # can't re-surge while a channel (Nem) is running -- he's asleep/locked
 	if not Input.is_action_just_pressed("surge"):
 		return
 	var s := _current_surge.surge
@@ -940,6 +969,11 @@ func _end_surge() -> void:
 	_surge_dmg_mult = 1.0
 	_surge_dmg_taken_mult = 1.0
 	_surge_speed_mult = 1.0
+	if _surge_channel:
+		_surge_channel = false
+		_surge_asleep = false
+		if _sprite != null:
+			_sprite.play() # release the sleep-frame pause so normal playback resumes
 	if is_instance_valid(_special_aura):
 		var aura := _special_aura
 		var tw := create_tween()
@@ -1529,9 +1563,25 @@ func _process_special(delta: float) -> void:
 ## Ends via _on_animation_finished -> idle. The surge's buff was applied on trigger and runs on its
 ## own timer, so this is purely the activation animation.
 func _process_surge(delta: float) -> void:
-	velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+	velocity.x = move_toward(velocity.x, 0.0, friction * delta) # rooted -- surges don't move
 	if not is_on_floor():
 		velocity.y += gravity * delta
+	# Nem CHANNEL: wind up to the sleep frame, PAUSE there, then heal for the window. A hit cancels it
+	# via _on_hurt (he wakes, keeps the health gained). Passive surges skip this and end on anim-finish.
+	if _surge_channel:
+		if not _surge_asleep:
+			if _sprite.frame >= _surge_sleep_frame: # reached the head-down pose -> fall asleep
+				_surge_asleep = true
+				_sprite.set_frame_and_progress(_surge_sleep_frame, 0.0)
+				_sprite.pause()
+				_surge_left = _current_surge.surge.duration # the sleep/heal window starts NOW
+		else:
+			health = minf(health + _surge_heal_rate * delta, _surge_heal_target) # rise toward the target
+			_surge_left -= delta
+			if _surge_left <= 0.0: # slept the full window -> wake, fully healed
+				_end_surge()
+				_enter(State.IDLE)
+		return
 
 
 ## An air-down ground slam: committed like a special. Horizontal drift bleeds off

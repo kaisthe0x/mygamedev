@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://cnemsurge01"]
+
+[ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/orbit_aura.gd" id="1_orbit"]
+[ext_resource type="Texture2D" uid="uid://s5umxvfc8mt0" path="res://vfx/shared/textures/z_texture.png" id="2_s57f2"]
+
+[node name="SurgeNem" type="Node2D" unique_id=1900001004]
+script = ExtResource("1_orbit")
+count = 14
+moon_texture = ExtResource("2_s57f2")
+moon_color = Color(1.4825656, 0, 0, 1)
+center = Vector2(0, -20)
+near_scale = 0.01
+far_scale = 0.008

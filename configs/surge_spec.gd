@@ -17,6 +17,11 @@ var invuln: bool = false            ## grant full damage immunity for the durati
 var damage_mult: float = 1.0        ## scale OUTGOING damage for the duration (Jnoon: 2.0 = double)
 var damage_taken_mult: float = 1.0  ## scale INCOMING damage for the duration (Jnoon: 0.5 = half)
 var speed_mult: float = 1.0         ## scale MOVEMENT (run) speed for the duration (Asra: 2.0 = twice as fast)
+## Nem is a CHANNEL, not a passive buff: Khalid locks in place, the anim plays to its second-to-last
+## frame (head down, asleep) and PAUSES there, and he heals `heal_frac` of MAX hp over `duration`. A hit
+## from an enemy WAKES him -- the channel cancels, keeping whatever health he already gained.
+var channel: bool = false           ## true = a movement-locking sleep/heal channel (Nem)
+var heal_frac: float = 0.0          ## heal this fraction of MAX health over the channel (Nem 0.5 = +50%)
 var aura: String = ""               ## the aura VFX scene spawned for the window (res:// path)
 
 
@@ -28,5 +33,7 @@ static func make(d: Dictionary) -> SurgeSpec:
 	s.damage_mult = float(d.get("damage_mult", s.damage_mult))
 	s.damage_taken_mult = float(d.get("damage_taken_mult", s.damage_taken_mult))
 	s.speed_mult = float(d.get("speed_mult", s.speed_mult))
+	s.channel = bool(d.get("channel", s.channel))
+	s.heal_frac = float(d.get("heal_frac", s.heal_frac))
 	s.aura = String(d.get("aura", s.aura))
 	return s

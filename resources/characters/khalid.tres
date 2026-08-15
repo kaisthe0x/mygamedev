@@ -25,6 +25,7 @@
 [ext_resource type="Texture2D" uid="uid://chnfx3pscryuc" path="res://sprites/characters/khalid/khalid_surge_aegis_frames.png" id="23_surge_aegis"]
 [ext_resource type="Texture2D" uid="uid://dp31wboput87x" path="res://sprites/characters/khalid/khalid_surge_asra_frames.png" id="24_surge_asra"]
 [ext_resource type="Texture2D" uid="uid://jte6pq8lwx55" path="res://sprites/characters/khalid/khalid_surge_jnoon_frames.png" id="25_surge_jnoon"]
+[ext_resource type="Texture2D" uid="uid://clj48g6qdp8ds" path="res://sprites/characters/khalid/khalid_surge_nem_frames.png" id="26_surge_nem"]
 
 [sub_resource type="AtlasTexture" id="attack_bakshen_1"]
 atlas = ExtResource("11_attack_bakshen")
@@ -626,6 +627,26 @@ region = Rect2(256, 0, 128, 80)
 atlas = ExtResource("25_surge_jnoon")
 region = Rect2(384, 0, 128, 80)
 
+[sub_resource type="AtlasTexture" id="surge_nem_0"]
+atlas = ExtResource("26_surge_nem")
+region = Rect2(0, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_nem_1"]
+atlas = ExtResource("26_surge_nem")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_nem_2"]
+atlas = ExtResource("26_surge_nem")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_nem_3"]
+atlas = ExtResource("26_surge_nem")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="surge_nem_4"]
+atlas = ExtResource("26_surge_nem")
+region = Rect2(512, 0, 128, 80)
+
 [resource]
 animations = [{
 "frames": [{
@@ -1202,6 +1223,26 @@ animations = [{
 "loop": 0,
 "name": &"surge_jnoon",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("surge_nem_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("surge_nem_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("surge_nem_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("surge_nem_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("surge_nem_4")
+}],
+"loop": 0,
+"name": &"surge_nem",
+"speed": 6.0
 }]
 metadata/hit_frames = {
 "attack_bakshen": [2],
@@ -1239,5 +1280,6 @@ metadata/sheet_start = {
 "special_redere_shield": 1,
 "surge_aegis": 1,
 "surge_asra": 1,
-"surge_jnoon": 1
+"surge_jnoon": 1,
+"surge_nem": 0
 }

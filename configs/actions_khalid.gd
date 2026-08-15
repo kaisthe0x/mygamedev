@@ -151,6 +151,15 @@ const SURGES := {
 		"surge": {"duration": 5.0, "speed_mult": 2.0, "cost": 100.0,
 			"aura": "res://vfx/character/khalid/surge/asra/surge_asra.tscn"},
 	},
+	# Nem: a committed SLEEP -- Khalid locks in place, the flex plays to its second-to-last frame (head
+	# down, asleep) and PAUSES; he then heals +50% of MAX hp over 5s. A hit from an enemy WAKES him
+	# (cancels, keeping the health already gained). `channel` marks it as a locking channel, not a buff;
+	# `heal_frac 0.5` capped at max means being already >=50% hp restores the WHOLE bar.
+	"nem": {
+		"name": "Nem", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
+		"surge": {"duration": 5.0, "channel": true, "heal_frac": 0.5, "cost": 100.0,
+			"aura": "res://vfx/character/khalid/surge/nem/surge_nem.tscn"},
+	},
 }
 
 ## Khalid's MOVEMENT actions -- run / jump / dash / slam, one pool per category, each a swappable
@@ -179,5 +188,5 @@ const MOVEMENTS := {
 
 const DEFAULT_ATTACK := "bakshen"
 const DEFAULT_SPECIAL := "redere_shield"
-const DEFAULT_SURGE := "asra"
+const DEFAULT_SURGE := "nem"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

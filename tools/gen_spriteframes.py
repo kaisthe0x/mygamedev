@@ -133,6 +133,12 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
         "fps": 8.0,
         "hold_last": 3.0,
     },  # Asra surge flex -- same timing as aegis
+    # Nem: a sleep channel. keep_first keeps the "still awake" pose
+    # (idle-ref frame 0) so the fall-asleep
+    # reads; player.gd pauses playback on the second-to-last frame (head down).
+    # fps ~6 so the slump takes
+    # ~0.5s. No hold_last -- the pause is code-driven, not a frame duration.
+    ("khalid", "surge_nem"): {"fps": 6.0, "keep_first": True},
     # New specials: short casts, hold the last pose so the beckon / shield / throw reads.
     ("khalid", "special_come_closer"): {"fps": 9.0, "hold_last": 1.5},
     ("khalid", "special_redere_shield"): {"fps": 9.0, "hold_last": 2.0},

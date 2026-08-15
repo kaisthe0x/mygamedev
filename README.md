@@ -51,7 +51,7 @@ tools/                Generator + verification scripts (not shipped)
 | Shift | `dash` | Has a cooldown |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free and unlimited** (a tiny anti-spam lag only, no Ruh cost). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
-| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving. **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
+| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving — **except Nem**, a committed sleep that locks you in place and heals ~50% HP over 5s (a hit wakes/cancels it). **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
 
@@ -471,8 +471,15 @@ in the `ActionsKhalid.SURGES` catalog (`DEFAULT_SURGE = "aegis"`). Two ship:
   `speed_ratio` (velocity ÷ base `run_speed`) so their tempo tracks his real speed — normal run stays 1.0,
   Asra ≈ 2.0 (`_update_animation`, `State.RUN`).
 
-Jnoon's and Asra's auras + flex sheets (`surge_jnoon` / `surge_asra`) + activation cues are **placeholders**
-(copies of Aegis) pending art/audio.
+- **Nem** (`nem`) — a committed **sleep/heal CHANNEL** (not a passive buff, `channel: true`): Khalid locks
+  in place, the flex plays to its **second-to-last frame** (head down, asleep) and **pauses** there, then
+  he heals **`heal_frac` (0.5) of MAX hp over 5s**. Heal is capped at max, so being already **≥50% HP
+  restores the whole bar**. A **hit from an enemy wakes him** — the channel cancels and he keeps whatever
+  health he'd gained. Driven in `_process_surge` (`_surge_channel` / `_surge_asleep`): the wind-up watches
+  `_sprite.frame` for the sleep frame, pauses playback + starts the window; `_on_hurt` cancels it.
+
+Jnoon's / Asra's / Nem's auras + flex sheets (`surge_jnoon` / `surge_asra` / `surge_nem`) + activation cues
+are **placeholders** (copies of Aegis) pending art/audio.
 
 Both **cost 100 Ruh / 1 charge, no cooldown — Ruh-gated**, and last the same 5s (+ the **Fortitude** reward's
 `special_invuln_bonus`, which now extends any surge). Having two Surges makes the category **swappable** — a
