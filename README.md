@@ -978,6 +978,16 @@ live in `sprites/enemies/<id>/`; `gen_spriteframes.py` processes both groups (se
 own normalised canvas, independent of the character canvas. Same 128x80 + frame-0
 idle-reference rules apply.
 
+The sheets are **repaletted** (collapsed from hundreds/thousands of AI-shading colours to ~5–15)
+by the `grunt` profile in the art repo's repalette tool, each enemy carrying its own **body hue**
+(`GRUNT_ENEMIES` there — Nasen blue, Mazab crimson, …). In-engine they wear a **shared accent-glow**
+material — `resources/enemy_glow.tres` → `vfx/shaders/enemy_glow.gdshader`, applied to every enemy
+sprite in `enemy.gd` (`GLOW_MATERIAL`). It gates on saturation + brightness so **only the bright accent**
+(eyes / orb / iris) blooms while the dark body stays flat — a fraction of Khalid's glow, so they read as
+"alive in the dark" without lighting up. **Tweak** `glow` / `sat_min` / `val_min` on the material (raise
+`sat_min`/`val_min` if the body starts glowing; raise `glow` for punchier eyes). Bloom only renders in the
+running game (F5), not headless. Colour-*tiers* (per-spawn recolour driving behaviour) are a later step.
+
 ### The `Enemy` node (`scripts/enemies/enemy.gd`, `scenes/enemy.tscn`)
 
 One reusable ground enemy. `enemy.tscn` is a thin wrapper (root + script) so it

@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dryk8i0377ls5"]
+
+[ext_resource type="Shader" uid="uid://cpr6fccwwtaqd" path="res://vfx/shaders/enemy_glow.gdshader" id="1_glow"]
+
+[resource]
+shader = ExtResource("1_glow")
+shader_parameter/glow = 0.30000001425
+shader_parameter/sat_min = 0.2000000095
+shader_parameter/val_min = 0.3
+shader_parameter/soft = 0.1

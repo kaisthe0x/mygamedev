@@ -17,6 +17,9 @@ extends Combatant
 ## configured via exports (or subclassed) -- no scene to keep in sync.
 
 const FRAMES_PATH := "res://resources/enemies/%s.tres"
+## Shared accent-glow material for every enemy sprite (dark body + a blooming bright accent). Tweak the
+## look on this resource: res://resources/enemy_glow.tres -> vfx/shaders/enemy_glow.gdshader.
+const GLOW_MATERIAL := "res://resources/enemy_glow.tres"
 
 ## Emitted once when this enemy dies, carrying the lahm it pays out (its HP value). The run
 ## manager awards it to the player and counts the kill toward clearing the wave.
@@ -237,6 +240,11 @@ func _build_sprite() -> void:
 		push_error("Enemy '%s': no SpriteFrames at %s" % [enemy_id, path])
 		return
 	_sprite.sprite_frames = load(path)
+	# Subtle accent glow: the enemies are repaletted to a dark body + a bright accent (eyes/orb/iris),
+	# and this material blooms just the accent so it reads as alive in the dark. Shared across all enemies;
+	# tweak the look on resources/enemy_glow.tres (glow / sat_min / val_min) or the shader.
+	if ResourceLoader.exists(GLOW_MATERIAL):
+		_sprite.material = load(GLOW_MATERIAL)
 	anchor_to_feet(_sprite)
 	add_child(_sprite)
 

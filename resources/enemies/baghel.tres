@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=26 format=3 uid="uid://douim1qy54im6"]
+[gd_resource type="SpriteFrames" load_steps=25 format=3 uid="uid://douim1qy54im6"]
 
 [ext_resource type="Texture2D" uid="uid://voidwqqpfbu5" path="res://sprites/enemies/baghel/baghel_idle_frames.png" id="1_idle"]
 [ext_resource type="Texture2D" uid="uid://bnu7jo6q7b4vy" path="res://sprites/enemies/baghel/baghel_patrol_frames.png" id="2_patrol"]
@@ -105,11 +105,6 @@ atlas = ExtResource("4_death")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="death_7"]
-atlas = ExtResource("4_death")
-region = Rect2(896, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
 [resource]
 metadata/hit_frames = {"attack_projectile": [5]}
 metadata/sheet_start = {"idle": 0, "patrol": 1, "attack_projectile": 1, "death": 1}
@@ -189,9 +184,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("death_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("death_7")
 }],
 "loop": false,
 "name": &"death",
