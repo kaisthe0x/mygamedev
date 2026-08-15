@@ -51,7 +51,7 @@ tools/                Generator + verification scripts (not shipped)
 | Shift | `dash` | Has a cooldown |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free and unlimited** (a tiny anti-spam lag only, no Ruh cost). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
-| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving — **except Nem**, a committed sleep that locks you in place and heals ~50% HP over 5s (a hit wakes/cancels it). **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
+| Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving — **except Nem**, a committed sleep that locks you in place and heals ~50% HP over 5s (a hit wakes/cancels it), and **Wara**, which *arms* and waits: the next enemy hit is negated and AoE-stuns everyone near you (2s). **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
 
@@ -477,6 +477,13 @@ in the `ActionsKhalid.SURGES` catalog (`DEFAULT_SURGE = "aegis"`). Two ship:
   restores the whole bar**. A **hit from an enemy wakes him** — the channel cancels and he keeps whatever
   health he'd gained. Driven in `_process_surge` (`_surge_channel` / `_surge_asleep`): the wind-up watches
   `_sprite.frame` for the sleep frame, pauses playback + starts the window; `_on_hurt` cancels it.
+- **Wara** (`wara`) — a **REACTIVE / counter** surge (`trigger: "hit"`, a new surge *type*). Triggering it
+  **arms** it — the aura orbits with **no timer** — until an enemy attack lands. That hit deals **no
+  damage**, every enemy within `stun_radius` (150) is **stunned** `stun_time` (2s), and the orbit aura is
+  replaced by a one-shot AoE `burst`. Then it's spent. State: `_surge_armed` / `_armed_surge`; the arm is
+  set in `_begin_surge` (no `_surge_left`), and `_on_hurt` fires `_trigger_wara` (AoE `Enemy.apply_hit` a
+  stun-only `Hit`, spawn the burst, cue `surge_wara_trigger`, `_end_surge`) **before** `take_damage`.
+  Two VFX (persistent `aura` + on-trigger `burst`) and two SFX (`surge_wara` cast + `surge_wara_trigger`).
 
 Jnoon's / Asra's / Nem's auras + flex sheets (`surge_jnoon` / `surge_asra` / `surge_nem`) + activation cues
 are **placeholders** (copies of Aegis) pending art/audio.

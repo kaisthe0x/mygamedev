@@ -22,7 +22,14 @@ var speed_mult: float = 1.0         ## scale MOVEMENT (run) speed for the durati
 ## from an enemy WAKES him -- the channel cancels, keeping whatever health he already gained.
 var channel: bool = false           ## true = a movement-locking sleep/heal channel (Nem)
 var heal_frac: float = 0.0          ## heal this fraction of MAX health over the channel (Nem 0.5 = +50%)
-var aura: String = ""               ## the aura VFX scene spawned for the window (res:// path)
+## Trigger type: "cast" (default) applies the effect immediately for `duration`; "hit" ARMS the surge --
+## it stays active (aura orbiting) with no timer until an enemy hit lands, which fires the effect below
+## and consumes it. Wara is a "hit" surge: negate that hit + AoE-stun nearby enemies + a burst.
+var trigger: String = "cast"
+var stun_radius: float = 0.0        ## Wara: enemies within this range are stunned when the surge triggers
+var stun_time: float = 0.0          ## Wara: seconds they're stunned
+var aura: String = ""               ## the orbit aura VFX scene shown while active (res:// path)
+var burst: String = ""              ## Wara: the AoE burst VFX played once WHEN triggered (res:// path)
 
 
 static func make(d: Dictionary) -> SurgeSpec:
@@ -35,5 +42,9 @@ static func make(d: Dictionary) -> SurgeSpec:
 	s.speed_mult = float(d.get("speed_mult", s.speed_mult))
 	s.channel = bool(d.get("channel", s.channel))
 	s.heal_frac = float(d.get("heal_frac", s.heal_frac))
+	s.trigger = String(d.get("trigger", s.trigger))
+	s.stun_radius = float(d.get("stun_radius", s.stun_radius))
+	s.stun_time = float(d.get("stun_time", s.stun_time))
 	s.aura = String(d.get("aura", s.aura))
+	s.burst = String(d.get("burst", s.burst))
 	return s

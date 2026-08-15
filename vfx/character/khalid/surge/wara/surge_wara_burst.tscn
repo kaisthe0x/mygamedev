@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3 uid="uid://cwaraburst01"]
+
+[ext_resource type="Texture2D" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
+
+[sub_resource type="Gradient" id="Gradient_wara"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(1.7, 0.32, 0.26, 1, 1.2, 0.2, 0.18, 0.55, 0.35, 0.05, 0.04, 0)
+
+[node name="SurgeWaraBurst" type="Node2D" unique_id=1900002001]
+
+[node name="Ring" type="CPUParticles2D" parent="."]
+position = Vector2(0, -16)
+texture = ExtResource("1_dot")
+emitting = true
+amount = 56
+lifetime = 0.55
+one_shot = true
+explosiveness = 1.0
+direction = Vector2(1, 0)
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 230.0
+initial_velocity_max = 330.0
+scale_amount_min = 2.5
+scale_amount_max = 4.5
+color_ramp = SubResource("Gradient_wara")

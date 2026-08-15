@@ -157,8 +157,17 @@ const SURGES := {
 	# `heal_frac 0.5` capped at max means being already >=50% hp restores the WHOLE bar.
 	"nem": {
 		"name": "Nem", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
-		"surge": {"duration": 5.0, "channel": true, "heal_frac": 0.5, "cost": 100.0,
+		"surge": {"duration": 5.0, "channel": true, "heal_frac": 0.5, "cost": 200.0,
 			"aura": "res://vfx/character/khalid/surge/nem/surge_nem.tscn"},
+	},
+	# Wara: a REACTIVE surge (`trigger: "hit"`). Triggering it ARMS it -- the aura orbits with no timer
+	# until an enemy attack LANDS. That hit deals NO damage, and every enemy within `stun_radius` is
+	# stunned for `stun_time`; the orbit aura is replaced by a one-shot AoE `burst`. Then it's spent.
+	"wara": {
+		"name": "Wara", "icon": "res://vfx/shared/impervious/shield.png", "tier": "typical",
+		"surge": {"trigger": "hit", "stun_radius": 150.0, "stun_time": 2.0, "cost": 100.0,
+			"aura": "res://vfx/character/khalid/surge/wara/surge_wara.tscn",
+			"burst": "res://vfx/character/khalid/surge/wara/surge_wara_burst.tscn"},
 	},
 }
 
@@ -188,5 +197,5 @@ const MOVEMENTS := {
 
 const DEFAULT_ATTACK := "bakshen"
 const DEFAULT_SPECIAL := "redere_shield"
-const DEFAULT_SURGE := "nem"
+const DEFAULT_SURGE := "wara"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

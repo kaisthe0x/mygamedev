@@ -288,6 +288,10 @@ var _surge_asleep: bool = false
 var _surge_heal_target: float = 0.0
 var _surge_heal_rate: float = 0.0
 var _surge_sleep_frame: int = 0
+## Wara REACTIVE surge: armed and waiting for an enemy hit (aura orbits, no timer). The hit that lands
+## fires _trigger_wara (negate it, AoE-stun, burst) and consumes the surge. `_armed_surge` holds its spec.
+var _surge_armed: bool = false
+var _armed_surge: SurgeSpec = null
 ## Extra surge seconds from rewards (Fortitude: "+3s"). Reset by begin_run. Extends any surge's window.
 var special_invuln_bonus: float = 0.0
 ## The aura VFX shown for the surge window (freed on expiry), or null.
@@ -814,6 +818,11 @@ func _on_hurt(hit: Hit) -> void:
 			_shake(shield_shake_amp, shield_shake_time) # VIBRATE: the guard rattles from the impact
 			return
 		# hit from behind -> falls through and lands as a normal hit
+	# Wara REACTIVE surge: the first enemy hit to land consumes it -- this hit deals NO damage, and it
+	# fires the AoE stun + burst. Checked before take_damage so the triggering hit is fully negated.
+	if _surge_armed and hit.source is Enemy:
+		_trigger_wara()
+		return
 	take_damage(hit.amount)
 	if _dead:
 		return # the killing blow: death takes over -- no knockback/stun/reactions
@@ -901,7 +910,13 @@ func _begin_surge(s: SurgeSpec) -> void:
 	_surge_dmg_taken_mult = s.damage_taken_mult
 	_surge_speed_mult = s.speed_mult
 	_surge_channel = s.channel
-	if s.channel:
+	_surge_armed = (s.trigger == "hit")
+	if _surge_armed:
+		# A REACTIVE surge (Wara): arm it -- the aura orbits with NO timer until an enemy hit lands
+		# (_on_hurt -> _trigger_wara). No immediate effect; the effect fires on that hit.
+		_armed_surge = s
+		_surge_left = 0.0
+	elif s.channel:
 		# A locking CHANNEL (Nem): don't start the window yet -- healing begins when the wind-up reaches
 		# the sleep frame (see _process_surge). Heal pool = heal_frac of MAX hp, capped at max, so being
 		# already >=50% hp reaches full ("restore the whole bar"). Interruptible -- health rises live.
@@ -934,8 +949,8 @@ func _begin_surge(s: SurgeSpec) -> void:
 func _try_surge() -> void:
 	if _dead or _current_surge == null or _current_surge.surge == null:
 		return
-	if _surge_channel:
-		return # can't re-surge while a channel (Nem) is running -- he's asleep/locked
+	if _surge_channel or _surge_armed:
+		return # can't re-surge while a channel (Nem) or a reactive surge (Wara) is already active
 	if not Input.is_action_just_pressed("surge"):
 		return
 	var s := _current_surge.surge
@@ -969,6 +984,8 @@ func _end_surge() -> void:
 	_surge_dmg_mult = 1.0
 	_surge_dmg_taken_mult = 1.0
 	_surge_speed_mult = 1.0
+	_surge_armed = false
+	_armed_surge = null
 	if _surge_channel:
 		_surge_channel = false
 		_surge_asleep = false
@@ -980,6 +997,39 @@ func _end_surge() -> void:
 		tw.tween_property(aura, "modulate:a", 0.0, 0.3)
 		tw.tween_callback(aura.queue_free)
 	_special_aura = null
+
+
+## Wara's payoff -- an armed enemy hit landed (the caller already negated its damage). AoE-stun every
+## enemy within `stun_radius`, play the one-shot burst VFX where he stands, cue the trigger SFX, and
+## consume the surge (which drops the orbit aura).
+func _trigger_wara() -> void:
+	var s := _armed_surge
+	if s == null:
+		_end_surge()
+		return
+	# Stun nearby enemies: a 0-damage Hit carrying only the stun (+ a faint tint), applied directly.
+	for e in get_tree().get_nodes_in_group("enemies"):
+		var en := e as Node2D
+		if en == null or not en.has_method("apply_hit"):
+			continue
+		if global_position.distance_to(en.global_position) <= s.stun_radius:
+			var h := Hit.new()
+			h.stun = s.stun_time
+			h.source = self
+			h.status_color = Color(1.0, 0.85, 0.2, 0.6) # stun glint (placeholder)
+			h.status_time = s.stun_time
+			en.apply_hit(h)
+	# Burst VFX: the AoE flash showing the affected area, at his feet, recoloured by the power picks.
+	if s.burst != "" and ResourceLoader.exists(s.burst):
+		var scene := load(s.burst) as PackedScene
+		var burst := scene.instantiate() as Node2D if scene != null else null
+		if burst != null:
+			VfxPalette.recolor_tree(burst)
+			add_child(burst)
+			get_tree().create_timer(1.5).timeout.connect(burst.queue_free) # one-shot -> self-clean
+	Sfx.play("surge_wara_trigger") # the "it fired" cue (missing file = silent)
+	flash(_sprite)
+	_end_surge() # drop the orbit aura + clear the armed state
 
 
 ## Freeze the sprite on its current frame for `duration` seconds, then resume -- so an
