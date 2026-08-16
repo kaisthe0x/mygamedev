@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://pl8q0jlcf73e" path="res://scripts/run/run_manager.gd" id="2_switch"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
-size = Vector2(1200, 40)
+size = Vector2(3200, 40)
 
 [node name="Level" type="Node2D" unique_id=1143969346]
 script = ExtResource("2_switch")
@@ -19,7 +19,7 @@ process_callback = 0
 [node name="Floor" type="StaticBody2D" parent="." unique_id=240657501]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=615602854]
-position = Vector2(0, 20)
+position = Vector2(900, 20)
 shape = SubResource("floor_shape")
 
 [node name="ColorRect" type="ColorRect" parent="Floor" unique_id=150748860]

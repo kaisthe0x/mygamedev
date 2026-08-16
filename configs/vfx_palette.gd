@@ -56,6 +56,19 @@ static func _hue_dist(a: float, b: float) -> float:
 	return minf(d, 1.0 - d)
 
 
+## The picked HUE (0..1) for the family `sample` belongs to, or -1 if there's no pick / no match.
+## For recolouring a "thing" whose colour is BAKED INTO ITS TEXTURE (a sprite, not a modulate/ramp),
+## which recolor_tree can't touch: feed this hue to a hue-replace shader (see vfx/shaders/thing_recolor)
+## so the sprite follows the same family pick the rope/effects do. Sample a representative pixel colour.
+static func hue_for(sample: Color) -> float:
+	if picks.is_empty():
+		return -1.0
+	var fam := classify(sample)
+	if fam == "" or not picks.has(fam):
+		return -1.0
+	return (picks[fam] as Color).h
+
+
 ## Recolour ONE colour by the current picks: adopt the picked family's HUE, keep this stop's own
 ## saturation + value (HDR preserved) + alpha. No pick for the family, or unmatched -> returned unchanged.
 static func recolor(c: Color) -> Color:

@@ -48,7 +48,7 @@ tools/                Generator + verification scripts (not shipped)
 | A / D | `move_left` / `move_right` | |
 | S / ↓ | `drop` | Tap to fall through the one-way platform you're on (ground only; a no-op on solid floor). Controller: D-pad down / left-stick down; remappable in the Input Map |
 | Space | `jump` | Press again in the air to **double jump** (`max_air_jumps`) — the air jump re-boosts and spawns the character's jump particles; the ground jump is silent |
-| Shift | `dash` | Has a cooldown |
+| Shift | `dash` | Has a cooldown. **Dash into a launch orb** and it magnets you through and flings you up + forward (see Launch orbs) |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
 | Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free and unlimited** (a tiny anti-spam lag only, no Ruh cost). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
 | Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving — **except Nem**, a committed sleep that locks you in place and heals ~50% HP over 5s (a hit wakes/cancels it), and **Wara**, which *arms* and waits: the next enemy hit is negated and AoE-stuns everyone near you (2s). **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
@@ -64,6 +64,37 @@ is actually facing, controller-friendly. Standing still keeps the last facing; t
 mouse cursor does **not** steer facing or aim (a previous mouse-look experiment was
 removed). If you want cursor-aim back for keyboard+mouse without breaking controller
 play, the clean way is "last input device wins" — ask and I'll wire it.
+
+**Launch orbs — magnet traversal (`State.LAUNCH`).** Levels place **launch orbs**
+(`scripts/things/swing_orb.gd`, `SwingOrb`) — levitating orbs above/between platforms. **Dash into (or
+near) one** and it acts as a **magnet**: it sucks Khalid through and flings him out the far side with the
+orb's **own set impulse** — a strong **up + forward** along his facing (`SwingOrb.launch_up` /
+`launch_forward`). He keeps brief dash i-frames and **air-dashes** the rest of the way to the next
+platform. Fully automatic — no aiming, no pumping. (This replaced an earlier controllable-swing design.)
+
+- **Reliable trigger.** Capture is checked at the dash **press** *and* every dash frame, over a generous
+  body radius (`LAUNCH_PULL_RANGE` ~96px) — the press check matters because Khalid's default dash is a
+  **blink/teleport** that could otherwise skip past the orb. On capture he's magneted to the orb over
+  `LAUNCH_MAGNET_TIME` (i-frames on), then flung; `LAUNCH_CD` blocks an instant re-trigger. Tuning is the
+  `LAUNCH_*` consts at the top of `player.gd` plus each orb's `launch_*` exports.
+- **The orb is dumb by design** (`LaunchOrb`). It bobs and joins the `"orbs"` group; the Player owns the
+  range test (`_orb_in_pull_range`, the way it scans `"enemies"`), drives which orb is lit (`set_near`),
+  and owns the magnet/launch. Adding one to a level is a single `Vector2` in that level's **`orbs`** list
+  (`scripts/run/levels.gd`); RunManager instantiates them in `_build_level`.
+- **The orb reshades to the power palette AND glows.** Its red art is baked into its *texture* (which
+  `VfxPalette.recolor_tree` can't touch) **and is dark** (luma ~0.19 — a hue-swap alone rendered
+  near-black). So it wears `vfx/shaders/thing_recolor.gdshader`, which paints every pixel a single
+  **`tint`** (set to the family colour via `VfxPalette.recolor`) scaled by the baked pixel's brightness,
+  times a **`glow`** lift so it blooms — same simple shape as the proven `enemy_glow` shader (no hsv, no
+  `COLOR` multiply, which is what a straight canvas shader renders reliably). A `shine` uniform adds the
+  proximity glow. Net: pick teal powers and the orb glows bright teal.
+- **SFX live under `things/` (not `character/`).** Two cues in **`SfxWorld`**, both placeholder:
+  `launch_orb` — the ambient hum it emits **on loop** (positional, via the new `Sfx.make_loop_2d`, parented
+  to the orb) — and `launch_orb_use`, the one-shot when Khalid uses it (`LaunchOrb.play_use`). Files:
+  `sfx/things/traversal/launch_orb/`.
+- **Level layout.** Level 1 (*The Shallows*) is a large testbed: small HIGH platforms ~800px apart over a
+  wide floor (falling just drops you to the ground). The `khalid_swing_frames` sheet is currently unused
+  (the swing animation was discarded); `State.LAUNCH` plays the `dash` anim through the magnet.
 
 **Which character you play is chosen in code.** In-game Q/E switching is **gone** — set the
 **`START_CHARACTER`** constant near the top of `scripts/run/run_manager.gd` to any id in

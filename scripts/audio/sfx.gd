@@ -106,18 +106,14 @@ func play_random(keys: Array, volume_db := 0.0, pitch := 1.0) -> void:
 	play(String(valid[randi() % valid.size()]), volume_db, pitch)
 
 
-## Create a dedicated LOOPING player for `key` (stream forced to loop, on the SFX bus). It is NOT
-## added to the tree -- the CALLER parents it (so it frees with its owner, never orphaned as a
-## stuck sound) and drives play()/stop() by state, e.g. a footstep loop while grounded + moving.
-## Returns null if the key is unregistered or its file is missing, so callers must null-check.
-func make_loop(key: String) -> AudioStreamPlayer:
+## The stream for `key` forced to LOOP (a duplicate, so the shared one-shot stream is never flipped),
+## or null. For a WAV, setting loop_mode ALONE isn't enough: loop_end defaults to 0, giving a
+## ZERO-LENGTH loop region that "finishes" instantly every frame (a stuttering restart, not a loop) --
+## so span loop_begin/end across the whole sample.
+func _looped_stream(key: String) -> AudioStream:
 	var s := _stream(key)
 	if s == null:
 		return null
-	# Force the stream to loop if it wasn't imported looping. Duplicate first so we never flip the
-	# shared cached stream that one-shot users share. For a WAV, setting loop_mode ALONE isn't enough:
-	# loop_end defaults to 0, giving a ZERO-LENGTH loop region that "finishes" instantly every frame
-	# (the stuttering restart, not a loop) -- so span loop_begin/end across the whole sample.
 	if s is AudioStreamWAV and (s as AudioStreamWAV).loop_mode == AudioStreamWAV.LOOP_DISABLED:
 		var w: AudioStreamWAV = (s as AudioStreamWAV).duplicate()
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
@@ -132,7 +128,30 @@ func make_loop(key: String) -> AudioStreamPlayer:
 		var o: AudioStreamOggVorbis = (s as AudioStreamOggVorbis).duplicate()
 		o.loop = true
 		s = o
+	return s
+
+
+## Create a dedicated LOOPING player for `key` (stream forced to loop, on the SFX bus). It is NOT
+## added to the tree -- the CALLER parents it (so it frees with its owner, never orphaned as a
+## stuck sound) and drives play()/stop() by state, e.g. a footstep loop while grounded + moving.
+## Returns null if the key is unregistered or its file is missing, so callers must null-check.
+func make_loop(key: String) -> AudioStreamPlayer:
+	var s := _looped_stream(key)
+	if s == null:
+		return null
 	var pl := AudioStreamPlayer.new()
+	pl.bus = _bus
+	pl.stream = s
+	return pl
+
+
+## Positional twin of make_loop(): a looping AudioStreamPlayer2D the caller parents at a world spot --
+## for a sound an object EMITS on loop (a launch orb's hum), which then pans/attenuates with distance.
+func make_loop_2d(key: String) -> AudioStreamPlayer2D:
+	var s := _looped_stream(key)
+	if s == null:
+		return null
+	var pl := AudioStreamPlayer2D.new()
 	pl.bus = _bus
 	pl.stream = s
 	return pl

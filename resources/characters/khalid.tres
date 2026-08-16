@@ -27,6 +27,7 @@
 [ext_resource type="Texture2D" uid="uid://jte6pq8lwx55" path="res://sprites/characters/khalid/khalid_surge_jnoon_frames.png" id="25_surge_jnoon"]
 [ext_resource type="Texture2D" uid="uid://clj48g6qdp8ds" path="res://sprites/characters/khalid/khalid_surge_nem_frames.png" id="26_surge_nem"]
 [ext_resource type="Texture2D" uid="uid://bulx35f5lajpr" path="res://sprites/characters/khalid/khalid_surge_wara_frames.png" id="27_surge_wara"]
+[ext_resource type="Texture2D" uid="uid://ykhcuiju0njo" path="res://sprites/characters/khalid/khalid_swing_frames.png" id="28_swing"]
 
 [sub_resource type="AtlasTexture" id="attack_bakshen_1"]
 atlas = ExtResource("11_attack_bakshen")
@@ -668,6 +669,38 @@ region = Rect2(512, 0, 128, 80)
 atlas = ExtResource("27_surge_wara")
 region = Rect2(640, 0, 128, 80)
 
+[sub_resource type="AtlasTexture" id="swing_1"]
+atlas = ExtResource("28_swing")
+region = Rect2(128, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="swing_2"]
+atlas = ExtResource("28_swing")
+region = Rect2(256, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="swing_3"]
+atlas = ExtResource("28_swing")
+region = Rect2(384, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="swing_4"]
+atlas = ExtResource("28_swing")
+region = Rect2(512, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="swing_5"]
+atlas = ExtResource("28_swing")
+region = Rect2(640, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="swing_6"]
+atlas = ExtResource("28_swing")
+region = Rect2(768, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="swing_7"]
+atlas = ExtResource("28_swing")
+region = Rect2(896, 0, 128, 80)
+
+[sub_resource type="AtlasTexture" id="swing_8"]
+atlas = ExtResource("28_swing")
+region = Rect2(1024, 0, 128, 80)
+
 [resource]
 animations = [{
 "frames": [{
@@ -1284,6 +1317,35 @@ animations = [{
 "loop": 0,
 "name": &"surge_wara",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("swing_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("swing_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("swing_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("swing_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("swing_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("swing_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("swing_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("swing_8")
+}],
+"loop": 1,
+"name": &"swing",
+"speed": 9.0
 }]
 metadata/hit_frames = {
 "attack_bakshen": [2],
@@ -1323,5 +1385,12 @@ metadata/sheet_start = {
 "surge_asra": 1,
 "surge_jnoon": 1,
 "surge_nem": 0,
-"surge_wara": 1
+"surge_wara": 1,
+"swing": 1
+}
+metadata/loop_from = {
+"swing": 1
+}
+metadata/loop_to = {
+"swing": 6
 }

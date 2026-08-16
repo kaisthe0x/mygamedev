@@ -42,14 +42,19 @@ static func _build() -> Array:
 	{
 		"name": "The Shallows",
 		"bg": Color(0.06, 0.10, 0.13),
-		"platforms": [[-300.0, -95.0, 170.0], [40.0, -150.0, 160.0], [330.0, -110.0, 180.0]],
-		"player_spawn": Vector2(-470.0, 0.0),
-		"exit_pos": Vector2(520.0, -20.0),
+		# LARGE traversal testbed: small HIGH platforms ~800 apart. Jump toward a launch orb and DASH into
+		# it -- the orb magnets you through and flings you up + forward to the next platform (air-dash to
+		# finish the crossing). The floor spans the whole level, so a miss just drops you to the ground.
+		# Tune the orb positions + each orb's launch_up/launch_forward (LaunchOrb) to the gap sizes.
+		"platforms": [[0.0, -320.0, 110.0], [800.0, -360.0, 110.0], [1600.0, -320.0, 110.0]],
+		"orbs": [Vector2(-300.0, -160.0), Vector2(400.0, -190.0), Vector2(1200.0, -170.0)],
+		"player_spawn": Vector2(-600.0, 0.0),
+		"exit_pos": Vector2(2200.0, -20.0),
 		"start": [
-			{"kit": EnemyKits.BAGHEL, "pos": Vector2(120.0, 0.0)},
-			{"kit": EnemyKits.BAGHEL, "pos": Vector2(-40.0, -150.0)},
-			{"kit": EnemyKits.BAGHEL, "pos": Vector2(-150.0, 0.0)},
-			{"kit": EnemyKits.KEBUS, "pos": Vector2(330.0, -110.0)},
+			{"kit": EnemyKits.BAGHEL, "pos": Vector2(-350.0, 0.0)},
+			{"kit": EnemyKits.BAGHEL, "pos": Vector2(200.0, 0.0)},
+			{"kit": EnemyKits.KEBUS, "pos": Vector2(800.0, -360.0)},
+			{"kit": EnemyKits.KEBUS, "pos": Vector2(1400.0, 0.0)},
 		],
 		"waves": [], # intro level: just the 4-enemy start batch -- clear those 4 and the exit opens
 	},

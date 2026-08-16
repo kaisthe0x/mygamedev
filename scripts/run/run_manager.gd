@@ -138,6 +138,12 @@ func _build_level(index: int) -> void:
 	_place_trees() # background tree props (behind the terrain), varied per level
 	for p in lv["platforms"]:
 		_build_platform(p[0], p[1], p[2], 14.0)
+	# Launch orbs: dash into one and it flings Khalid up + forward (see LaunchOrb / Player State.LAUNCH),
+	# authored per level as world positions (above/between platforms). Optional key -> default none.
+	for pos: Vector2 in lv.get("orbs", []):
+		var orb := LaunchOrb.new()
+		orb.position = pos
+		_content.add_child(orb)
 
 	_door_type = DOOR_TYPES[randi() % DOOR_TYPES.size()] # one random reward door per level
 	_gate = ExitGate.new()

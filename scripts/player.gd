@@ -176,7 +176,25 @@ var land_predict_distance: float ## px above ground the LAND anim starts (plays 
 ## (~34°). The puff leans opposite to horizontal travel; 0 = straight down. Tune to taste.
 const DOUBLE_JUMP_LEAN := 0.6
 
-enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPAWN, HURT, SURGE}
+enum State {IDLE, RUN, JUMP, DASH, ATTACK, SPECIAL, LAND, SLAM, FALL, DEATH, SPAWN, HURT, SURGE, LAUNCH}
+
+# --- launch orbs (magnet traversal) -----------------------------------------
+## A launch orb is a MAGNET, not a swing: while DASHING into an orb's pull area, Khalid is sucked to it
+## and flung out the far side with the orb's OWN set impulse (a strong up + forward). Fully automatic --
+## no aiming, no timing a press: any dash that enters the area triggers it. He keeps brief dash i-frames
+## and can air-dash on. Detection is checked every dash frame over a generous body radius, so it's
+## reliable (the old "press dash within a tiny hand range" was inconsistent).
+const LAUNCH_PULL_RANGE := 96.0    ## dash within this of an orb (body centre -> orb) to be captured
+const LAUNCH_BODY := Vector2(0.0, -20.0) ## his body centre relative to feet, for the range test + magnet
+const LAUNCH_MAGNET_TIME := 0.08   ## seconds the magnet takes to suck him to the orb before the fling
+const LAUNCH_CD := 0.45            ## no re-capture for a beat after a launch (or he'd re-trigger midair)
+
+var _launch_orb: Node2D = null     ## the orb currently launching him (null = not launching)
+var _launch_from := Vector2.ZERO   ## his position when captured (magnet lerps from here to the orb)
+var _launch_t := 0.0               ## magnet timer
+var _launch_vel := Vector2.ZERO    ## the orb's set fling velocity, resolved at capture (up + forward)
+var _launch_cd := 0.0              ## counts down after a launch; blocks an instant re-capture
+var _near_orb: Node2D = null       ## the orb currently lit as "in range" (drives its shine cue)
 
 var _state: State = State.IDLE
 var _facing: int = 1
@@ -832,6 +850,11 @@ func _on_hurt(hit: Hit) -> void:
 	# Passives reacting to being hurt (retaliation, defensive buff, ...).
 	for p in _passives:
 		p.on_hurt(self, hit)
+	# A hit mid-launch drops the magnet: cancel it so the knockback/flinch below apply as a normal
+	# airborne stagger. (The i-frames during LAUNCH mean this is rare -- only a non-blocked source.)
+	if _state == State.LAUNCH:
+		_launch_orb = null
+		_launch_cd = LAUNCH_CD
 	# A held/channeled effect breaks when the caster is hit, if it opts in --
 	# stop it and release the pose-hold. Independent of the ability hook above.
 	if _channel != null and is_instance_valid(_channel) and _channel.interrupt_on_hurt:
@@ -1111,6 +1134,7 @@ func _die() -> void:
 	if _channel != null and is_instance_valid(_channel):
 		_channel.cancel()
 	_channel = null
+	_launch_orb = null # cancel any in-progress orb launch on death
 	if _hurtbox != null:
 		_hurtbox.monitorable = false
 	if has_anim(&"death"):
@@ -1163,6 +1187,8 @@ func _physics_process(delta: float) -> void:
 
 	_dash_cd = maxf(_dash_cd - delta, 0.0)
 	_special_cd = maxf(_special_cd - delta, 0.0)
+	_launch_cd = maxf(_launch_cd - delta, 0.0)
+	_update_orb_proximity() # light up whichever launch orb is in range (its shine + cue)
 	_try_surge() # SURGE: fires in ANY state on the `surge` button if you have the Ruh (no cooldown)
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
 	_update_cooldown_bar()
@@ -1210,6 +1236,8 @@ func _physics_process(delta: float) -> void:
 		_process_slam(delta)
 	elif _state == State.LAND:
 		_process_land(delta)
+	elif _state == State.LAUNCH:
+		_process_launch(delta)
 	else:
 		# The combo only decays while you're not mid-swing.
 		_combo_window = maxf(_combo_window - delta, 0.0)
@@ -1233,7 +1261,7 @@ func _physics_process(delta: float) -> void:
 	if _hurtbox != null:
 		# Off while dead, while spawning (protection so the materialize plays out), during the
 		# dash i-frame window, and while an invuln SURGE (Aegis) is active.
-		_hurtbox.monitorable = not _dead and _state != State.SPAWN \
+		_hurtbox.monitorable = not _dead and _state != State.SPAWN and _state != State.LAUNCH \
 			and not (_state == State.DASH and _dash_left > 0.0) \
 			and not (_surge_invuln and _surge_left > 0.0)
 
@@ -1254,6 +1282,13 @@ func _process_stun(delta: float) -> void:
 
 
 func _process_dash(delta: float) -> void:
+	# LAUNCH ORB: a dash that enters an orb's pull area is captured -> magnet + fling (up/forward). Checked
+	# every dash frame over a generous body radius, so dashing near/through an orb reliably triggers it.
+	if _launch_cd <= 0.0:
+		var orb := _orb_in_pull_range()
+		if orb != null:
+			_begin_launch(orb)
+			return
 	_dash_anim_left -= delta
 	# Are we still holding the direction we dashed? Then the dash should blend into a
 	# run, not brake to a stop and re-accelerate.
@@ -1331,9 +1366,17 @@ func _process_normal(delta: float) -> void:
 	if Input.is_action_just_pressed("attack") and (is_on_floor() or _air_attack_ok()):
 		_advance_combo()
 		return
-	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
-		_enter(State.DASH)
-		return
+	if Input.is_action_just_pressed("dash"):
+		# Near a launch orb, dash captures it -> magnet + fling (checked here at the PRESS because Khalid's
+		# dash is a blink/teleport that could skip past the area; _process_dash re-checks for a glide dash).
+		if _launch_cd <= 0.0:
+			var orb := _orb_in_pull_range()
+			if orb != null:
+				_begin_launch(orb)
+				return
+		if _dash_cd <= 0.0:
+			_enter(State.DASH)
+			return
 	# `drop` (down by default): on the ground, fall through the one-way platform you're
 	# standing on (a no-op on the solid floor). The slam is on the special button now
 	# (see above), so drop does nothing in the air. Jump is just jump.
@@ -1375,6 +1418,79 @@ func _set_airborne_state() -> void:
 ## just holds its last frame as a fall pose -- the old behaviour).
 func _airborne_default() -> State:
 	return State.FALL if _has_fall() else State.JUMP
+
+
+# --- launch orbs (magnet traversal) -----------------------------------------
+
+## The nearest orb whose centre is within `LAUNCH_PULL_RANGE` of Khalid's body, or null. Player-side
+## detection: orbs live in the "orbs" group (see LaunchOrb); we pick the closest, like we scan "enemies".
+func _orb_in_pull_range() -> Node2D:
+	var body := global_position + LAUNCH_BODY
+	var best: Node2D = null
+	var best_d := LAUNCH_PULL_RANGE * LAUNCH_PULL_RANGE
+	for o: Node in get_tree().get_nodes_in_group("orbs"):
+		if not (o is Node2D):
+			continue
+		var d := body.distance_squared_to((o as Node2D).global_position)
+		if d < best_d:
+			best_d = d
+			best = o as Node2D
+	return best
+
+
+## Drive which orb is lit as "in range" this frame (its shine + proximity cue). Single source of the
+## range test, so the orb stays dumb. Skipped while dead/spawning/launching.
+func _update_orb_proximity() -> void:
+	var near: Node2D = null
+	if not _dead and _state != State.SPAWN and _state != State.LAUNCH:
+		near = _orb_in_pull_range()
+	if near == _near_orb:
+		return
+	if _near_orb != null and is_instance_valid(_near_orb) and _near_orb.has_method("set_near"):
+		_near_orb.set_near(false)
+	if near != null and near.has_method("set_near"):
+		near.set_near(true)
+	_near_orb = near
+
+
+## Captured by a launch `orb`: enter the brief magnet phase (sucked to the orb) and resolve the orb's
+## SET fling (a strong up + forward along his facing), applied when the magnet completes (_process_launch).
+func _begin_launch(orb: Node2D) -> void:
+	_launch_orb = orb
+	_launch_from = global_position
+	_launch_t = 0.0
+	var up: float = orb.launch_up if "launch_up" in orb else 950.0
+	var fwd: float = orb.launch_forward if "launch_forward" in orb else 650.0
+	_launch_vel = Vector2(_facing * fwd, -up)
+	velocity = Vector2.ZERO
+	_enter(State.LAUNCH)
+	if orb.has_method("play_use"):
+		orb.play_use() # the orb's "used it" cue, at the orb (positional)
+
+
+## Magnet phase: suck him to the orb over LAUNCH_MAGNET_TIME (position-driven, i-frames on), then FLING
+## him out with the orb's set impulse and hand back to the airborne state (he keeps brief dash i-frames
+## and can air-dash on). If the orb vanished (level torn down), just drop.
+func _process_launch(delta: float) -> void:
+	if not is_instance_valid(_launch_orb):
+		_launch_orb = null
+		_enter(_airborne_default())
+		return
+	_launch_t += delta
+	var t := clampf(_launch_t / LAUNCH_MAGNET_TIME, 0.0, 1.0)
+	# Suck his BODY centre onto the orb (so he passes through it), easing in.
+	var target: Vector2 = (_launch_orb as Node2D).global_position - LAUNCH_BODY
+	global_position = _launch_from.lerp(target, ease(t, 0.35))
+	_update_animation(delta)
+	if t >= 1.0:
+		_launch_orb = null
+		_launch_cd = LAUNCH_CD
+		velocity = _launch_vel # the orb's set impulse: strong up + forward, out the far side
+		if absf(velocity.x) > 5.0:
+			_facing = 1 if velocity.x > 0.0 else -1
+		_dash_left = maxf(_dash_left, 0.12) # keep brief i-frames -- "the rest of his dash" carries through
+		_jump_launch = true # the JUMP/rise anim plays out of the fling
+		_enter(_airborne_default())
 
 
 ## Drop through the one-way platform we're standing on: briefly ignore collisions
@@ -1445,9 +1561,15 @@ func _process_land(delta: float) -> void:
 		if Input.is_action_just_pressed("attack") and _air_attack_ok():
 			_advance_combo()
 			return
-		if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
-			_enter(State.DASH)
-			return
+		if Input.is_action_just_pressed("dash"):
+			if _launch_cd <= 0.0:
+				var orb := _orb_in_pull_range()
+				if orb != null:
+					_begin_launch(orb) # near a launch orb -> magnet + fling instead of the dash
+					return
+			if _dash_cd <= 0.0:
+				_enter(State.DASH)
+				return
 		if Input.is_action_just_pressed("jump") and _air_jumps_used < max_air_jumps:
 			_air_jump() # enters JUMP itself
 		return
@@ -1866,6 +1988,9 @@ func _enter(state: State) -> void:
 			velocity = Vector2(0.0, slam_speed)
 			_slam_impacting = false # fresh slam: not yet released into the impact
 			_slam_start_y = global_position.y # measure the plunge from here for damage
+		State.LAUNCH:
+			# Captured by a launch orb: keep the dash pose while the magnet sucks him through (_process_launch).
+			_sprite.play(&"dash")
 
 
 func _animation_for(state: State) -> StringName:
@@ -1882,6 +2007,7 @@ func _animation_for(state: State) -> StringName:
 		State.SPAWN: return &"spawn"
 		State.HURT: return &"hurt"
 		State.SURGE: return _current_surge.animation if _current_surge != null else &"idle"
+		State.LAUNCH: return &"dash" # he's mid-dash being magneted through the orb
 		_: return &"idle"
 
 

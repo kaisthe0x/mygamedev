@@ -148,6 +148,13 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     ("khalid", "special_redere_shield"): {"fps": 9.0, "hold_last": 2.0},
     ("khalid", "special_redere_frisbee"): {"fps": 11.0, "hold_last": 2.0},
     ("khalid", "death"): {"fps": 7.0},
+    # Swing (orb traversal): a HELD grapple.
+    # F0 is the idle-ref (dropped); F1 is the reach/grab intro
+    # (plays once); F2-F7 loop as the swing cycle while attached to the orb; F8 is the release pose
+    # (past loop_to, shown once on let-go by player.gd). loop is REQUIRED so the hang cycles for a
+    # variable, physics-driven duration.
+    # loop_from/loop_to are SHEET-relative (they count the idle-ref F0).
+    ("khalid", "swing"): {"fps": 9.0, "loop": True, "loop_from": 2, "loop_to": 7},
     # Hurt flinch: slower than the 12fps default + a lingering recoil so the 3-frame
     # reaction reads (the Player holds HURT at least this long, not cut short by a brief stagger).
     ("khalid", "hurt"): {"fps": 10.0, "hold_last": 1.6},
