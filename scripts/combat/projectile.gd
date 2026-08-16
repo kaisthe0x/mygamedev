@@ -176,6 +176,9 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 		hb.source = t["source"]
 	if t.has("from_special"):
 		hb.from_special = t["from_special"]  # a special-kill doesn't refill Ruh
+	if t.has("reap"):  # a ranged reap DoT (see StrikeSpec / Enemy._tick_dot); melee moves use strike.gd
+		hb.dot_percent = t["reap"]
+		hb.dot_time = t.get("reap_time", 0.0)
 
 
 ## Nearest target AHEAD in the facing x-direction, within acquire_range (measured on

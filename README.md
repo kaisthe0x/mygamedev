@@ -566,11 +566,22 @@ buffered special still cancels it. `_advance_combo()` routes the first press to
 damage/knockback are low (the `Actions` catalog) since the DPS comes from the cadence.
 
 Khalid's `twin_reaper` (Elite) is a second flurry: **hold** and the whole spin loops
-(`loop: true`, `fps 16`), each pass firing its five `Slash1`–`Slash5` `Strike` nodes on the
+(`loop: true`, `fps 20`), each pass firing its five `Slash1`–`Slash5` `Strike` nodes on the
 emitter frames (3/4/6/7/9) — one node per hit so each keeps its own hitbox + particles for
 tuning. A flurry feeds a *single* `tuning` to every hit (12 dmg, `knockback 0` to keep enemies
 caught in the spin), so — like `ora_ora` — it has **no** `HIT_FRAMES` entry (those drive the
 click-combo segmentation, not a flurry).
+
+**Reap (a damage-over-time mark).** Twin Reaper's tuning also carries `reap` (fraction of the
+victim's *max* health drained per 1-second bite) + `reap_time` (how long the drain lasts) — `0.12`/s
+for `5s`. **One-and-done:** the mark latches on the enemy's *first* reap hit (`Enemy._reaped`) and
+plays out its fixed window once; the spin's later hits deal only normal damage — they never re-arm or
+extend the drain, so the rate of death can't be stacked up. The keys ride the same tuning path as `damage`/`stun`:
+`Strike.apply_tuning` (and `Projectile._inject_tuning`) copy them onto the `Hitbox` → `Hit.dot_percent`
+/ `dot_time` → the victim. On an enemy, `_on_hurt` snapshots a per-tick HP and `_tick_dot` drains it in
+discrete once-a-second bites (`Enemy._reap_tick`) — ticking even while stunned, and creditable as a
+normal (Ruh-eligible) kill. Bump `reap` toward `0.15` in `actions_khalid.gd` for a deadlier mark. Any
+future move (melee **or** ranged) can carry a `reap` to inflict a DoT.
 
 **Attack cooldown (`Action.style` `COOLDOWN` + `Action.cooldown`).** A heavy one-shot can carry a
 `cooldown` (seconds) in the `Actions` catalog so it can't be spammed — Khalid's `bakshen` uses `3.0`.
@@ -1115,6 +1126,15 @@ to hand-wire. Key traits:
   **colour-coded by fill** — green when healthy, orange as it drops, red when low
   (`FloatingHealthBar.ratio_colors`; the thresholds/colours live in one place,
   `color_for_ratio`, so the HUD player HP bar reads from the exact same bands).
+- **Status pips** (`scripts/combat/status_icons.gd` → `StatusIcons`). A small row of tinted icons
+  sits just to the right of the health bar, one per active status — **reap** (dying/DoT), **stun**,
+  **charm** (frenemy); **slow** is reserved for a future effect. `Enemy._refresh_status_icons()`
+  recomputes the active set each frame from the enemy's own timers and only redraws when the set
+  changes (a joined-key compare). Icon **art** comes from the shared `Icons` registry under
+  `status:<id>` keys and the tint/label from `configs/status_types.gd` (`StatusTypes.DEFS` + `ORDER`
+  for the fixed left→right slot order), so all four are **temp placeholders** today — swap the paths
+  in `configs/icons.gd` (one line each) when real pips are drawn, no code change. Add a status by an
+  entry in `StatusTypes`, a `status:<id>` path in `Icons`, and one line in `_refresh_status_icons`.
 - **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
   label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude)`. It parents the label to
   the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it
@@ -1249,7 +1269,9 @@ the enemy `friendly_fire` flag above.)
 ### On-hit effects — the `Hit` object
 
 An attack delivers a `Hit` (`scripts/combat/hit.gd`) — `amount`, `knockback`,
-`stun`, `source`, `ranged`, and an optional status overlay (`status_color` / `status_time`).
+`stun`, `source`, `ranged`, an optional status overlay (`status_color` / `status_time`),
+and an optional **reap DoT** (`dot_percent` / `dot_time` — fraction of the victim's max health
+drained per 1s tick, and for how long; see Twin Reaper's Reap above).
 A `Hitbox`/`Projectile` fills one in; the victim's `_on_hurt(hit)` applies it. Add
 a new effect field here and nothing else's signature changes. **`ranged`** marks the hit as
 coming from a projectile (`Projectile` sets it on its box; melee `Strike`s leave it false),
@@ -1310,7 +1332,10 @@ attack; `hit` is `null` when the effect scene carries its own numbers):
 | `damage` | hit damage |
 | `knockback` | px/s shove away from the attacker |
 | `stun` | seconds frozen |
+| `reap` / `reap_time` | reap DoT: fraction of the victim's max health per 1s tick, for this long (Twin Reaper) |
 | `color` / `color_time` | engulfing status overlay + duration |
+| `victim_effect` / `victim_time` | custom VFX scene spawned on the victim + its lifetime |
+| `frenemy` | seconds to charm an enemy into a temporary ally |
 | `x` | hitbox forward reach (mirrors with facing) |
 | `extents` | hitbox half-size |
 | `lunge` / `super_armor` / `multi_hit` | `Strike` wielder-effects — dormant hooks the buff system will use |

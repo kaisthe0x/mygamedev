@@ -30,6 +30,13 @@ const PATHS := {
 	"buff:air_jump": "res://vfx/shared/textures/pixel_ember.png",
 	"buff:run":      "res://vfx/shared/textures/pixel_ember.png",
 	"buff:crimson_vortex": "res://vfx/shared/textures/soft_dot.png",
+
+	# --- enemy STATUS icons (shown next to the floating health bar; see StatusTypes) ---
+	# >>> TODO(art): all TEMP placeholders (reused pngs). Draw proper little status pips + swap here. <<<
+	"status:reap":  "res://vfx/shared/textures/skull_texture.png",   # dying / DoT -- a skull
+	"status:stun":  "res://vfx/shared/textures/z_texture.png",       # dazed -- "Zzz"
+	"status:slow":  "res://vfx/shared/textures/forward_arrow_texture.png",  # slowed (future)
+	"status:charm": "res://vfx/shared/textures/pixel_ember.png",     # charmed frenemy -- an ember heart
 }
 
 static var _cache := {}

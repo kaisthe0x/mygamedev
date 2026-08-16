@@ -29,6 +29,11 @@ extends Area2D
 ## Seconds to CHARM an enemy victim into a temporary ally (0 = none). Set via a move's `frenemy`
 ## tuning; carried into the Hit -> Enemy.become_frenemy.
 @export var frenemy_time: float = 0.0
+## Optional damage-over-time ("reap"): dot_percent = fraction of the victim's MAX health drained
+## per 1s tick, dot_time = how long it lasts. Set via a move's `reap`/`reap_time` tuning; carried
+## into the Hit -> Enemy arms a ticking reap (see Enemy._tick_dot). Both 0 = no DoT.
+@export var dot_percent: float = 0.0
+@export var dot_time: float = 0.0
 ## Who fired this, passed along so the victim knocks back away from them.
 var source: Node = null
 
@@ -99,6 +104,8 @@ func _on_area_entered(area: Area2D) -> void:
 	hit.ranged = ranged
 	hit.from_special = from_special
 	hit.frenemy_time = frenemy_time
+	hit.dot_percent = dot_percent
+	hit.dot_time = dot_time
 	var credit: Node = source if is_instance_valid(source) else owner
 	hit.source = credit if is_instance_valid(credit) else null
 	box.take_hit(hit)

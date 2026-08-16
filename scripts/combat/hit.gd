@@ -32,3 +32,10 @@ var status_time: float = 0.0
 ## itself, i.e. a one-shot burst). Set per attack via the move's `victim_effect` tuning.
 var victim_vfx: PackedScene = null
 var victim_vfx_time: float = 0.0
+
+## Optional damage-over-time ("reap"): the victim keeps losing health after the hit. `dot_percent`
+## is the fraction of the victim's MAX health drained per 1-second tick; `dot_time` is how long the
+## reap lasts (re-applying refreshes the window, never shortens it). Both 0 = no DoT. Twin Reaper
+## marks enemies with this so they slowly die even after the spin moves off them.
+var dot_percent: float = 0.0
+var dot_time: float = 0.0

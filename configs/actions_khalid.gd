@@ -67,9 +67,14 @@ const ATTACKS := {
 	},
 	# Twin Reaper: a spinning FLURRY -- hold attack and the spin loops, each pass firing its Slash nodes.
 	# Like ora_ora a flurry feeds ONE tuning to every hit (knockback 0 keeps them caught in the spin).
+	# REAP: the FIRST hit marks the enemy to slowly die -- `reap` fraction of their MAX health drains
+	# each second for `reap_time`. One-and-done: the mark latches on that first hit and plays out its
+	# fixed window; later hits in the spin only deal normal damage (they don't re-arm or extend it).
+	# 0.12/s x 5s = 60% of max HP over the mark; bump `reap` toward 0.15 for a deadlier mark.
 	"twin_reaper": {
 		"name": "Twin Reaper", "icon": "res://vfx/shared/textures/blast1.png", "tier": "elite", "style": "flurry",
-		"tags": ["reaper"], "hit": {"type": "melee", "segments": {"damage": 12, "knockback": 0}},
+		"tags": ["reaper"],
+		"hit": {"type": "melee", "segments": {"damage": 12, "knockback": 0, "reap": 0.12, "reap_time": 5.0}},
 	},
 	# Dual Executioner: an INDEPENDENT attack (no longer an upgrade of Twin Reaper) -- selectable at run
 	# start and as an attack reward (configs/rewards_catalog.gd), upgraded via its OWN buffs. Its OWN

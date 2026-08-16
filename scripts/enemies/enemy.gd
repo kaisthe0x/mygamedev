@@ -162,6 +162,17 @@ var _point_b := 0.0
 var _patrol_target := 0.0
 var _idle_timer := 0.0
 var _stun_left := 0.0
+## REAP (damage-over-time, e.g. Twin Reaper): while `_dot_left` > 0 the enemy keeps losing health in
+## discrete 1-second bites of `_dot_tick` HP (= max_health x the move's `reap` fraction, snapshot when
+## the mark lands). `_dot_accum` is the sub-second timer; `_dot_source` credits the attacker for the
+## tick's damage/Ruh. The mark is ONE-AND-DONE: `_reaped` latches on the FIRST reap hit so it plays out
+## its fixed window once -- later hits only deal their normal damage, never re-arm/extend it. See
+## _tick_dot / _on_hurt.
+var _dot_left := 0.0
+var _dot_tick := 0.0
+var _dot_accum := 0.0
+var _dot_source: Node = null
+var _reaped := false
 ## MAGNET pull (Come Closer special): while `_magnet_anchor` is valid, AI is overridden and this enemy
 ## is dragged toward the anchor at `_magnet_speed`; on arriving within `_magnet_arrive` it stuns for
 ## `_magnet_stun` and releases. Set by Enemy.magnetize() (called by the magnet field scene). No damage.
@@ -191,6 +202,8 @@ var _sprite: AnimatedSprite2D
 var _hurtbox: Hurtbox
 var _bar: FloatingHealthBar
 var _status: StatusOverlay
+var _status_icons: StatusIcons
+var _shown_status := "" ## joined key of the currently-drawn status ids, so icons only redraw on change
 var _edge_ray_left: RayCast2D
 var _edge_ray_right: RayCast2D
 
@@ -210,6 +223,11 @@ func _ready() -> void:
 	_status = StatusOverlay.new()
 	add_child(_status)
 	_status.setup(_sprite)
+
+	# Status pips (stun / reap / charm) sit just to the RIGHT of the health bar, centred on its row.
+	_status_icons = StatusIcons.new()
+	add_child(_status_icons)
+	_status_icons.position = _bar.position + Vector2(_bar.bar_width / 2.0 + 3.0, -_bar.bar_height / 2.0)
 
 	_has_melee = _sprite.sprite_frames.has_animation(&"attack")
 	_has_ranged = _sprite.sprite_frames.has_animation(&"attack_projectile")
@@ -314,6 +332,13 @@ func _build_health_bar() -> void:
 func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
 		return
+
+	# Reap DoT + status pips tick FIRST, before the stun/hit-stop/magnet early-returns below, so a
+	# marked enemy keeps bleeding (and its icons stay current) even while frozen. A reap can kill here.
+	_tick_dot(delta)
+	if _state == State.DEAD:
+		return
+	_refresh_status_icons()
 
 	if _frenemy_left > 0.0: # count down the charm; revert to hostile when it runs out
 		_frenemy_left -= delta
@@ -802,6 +827,14 @@ func _on_hurt(hit: Hit) -> void:
 	# just for the player now).
 	if hit.frenemy_time > 0.0:
 		become_frenemy(hit.frenemy_time)
+	# REAP: mark us to slowly die -- but only ONCE. `_reaped` latches on the first reap hit, so the
+	# spin's later hits just deal their normal damage and never re-arm or extend the drain. The mark
+	# plays out its fixed window (see _tick_dot) from this snapshot of the per-tick HP.
+	if hit.dot_percent > 0.0 and hit.dot_time > 0.0 and not _reaped:
+		_reaped = true
+		_dot_tick = max_health * hit.dot_percent
+		_dot_left = hit.dot_time
+		_dot_source = hit.source
 	# Knockback needs a brief stagger, or the AI overwrites the shove velocity next
 	# frame and nothing moves; a pure stun freezes for longer.
 	var stagger := apply_knockback(hit, _facing)
@@ -838,6 +871,60 @@ func _fade_and_free() -> void:
 	tw.tween_interval(0.4) # hold the dead pose so the death reads before it clears
 	tw.tween_property(_sprite, "modulate:a", 0.0, 0.6)
 	tw.tween_callback(queue_free)
+
+
+## --- reap (damage-over-time) ------------------------------------------------
+
+## Bleed out a reap mark in discrete once-a-second bites (as authored: "N% of health every 1 second"),
+## so it reads as ticks and doesn't spam per-frame Ruh/damage numbers. Ticks keep firing while stunned;
+## a tick can be the killing blow. No-op when unmarked. Called at the very top of _physics_process.
+func _tick_dot(delta: float) -> void:
+	if _dot_left <= 0.0:
+		return
+	_dot_left -= delta
+	_dot_accum += delta
+	while _dot_accum >= 1.0 and _state != State.DEAD:
+		_dot_accum -= 1.0
+		_reap_tick()
+	if _dot_left <= 0.0:
+		_dot_accum = 0.0
+		_dot_source = null
+
+
+## One reap bite: drain `_dot_tick` HP, credit the source (Ruh/leech/damage numbers flow through the
+## same `damaged` signal as a real hit, but only once a second), update the bar, and die if it empties.
+func _reap_tick() -> void:
+	var before := health
+	health = maxf(health - _dot_tick, 0.0)
+	var dealt := before - health
+	if dealt <= 0.0:
+		return
+	last_hit_from_special = false # a reap tick is normal damage -> Ruh-eligible (see RunManager)
+	damaged.emit(dealt, _dot_source if is_instance_valid(_dot_source) else null)
+	_bar.set_ratio(health / max_health)
+	if health <= 0.0:
+		_dot_left = 0.0
+		_die()
+
+
+## --- status pips ------------------------------------------------------------
+
+## Recompute which status icons are active this frame and push them to the pip row -- but only when the
+## set actually changed (a joined-key compare), so we don't queue a redraw every frame. Order follows
+## StatusTypes.ORDER so a given status always sits in the same slot.
+func _refresh_status_icons() -> void:
+	var ids: Array = []
+	if _dot_left > 0.0:
+		ids.append("reap")
+	if _state == State.STUN or _stun_left > 0.0:
+		ids.append("stun")
+	if _frenemy_left > 0.0:
+		ids.append("charm")
+	var key := ",".join(ids)
+	if key == _shown_status:
+		return
+	_shown_status = key
+	_status_icons.set_active(ids)
 
 
 # --- helpers ----------------------------------------------------------------

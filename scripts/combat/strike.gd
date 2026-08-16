@@ -115,6 +115,11 @@ func apply_tuning(t: Dictionary, striker: Node = null) -> void:
 			_hitbox.from_special = t["from_special"] # a special-kill doesn't refill Ruh
 		if t.has("frenemy"):
 			_hitbox.frenemy_time = t["frenemy"] # charm the victim into a temporary ally
+		# Reap: a damage-over-time mark. `reap` = fraction of the victim's max health per 1s tick,
+		# `reap_time` = how long it drains (refreshes on re-hit). Twin Reaper's slow death.
+		if t.has("reap"):
+			_hitbox.dot_percent = t["reap"]
+			_hitbox.dot_time = t.get("reap_time", 0.0)
 		_resize_hitbox(t)
 	# Wielder-effects act on the striker (option A): lunge shoves them forward, armor
 	# lets them shrug off stagger during the swing. No-op when the field/method is absent.
