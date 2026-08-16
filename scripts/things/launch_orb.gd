@@ -1,6 +1,8 @@
 class_name LaunchOrb
 extends Node2D
 
+# TODO: Update SFX for LaunchOrb
+
 ## A levitating LAUNCH orb: dash into (or near) it and it magnets Khalid through and flings him up +
 ## forward out the far side (see Player._process_launch). Placed by RunManager from a level's `orbs`
 ## list (see Levels). Detection is PLAYER-side: the orb bobs and joins the "orbs" group; the Player
