@@ -863,7 +863,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"attack_twin_reaper",
-"speed": 16.0
+"speed": 20.0
 }, {
 "frames": [{
 "duration": 0.25,

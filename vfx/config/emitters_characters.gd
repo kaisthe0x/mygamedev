@@ -9,7 +9,7 @@ class_name EmittersCharacters
 const TABLE := {
 	"khalid": {
 		"spawn": [ {"scene": preload("res://vfx/character/khalid/spawn/default/spawn_default.tscn"), "mode": "burst", "frames": [1], "pos": Vector2(0, -16)}],
-		"death": [ {"scene": preload("res://vfx/character/khalid/death/default/death_default.tscn"), "mode": "burst", "frames": [7], "pos": Vector2(0, -16)}],
+		"death": [ {"scene": preload("res://vfx/character/khalid/death/default/death_default.tscn"), "mode": "sustained", "frames": [5, 6, 7], "pos": Vector2(0, 0)}],
 		"run": [ {"scene": preload("res://vfx/character/khalid/run/default/run_default.tscn"), "mode": "sustained", "frames": "all", "pos": Vector2(-17, -17)}],
 		"jump": [ {"scene": preload("res://vfx/character/khalid/other/general_wind_streaks.tscn"), "mode": "burst", "frames": [0, 1], "pos": Vector2(0, 0)}],
 		"fall": [ {"scene": preload("res://vfx/character/khalid/other/general_wind_streaks.tscn"), "mode": "sustained", "frames": "all", "pos": Vector2(0, 0)}],

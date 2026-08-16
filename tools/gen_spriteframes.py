@@ -110,7 +110,7 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Twin Reaper: a spinning FLURRY -- hold attack and the whole spin LOOPS, each pass firing its
     # 5 Slash nodes on the emitter frames. loop is REQUIRED (a non-looping flurry hangs on the last
     # frame); no HIT_FRAMES so the spin plays smooth (segmented snapping is for click-combos).
-    ("khalid", "attack_twin_reaper"): {"loop": True, "fps": 16.0},
+    ("khalid", "attack_twin_reaper"): {"loop": True, "fps": 20.0},
     # Dual Executioner: upgraded Twin Reaper -- same flurry rules (loop, no HIT_FRAMES). Its
     # sheet stands in on Twin Reaper's spin until reskinned; own name -> its own VFX/SFX.
     ("khalid", "attack_dual_executioner"): {"loop": True, "fps": 20.0},

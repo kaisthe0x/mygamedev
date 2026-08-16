@@ -232,6 +232,9 @@ var _jump_launch: bool = false
 ## then holds the last frame) -- the level waits for death_complete() before respawning.
 var _dead: bool = false
 var _death_finished: bool = false
+## The death anim is PAUSED on its first frame while the camera zooms + the world blacks out (the death
+## cinematic in RunManager); `release_death()` unpauses it to play the rest out. See _enter(State.DEATH).
+var _death_frozen: bool = false
 var _slam_impacting: bool = false
 ## Feet-y at the moment the slam began, so the impact can scale damage by the plunge
 ## distance (global_position.y - _slam_start_y at release). See _slam_release.
@@ -1080,6 +1083,16 @@ func death_complete() -> bool:
 	return _dead and _death_finished
 
 
+## Release the frozen death anim (paused on frame 0 by _enter(State.DEATH)) so it plays out. Called by
+## RunManager once the camera has zoomed in + the world has blacked out. No-op if not frozen.
+func release_death() -> void:
+	if not _death_frozen:
+		return
+	_death_frozen = false
+	if _sprite != null:
+		_sprite.play() # resume from frame 0 -> plays through to the end (-> _death_finished)
+
+
 ## The killing blow landed. Freeze into the DEATH state: kill any swing/channel, turn the
 ## hurtbox off (no more hits), and play the death animation once -- the director fires the
 ## `death` particle from the Emitters config on its frames, like any other animation. The body
@@ -1089,6 +1102,7 @@ func _die() -> void:
 		return
 	_dead = true
 	_death_finished = false
+	Sfx.play("player_death") # death sting/tone (missing file = silent)
 	_stun_left = 0.0
 	_combo_playing = false
 	_flurry = false
@@ -1838,6 +1852,13 @@ func _enter(state: State) -> void:
 				_state = State.IDLE # no flex sheet -> stay put, the buff still applied
 		State.DEATH:
 			velocity.x = 0.0 # collapse in place; _process_death lets the body fall
+			# Freeze on the FIRST death frame while the camera zooms + the world blacks out (RunManager's
+			# death cinematic); release_death() then plays the rest out. Setting the animation to "death"
+			# here means _update_animation won't re-play it (already current), so the pause holds.
+			_death_frozen = true
+			_sprite.play(&"death")
+			_sprite.set_frame_and_progress(0, 0.0)
+			_sprite.pause()
 		State.SPAWN:
 			velocity.x = 0.0 # materialize in place; _process_spawn lets the body settle
 		State.SLAM:

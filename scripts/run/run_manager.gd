@@ -25,9 +25,17 @@ const CAM_TIGHTEN_START := 600.0
 const CAM_TIGHTEN_FULL := 1200.0
 const CAM_TIGHT_K := 0.9
 const CAM_ZOOM_NORMAL := Vector2(1.5, 1.5)
-const CAM_ZOOM_DEATH := Vector2(2.5, 2.5)
+const CAM_ZOOM_DEATH := Vector2(3.0, 3.0) ## punch in hard on the death -- the dramatic close-up
 const CAM_ZOOM_SPAWN := Vector2(2, 2)
 const DEATH_HOLD := 0.7
+# Death cinematic: the world blacks out behind Khalid while his death anim plays on the void, then clears
+# on respawn. He's lifted above a full-screen black overlay (world z <= 0, so ANYTHING below DEATH_OVERLAY_Z
+# is hidden; only Khalid at DEATH_PLAYER_Z stays lit).
+const DEATH_PLAYER_Z := 500
+const DEATH_OVERLAY_Z := 400
+const DEATH_FADE_IN := 0.55  ## seconds the world takes to fall to black
+const DEATH_FADE_OUT := 0.6  ## seconds the black takes to clear, revealing the fresh spawn
+const DEATH_FREEZE := 0.5    ## hold on the FIRST death frame this long (while zooming/blacking) before it plays out
 ## "You did it!" clear beat: a brief slow-motion the moment the LAST REQUIRED enemy falls and the
 ## exit opens (optional enemies never trigger it). Slam time down, hold, ramp back to normal.
 const CLEAR_SLOWMO_SCALE := 0.3 ## time scale at the peak of the beat
@@ -61,6 +69,8 @@ var _dead_prev := false
 var _death_hold := 0.0
 var _spawning := false
 var _cam_tween: Tween
+var _death_overlay: Polygon2D  ## the black world-cover during the death cinematic
+var _death_tune_left := 0.0    ## seconds left of the death TUNE -- respawn waits for it to finish
 
 
 func _ready() -> void:
@@ -407,6 +417,7 @@ func _restart_run() -> void:
 	if _player != null:
 		_player.begin_run()
 		_choose_attack() # every fresh run: re-pick the run-locked attack
+	_end_death_cinematic() # fade the black out over the fresh spawn, then drop his z back to normal
 
 
 ## Open the run-start attack picker; equip whatever the player chooses (locked for the run).
@@ -426,12 +437,81 @@ func _handle_death(delta: float) -> void:
 		_dead_prev = true
 		_death_hold = DEATH_HOLD
 		_zoom_to(CAM_ZOOM_DEATH, 0.45)
+		_begin_death_cinematic() # black out the world behind him as the death anim plays
+	_death_tune_left = maxf(_death_tune_left - delta, 0.0)
 	if _camera != null:
 		_camera.global_position = _camera.global_position.lerp(_player.global_position + Vector2(0, -18), 0.12)
-	if _player.death_complete():
+	# Respawn only once BOTH the collapse anim AND the whole death tune have played out.
+	if _player.death_complete() and _death_tune_left <= 0.0:
 		_death_hold -= delta
 		if _death_hold <= 0.0:
 			_restart_run() # DEATH = whole run over, start from scratch (roguelite)
+
+
+## Dramatic death: lift Khalid above everything and black out the world behind him, so his death anim
+## plays on a void. A huge black quad parented to the CAMERA (so it covers the view through the zoom) sits
+## at DEATH_OVERLAY_Z -- above every world node (z <= 0), below Khalid (DEATH_PLAYER_Z). Cleared by
+## _end_death_cinematic on respawn. The camera zoom is handled in _handle_death.
+func _begin_death_cinematic() -> void:
+	# The death SFX is a TUNE, not a blip -- hold the whole cinematic until it finishes (respawn waits on
+	# _death_tune_left in _handle_death). Duck the level bed out so the tune plays clear; it fades back in
+	# when _build_level restarts it on respawn. (Player._die plays the tune itself, on the SFX bus.)
+	_death_tune_left = _death_tune_length()
+	Music.stop()
+	if _player != null:
+		_player.z_index = DEATH_PLAYER_Z
+		_player.z_as_relative = false
+	if _death_overlay != null and is_instance_valid(_death_overlay):
+		_death_overlay.queue_free()
+	_death_overlay = Polygon2D.new()
+	var s := 20000.0 # far larger than any view, so it covers the screen at any zoom/pan
+	_death_overlay.polygon = PackedVector2Array([Vector2(-s, -s), Vector2(s, -s), Vector2(s, s), Vector2(-s, s)])
+	_death_overlay.color = Color.BLACK
+	_death_overlay.modulate = Color(1, 1, 1, 0.0) # fades in via modulate alpha
+	_death_overlay.z_index = DEATH_OVERLAY_Z
+	_death_overlay.z_as_relative = false
+	var host: Node = self # parent to the camera so it follows the view (fall back to the world root)
+	if _camera != null:
+		host = _camera
+	host.add_child(_death_overlay)
+	var tw := create_tween()
+	tw.tween_property(_death_overlay, "modulate:a", 1.0, DEATH_FADE_IN)
+	# The death anim is paused on frame 0 (Player._enter(State.DEATH)); let the zoom + black settle, then
+	# release it so the collapse plays out on the void.
+	get_tree().create_timer(DEATH_FREEZE).timeout.connect(func() -> void:
+		if _player != null and _player.is_dead():
+			_player.release_death())
+
+
+## Clear the death void: fade the black out to reveal the fresh spawn, then drop Khalid's z to normal once
+## it's gone (so the spawn plays lit-on-black first, then the world returns). No-op if no cinematic ran.
+func _end_death_cinematic() -> void:
+	if _death_overlay == null or not is_instance_valid(_death_overlay):
+		_reset_player_z()
+		return
+	var ov := _death_overlay
+	_death_overlay = null
+	var tw := create_tween()
+	tw.tween_property(ov, "modulate:a", 0.0, DEATH_FADE_OUT)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(ov):
+			ov.queue_free()
+		_reset_player_z())
+
+
+func _reset_player_z() -> void:
+	if _player != null:
+		_player.z_index = 0
+		_player.z_as_relative = true
+
+
+## Length (seconds) of the death tune, so the respawn can wait it out. 0 if the file is missing.
+func _death_tune_length() -> float:
+	var path: String = SfxCharacters.CUES.get("player_death", "")
+	if path == "" or not ResourceLoader.exists(path):
+		return 0.0
+	var s := load(path) as AudioStream
+	return s.get_length() if s != null else 0.0
 
 
 func _handle_spawn(delta: float) -> void:

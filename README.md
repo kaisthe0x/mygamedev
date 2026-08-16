@@ -1443,9 +1443,22 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
   `death_complete()` (+ a short `DEATH_HOLD`), then **restarts the whole run** — rebuild level 1
   + `Player.begin_run()` (full HP / a full 3-charge Ruh meter, run-reward buffs cleared). Death is a real fail state
   now (roguelite), not a free respawn.
-- **Death flair** — on death the camera **punches in** (`CAM_ZOOM_DEATH` 2.25 vs the
-  1.5 rest zoom, tweened) and centres tight on the collapsing character so the animation
-  reads; the restart zooms back out. Purely in `RunManager` — tune/disable there.
+- **Death cinematic** — a staged sequence: the death anim **freezes on its first frame** while the
+  camera **punches in hard** (`CAM_ZOOM_DEATH` 3.0 vs the 1.5 rest zoom) and **the whole world fades
+  to black behind him**; then the collapse **plays out on the void**; then respawn clears the black.
+  A **death tune** (`Sfx.play("player_death")`) fires in `Player._die`, and the level music **ducks out**
+  (`Music.stop`) so it plays clear; the **respawn waits for the whole tune to finish** — `_handle_death`
+  gates the restart on `_death_tune_left` (seeded from the stream's `get_length()`) *and* `death_complete`,
+  so a long death jingle is never cut off (the level music fades back in when the fresh level restarts it).
+  Mechanism: `_die` →
+  `_enter(State.DEATH)` **plays + pauses** `death` on frame 0 (`_death_frozen`; `_update_animation`
+  won't re-play it, so the pause holds). `RunManager._begin_death_cinematic` lifts Khalid's `z_index`
+  to `DEATH_PLAYER_Z` (500) and fades in a huge black `Polygon2D` at `DEATH_OVERLAY_Z` (400) — above
+  every world node (z ≤ 0), below him — parented to the camera; after `DEATH_FREEZE` (0.5s) it calls
+  `Player.release_death()`, which unpauses the anim so it plays through to `death_complete()`. On
+  restart, `_end_death_cinematic` fades the black out (`DEATH_FADE_OUT`) and drops his z back. All the
+  timing consts (`CAM_ZOOM_DEATH` / `DEATH_FREEZE` / `DEATH_FADE_IN` / `DEATH_HOLD` / `DEATH_FADE_OUT`)
+  live at the top of `RunManager` — tune/disable there.
 - **Falling off** — dropping below `DEATH_Y` (alive) just **repositions** you to the level's
   spawn point — no life lost, no death anim. Only a lethal *hit* ends the run.
 - **Spawn (materialize)** — every (re)spawn — the initial game start *and* every respawn —
