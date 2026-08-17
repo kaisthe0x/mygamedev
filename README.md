@@ -1550,6 +1550,23 @@ clean. This also means no scene file holds a reference to it.
 
 It follows character swaps and health changes over signals — nothing polls.
 
+### Off-screen enemy arrows (`scripts/ui/offscreen_markers.gd`)
+
+With the tight 6× camera and the big orb launches, enemies leave the frame constantly — so you can't
+see where to slam/approach. `OffscreenMarkers` is a full-viewport overlay the HUD builds (a sibling of
+the top-left cluster, shown/hidden with it). Each frame it projects every enemy in the `"enemies"`
+group through the camera — `get_viewport().get_canvas_transform() * enemy.global_position` — and for
+any that land **outside the view** it draws a **chevron clamped to an inset screen edge**, rotated to
+point at the enemy. On-screen enemies get nothing (you can already see them). Each arrow is:
+- **tinted per enemy** so you can tell which is where — `EnemyMarkers.color_for(enemy_id)`
+  (`configs/enemy_markers.gd`: kebus gold, baghel purple, nasen blue, mazab crimson, ein orange; tune
+  there), and
+- **faded + shrunk by world distance** from the camera centre (`FADE_START`/`FADE_END`), so a nearby
+  off-screen enemy reads bold and a distant one is small/faint.
+
+It's self-contained (finds enemies + the camera itself; no per-frame wiring) and screen-space, so it's
+immune to the zoom. Tunables (`MARGIN`, `SIZE_*`, `FADE_*`, `ALPHA_*`) live at the top of the script.
+
 ### Persistent record — `SaveData` (`scripts/save_data.gd`)
 
 The best-ever *levels cleared in one run* survives between sessions. `SaveData` is

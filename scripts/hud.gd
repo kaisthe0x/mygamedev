@@ -19,6 +19,7 @@ var _target: float = 0.0
 
 # Built-in-code widgets (direct children of this CanvasLayer, explicit positions).
 var _root: Control ## a plain container we show/hide as one
+var _markers: OffscreenMarkers ## full-viewport overlay: arrows at off-screen enemies
 var _portrait: TextureRect
 var _name_label: Label
 var _bar: ProgressBar ## HP
@@ -57,6 +58,11 @@ func _build_hud() -> void:
 	_root.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
+
+	# Off-screen enemy arrows: a full-viewport overlay (NOT under _root, which is top-left-anchored).
+	# It finds enemies itself; toggled with the rest of the HUD in _set_shown.
+	_markers = OffscreenMarkers.new()
+	add_child(_markers)
 
 	var frame := Panel.new()
 	frame.position = Vector2(16, 16)
@@ -215,6 +221,7 @@ func _unbind() -> void:
 func _set_shown(shown: bool) -> void:
 	_root.visible = shown
 	_stats.visible = shown
+	_markers.visible = shown
 	# processing stays ON even when hidden, so _process can re-bind (see below).
 
 
