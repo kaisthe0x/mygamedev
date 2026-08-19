@@ -68,6 +68,8 @@ var ruh: float = 0.0:
 ## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
 const BASE_RUH_CAP := 300.0 # start a run with 3 special charges (rewards raise the cap toward MAX)
 const BASE_MAX_HEALTH := 100.0
+## Where Khalid's own floating damage number spawns (local, feet at y=0 -> above his head). Tunable.
+const HURT_NUMBER_OFFSET := Vector2(0, -40)
 var damage_mult: float = 1.0
 ## Run-speed multiplier from rewards (Fleetfoot), applied OVER the equipped run option's base so a
 ## loadout swap doesn't wipe the buff. Reset by begin_run().
@@ -664,7 +666,14 @@ func portrait_path() -> String:
 ## Damage hits HP ONLY -- Ruh is not a shield (that's the whole point of the rework). Flash the
 ## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
-	health -= amount * damage_taken_mult * _surge_dmg_taken_mult # Thick Hide reward + Jnoon surge (0.5x) reduce this
+	var dealt := amount * damage_taken_mult * _surge_dmg_taken_mult # Thick Hide reward + Jnoon surge (0.5x) reduce this
+	health -= dealt
+	# Pop a floating damage number over Khalid, tinted with his chosen PRIMARY (hair) colour so his own
+	# HP loss reads like the enemy numbers but coloured to him. PaletteConfig.picks is the same source
+	# that recolours his hair (default red when unpicked). Skip a non-damaging tick (0 / a heal).
+	if dealt > 0.0:
+		var hair: Color = PaletteConfig.picks.get("hair", Color(PaletteConfig.DEFAULT["hair"][0]))
+		FloatingText.emit("player_damage", self, HURT_NUMBER_OFFSET, str(roundi(dealt)), dealt, {"color": hair})
 	# Damage feedback: one of a few random hurt grunts (so he doesn't make the same noise every time),
 	# pitch-wobbled for variety. The visible flinch is the HURT animation, played from _on_hurt when a
 	# hit actually staggers him (a bare HP tick -- e.g. a future DoT -- just grunts, no anim interrupt).

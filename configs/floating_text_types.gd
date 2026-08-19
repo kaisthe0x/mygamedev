@@ -26,6 +26,7 @@ class_name FloatingTextTypes
 const TYPES := {
 	# Damage numbers: small white light hits -> big hot-gold heavy hits (ramped by `magnitude` = damage).
 	"damage": {
+		"font": "res://assets/fonts/Sixtyfour-Regular-VariableFont_BLED,SCAN.ttf",
 		"size_lo": 6, "size_hi": 8, "mag_lo": 8.0, "mag_hi": 45.0,
 		"color_lo": Color(1, 1, 1), "color_hi": Color(1.4, 0.55, 0.15),
 		"outline_color": Color(0, 0, 0, 0.85), "outline_size": 5,
@@ -34,10 +35,22 @@ const TYPES := {
 	},
 	# Damage dealt by a SPECIAL -- same motion, magenta so special hits read distinctly.
 	"damage_special": {
+		"font": "res://assets/fonts/Sixtyfour-Regular-VariableFont_BLED,SCAN.ttf",
 		"size_lo": 6, "size_hi": 8, "mag_lo": 8.0, "mag_hi": 45.0,
 		"color_lo": Color(1.2, 0.7, 1.3), "color_hi": Color(1.5, 0.35, 1.2),
 		"outline_color": Color(0, 0, 0, 0.85), "outline_size": 5,
 		"rise": 26.0, "drift": 12.0, "jitter": 8.0, "life": 0.8,
+		"pop_scale": 0.7, "pop_time": 0.14, "hold": 0.4,
+	},
+	# Damage the PLAYER takes -- floats over Khalid. Size ramps with the hit; the `color` here is a
+	# placeholder that Player.take_damage OVERRIDES per-call with the run's chosen HAIR colour (so his
+	# own damage numbers match his primary colour). Slightly bigger + a touch longer than enemy numbers.
+	"player_damage": {
+		"font": "res://assets/fonts/Sixtyfour-Regular-VariableFont_BLED,SCAN.ttf",
+		"size_lo": 8, "size_hi": 12, "mag_lo": 5.0, "mag_hi": 40.0,
+		"color": Color(0.58, 0.12, 0.12), # overridden with the hair pick (default red fallback)
+		"outline_color": Color(0, 0, 0, 0.9), "outline_size": 5,
+		"rise": 20.0, "drift": 7.0, "jitter": 8.0, "life": 0.95,
 		"pop_scale": 0.7, "pop_time": 0.14, "hold": 0.4,
 	}
 }

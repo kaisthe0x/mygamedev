@@ -25,12 +25,17 @@ var _fade_in: bool = false
 
 
 ## Emit a `type` label reading `text` at `local_pos` on `host` (parented to it). `magnitude` drives the
-## size/colour ramp for types that define one (e.g. damage). No-op on an unknown type.
-static func emit(type: String, host: Node2D, local_pos: Vector2, text: String, magnitude: float = 0.0) -> void:
+## size/colour ramp for types that define one (e.g. damage). `overrides` patches the preset for THIS call
+## (e.g. a fixed `color` = the player's hair pick), winning over the preset keys. No-op on an unknown type.
+static func emit(type: String, host: Node2D, local_pos: Vector2, text: String, magnitude: float = 0.0,
+		overrides: Dictionary = {}) -> void:
 	var cfg: Dictionary = FloatingTextTypes.TYPES.get(type, {})
 	if cfg.is_empty():
 		push_warning("FloatingText: unknown type '%s'" % type)
 		return
+	if not overrides.is_empty():
+		cfg = cfg.duplicate() # don't mutate the shared preset const
+		cfg.merge(overrides, true) # per-call overrides win
 	var n := FloatingText.new()
 	host.add_child(n)
 	n._setup(cfg, local_pos, text, magnitude)

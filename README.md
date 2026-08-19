@@ -1212,17 +1212,22 @@ to hand-wire. Key traits:
   so giving another status its own halo is a config line + art — no code change. Anchored at the enemy's
   head line (just under the floating bar); pixel-filtered like the rest of the art.
 - **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
-  label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude)`. It parents the label to
+  label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude, overrides)`. It parents the label to
   the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it
   rides above a moving enemy/player and is immune to both the camera chasing the player and the host's
   own knockback/patrol (the two things that dragged world-space / screen-space versions across the
   screen). **Every label TYPE is a preset** in [`configs/floating_text_types.gd`](configs/floating_text_types.gd) —
   its own size/colour (fixed or magnitude-ramped), font, `italic` slant, and independent in/out
   transition — so different events read and animate distinctly with no code change. The only live type
-  today is the **`damage`** number (white → hot gold; `damage_special` = magenta), emitted as
-  `FloatingText.emit("damage"/"damage_special", enemy, …, amount)` off the `enemy.damaged` signal in
-  `RunManager._on_enemy_damaged`. Add a label type = add a row to the preset table (the file keeps a
-  commented word-callout example — a parry "Nice", a "LEVEL UP" — for when one's wanted).
+  live types today are the **`damage`** number over enemies (white → hot gold; `damage_special` =
+  magenta), emitted as `FloatingText.emit("damage"/"damage_special", enemy, …, amount)` off the
+  `enemy.damaged` signal in `RunManager._on_enemy_damaged`; and the **`player_damage`** number over
+  Khalid, popped in `Player.take_damage` for the actual HP lost (after Thick Hide / Jnoon mitigation).
+  Its colour is **overridden per-call with the run's chosen PRIMARY (hair) colour** —
+  `overrides {"color": PaletteConfig.picks["hair"]}`, the same source that recolours his hair (default
+  red `#941E1E` when unpicked) — so his own numbers match his palette. The optional `overrides` dict
+  patches any preset key for one call (it wins over the preset). Add a label type = add a row to the
+  preset table (the file keeps a commented word-callout example — a parry "Nice", a "LEVEL UP").
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
   hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
   plays that animation once and **vanishes the instant it finishes** (`_on_anim_finished` →
