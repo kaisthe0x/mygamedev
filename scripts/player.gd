@@ -347,6 +347,9 @@ var _cooldown_bar: FloatingHealthBar = null
 ## stuck sound), toggled by the RUN state in _update_animation. Null in-editor / if the file's
 ## missing. Created via Sfx.make_loop.
 var _run_sfx: AudioStreamPlayer = null
+## Slam-descent whoosh (owned one-shot): played when the plunge starts, STOPPED when the ground impact
+## fires so the impact "slam" overrides it. Null if the cue/file is missing. Created via Sfx.make_oneshot.
+var _slam_down_sfx: AudioStreamPlayer = null
 ## Anti-strobe timer for the Ruh-absorb reaction: a cluster of souls arriving together folds into
 ## ONE surge instead of restacking (a full-charge soul surges anyway). See on_ruh_absorbed.
 const RUH_FLASH_REFRACTORY := 0.2
@@ -769,6 +772,10 @@ func _build_combat() -> void:
 		_run_sfx = Sfx.make_loop("run")
 		if _run_sfx != null:
 			add_child(_run_sfx)
+		# Slam-descent whoosh -- owned so we can STOP it the instant the ground impact plays.
+		_slam_down_sfx = Sfx.make_oneshot("slam_down")
+		if _slam_down_sfx != null:
+			add_child(_slam_down_sfx)
 
 
 ## THE BUFF SEAM. Resolve the effective per-hit tuning of `action`'s combo segment `seg`
@@ -1807,6 +1814,8 @@ func _slam_release() -> void:
 	_slam_impacting = true
 	_sprite.visible = true
 	_sprite.speed_scale = 1.0
+	if _slam_down_sfx != null:
+		_slam_down_sfx.stop() # cut the descent whoosh -- the impact overrides it
 	Sfx.play("slam") # ground-impact hit
 	var drop := global_position.y - _slam_start_y # how far we plunged (px)
 	var t := clampf((drop - slam_min_drop) / maxf(slam_max_drop - slam_min_drop, 1.0), 0.0, 1.0)
@@ -1988,6 +1997,8 @@ func _enter(state: State) -> void:
 			velocity = Vector2(0.0, slam_speed)
 			_slam_impacting = false # fresh slam: not yet released into the impact
 			_slam_start_y = global_position.y # measure the plunge from here for damage
+			if _slam_down_sfx != null: # air oomph -- the descent whoosh (cut by the impact in _slam_release)
+				_slam_down_sfx.play()
 		State.LAUNCH:
 			# Captured by a launch orb: keep the dash pose while the magnet sucks him through (_process_launch).
 			_sprite.play(&"dash")

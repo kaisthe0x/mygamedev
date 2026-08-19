@@ -1,26 +1,41 @@
 class_name EmittersEnemies
 
-## Per-ENEMY particle emitters. Same schema as EmittersCharacters, but enemy effects
-## are attached in code by state/event (a trail worn by state, a blast on arrival, a
-## projectile visual), so rows carry no frames/mode -- just { scene (preloaded), pos }.
-## AUTHORITATIVE for presence: no row = no emitter (combat still runs). For a
-## projectile, pos is the muzzle. Hand-edit freely -- this IS the source of truth.
+## Per-ENEMY particle emitters. Same { scene (preloaded), pos } schema as EmittersCharacters, but enemy
+## effects are attached in code by state/event (not fired on animation frames), so rows carry no frames/mode.
+##
+## NAMING -- keep it tight and standardised. A row's key is the attack's STRIKE TYPE, straight from the
+## taxonomy in configs/strike_spec.gd: `melee`, `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`,
+## `blast`, `trap`. Never an ad-hoc name ("rage", "explosion"). A COMPONENT of an attack appends a role:
+##   * `<type>_burst`  -- the explosion/payload of a projectile (mazab's `delayed_projectile_burst`)
+##   * `<type>_trail`  -- the motion trail leading into it (ein's `delayed_aoe_trail`)
+## A passive, non-attack trail (worn by movement, not a strike) is `<state>_trail` (e.g. `patrol_trail`).
+## So: `nasen -> aoe`, `matat -> aoe`, `mazab -> delayed_projectile (+_burst)`, `ein -> delayed_aoe (+_trail)`.
+##
+## AUTHORITATIVE for presence: no row = no emitter (combat still runs). For a projectile, `pos` is the
+## muzzle. Hand-edit freely -- this IS the source of truth.
 const TABLE := {
-	"ein": {
-		"attack_trail": {"scene": preload("res://vfx/enemy/ein/attack/ein_attack_trail.tscn"), "pos": Vector2(0, -12)},
-		"explosion": {"scene": preload("res://vfx/enemy/ein/attack/ein_explosion.tscn"), "pos": Vector2(0, -16)},
-	},
-	"nasen": {
-		"rage": {"scene": preload("res://vfx/enemy/nasen/attack/nasen_rage.tscn"), "pos": Vector2(0, 0)},
-	},
+	# --- projectile (a straight/aimed shot) ---
 	"kebus": {
-		"projectile": {"scene": preload("res://vfx/enemy/kebus/attack/attack_bolt.tscn"), "pos": Vector2(18, -22)},
+		"projectile": {"scene": preload("res://vfx/enemy/kebus/attack/kebus_projectile.tscn"), "pos": Vector2(18, -22)},
 	},
 	"baghel": {
-		"projectile": {"scene": preload("res://vfx/enemy/baghel/attack/attack_ground_wave.tscn"), "pos": Vector2(16, 1)},
+		"projectile": {"scene": preload("res://vfx/enemy/baghel/attack/baghel_projectile.tscn"), "pos": Vector2(16, 1)},
 	},
+	# --- delayed_projectile (a lobbed bomb that dwells, then bursts) ---
 	"mazab": {
-		"projectile": {"scene": preload("res://vfx/enemy/mazab/attack/mazab_rock.tscn"), "pos": Vector2(18, -40)},
-		"explosion": {"scene": preload("res://vfx/enemy/mazab/attack/mazab_explosion.tscn"), "pos": Vector2(0, 0)},
+		"delayed_projectile": {"scene": preload("res://vfx/enemy/mazab/attack/mazab_delayed_projectile.tscn"), "pos": Vector2(18, -40)},
+		"delayed_projectile_burst": {"scene": preload("res://vfx/enemy/mazab/attack/mazab_delayed_projectile_burst.tscn"), "pos": Vector2(0, 0)},
+	},
+	# --- aoe (a shockwave erupting in place) ---
+	"nasen": {
+		"aoe": {"scene": preload("res://vfx/enemy/nasen/attack/nasen_aoe.tscn"), "pos": Vector2(0, 0)},
+	},
+	"matat": {
+		"aoe": {"scene": preload("res://vfx/enemy/matat/attack/matat_aoe.tscn"), "pos": Vector2(0, -10)},
+	},
+	# --- delayed_aoe (a charge/dive that AoE-blasts on arrival) + its dive trail ---
+	"ein": {
+		"delayed_aoe": {"scene": preload("res://vfx/enemy/ein/attack/ein_delayed_aoe.tscn"), "pos": Vector2(0, -16)},
+		"delayed_aoe_trail": {"scene": preload("res://vfx/enemy/ein/attack/ein_delayed_aoe_trail.tscn"), "pos": Vector2(0, -12)},
 	},
 }

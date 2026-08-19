@@ -14,9 +14,12 @@ class_name SfxCharacters
 
 const CUES := {
 	# --- movement / feedback (played by code on an event) ---
-	"dash": "res://sfx/character/dash.wav",
-	"jump": "res://sfx/character/jump.wav",
-	"slam": "res://sfx/character/slam.wav",
+	"dash": "res://sfx/character/dash/dash.wav",
+	"jump": "res://sfx/character/jump/jump.wav",
+	# Slam: `slam_down` is a descent whoosh played on the way down (air oomph); `slam` is the ground
+	# impact, which CUTS the descent whoosh short when he lands (see Player._enter/_slam_release).
+	"slam_down": "res://sfx/character/slam/slam_down.wav",
+	"slam": "res://sfx/character/slam/slam.wav",
 	"run": "res://sfx/character/run.wav", # looping footsteps (Sfx.make_loop)
 	"ruh_absorb": "res://sfx/character/ruh_absorb.wav", # a Ruh soul lands on Khalid
 	"player_death": "res://sfx/character/death/player_death.wav", # death sting/tone (Player._die) -- PLACEHOLDER

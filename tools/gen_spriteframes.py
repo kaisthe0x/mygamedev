@@ -196,6 +196,9 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("baghel", "attack_projectile"): [6],
     ("nasen", "attack"): [2],  # the rage AoE erupts on this frame
     ("mazab", "attack_projectile"): [5],  # release frame -- the lobbed bomb leaves his hand here
+    ("matat", "attack"): [
+        4
+    ],  # the AoE erupts as his arms sweep round (its hitbox+VFX span frames 4-8)
 }
 
 # Per-frame duration multipliers, (char, anim) -> {sheet_frame: multiplier}. Each

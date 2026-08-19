@@ -26,7 +26,7 @@ extends Enemy
 @export_subgroup("Explosion")
 ## The AoE hitbox that erupts on arrival: half-size (centred on the orb via `explosion_offset`)
 ## + damage/knockback/stun. The blast's LOOK is a particle scene from the Emitters config
-## (`ein -> explosion`), like every enemy emitter -- not an export here.
+## (`ein -> delayed_aoe`), like every enemy emitter -- not an export here.
 @export var explosion_extents := Vector2(38, 32)
 ## Nudge the blast HITBOX up onto the orb's body (the sprite is feet-anchored, so origin is
 ## below it). The particle look has its own offset in the Emitters config.
@@ -35,7 +35,7 @@ extends Enemy
 @export var explosion_knockback: float = 170.0
 @export var explosion_stun: float = 0.2
 
-# Trails + explosion LOOK live in the Emitters config (ein -> patrol_trail / attack_trail /
+# Trails + blast LOOK live in the Emitters config (ein -> patrol_trail / delayed_aoe_trail /
 # explosion): which scene, where it emits, and whether it exists at all. Delete a row there and
 # Ein stops wearing that trail -- no code change. (No patrol_trail row today = no patrol trail.)
 
@@ -108,7 +108,7 @@ func _float_patrol(delta: float) -> void:
 ## Lock the target and commit: attack anim (looping stab), aggressive trail, CHARGE state.
 func _begin_charge(target: Vector2) -> void:
 	_charge_target = target
-	_set_trail("attack_trail")
+	_set_trail("delayed_aoe_trail")
 	_set_state(State.CHARGE)
 	_play(&"attack")
 	_face(int(signf(target.x - global_position.x)))
@@ -156,7 +156,7 @@ func _die() -> void:
 ## Build the arrival blast: a hostile Strike with a box hitbox (from this orb's tuning) plus the
 ## particle-only explosion look, centred on the orb. Same pattern as Nasen's rage / the lob blast.
 func _spawn_explosion() -> void:
-	Sfx.play_at("ein.explosion", global_position) # the eruption is a code event, not a sprite frame
+	Sfx.play_at("ein.delayed_aoe", global_position) # the eruption is a code event, not a sprite frame
 	var strike := Strike.new()
 	strike.hostile = true
 	strike.friendly_fire = friendly_fire
@@ -170,7 +170,7 @@ func _spawn_explosion() -> void:
 	hb.source = self
 	hb.add_child(Shapes.make_box(explosion_extents * 2.0, explosion_offset))
 	strike.add_child(hb)
-	var fx := _make_vfx("explosion") # blast LOOK from config (null if no scene listed)
+	var fx := _make_vfx("delayed_aoe") # AoE blast LOOK from config (null if no scene listed)
 	if fx != null:
 		strike.add_child(fx)
 	get_parent().add_child(strike) # live in the level, centred where the orb arrived
@@ -178,7 +178,7 @@ func _spawn_explosion() -> void:
 	hb.activate()
 
 
-## Wear the trail for `effect` (the Emitters config key: "patrol_trail" / "attack_trail"), or ""
+## Wear the trail for `effect` (the Emitters config key: "patrol_trail" / "delayed_aoe_trail"), or ""
 ## to clear it. The scene + emit offset both come from the config, so a deleted config row = no
 ## trail, no code change. The old trail is re-parented into the level and left to dissipate
 ## (Nodes.retire_particles) rather than freed outright -- otherwise, when Ein dies and frees, his

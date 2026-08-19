@@ -36,8 +36,8 @@ vfx/
                              slam_wind_streaks, special_ready) — flat, not nested
     shared/textures/         static textures reused across THIS character's effects
                              (smoke, poison, sparks)
-  enemy/<id>/attack/        Per-enemy attack scenes (baghel/attack/attack_ground_wave.tscn,
-                            kebus/attack/attack_bolt.tscn). Referenced (preloaded) from
+  enemy/<id>/attack/        Per-enemy attack scenes (baghel/attack/baghel_projectile.tscn,
+                            kebus/attack/kebus_projectile.tscn). Referenced (preloaded) from
                             EmittersEnemies.TABLE by enemy_id, not the director's frame index.
     death/default/           death burst, tinted to this character's palette
     spawn/default/           spawn (materialize) burst, tinted to this character's palette
@@ -302,23 +302,26 @@ not the director index. Which scene each enemy emits — and where — comes fro
 **the `Emitters` config** (see below), keyed by `enemy_id`. `enemy.gd` reads the
 `projectile` entry and spawns a **hostile `Projectile`** (the same `scripts/combat/projectile.gd`
 players use — team via the `hostile` flag) with that scene as its visual + a `Hitbox` built from
-the enemy's ranged tuning; a `lob` reads `projectile` (the thrown object) and `explosion` (the
-blast). Enemy **melee** is a hostile **`Strike`** spawned the same way. Two ranged examples:
+the enemy's ranged tuning; a `lob` reads `delayed_projectile` (the thrown object) and
+`delayed_projectile_burst` (the blast). Enemy **melee** is a hostile **`Strike`** spawned the same
+way. **Keys are the attack's STRIKE TYPE** (`configs/strike_spec.gd`: `projectile`,
+`delayed_projectile`, `aoe`, `delayed_aoe`, …), a component appends `_burst` / `_trail`, and a
+passive movement trail is `<state>_trail`. Two ranged examples:
 
 (Every scene named below is wired through the `Emitters` config, not a script/roster field.)
 
-- **Baghel** `projectile` = `attack/attack_ground_wave.tscn` — a `CPUParticles2D` ground surge
+- **Baghel** `projectile` = `attack/baghel_projectile.tscn` — a `CPUParticles2D` ground surge
   (the `forward` ranged mode, with a scorched `ground_trail`).
-- **Kebus** `projectile` = `attack/attack_bolt.tscn` — an aimed staff bolt: an ember-trail
+- **Kebus** `projectile` = `attack/kebus_projectile.tscn` — an aimed staff bolt: an ember-trail
   `CPUParticles2D` + a soft glow `Core`. (An enemy with no `projectile` scene gets the built-in orb.)
-- **Mazab** (`ranged_mode = "lob"`) uses **two** config entries for its thrown bomb: `projectile`
-  = `attack/mazab_rock.tscn` (a steel-blue glowing `Core` + short dust trail — a `LobProjectile`
-  spins it as it arcs) and `explosion` = `attack/mazab_explosion.tscn` (a one-shot radial shard
+- **Mazab** (`ranged_mode = "lob"`) uses **two** config entries for its thrown bomb: `delayed_projectile`
+  = `attack/mazab_delayed_projectile.tscn` (a steel-blue glowing `Core` + short dust trail — a `LobProjectile`
+  spins it as it arcs) and `delayed_projectile_burst` = `attack/mazab_delayed_projectile_burst.tscn` (a one-shot radial shard
   burst + ground dust, instanced inside the explosion `Strike`, not on the projectile). A lob has
   **no in-flight hitbox**; only the explosion `Strike` deals damage.
-- **Ein** (the floating kamikaze, `scenes/ein.tscn`) has config entries `attack_trail` =
-  `attack/ein_attack_trail.tscn` (a hard cyan→red charge streak) and `explosion` =
-  `attack/ein_explosion.tscn` (the arrival burst, inside the explosion `Strike`). A
+- **Ein** (the floating kamikaze, `scenes/ein.tscn`) has config entries `delayed_aoe_trail` =
+  `attack/ein_delayed_aoe_trail.tscn` (a hard cyan→red charge streak) and `delayed_aoe` =
+  `attack/ein_delayed_aoe.tscn` (the arrival burst, inside the explosion `Strike`). A
   `patrol_trail` entry (a gentle drift trail under `other/`) is optional — omit it and he
   patrols with no trail.
   The trails are `local_coords = false` so they rake out behind the orb as it moves.

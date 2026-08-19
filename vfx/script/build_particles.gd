@@ -78,5 +78,5 @@ func _save(node: CPUParticles2D, path_in_particles: String) -> void:
 
 func _init() -> void:
 	# Path is relative to vfx/ -- see the layout in vfx/README.md.
-	_save(ground_wave(), "enemy/baghel/attack/attack_ground_wave")
+	_save(ground_wave(), "enemy/baghel/attack/baghel_projectile")
 	quit()

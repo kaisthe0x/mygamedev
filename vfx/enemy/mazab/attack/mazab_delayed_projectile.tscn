@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dmazabrock2026"]
+[gd_scene format=3 uid="uid://b650640067m30"]
 
 ; Mazab's thrown bomb -- the steel-blue clod he hurls (sampled from the object in his
 ; attack_projectile sheet). Mazab's "projectile" scene in EmittersEnemies (vfx/config/emitters_enemies.gd);
