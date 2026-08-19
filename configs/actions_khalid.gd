@@ -123,8 +123,9 @@ const SPECIALS := {
 		"name": "Redere Shield", "icon": "res://vfx/shared/impervious/shield.png", "tier": "elite", "tags": ["shield", "held"],
 	},
 	# Redere Frisbee: an INDEPENDENT special (no longer an upgrade of Redere Shield) -- throws the shield as
-	# a PROJECTILE (EmittersCharacters fires a shot on the release frame, fed this `hit`). Selectable as a
-	# special swap (configs/rewards_catalog.gd), upgraded via its own buffs.
+	# a PROJECTILE (EmittersCharacters fires a shot on the release frame, fed this `hit`). It RICOCHETS: the
+	# frisbee scene sets `bounces = 3` so it chains through up to 4 enemies (each hit once), tune on the scene.
+	# Selectable as a special swap (configs/rewards_catalog.gd), upgraded via its own buffs.
 	"redere_frisbee": {
 		"name": "Redere Frisbee", "icon": "res://vfx/shared/textures/blast1.png", "tier": "broken", "tags": ["shield"],
 		"hit": {"type": "projectile", "segments": {"damage": 15, "knockback": 120}},
@@ -205,6 +206,6 @@ const MOVEMENTS := {
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "come_closer"
+const DEFAULT_SPECIAL := "redere_frisbee"
 const DEFAULT_SURGE := "wara"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}

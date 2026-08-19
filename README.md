@@ -482,7 +482,11 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
   to the attacker (`_on_hurt` → `Enemy.apply_hit`) — just holding only blocks. Tune `parry_window` /
   `shield_reflect_mult` on the Player.
 - **Redere Frisbee** — an independent special that throws the shield as a `Projectile` (fed the Action's `hit`).
-  A standalone Special-door swap (no longer gated on owning Redere Shield); it upgrades via its own buffs.
+  It **ricochets**: the `Projectile`'s `bounces` (=3 on the frisbee scene) makes it chain to the next-nearest
+  *un-hit* enemy after each hit — up to 4 enemies, each struck once (the Hitbox dedupes victims across the whole
+  flight, so it never ping-pongs; the chain ends when no fresh target is in `bounce_range`). Each ricochet leg
+  gets a fresh `max_range` and snaps its heading at the new target, then homes (`bounce_homing`) so it tracks a
+  mover. A standalone Special-door swap (no longer gated on owning Redere Shield); it upgrades via its own buffs.
 
 **Surges (abilities on the `surge` button).** Separate from specials: a **Surge** is an ability fired with
 one press (Ctrl / RT) that applies a **timed self-buff** which runs independently for its full duration.
