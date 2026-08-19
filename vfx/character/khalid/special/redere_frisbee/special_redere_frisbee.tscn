@@ -17,6 +17,7 @@ speed = 520.0
 homing = 0.0
 max_range = 540.0
 impact_sfx = "redere_frisbee.impact"
+bounces = 3
 
 [node name="Disc" type="Sprite2D" parent="." unique_id=680922289]
 self_modulate = Color(1.6, 0.3, 0.25, 1)

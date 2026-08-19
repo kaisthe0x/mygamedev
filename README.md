@@ -50,7 +50,7 @@ tools/                Generator + verification scripts (not shipped)
 | Space | `jump` | Press again in the air to **double jump** (`max_air_jumps`) — the air jump re-boosts and spawns the character's jump particles; the ground jump is silent |
 | Shift | `dash` | Has a cooldown. **Dash into a launch orb** and it magnets you through and flings you up + forward (see Launch orbs) |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
-| Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free and unlimited** (a tiny anti-spam lag only, no Ruh cost). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
+| Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free, no Ruh cost**; most have only a tiny anti-spam lag, though a strong one can set its own cooldown (**Come Closer = 3s**). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
 | Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving — **except Nem**, a committed sleep that locks you in place and heals ~50% HP over 5s (a hit wakes/cancels it), and **Wara**, which *arms* and waits: the next enemy hit is negated and AoE-stuns everyone near you (2s). **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
@@ -468,8 +468,13 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
 - **Ground Breaker** — AOE slam `Strike` (stun + a ground-crack).
 - **Frenemy** — a charm blast: the hit enemy becomes a temporary ally (`Hit.frenemy_time` → `Enemy.become_frenemy`).
 - **Come Closer** — a magnet: the `special_come_closer` effect scene (`scripts/combat/magnet_field.gd`) grabs
-  enemies in range and `Enemy.magnetize()`s them toward Khalid, stunning each on arrival (no damage). Tune the
-  pull on the field scene.
+  the **nearest** enemy in range and `Enemy.magnetize()`s it toward Khalid, stunning it on arrival (no damage).
+  The field's **`max_targets`** (=1 today) caps how many it yanks — bump it to 3 later for a wider pull. The
+  grab is measured from **Khalid's** position, *not* the field's own transform: the director spawns the field
+  with `add_child()` (which runs its `_ready` scan) and only sets its world position with `Nodes.place_at()`
+  **afterwards**, so reading `self.global_position` in `_ready` saw a stale pre-placement transform (near world
+  origin) — the pull then only landed when Khalid stood near x≈0 (i.e. right after load) and missed once he
+  moved into the level. Has its own **1s cooldown** (`actions_khalid.gd`).
 - **Redere Shield** — a held guard: the block is *state-based* — active only while Khalid is in the shield
   special (`Player._is_shielding()`), so it drops the instant he releases or is staggered (no lingering timer,
   so a hit taken right after the guard is down lands — and sounds — normally). It **blocks** all front-side
@@ -477,7 +482,11 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
   to the attacker (`_on_hurt` → `Enemy.apply_hit`) — just holding only blocks. Tune `parry_window` /
   `shield_reflect_mult` on the Player.
 - **Redere Frisbee** — an independent special that throws the shield as a `Projectile` (fed the Action's `hit`).
-  A standalone Special-door swap (no longer gated on owning Redere Shield); it upgrades via its own buffs.
+  It **ricochets**: the `Projectile`'s `bounces` (=3 on the frisbee scene) makes it chain to the next-nearest
+  *un-hit* enemy after each hit — up to 4 enemies, each struck once (the Hitbox dedupes victims across the whole
+  flight, so it never ping-pongs; the chain ends when no fresh target is in `bounce_range`). Each ricochet leg
+  gets a fresh `max_range` and snaps its heading at the new target, then homes (`bounce_homing`) so it tracks a
+  mover. A standalone Special-door swap (no longer gated on owning Redere Shield); it upgrades via its own buffs.
 
 **Surges (abilities on the `surge` button).** Separate from specials: a **Surge** is an ability fired with
 one press (Ctrl / RT) that applies a **timed self-buff** which runs independently for its full duration.
@@ -621,9 +630,12 @@ While it recharges,
 gold **fill bar floats over Khalid's head** (`FloatingHealthBar`, the same world-space bar the
 enemies use, tinted for "charge") growing empty→full as `_attack_cd` counts down; it hides once
 ready or for any attack with `cooldown 0`. The timer starts the instant the swing fires and
-resets to 0 on run-start / character swap. This is the per-**attack** cooldown; specials have
-their own separate anti-spam window (`SPECIAL_COOLDOWN`). A cooldown attack is effectively a
-single heavy hit — the gate blocks re-entry, so it doesn't chain combo segments.
+resets to 0 on run-start / character swap. This is the per-**attack** cooldown; specials have a
+short anti-spam window (`SPECIAL_COOLDOWN`, 0.6s) **but a special can also set its own real
+`cooldown`** — `Player._start_special` takes the larger (e.g. **Come Closer = 3s**, since its
+pull+stun is strong), and the same overhead bar shows it (a cooldown special takes the bar while it
+recharges). A cooldown attack is effectively a single heavy hit — the gate blocks re-entry, so it
+doesn't chain combo segments.
 
 **Dash-attacks (the `lunge` seam).** Khalid's **`zahluq`** is a `COOLDOWN` attack that *bursts him
 forward* — a heavy hit that's less than `bakshen` but slides him a long way. Its tuning keys, read by
@@ -996,7 +1008,8 @@ exists. Same "drop a file, add one line" workflow as `Sfx`.
   - **Frame-synced hit** — declare `anim → { sheet_frame: cue }` in the config's **`FRAMES`** dict;
     the presentation driver plays it when the animation reaches that frame (the audio twin of the
     particle bursts). This is symmetric to VFX — the **Emitters config stays particles-only**.
-- **Enemy sound keys** follow conventions the code composes: `enemy_death` (shared), `<id>.<type>`
+- **Enemy sound keys** follow conventions the code composes: `enemy_death` / `enemy_spawn` (shared,
+  positional — death on `_die`, spawn with the puff in `RunManager._spawn_fx`), `<id>.<type>`
   (attack start, `type` = the enemy's `attack_type`, else melee/projectile from the anim),
   `<id>.delayed_projectile_burst` (a lob's delayed explosion), and per-frame
   hits in `SfxEnemies.FRAMES` — all in `SfxEnemies`, keyed by `enemy_id`.
@@ -1190,18 +1203,31 @@ to hand-wire. Key traits:
   for the fixed left→right slot order), so all four are **temp placeholders** today — swap the paths
   in `configs/icons.gd` (one line each) when real pips are drawn, no code change. Add a status by an
   entry in `StatusTypes`, a `status:<id>` path in `Icons`, and one line in `_refresh_status_icons`.
+- **Over-head halo** (`scripts/combat/overhead_status.gd` → `OverheadStatus`). The over-head twin of the
+  pips: a looping animation that **hovers over the enemy's head** while a status is active — today the
+  swirling-stars **stun halo** (`sprites/things/state/stunned.png`, a 256×64 four-frame strip). Built in
+  code (no scene), it's fed the **same active-status set** as `StatusIcons` from `_refresh_status_icons()`
+  and shows the highest-priority status that has an over-head anim (one at a time), bobbing gently. The
+  anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached `SpriteFrames`),
+  so giving another status its own halo is a config line + art — no code change. Anchored at the enemy's
+  head line (just under the floating bar); pixel-filtered like the rest of the art.
 - **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
-  label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude)`. It parents the label to
+  label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude, overrides)`. It parents the label to
   the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it
   rides above a moving enemy/player and is immune to both the camera chasing the player and the host's
   own knockback/patrol (the two things that dragged world-space / screen-space versions across the
   screen). **Every label TYPE is a preset** in [`configs/floating_text_types.gd`](configs/floating_text_types.gd) —
   its own size/colour (fixed or magnitude-ramped), font, `italic` slant, and independent in/out
   transition — so different events read and animate distinctly with no code change. The only live type
-  today is the **`damage`** number (white → hot gold; `damage_special` = magenta), emitted as
-  `FloatingText.emit("damage"/"damage_special", enemy, …, amount)` off the `enemy.damaged` signal in
-  `RunManager._on_enemy_damaged`. Add a label type = add a row to the preset table (the file keeps a
-  commented word-callout example — a parry "Nice", a "LEVEL UP" — for when one's wanted).
+  live types today are the **`damage`** number over enemies (white → hot gold; `damage_special` =
+  magenta), emitted as `FloatingText.emit("damage"/"damage_special", enemy, …, amount)` off the
+  `enemy.damaged` signal in `RunManager._on_enemy_damaged`; and the **`player_damage`** number over
+  Khalid, popped in `Player.take_damage` for the actual HP lost (after Thick Hide / Jnoon mitigation).
+  Its colour is **overridden per-call with the run's chosen PRIMARY (hair) colour** —
+  `overrides {"color": PaletteConfig.picks["hair"]}`, the same source that recolours his hair (default
+  red `#941E1E` when unpicked) — so his own numbers match his palette. The optional `overrides` dict
+  patches any preset key for one call (it wins over the preset). Add a label type = add a row to the
+  preset table (the file keeps a commented word-callout example — a parry "Nice", a "LEVEL UP").
 - **Death** — on lethal damage it enters the `DEAD` state (AI + collisions off, no more
   hits) and **leaves the `enemies` group immediately**, then, if it has a `death` sheet,
   plays that animation once and **vanishes the instant it finishes** (`_on_anim_finished` →
@@ -1211,7 +1237,10 @@ to hand-wire. Key traits:
   **homing**: the node lingers for the death anim's duration, so a tracking shot re-checks
   `is_in_group("enemies")` every frame (`projectile.gd::_target_alive()`) and **straightens
   onto its launch heading the moment the target dies** instead of curving down into the corpse.
-  `_has_death` is inferred from the art, same as `_has_melee` / `_has_ranged`.
+  `_has_death` is inferred from the art, same as `_has_melee` / `_has_ranged`. `_die()` also **clears the
+  UI overlays immediately** — hides the health bar, empties the status pips + stun halo, and stops the
+  body-tint throb (`StatusOverlay.clear()`) — because `_physics_process` bails on `DEAD`, so nothing else
+  would clear them and they'd otherwise linger frozen on the corpse for the death anim's ~2s.
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
   stun, hitbox sizes/offsets, aggro, contact damage, and **`body_size` /
   `hurtbox_size`** (per-enemy colliders, so a bigger or smaller enemy fits its

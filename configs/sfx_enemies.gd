@@ -6,6 +6,7 @@ class_name SfxEnemies
 ## configs/strike_spec.gd -- `melee`, `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`, ...
 ##   CUES   -- `key` -> path. Conventions the code relies on:
 ##             * `enemy_death`               -- the shared death cue (Enemy._die).
+##             * `enemy_spawn`               -- the shared spawn cue (RunManager._spawn_fx, with the puff).
 ##             * `<enemy_id>.<type>`         -- an attack START sound. `type` = the enemy's `attack_type`
 ##                                              (set per kit), else melee/projectile from the anim
 ##                                              (Enemy._play_attack_start_sfx).
@@ -13,11 +14,12 @@ class_name SfxEnemies
 ##             * `<enemy_id>.delayed_projectile_burst` -- a lob's delayed explosion (Enemy._fire_lob).
 ##   FRAMES -- enemy_id -> animation -> { sheet_frame: cue_key } (Enemy._on_frame_changed). Sheet-relative.
 ##
-## Files live under sfx/enemy/<id>/attack/<type>[...].wav (+ the shared sfx/enemy/death.wav). A key with
-## no entry = that enemy makes no sound there (silent no-op).
+## Files live under sfx/enemy/<id>/attack/<type>[...].wav (+ the shared sfx/enemy/enemy_death.wav /
+## enemy_spawn.wav). A key with no entry = that enemy makes no sound there (silent no-op).
 
 const CUES := {
-	"enemy_death": "res://sfx/enemy/death.wav",  # any enemy dies (positional)
+	"enemy_death": "res://sfx/enemy/enemy_death.wav",  # any enemy dies (positional)
+	"enemy_spawn": "res://sfx/enemy/enemy_spawn.wav",  # a batch enemy spawns w/ the puff (positional) -- PLACEHOLDER
 	# --- attack starts (<id>.<type>) ---
 	"kebus.melee": "res://sfx/enemy/kebus/attack/melee.wav",
 	"kebus.projectile": "res://sfx/enemy/kebus/attack/projectile.wav",

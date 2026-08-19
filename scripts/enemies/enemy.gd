@@ -214,6 +214,8 @@ var _hurtbox: Hurtbox
 var _bar: FloatingHealthBar
 var _status: StatusOverlay
 var _status_icons: StatusIcons
+var _overhead: OverheadStatus ## the hovering over-head halo (stun stars); driven off the same status set
+var _head_y := 0.0 ## the head line (just above the sprite top); the bar + halo anchor here
 var _shown_status := "" ## joined key of the currently-drawn status ids, so icons only redraw on change
 var _edge_ray_left: RayCast2D
 var _edge_ray_right: RayCast2D
@@ -239,6 +241,12 @@ func _ready() -> void:
 	_status_icons = StatusIcons.new()
 	add_child(_status_icons)
 	_status_icons.position = _bar.position + Vector2(_bar.bar_width / 2.0 + 3.0, -_bar.bar_height / 2.0)
+
+	# Over-head halo (the swirling-stars anim for a stun) -- hovers on the head, driven by the same
+	# active-status set as the pips. Anchored at the head line (just under where the bar floats).
+	_overhead = OverheadStatus.new()
+	add_child(_overhead)
+	_overhead.setup(_head_y)
 
 	_has_melee = _sprite.sprite_frames.has_animation(&"attack")
 	_has_ranged = _sprite.sprite_frames.has_animation(&"attack_projectile")
@@ -334,8 +342,8 @@ func _build_health_bar() -> void:
 	_bar.setup(display_name)
 	# Just above the head (sprite is drawn from feet at y=0 upward).
 	var frame := _sprite.sprite_frames.get_frame_texture(&"idle", 0)
-	var head_y := - (frame.get_height() if frame else 70) + 8
-	_bar.position = Vector2(0, head_y)
+	_head_y = - (frame.get_height() if frame else 70) + 8
+	_bar.position = Vector2(0, _head_y)
 
 
 # --- loop -------------------------------------------------------------------
@@ -883,6 +891,13 @@ func _die() -> void:
 	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse
 	_hurtbox.set_deferred("monitorable", false)
 	set_deferred("collision_layer", 0)
+	# Clear the UI overlays the INSTANT it dies. The death anim/fade below keeps this node alive ~2s,
+	# and _physics_process bails on DEAD so _refresh_status_icons() never runs to clear them -- without
+	# this the health bar, status pips + the stun halo would linger frozen on the corpse until it frees.
+	_bar.visible = false
+	_status_icons.set_active([])
+	_overhead.set_active([])
+	_status.clear()
 	if _has_death:
 		_play(&"death") # play it out; _on_anim_finished frees it the instant the anim ends
 	else:
@@ -950,6 +965,7 @@ func _refresh_status_icons() -> void:
 		return
 	_shown_status = key
 	_status_icons.set_active(ids)
+	_overhead.set_active(ids) # the over-head halo (stun stars) tracks the same set
 
 
 # --- helpers ----------------------------------------------------------------

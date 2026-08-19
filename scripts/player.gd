@@ -68,6 +68,8 @@ var ruh: float = 0.0:
 ## (see resolve_tuning). All reset by begin_run() when a fresh run starts.
 const BASE_RUH_CAP := 300.0 # start a run with 3 special charges (rewards raise the cap toward MAX)
 const BASE_MAX_HEALTH := 100.0
+## Where Khalid's own floating damage number spawns (local, feet at y=0 -> above his head). Tunable.
+const HURT_NUMBER_OFFSET := Vector2(0, -40)
 var damage_mult: float = 1.0
 ## Run-speed multiplier from rewards (Fleetfoot), applied OVER the equipped run option's base so a
 ## loadout swap doesn't wipe the buff. Reset by begin_run().
@@ -664,7 +666,14 @@ func portrait_path() -> String:
 ## Damage hits HP ONLY -- Ruh is not a shield (that's the whole point of the rework). Flash the
 ## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
-	health -= amount * damage_taken_mult * _surge_dmg_taken_mult # Thick Hide reward + Jnoon surge (0.5x) reduce this
+	var dealt := amount * damage_taken_mult * _surge_dmg_taken_mult # Thick Hide reward + Jnoon surge (0.5x) reduce this
+	health -= dealt
+	# Pop a floating damage number over Khalid, tinted with his chosen PRIMARY (hair) colour so his own
+	# HP loss reads like the enemy numbers but coloured to him. PaletteConfig.picks is the same source
+	# that recolours his hair (default red when unpicked). Skip a non-damaging tick (0 / a heal).
+	if dealt > 0.0:
+		var hair: Color = PaletteConfig.picks.get("hair", Color(PaletteConfig.DEFAULT["hair"][0]))
+		FloatingText.emit("player_damage", self, HURT_NUMBER_OFFSET, str(roundi(dealt)), dealt, {"color": hair})
 	# Damage feedback: one of a few random hurt grunts (so he doesn't make the same noise every time),
 	# pitch-wobbled for variety. The visible flinch is the HURT animation, played from _on_hurt when a
 	# hit actually staggers him (a bare HP tick -- e.g. a future DoT -- just grunts, no anim interrupt).
@@ -1698,9 +1707,10 @@ func _process_attack(delta: float) -> void:
 ## normal/land states and by a light-attack cancel (see _process_attack).
 func _start_special() -> void:
 	if _special_cd > 0.0:
-		return # short lag between specials (anti-spam)
-	# Specials are FREE now -- cast as often as you like. Ruh is spent on SURGES, not specials (see _try_surge).
-	_special_cd = SPECIAL_COOLDOWN
+		return # still recharging (this special's cooldown, or the short anti-spam lag)
+	# Specials are FREE (no Ruh -- that's Surges). Most just have the short anti-spam lag; a special can
+	# set its OWN `cooldown` in the catalog (e.g. Come Closer's 3s) for a real gate -- take the larger.
+	_special_cd = maxf(SPECIAL_COOLDOWN, _current_special.cooldown if _current_special != null else 0.0)
 	# A "shield"-tagged special (Redere Shield) runs its OWN block+reflect window instead of the
 	# pass-through invuln -- the hurtbox must stay active so incoming hits reach _on_hurt to be parried.
 	var is_shield := _current_special != null and _current_special.tags.has("shield")
@@ -1913,13 +1923,23 @@ func _start_flurry() -> void:
 func _update_cooldown_bar() -> void:
 	if _cooldown_bar == null:
 		return
-	var cd := 0.0 if _current_attack == null else _current_attack.cooldown
-	if cd <= 0.0 or _attack_cd <= 0.0:
+	# Overhead recharge bar for whatever's currently on a real cooldown -- a cooldown SPECIAL (Come Closer)
+	# takes it while it recharges, else a cooldown ATTACK (bakshen/zahluq). The short anti-spam lag on a
+	# plain special (cooldown 0) never shows -- gated on `.cooldown > 0`.
+	var cd := 0.0
+	var left := 0.0
+	if _current_special != null and _current_special.cooldown > 0.0 and _special_cd > 0.0:
+		cd = _current_special.cooldown
+		left = _special_cd
+	elif _current_attack != null and _current_attack.cooldown > 0.0 and _attack_cd > 0.0:
+		cd = _current_attack.cooldown
+		left = _attack_cd
+	if cd <= 0.0 or left <= 0.0:
 		if _cooldown_bar.visible:
 			_cooldown_bar.visible = false
 		return
 	_cooldown_bar.visible = true
-	_cooldown_bar.set_ratio(1.0 - _attack_cd / cd)
+	_cooldown_bar.set_ratio(1.0 - left / cd)
 
 
 ## Emitted frame indices that end each combo segment. From the SpriteFrames

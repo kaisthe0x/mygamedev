@@ -47,6 +47,18 @@ extends Node2D
 ## would also flip it upside-down) -- so a straight shot never rotates.
 @export var rotate_to_heading: bool = true
 
+@export_group("Bounce")
+## RICOCHET: after a hit, redirect to the next-nearest UN-hit target this many more times
+## instead of dying (0 = die on first hit, the default). The frisbee sets this to chain
+## through a crowd. Each hit is once-per-enemy (the Hitbox dedupes victims), so a bounce
+## always seeks a fresh enemy and the chain ends when none are left in `bounce_range`.
+@export var bounces: int = 0
+## How tightly a bounced shot curves toward its new target (steer rate). It also snaps its
+## heading straight at the target on the bounce, then homes with this so it tracks a mover.
+@export var bounce_homing: float = 8.0
+## Max distance to find the next bounce target (0 = fall back to acquire_range).
+@export var bounce_range: float = 0.0
+
 @export_group("Look / lifecycle")
 ## Optional one-shot effect spawned at the point of contact when it hits (a spark/puff).
 @export var impact_effect: PackedScene
@@ -77,10 +89,13 @@ var _dying := false  # true while the end animation plays out; travel + hits are
 ## The heading the shot launched with (its facing). A homing shot falls back to this and
 ## flies straight if its target dies mid-flight, instead of drifting off on a stale curve.
 var _launch_dir := Vector2.RIGHT
+var _bounces_left := 0        # ricochets remaining (from `bounces`); drops to 0 -> next hit frees
+var _hit_targets: Array[Node] = []  # enemies already struck -- excluded when picking a bounce target
 
 
 func _ready() -> void:
 	add_to_group("projectiles")  # so a respawn can clear in-flight shots
+	_bounces_left = bounces
 	if velocity.length() > 0.01:
 		# The spawner (enemy) gave an explicit velocity: derive heading + speed from it.
 		_dir = velocity.normalized()
@@ -242,13 +257,62 @@ func _hitbox() -> Hitbox:
 	return null
 
 
-## Hit something: drop the impact effect (if any) at the point of contact, then die.
-func _on_struck(_victim: Hurtbox) -> void:
+## Hit something: drop the impact effect + clang at the point of contact. Then either RICOCHET
+## to the next-nearest un-hit target (if bounces remain) or die. Each enemy is struck once (the
+## Hitbox dedupes victims across the whole flight), so a bounce always seeks a fresh one and the
+## chain ends when the crowd is exhausted -- no infinite ping-pong between two enemies.
+func _on_struck(victim: Hurtbox) -> void:
 	if impact_effect != null:
 		_spawn_impact()
 	if impact_sfx != "":
 		Sfx.play_at(impact_sfx, global_position) # positional -- the clang lands at the point of contact
+
+	var struck_enemy := victim.get_parent()
+	if struck_enemy != null and not (struck_enemy in _hit_targets):
+		_hit_targets.append(struck_enemy)
+
+	if _bounces_left > 0:
+		var next := _nearest_bounce_target()
+		if next != null:
+			_bounces_left -= 1
+			# Snap the heading straight at the new target, then home into it (so it tracks a mover).
+			_target = next
+			_acquired = true
+			homing = maxf(homing, bounce_homing)
+			var aim := _aim_point(next)
+			var to := (aim if aim != null else next).global_position - global_position
+			if to.length() > 0.01:
+				_dir = to.normalized()
+			_launch_dir = _dir       # if this target dies mid-curve, straighten along the new leg
+			_traveled = 0.0          # each ricochet leg gets a fresh max_range budget
+			_orient()
+			return                   # keep flying -- don't free
 	queue_free()
+
+
+## Nearest UN-hit opposing-team member for a ricochet, in ANY direction (a bounce can reverse),
+## on our level (respecting vertical_reach unless can_fly_up). Excludes everyone already struck so
+## the shot never wastes a bounce curving back to an enemy its Hitbox can no longer damage.
+func _nearest_bounce_target() -> Node2D:
+	var group := "player" if hostile else "enemies"
+	var reach := bounce_range if bounce_range > 0.0 else acquire_range
+	var best: Node2D = null
+	var best_d := reach
+	for e in get_tree().get_nodes_in_group(group):
+		var n := e as Node2D
+		if n == null or n in _hit_targets:
+			continue
+		var aim := _aim_point(n)
+		if aim == null:
+			continue
+		var to := aim.global_position - global_position
+		if not can_fly_up and absf(to.y) > vertical_reach:
+			continue  # off our row -- don't dive to a platform above/below
+		var d := to.length()
+		if d < best_d:
+			best_d = d
+			best = n
+	return best
 
 
 ## Reached max range/life without hitting anything. With `end_frames`, dissolve in place

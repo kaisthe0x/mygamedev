@@ -9,6 +9,9 @@ extends Node2D
 
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 const SPAWN_FX := preload("res://vfx/spawn/enemy_spawn.tscn")
+## How far to LIFT the spawn puff off the enemy's feet (its spawn `pos` is feet-anchored, so at 0 the
+## puff sits on the ground). More negative = higher up the body. Tune this one number to taste.
+const SPAWN_FX_OFFSET := Vector2(0, -22)
 const REWARDS_OFFERED := 3
 ## Local position a floating damage number is parented at above an enemy's origin (feet) -- upper
 ## body-ish. It rides along with the enemy from here; nudge it if a taller/shorter enemy reads off.
@@ -293,7 +296,8 @@ func _spawn_enemy(kit: Dictionary, pos: Vector2) -> Enemy:
 func _spawn_fx(pos: Vector2) -> void:
 	var fx := SPAWN_FX.instantiate()
 	_content.add_child(fx)
-	Nodes.place_at(fx, pos)
+	Nodes.place_at(fx, pos + SPAWN_FX_OFFSET) # lift off the feet (SPAWN_FX_OFFSET) so it reads on the body
+	Sfx.play_at("enemy_spawn", pos) # the spawn puff's cue -- positional, at the spawn point
 	get_tree().create_timer(1.2).timeout.connect(func() -> void:
 		if is_instance_valid(fx):
 			fx.queue_free())
