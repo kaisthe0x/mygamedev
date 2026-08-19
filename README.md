@@ -1232,7 +1232,10 @@ to hand-wire. Key traits:
   **homing**: the node lingers for the death anim's duration, so a tracking shot re-checks
   `is_in_group("enemies")` every frame (`projectile.gd::_target_alive()`) and **straightens
   onto its launch heading the moment the target dies** instead of curving down into the corpse.
-  `_has_death` is inferred from the art, same as `_has_melee` / `_has_ranged`.
+  `_has_death` is inferred from the art, same as `_has_melee` / `_has_ranged`. `_die()` also **clears the
+  UI overlays immediately** — hides the health bar, empties the status pips + stun halo, and stops the
+  body-tint throb (`StatusOverlay.clear()`) — because `_physics_process` bails on `DEAD`, so nothing else
+  would clear them and they'd otherwise linger frozen on the corpse for the death anim's ~2s.
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
   stun, hitbox sizes/offsets, aggro, contact damage, and **`body_size` /
   `hurtbox_size`** (per-enemy colliders, so a bigger or smaller enemy fits its

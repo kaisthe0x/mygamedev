@@ -891,6 +891,13 @@ func _die() -> void:
 	# keeps this node alive ~2s, and a tracking projectile would otherwise curve into the corpse
 	_hurtbox.set_deferred("monitorable", false)
 	set_deferred("collision_layer", 0)
+	# Clear the UI overlays the INSTANT it dies. The death anim/fade below keeps this node alive ~2s,
+	# and _physics_process bails on DEAD so _refresh_status_icons() never runs to clear them -- without
+	# this the health bar, status pips + the stun halo would linger frozen on the corpse until it frees.
+	_bar.visible = false
+	_status_icons.set_active([])
+	_overhead.set_active([])
+	_status.clear()
 	if _has_death:
 		_play(&"death") # play it out; _on_anim_finished frees it the instant the anim ends
 	else:

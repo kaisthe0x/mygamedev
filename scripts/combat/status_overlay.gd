@@ -39,6 +39,15 @@ func show_for(color: Color, duration: float) -> void:
 	set_process(true)
 
 
+## Kill any active tint NOW (not on its timer) -- e.g. the enemy died and its overlays should clear
+## instantly instead of throbbing on the corpse through the death anim.
+func clear() -> void:
+	_time = 0.0
+	if _overlay != null:
+		_overlay.visible = false
+	set_process(false)
+
+
 func _process(delta: float) -> void:
 	_time -= delta
 	if _time <= 0.0:
