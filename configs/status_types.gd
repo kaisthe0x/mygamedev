@@ -14,14 +14,26 @@ extends RefCounted
 ## >>> TODO(art): the icons are TEMP placeholders (reused pngs) -- see the TODO in configs/icons.gd. <<<
 
 const DEFS := {
-	"reap":  {"color": Color(0.55, 0.95, 0.45), "label": "Reaped"},   # dying / DoT (Twin Reaper)
-	"stun":  {"color": Color(1.0, 0.86, 0.28),  "label": "Stunned"},  # frozen / staggered
-	"slow":  {"color": Color(0.45, 0.7, 1.0),   "label": "Slowed"},   # reserved for a future slow effect
-	"charm": {"color": Color(1.0, 0.5, 0.75),   "label": "Charmed"},  # frenemy (fighting for the player)
+	"reap": {"color": Color(0.55, 0.95, 0.45), "label": "Reaped"}, # dying / DoT (Twin Reaper)
+	"stun": {"color": Color(1.0, 0.86, 0.28), "label": "Stunned"}, # frozen / staggered
+	"slow": {"color": Color(0.45, 0.7, 1.0), "label": "Slowed"}, # reserved for a future slow effect
+	"charm": {"color": Color(1.0, 0.5, 0.75), "label": "Charmed"}, # frenemy (fighting for the player)
 }
 
 ## Fixed draw order (left -> right). Ids not listed fall to the end in DEFS order.
 const ORDER := ["reap", "stun", "slow", "charm"]
+
+## Optional OVER-HEAD animation for a status -- a looping sheet that hovers over the enemy's head like a
+## halo (drawn by scripts/combat/overhead_status.gd; ONE shows at a time, picked by ORDER priority). Only
+## STUN has one today: the swirling-stars "dazed halo". Give another status one by dropping in art + an
+## entry here. Fields: sheet (horizontal strip), hframes (cells), fps, scale, y_off (px below the head line,
+## + = lower, to sit the halo on the crown just under the health bar).
+const OVERHEAD := {
+	"stun": {
+		"sheet": "res://sprites/things/state/stunned.png", # 4x swirling yellow stars (256x64 -> 64x64 cells)
+		"hframes": 4, "fps": 12.0, "scale": 0.3, "y_off": 20.0,
+	},
+}
 
 
 ## The tint for a status id (white if unknown), so StatusIcons can colour a placeholder pip.
