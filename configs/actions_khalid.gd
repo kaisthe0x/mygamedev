@@ -105,15 +105,15 @@ const SPECIALS := {
 		"hit": {"type": "blast", "segments": {"damage": 4, "knockback": 0, "frenemy": 8.0,
 			"victim_effect": "res://vfx/character/khalid/status/frenemy_stun.tscn", "victim_time": 8.0}},
 	},
-	# Come Closer: a magnet pull -- drags nearby enemies in front of Khalid and STUNS them on arrival
-	# (no damage). No `hit`; the magnet FIELD scene (EmittersCharacters -> scripts/combat/magnet_field.gd)
-	# + Enemy.magnetize() do the work. Tune range/stun/speed on that field scene. `cooldown` is a REAL
-	# 3s gate (not the 0.6s anti-spam) since the pull+stun is strong -- Player._start_special honours it
-	# and the overhead recharge bar shows it. It only grabs enemies in range + on the same level, so a
-	# cast with nobody nearby just "does nothing" (that's reach, not the cooldown).
+	# Come Closer: a magnet pull -- drags the NEAREST enemy in front of Khalid and STUNS it on arrival
+	# (no damage; grabs just one for now -- bump the field's `max_targets` to 3 later). No `hit`; the magnet
+	# FIELD scene (EmittersCharacters -> scripts/combat/magnet_field.gd) + Enemy.magnetize() do the work.
+	# Tune range/stun/speed/targets on that field scene. `cooldown` is a REAL 1s gate (not the 0.6s
+	# anti-spam) -- Player._start_special honours it and the overhead recharge bar shows it. It only grabs
+	# an enemy in range + on the same level, so a cast with nobody nearby just "does nothing" (that's reach).
 	"come_closer": {
 		"name": "Come Closer", "icon": "res://vfx/shared/textures/pixel_ember.png", "tags": ["control"],
-		"cooldown": 3.0,
+		"cooldown": 1.0,
 	},
 	# Redere Shield: a HELD guard -- hold the special button to keep it up. BLOCKS all front-side damage
 	# (open from behind); a hit taken in the brief PARRY window right after RAISING it is reflected (a

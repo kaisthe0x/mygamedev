@@ -468,8 +468,13 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
 - **Ground Breaker** — AOE slam `Strike` (stun + a ground-crack).
 - **Frenemy** — a charm blast: the hit enemy becomes a temporary ally (`Hit.frenemy_time` → `Enemy.become_frenemy`).
 - **Come Closer** — a magnet: the `special_come_closer` effect scene (`scripts/combat/magnet_field.gd`) grabs
-  enemies in range and `Enemy.magnetize()`s them toward Khalid, stunning each on arrival (no damage). Tune the
-  pull on the field scene.
+  the **nearest** enemy in range and `Enemy.magnetize()`s it toward Khalid, stunning it on arrival (no damage).
+  The field's **`max_targets`** (=1 today) caps how many it yanks — bump it to 3 later for a wider pull. The
+  grab is measured from **Khalid's** position, *not* the field's own transform: the director spawns the field
+  with `add_child()` (which runs its `_ready` scan) and only sets its world position with `Nodes.place_at()`
+  **afterwards**, so reading `self.global_position` in `_ready` saw a stale pre-placement transform (near world
+  origin) — the pull then only landed when Khalid stood near x≈0 (i.e. right after load) and missed once he
+  moved into the level. Has its own **1s cooldown** (`actions_khalid.gd`).
 - **Redere Shield** — a held guard: the block is *state-based* — active only while Khalid is in the shield
   special (`Player._is_shielding()`), so it drops the instant he releases or is staggered (no lingering timer,
   so a hit taken right after the guard is down lands — and sounds — normally). It **blocks** all front-side
