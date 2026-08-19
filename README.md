@@ -1204,13 +1204,15 @@ to hand-wire. Key traits:
   in `configs/icons.gd` (one line each) when real pips are drawn, no code change. Add a status by an
   entry in `StatusTypes`, a `status:<id>` path in `Icons`, and one line in `_refresh_status_icons`.
 - **Over-head halo** (`scripts/combat/overhead_status.gd` → `OverheadStatus`). The over-head twin of the
-  pips: a looping animation that **hovers over the enemy's head** while a status is active — today the
-  swirling-stars **stun halo** (`sprites/things/state/stunned.png`, a 256×64 four-frame strip). Built in
-  code (no scene), it's fed the **same active-status set** as `StatusIcons` from `_refresh_status_icons()`
-  and shows the highest-priority status that has an over-head anim (one at a time), bobbing gently. The
-  anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached `SpriteFrames`),
-  so giving another status its own halo is a config line + art — no code change. Anchored at the enemy's
-  head line (just under the floating bar); pixel-filtered like the rest of the art.
+  pips: a looping animation that **hovers over the enemy's head** while a status is active. Two today: the
+  swirling-stars **stun halo** (`sprites/things/state/stunned.png`, 256×64 / 4 frames) and the pulsing
+  skull **dying halo** for a reaped enemy (`sprites/things/state/dying.png`, 768×64 / 12 frames — only
+  Twin Reaper's `reap` DoT applies it for now). Built in code (no scene), it's fed the **same
+  active-status set** as `StatusIcons` from `_refresh_status_icons()` and shows the highest-priority status
+  (by `StatusTypes.ORDER`, so `reap` beats `stun`) that has an over-head anim — one at a time — bobbing
+  gently. The anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached
+  `SpriteFrames`), so giving another status its own halo is a config line + art — no code change. Anchored
+  at the enemy's head line (just under the floating bar); pixel-filtered like the rest of the art.
 - **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
   label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude, overrides)`. It parents the label to
   the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it
