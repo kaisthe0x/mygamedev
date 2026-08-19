@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://5wgfyijr5xug"
-path="res://.godot/imported/death.wav-e57e9fd4cb22e68fe90956e03f316b45.sample"
+uid="uid://cly8imfmucccl"
+path="res://.godot/imported/enemy_spawn.wav-25ba28f80da211bdf5a076ef825ffe97.sample"
 
 [deps]
 
-source_file="res://sfx/enemy/death.wav"
-dest_files=["res://.godot/imported/death.wav-e57e9fd4cb22e68fe90956e03f316b45.sample"]
+source_file="res://sfx/enemy/enemy_spawn.wav"
+dest_files=["res://.godot/imported/enemy_spawn.wav-25ba28f80da211bdf5a076ef825ffe97.sample"]
 
 [params]
 

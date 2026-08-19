@@ -50,7 +50,7 @@ tools/                Generator + verification scripts (not shipped)
 | Space | `jump` | Press again in the air to **double jump** (`max_air_jumps`) — the air jump re-boosts and spawns the character's jump particles; the ground jump is silent |
 | Shift | `dash` | Has a cooldown. **Dash into a launch orb** and it magnets you through and flings you up + forward (see Launch orbs) |
 | Left mouse | `attack` | The current *attack* — each press advances the combo (or, for a `"flurry"` attack like Khalid's, **hold** to keep punching). **Ground only** by default — an attack whose Action is tagged `"air"` (e.g. Zahluq) is the exception and can be used mid-air (`Player._air_attack_ok`) |
-| Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free and unlimited** (a tiny anti-spam lag only, no Ruh cost). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
+| Right mouse | `special` | On the ground: the current *special* (committed full-animation move) — **free, no Ruh cost**; most have only a tiny anti-spam lag, though a strong one can set its own cooldown (**Come Closer = 3s**). **In the air: performs the ground slam instead** (characters with a `slam` sheet) |
 | Ctrl (RT / R2) | `surge` | Fires the equipped **Surge** — a passive ability (**Aegis** = ~5s invincibility; **Jnoon** = ~5s ×2 damage dealt / ×0.5 taken; **Asra** = ~5s ×2 move speed) applied *without* interrupting your attacking/moving — **except Nem**, a committed sleep that locks you in place and heals ~50% HP over 5s (a hit wakes/cancels it), and **Wara**, which *arms* and waits: the next enemy hit is negated and AoE-stuns everyone near you (2s). **Spends one Ruh charge per use** — Ruh is the only gate, no cooldown. RT on the pad because dash owns LT |
 | Z / X | `debug_damage` / `debug_heal` | Dev only |
 | 0 | `debug_respawn` | Dev only — rebuild the current level fresh |
@@ -621,9 +621,12 @@ While it recharges,
 gold **fill bar floats over Khalid's head** (`FloatingHealthBar`, the same world-space bar the
 enemies use, tinted for "charge") growing empty→full as `_attack_cd` counts down; it hides once
 ready or for any attack with `cooldown 0`. The timer starts the instant the swing fires and
-resets to 0 on run-start / character swap. This is the per-**attack** cooldown; specials have
-their own separate anti-spam window (`SPECIAL_COOLDOWN`). A cooldown attack is effectively a
-single heavy hit — the gate blocks re-entry, so it doesn't chain combo segments.
+resets to 0 on run-start / character swap. This is the per-**attack** cooldown; specials have a
+short anti-spam window (`SPECIAL_COOLDOWN`, 0.6s) **but a special can also set its own real
+`cooldown`** — `Player._start_special` takes the larger (e.g. **Come Closer = 3s**, since its
+pull+stun is strong), and the same overhead bar shows it (a cooldown special takes the bar while it
+recharges). A cooldown attack is effectively a single heavy hit — the gate blocks re-entry, so it
+doesn't chain combo segments.
 
 **Dash-attacks (the `lunge` seam).** Khalid's **`zahluq`** is a `COOLDOWN` attack that *bursts him
 forward* — a heavy hit that's less than `bakshen` but slides him a long way. Its tuning keys, read by
@@ -996,7 +999,8 @@ exists. Same "drop a file, add one line" workflow as `Sfx`.
   - **Frame-synced hit** — declare `anim → { sheet_frame: cue }` in the config's **`FRAMES`** dict;
     the presentation driver plays it when the animation reaches that frame (the audio twin of the
     particle bursts). This is symmetric to VFX — the **Emitters config stays particles-only**.
-- **Enemy sound keys** follow conventions the code composes: `enemy_death` (shared), `<id>.<type>`
+- **Enemy sound keys** follow conventions the code composes: `enemy_death` / `enemy_spawn` (shared,
+  positional — death on `_die`, spawn with the puff in `RunManager._spawn_fx`), `<id>.<type>`
   (attack start, `type` = the enemy's `attack_type`, else melee/projectile from the anim),
   `<id>.delayed_projectile_burst` (a lob's delayed explosion), and per-frame
   hits in `SfxEnemies.FRAMES` — all in `SfxEnemies`, keyed by `enemy_id`.

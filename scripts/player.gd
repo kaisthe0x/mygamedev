@@ -1698,9 +1698,10 @@ func _process_attack(delta: float) -> void:
 ## normal/land states and by a light-attack cancel (see _process_attack).
 func _start_special() -> void:
 	if _special_cd > 0.0:
-		return # short lag between specials (anti-spam)
-	# Specials are FREE now -- cast as often as you like. Ruh is spent on SURGES, not specials (see _try_surge).
-	_special_cd = SPECIAL_COOLDOWN
+		return # still recharging (this special's cooldown, or the short anti-spam lag)
+	# Specials are FREE (no Ruh -- that's Surges). Most just have the short anti-spam lag; a special can
+	# set its OWN `cooldown` in the catalog (e.g. Come Closer's 3s) for a real gate -- take the larger.
+	_special_cd = maxf(SPECIAL_COOLDOWN, _current_special.cooldown if _current_special != null else 0.0)
 	# A "shield"-tagged special (Redere Shield) runs its OWN block+reflect window instead of the
 	# pass-through invuln -- the hurtbox must stay active so incoming hits reach _on_hurt to be parried.
 	var is_shield := _current_special != null and _current_special.tags.has("shield")
@@ -1913,13 +1914,23 @@ func _start_flurry() -> void:
 func _update_cooldown_bar() -> void:
 	if _cooldown_bar == null:
 		return
-	var cd := 0.0 if _current_attack == null else _current_attack.cooldown
-	if cd <= 0.0 or _attack_cd <= 0.0:
+	# Overhead recharge bar for whatever's currently on a real cooldown -- a cooldown SPECIAL (Come Closer)
+	# takes it while it recharges, else a cooldown ATTACK (bakshen/zahluq). The short anti-spam lag on a
+	# plain special (cooldown 0) never shows -- gated on `.cooldown > 0`.
+	var cd := 0.0
+	var left := 0.0
+	if _current_special != null and _current_special.cooldown > 0.0 and _special_cd > 0.0:
+		cd = _current_special.cooldown
+		left = _special_cd
+	elif _current_attack != null and _current_attack.cooldown > 0.0 and _attack_cd > 0.0:
+		cd = _current_attack.cooldown
+		left = _attack_cd
+	if cd <= 0.0 or left <= 0.0:
 		if _cooldown_bar.visible:
 			_cooldown_bar.visible = false
 		return
 	_cooldown_bar.visible = true
-	_cooldown_bar.set_ratio(1.0 - _attack_cd / cd)
+	_cooldown_bar.set_ratio(1.0 - left / cd)
 
 
 ## Emitted frame indices that end each combo segment. From the SpriteFrames

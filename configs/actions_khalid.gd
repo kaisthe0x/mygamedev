@@ -107,9 +107,13 @@ const SPECIALS := {
 	},
 	# Come Closer: a magnet pull -- drags nearby enemies in front of Khalid and STUNS them on arrival
 	# (no damage). No `hit`; the magnet FIELD scene (EmittersCharacters -> scripts/combat/magnet_field.gd)
-	# + Enemy.magnetize() do the work. Tune range/stun/speed on that field scene.
+	# + Enemy.magnetize() do the work. Tune range/stun/speed on that field scene. `cooldown` is a REAL
+	# 3s gate (not the 0.6s anti-spam) since the pull+stun is strong -- Player._start_special honours it
+	# and the overhead recharge bar shows it. It only grabs enemies in range + on the same level, so a
+	# cast with nobody nearby just "does nothing" (that's reach, not the cooldown).
 	"come_closer": {
 		"name": "Come Closer", "icon": "res://vfx/shared/textures/pixel_ember.png", "tags": ["control"],
+		"cooldown": 3.0,
 	},
 	# Redere Shield: a HELD guard -- hold the special button to keep it up. BLOCKS all front-side damage
 	# (open from behind); a hit taken in the brief PARRY window right after RAISING it is reflected (a
@@ -201,6 +205,6 @@ const MOVEMENTS := {
 }
 
 const DEFAULT_ATTACK := "bakshen"
-const DEFAULT_SPECIAL := "redere_shield"
+const DEFAULT_SPECIAL := "come_closer"
 const DEFAULT_SURGE := "wara"
 const DEFAULT_MOVEMENTS := {"run": "standard_stride", "jump": "standard_leap", "dash": "blink_dash", "slam": "standard_slam"}
