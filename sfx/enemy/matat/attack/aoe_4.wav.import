@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://cmcb6sitq6e8d"
-path="res://.godot/imported/slam.wav-d5fb8a1402b3f0caea65ec72fc02071b.sample"
+uid="uid://bi7nuq53pyx7n"
+path="res://.godot/imported/aoe_4.wav-ab91b20a46e0a330372aa0c638b38a3c.sample"
 
 [deps]
 
-source_file="res://sfx/character/slam.wav"
-dest_files=["res://.godot/imported/slam.wav-d5fb8a1402b3f0caea65ec72fc02071b.sample"]
+source_file="res://sfx/enemy/matat/attack/aoe_4.wav"
+dest_files=["res://.godot/imported/aoe_4.wav-ab91b20a46e0a330372aa0c638b38a3c.sample"]
 
 [params]
 

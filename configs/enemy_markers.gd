@@ -12,6 +12,7 @@ const COLORS := {
 	"nasen": Color(0.36, 0.66, 1.00),   # steel blue
 	"mazab": Color(1.00, 0.32, 0.30),   # crimson
 	"ein": Color(1.00, 0.56, 0.20),     # orange
+	"matat": Color(1.00, 0.42, 0.12),   # deep orange-red (his repalette body)
 }
 const FALLBACK := Color(1.0, 0.30, 0.30)  # a neutral threat red for any unmapped enemy
 

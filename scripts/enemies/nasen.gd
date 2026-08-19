@@ -121,7 +121,7 @@ func _spawn_rage_aoe() -> void:
 	hb.source = self
 	hb.add_child(Shapes.make_box(rage_extents * 2.0, Vector2(0, -rage_extents.y)))
 	strike.add_child(hb)
-	var fx := _make_vfx("rage") # rage LOOK + emit point from the Emitters config (null if none)
+	var fx := _make_vfx("aoe") # AoE LOOK + emit point from the Emitters config (null if none)
 	if fx != null:
 		strike.add_child(fx)
 	add_child(strike) # centred on nasen (his feet); Strike._ready sets team layers, frees itself

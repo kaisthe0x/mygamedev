@@ -997,7 +997,8 @@ exists. Same "drop a file, add one line" workflow as `Sfx`.
     the presentation driver plays it when the animation reaches that frame (the audio twin of the
     particle bursts). This is symmetric to VFX — the **Emitters config stays particles-only**.
 - **Enemy sound keys** follow conventions the code composes: `enemy_death` (shared), `<id>.<type>`
-  (attack start, type = `melee`/`projectile`), `<id>.pop` (a lob's delayed explosion), and per-frame
+  (attack start, `type` = the enemy's `attack_type`, else melee/projectile from the anim),
+  `<id>.delayed_projectile_burst` (a lob's delayed explosion), and per-frame
   hits in `SfxEnemies.FRAMES` — all in `SfxEnemies`, keyed by `enemy_id`.
 - **Unregistered key = silent** (an `<id>.<type>` with no cue just plays nothing); a **registered
   key whose file is missing = one warning** — so a cue can be listed before its audio lands.
@@ -1048,10 +1049,32 @@ to hand-wire. Key traits:
   the melee box; an `attack_projectile` sheet enables the ranged shot. An enemy with only
   one — or, like a stationary sleeper, **no `patrol`** — just works; missing animations
   are never used (a patrol-less enemy stands instead of patrolling).
+- **Melee jab vs. AoE.** The melee box is placed at `melee_hitbox_x` in front of the body with
+  `melee_hitbox_extents` half-size, fired on the `attack` hit frame(s). For an **AoE swing**, set
+  `melee_hitbox_x = 0` (centre it on the body) and the extents wide, and raise `melee_strike_lifetime`
+  so the box stays live across the swing frames (it still hits once — `Hitbox` dedups). An optional
+  `aoe` effect from `EmittersEnemies` rides the strike for the look. **Matat** is the worked example: a
+  chasing bruiser who sweeps his arms for a wide orange shockwave (kit `EnemyKits.MATAT`; VFX
+  `vfx/enemy/matat/attack/matat_aoe.tscn`; the AoE erupts on attack frame 4). His `attack_loops = true`
+  so the whole swing **cycles continuously** (re-erupting the AoE) while you stay in reach — no
+  one-swing-then-freeze-on-cooldown — and `attack_hitstop = 0` keeps that loop smooth; damage is low
+  since it hits every cycle.
+- **Emitter naming (`EmittersEnemies`).** An enemy's particle rows are keyed by the attack's **strike
+  type** (`configs/strike_spec.gd`: `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`, `blast`,
+  …), never an ad-hoc name. A component of an attack appends a role: `<type>_burst` (a projectile's
+  explosion, e.g. `mazab → delayed_projectile + delayed_projectile_burst`), `<type>_trail` (the motion
+  trail into it, e.g. `ein → delayed_aoe + delayed_aoe_trail`). A passive movement trail is
+  `<state>_trail` (`patrol_trail`). So `nasen`/`matat → aoe`, `kebus`/`baghel → projectile`. **The SFX
+  side (`SfxEnemies`) uses the same type keys** — `<id>.<type>` where `type` is the enemy's
+  `attack_type` (`@export`, set per kit; empty falls back to melee/projectile from the anim) — and the
+  scene/wav **filenames** follow suit (`nasen_aoe.tscn`, `mazab_delayed_projectile.tscn`, `aoe.wav`, …).
 - **Behaviour:** patrols between its spawn point and `spawn + patrol_distance`,
-  pausing `idle_time_min..max` seconds at each end. If the player enters
-  `ranged_range` it engages — **melee** (the `attack` strike) within `melee_range`, else
-  **ranged** (the `attack_projectile` shot).
+  pausing `idle_time_min..max` seconds at each end. If the player enters its line (aligned + within
+  `ranged_range`) it engages — **melee** (the `attack` strike) within `melee_range`, else **ranged**
+  (the `attack_projectile` shot). A **pure-melee** enemy (has `attack`, no `attack_projectile`) then
+  **walks in** to close the gap even without `aggro` — otherwise a melee mob would just stand and wait;
+  a ranged one holds its ground and fires. While engaged it plays a **live idle loop** (a breathing
+  ready-stance), not a frozen frame.
 - **Height-aware engagement (`attack_align_y`, default 40px):** both boxes are
   horizontal, so an enemy only *engages* — attacks, holds, or (with `aggro`) chases —
   when the player is roughly at its own height (feet-to-feet within the band). A
@@ -1061,11 +1084,12 @@ to hand-wire. Key traits:
 - **Edge-aware:** a downward probe `edge_check_x` ahead of each foot stops it
   walking off ledges — it turns around on patrol and won't chase off a platform.
   So enemies can patrol on platforms safely.
-- **`aggro`** (default **off**): when on, it *chases* the player up to
-  `aggro_range` instead of only fighting whoever wanders into range. It's an
-  export, so it's **per instance** — one enemy can be aggressive while another of
-  the same type isn't (set it in the inspector on a placed `enemy.tscn`, or per
-  entry in the spawner roster).
+- **`aggro`** (default **on** — enemies are hunters): it *chases* the player up to
+  `aggro_range` (the **give-up leash**: get farther and it drops back to patrol), instead of only
+  fighting whoever wanders into its line. It chases to its **attack reach** — a *ranged* mob closes
+  only to **firing range** (`ranged_range`) and holds (it won't run its bow into your face), a
+  *pure-melee* mob closes to `melee_range` and swings. It's a per-instance export, so set it **false**
+  per-kit for a mob that should just guard a spot.
 - **`alert_duration`** (default **5s**): getting hit **alerts** the enemy — it then
   detects and *pursues* the attacker for that long **regardless of its normal range**
   (re-hits refresh it), so a shot from off-screen doesn't go unanswered. It still only
@@ -1093,7 +1117,7 @@ to hand-wire. Key traits:
     where it sits **harmless but blinking** for `lob_dwell` (~1s) and **explodes** into a wide
     ground AoE. It deals **no damage in the air or on landing** — only the blast hurts, so it's
     *dodgeable*: clear the landing spot before the timer ends. Three phases — **ARC** → **DWELL**
-    → **EXPLODE** (spawns a hostile `Strike`, the same AoE component nasen's rage / the
+    → **EXPLODE** (spawns a hostile `Strike`, the same AoE component nasen's aoe / the
     ground-breaker use, sized by `lob_explosion_extents` and using
     `ranged_damage`/`ranged_knockback`/`ranged_stun`). Two things keep it honest:
     - **`lob_arc_time`** only *solves the launch velocity* to aim the toss (arc height/angle);

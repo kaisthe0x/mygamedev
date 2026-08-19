@@ -145,6 +145,19 @@ func make_loop(key: String) -> AudioStreamPlayer:
 	return pl
 
 
+## A dedicated ONE-SHOT player for `key` the CALLER owns (not looped, not pooled) -- for a sound you
+## need to be able to STOP early, e.g. a slam-descent whoosh cut short by the ground impact. The caller
+## parents it (so it frees with its owner) and drives play()/stop(). Null if the key is missing.
+func make_oneshot(key: String) -> AudioStreamPlayer:
+	var s := _stream(key)
+	if s == null:
+		return null
+	var pl := AudioStreamPlayer.new()
+	pl.bus = _bus
+	pl.stream = s
+	return pl
+
+
 ## Positional twin of make_loop(): a looping AudioStreamPlayer2D the caller parents at a world spot --
 ## for a sound an object EMITS on loop (a launch orb's hum), which then pans/attenuates with distance.
 func make_loop_2d(key: String) -> AudioStreamPlayer2D:

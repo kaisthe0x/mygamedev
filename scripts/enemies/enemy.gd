@@ -33,6 +33,11 @@ signal damaged(amount: float, source: Node)
 ## Optional enemies do NOT have to be killed to clear the level -- the exit opens once every
 ## REQUIRED enemy is dead, even if optional ones are still roaming. Set per-kit (see EnemyKits).
 @export var optional := false
+## This enemy's attack STRIKE TYPE (configs/strike_spec.gd: aoe / delayed_projectile / blast / ...) --
+## the shared key its SFX + emitters use (`<id>.<attack_type>`). Empty = fall back to the coarse
+## melee/projectile split from the attack anim (fine for a plain melee or straight shot; set it for a
+## typed attack like Matat's `aoe` or Mazab's `delayed_projectile`). Set per-kit (see EnemyKits).
+@export var attack_type := ""
 
 @export_group("Stats")
 @export var max_health: float = 60.0
@@ -80,9 +85,13 @@ signal damaged(amount: float, source: Node)
 @export var melee_stun: float = 0.0
 @export var ranged_knockback: float = 0.0
 @export var ranged_stun: float = 0.0
-## Melee hitbox placement in front of the body, and its half-size.
+## Melee hitbox placement in front of the body, and its half-size. For an AoE swing set
+## `melee_hitbox_x` to 0 (centred on the body) and the extents wide.
 @export var melee_hitbox_x: float = 20.0
 @export var melee_hitbox_extents := Vector2(16, 16)
+## How long the melee strike (hitbox + its VFX) stays active, in seconds. A quick jab is brief; a wide
+## AoE sweep wants it longer so the box is live across the swing frames (hits once -- Hitbox dedups).
+@export var melee_strike_lifetime: float = 0.15
 ## Where a projectile leaves the enemy (forward, up), before facing mirror -- fallback when
 ## the Emitters config gives no `projectile` pos for this enemy (that config IS the muzzle now).
 const DEFAULT_MUZZLE := Vector2(20, -46)
@@ -121,9 +130,11 @@ const DEFAULT_MUZZLE := Vector2(20, -46)
 @export var lob_land_offset: float = 22.0
 
 @export_group("Behaviour")
-## When true, chases the player (up to aggro_range) instead of only attacking
-## whoever wanders into range. Off by default -- most mobs just guard a spot.
-@export var aggro := false
+## When true, CHASES the player up to `aggro_range` (the give-up leash: get farther and it drops back to
+## patrol), instead of only fighting whoever wanders into its line. ON by default -- enemies are hunters;
+## it chases to its ATTACK reach (firing range for a ranged mob, melee range for a melee one) then attacks.
+## Set per-kit to false for a mob that should just guard a spot.
+@export var aggro := true
 @export var aggro_range: float = 480.0
 ## Get alerted when hurt: taking a hit makes this enemy detect + pursue the attacker for
 ## `alert_duration` seconds even if it was outside its normal range (re-hits refresh it).
@@ -399,14 +410,12 @@ func _physics_process(delta: float) -> void:
 
 ## Resting-idle flourish: hold the sub-loop for a while, then a full cycle.
 func _idle_scratch(delta: float) -> void:
-	# In combat, don't loaf: hold the first idle frame as a tense ready-stance.
-	# Reverts automatically once the player leaves reach (_engaged clears).
+	# In combat, play a LIVE idle loop (a ready-stance that breathes) rather than freezing on one
+	# frame -- a paused sprite reads as a bug. Reverts to the patrol flourish once the player leaves
+	# reach (_engaged clears). Just ensure idle is playing; don't restart it every frame.
 	if _engaged:
-		if _sprite.animation != &"idle":
+		if _sprite.animation != &"idle" or not _sprite.is_playing():
 			_sprite.play(&"idle")
-		if _sprite.frame != 0 or _sprite.is_playing():
-			_sprite.set_frame_and_progress(0, 0.0)
-			_sprite.pause()
 		return
 	if idle_loop_to <= idle_loop_from or _scratch_full_cycle:
 		return # not configured, or letting a full idle play (_on_anim_looped ends it)
@@ -467,10 +476,18 @@ func _act(delta: float) -> void:
 		var dir := int(sign(to_player))
 		var pursue := _alert_left > 0.0 or (aggro and dist <= aggro_range)
 		var hold := aligned and dist <= ranged_range
+		# A PURE-MELEE enemy (no ranged option) must CLOSE the gap to attack -- so when the target is in
+		# its line (aligned + in reach) it walks in, not just when it's aggro. A ranged (or mixed) enemy
+		# stands and fires from range instead. Both still refuse to step off a ledge (_floor_ahead).
+		var close_in := pursue or (hold and _has_melee and not _has_ranged)
+		# Chase to our ATTACK REACH, not always melee: a ranged mob closes only to firing range and holds
+		# (it shouldn't run its bow into your face), a pure-melee mob closes to melee. A hair inside so the
+		# attack check above fires (stopping just outside left a melee enemy hovering out of range, staring).
+		var reach: float = (ranged_range if _has_ranged else melee_range) - 4.0
 		if pursue or hold:
 			_engaged = true
-			# Chase toward the player (never off a ledge) unless we're already adjacent.
-			if pursue and dist > melee_range + 4.0 and _floor_ahead(dir):
+			# Approach toward the target (never off a ledge) unless we're already within reach.
+			if close_in and dist > reach and _floor_ahead(dir):
 				velocity.x = dir * move_speed
 				_face(dir)
 				_set_state(State.PATROL)
@@ -542,7 +559,9 @@ func _build_frame_sfx() -> void:
 ## resolved by the Sfx service (silent no-op if that enemy has no such cue). Shared by the base attack
 ## and by subclasses with their own trigger (Nasen's rage).
 func _play_attack_start_sfx(anim: StringName) -> void:
-	var kind := "melee" if anim == &"attack" else "projectile"
+	# The strike TYPE keys the cue (`<id>.<type>`). Prefer the enemy's declared `attack_type`; else the
+	# coarse melee/projectile from the anim (so a plain melee / straight shot needs no attack_type set).
+	var kind := attack_type if attack_type != "" else ("melee" if anim == &"attack" else "projectile")
 	Sfx.play_at("%s.%s" % [enemy_id, kind], global_position)
 
 
@@ -676,7 +695,7 @@ func _spawn_melee_strike() -> void:
 	var strike := Strike.new()
 	strike.hostile = not is_frenemy() # a charmed frenemy's swing hits enemies, not the player
 	strike.friendly_fire = friendly_fire # also catch other enemies, if flagged
-	strike.lifetime = 0.15
+	strike.lifetime = melee_strike_lifetime
 	strike.source = self
 	var hb := Hitbox.new()
 	hb.damage = melee_damage
@@ -685,6 +704,11 @@ func _spawn_melee_strike() -> void:
 	hb.source = self
 	hb.add_child(Shapes.make_box(melee_hitbox_extents * 2.0, Vector2(0, -melee_hitbox_extents.y)))
 	strike.add_child(hb)
+	# Optional melee/AoE LOOK: the `aoe` effect from the Emitters config (null if none), attached to the
+	# strike so it rides the swing and frees with it -- e.g. Matat's shockwave. Same pattern as nasen's rage.
+	var fx := _make_vfx("aoe")
+	if fx != null:
+		strike.add_child(fx)
 	add_child(strike) # _ready: team layers + free timer
 	strike.position = Vector2(melee_hitbox_x * _facing, 0)
 	hb.activate()
@@ -743,7 +767,8 @@ func _fire_projectile() -> void:
 ## the thrown-object look + blast look both come from the Emitters config (`projectile` /
 ## `explosion`), like every enemy emitter.
 func _fire_lob() -> void:
-	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE)
+	# A lob is a DELAYED_PROJECTILE in the taxonomy: the thrown bomb + its `_burst` explosion.
+	var muzzle := global_position + _vfx_pos("delayed_projectile", DEFAULT_MUZZLE)
 	var lob := LobProjectile.new()
 	lob.hostile = not is_frenemy() # a charmed frenemy's lob hits enemies, not the player
 	lob.friendly_fire = friendly_fire
@@ -756,13 +781,13 @@ func _fire_lob() -> void:
 	lob.explosion_damage = ranged_damage
 	lob.explosion_knockback = ranged_knockback
 	lob.explosion_stun = ranged_stun
-	lob.explosion_effect = _vfx_scene("explosion") # blast look (config); null -> Strike's own flash
+	lob.explosion_effect = _vfx_scene("delayed_projectile_burst") # blast look (config); null -> Strike's own flash
 	# detached from us at detonation, so raw pos (no facing mirror)
-	lob.explosion_effect_pos = Emitters.enemy_effect(enemy_id, "explosion").get("pos", Vector2.ZERO)
-	# The delayed POP cue -- the lob plays it at the detonation point (see LobProjectile). Key
-	# `<id>.pop` (declare it in SfxEnemies to wire one); the Sfx service no-ops if it's unregistered.
-	lob.explosion_sfx = "%s.pop" % enemy_id
-	var vis := _vfx_scene("projectile")
+	lob.explosion_effect_pos = Emitters.enemy_effect(enemy_id, "delayed_projectile_burst").get("pos", Vector2.ZERO)
+	# The delayed BURST cue -- the lob plays it at the detonation point (see LobProjectile). Key
+	# `<id>.delayed_projectile_burst` (declare it in SfxEnemies); the Sfx service no-ops if unregistered.
+	lob.explosion_sfx = "%s.delayed_projectile_burst" % enemy_id
+	var vis := _vfx_scene("delayed_projectile") # the thrown-bomb look
 	if vis != null:
 		lob.add_child(vis.instantiate())
 

@@ -19,7 +19,6 @@ tile_set = ExtResource("1_igk2i")
 
 [node name="Player" parent="." unique_id=1889619260 instance=ExtResource("2_4shqk")]
 position = Vector2(0, -40)
-run_speed = 230.0
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1694791200]
 position = Vector2(0, 8)

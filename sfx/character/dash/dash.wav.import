@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://cb36c7a3qbsrk"
-path="res://.godot/imported/melee.wav-79fbf1f9e338fa99a412a6ac40c6e7f3.sample"
+uid="uid://ckp8p6oo4jr3x"
+path="res://.godot/imported/dash.wav-65148395e7c93d675f2c78dffca5da3a.sample"
 
 [deps]
 
-source_file="res://sfx/enemy/nasen/attack/melee.wav"
-dest_files=["res://.godot/imported/melee.wav-79fbf1f9e338fa99a412a6ac40c6e7f3.sample"]
+source_file="res://sfx/character/dash/dash.wav"
+dest_files=["res://.godot/imported/dash.wav-65148395e7c93d675f2c78dffca5da3a.sample"]
 
 [params]
 
