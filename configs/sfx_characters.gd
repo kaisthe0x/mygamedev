@@ -23,6 +23,10 @@ const CUES := {
 	"run": "res://sfx/character/run.wav", # looping footsteps (Sfx.make_loop)
 	"ruh_absorb": "res://sfx/character/ruh_absorb.wav", # a Ruh soul lands on Khalid
 	"player_death": "res://sfx/character/death/player_death.wav", # death sting/tone (Player._die) -- PLACEHOLDER
+	# Low-HP warnings -- fired ONCE by Player.take_damage when health crosses DOWN through a threshold
+	# (re-arms if healed back above it). half = 50%, low = 20% (the more urgent one wins if a hit crosses both).
+	"health_half": "res://sfx/character/health/health_half.wav", # crossed 50% HP -- PLACEHOLDER
+	"health_low": "res://sfx/character/health/health_low.wav",   # crossed 20% HP -- PLACEHOLDER
 	# Hurt grunts -- one is picked at RANDOM per hit (Sfx.play_random in Player.take_damage) so he doesn't
 	# repeat. Drop 2-3 files here; a missing one is just never picked (so 2 works fine, 3 gives more variety).
 	"hurt.1": "res://sfx/character/hurt/hurt_1.wav",
