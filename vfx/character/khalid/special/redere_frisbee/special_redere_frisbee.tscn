@@ -5,31 +5,31 @@
 [ext_resource type="Texture2D" uid="uid://coc64l4i7me5j" path="res://vfx/character/khalid/special/redere_frisbee/shield_texture.png" id="2_ya3um"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="4_akj23"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_ya3um"]
-
 [sub_resource type="Curve" id="Curve_akj23"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ya3um"]
 
 [node name="Frisbee" type="Node2D" unique_id=1351935817]
 script = ExtResource("1_proj")
 speed = 520.0
 homing = 0.0
 max_range = 540.0
-impact_sfx = "redere_frisbee.impact"
 bounces = 3
+impact_sfx = "redere_frisbee.impact"
 
 [node name="Disc" type="Sprite2D" parent="." unique_id=680922289]
 self_modulate = Color(1.6, 0.3, 0.25, 1)
 scale = Vector2(0.025416674, 0.017857144)
 texture = ExtResource("2_ya3um")
 
-[node name="Impact" type="CPUParticles2D" parent="."]
+[node name="Impact" type="CPUParticles2D" parent="." unique_id=1109471138]
 emitting = false
 amount = 20
-one_shot = true
 texture = ExtResource("4_akj23")
 lifetime = 0.6
+one_shot = true
 explosiveness = 1.0
 emission_shape = 2
 emission_sphere_radius = 8.5

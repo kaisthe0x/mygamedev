@@ -1193,8 +1193,10 @@ to hand-wire. Key traits:
     NOT the projectile's own origin (a sized hitbox fires while the body is still a *variable* distance
     short — worse with a big box / bounce / homing — so spawning at the projectile looked random + short);
     and its `z_index` is lifted to **50** so it renders *over* the enemy sprite instead of behind it. No
-    `Impact` node = no impact. `impact_sfx` is the audio twin (played positionally at the same spot). Lobs
-    explode via `LobProjectile`, separate from this.
+    `Impact` node = no impact. Every straight-shot projectile carries one, colour-matched to its shot
+    (frisbee/cherry red, kebus green, baghel red-orange); a player shot's `Impact` is a child of its scene
+    root, an enemy shot's lives inside its **visual** scene (`kebus_projectile.tscn` etc.). `impact_sfx` is
+    the audio twin (played positionally at the same spot). Lobs explode via `LobProjectile`, separate from this.
 - **Melee** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
 - **`attack_loops`** (default **off**): when on, the melee `attack` **loops** while the
