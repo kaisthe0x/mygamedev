@@ -24,6 +24,25 @@ self_modulate = Color(1.6, 0.3, 0.25, 1)
 scale = Vector2(0.025416674, 0.017857144)
 texture = ExtResource("2_ya3um")
 
+[node name="Impact" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 20
+one_shot = true
+texture = ExtResource("4_akj23")
+lifetime = 0.6
+explosiveness = 1.0
+emission_shape = 2
+emission_sphere_radius = 8.5
+direction = Vector2(0, -1)
+spread = 81.82
+gravity = Vector2(0, 0)
+initial_velocity_min = 86.42
+initial_velocity_max = 86.42
+scale_amount_min = 0.08
+scale_amount_max = 0.1
+scale_amount_curve = SubResource("Curve_akj23")
+color = Color(1, 0.19215687, 0.16862746, 1)
+
 [node name="Hitbox" type="Area2D" parent="." unique_id=314251281]
 position = Vector2(0, -4)
 collision_layer = 32

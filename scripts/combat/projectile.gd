@@ -60,8 +60,9 @@ extends Node2D
 @export var bounce_range: float = 0.0
 
 @export_group("Look / lifecycle")
-## Optional one-shot effect spawned at the point of contact when it hits (a spark/puff).
-@export var impact_effect: PackedScene
+## IMPACT VFX is authored as a child node named "Impact" INSIDE this projectile's own scene (a
+## Node2D/particle node, left dormant with emitting=false). On hit the projectile duplicates it into the
+## world ON the thing it struck and fires it once (see _spawn_impact). No "Impact" node = no impact.
 ## Optional Sfx CUE KEY played POSITIONALLY at the point of contact on hit (an impact/clang). "" = silent.
 ## Same pattern as LobProjectile.explosion_sfx -- the sound of the shot LANDING, separate from the frame-
 ## synced firing sound. E.g. the frisbee sets "redere_frisbee.impact" (see SfxCharacters.CUES).
@@ -262,10 +263,13 @@ func _hitbox() -> Hitbox:
 ## Hitbox dedupes victims across the whole flight), so a bounce always seeks a fresh one and the
 ## chain ends when the crowd is exhausted -- no infinite ping-pong between two enemies.
 func _on_struck(victim: Hurtbox) -> void:
-	if impact_effect != null:
-		_spawn_impact()
+	# Emit ON the thing we hit, not at our own origin: a sized hitbox fires while the projectile body is
+	# still short of the enemy (by a VARIABLE amount -- worse with a big box / bounce / homing), so spawning
+	# at our position looks random + short. The victim's body is where the hit actually reads.
+	var at := _hit_point(victim)
+	_spawn_impact(at) # my hitbox connected -> emit my `<vfx>_impact` scene right on the target
 	if impact_sfx != "":
-		Sfx.play_at(impact_sfx, global_position) # positional -- the clang lands at the point of contact
+		Sfx.play_at(impact_sfx, at) # the clang lands on the target too
 
 	var struck_enemy := victim.get_parent()
 	if struck_enemy != null and not (struck_enemy in _hit_targets):
@@ -371,15 +375,27 @@ func _emitters() -> Array:
 	return out
 
 
-## Spawn the impact effect in the world at the hit point and let it self-finish.
-func _spawn_impact() -> void:
-	var parent := get_parent()
-	if parent == null:
+## Spawn this projectile's `<vfx_scene>_impact.tscn` (if it exists) at `at` (the hit point) and let it
+## self-finish. The impact vfx is authored AS a child node named "Impact" INSIDE this projectile's scene
+## (a Node2D/particle node, sitting dormant with emitting=false). On hit we DUPLICATE it (so a bouncing
+## shot can burst at every enemy), drop the copy into the world at `at`, lift its z so it pops ON TOP of
+## the target, fire its emitters once, and free it after the longest particle life. No "Impact" node = no
+## impact -- nothing else to wire, no separate scene or path.
+func _spawn_impact(at: Vector2) -> void:
+	var tmpl := find_child("Impact", true, false) # the impact node authored inside this projectile's scene
+	if tmpl == null:
 		return
-	var fx := impact_effect.instantiate()
-	parent.add_child(fx)
+	var world := get_parent()
+	if world == null:
+		return
+	var fx := tmpl.duplicate()
+	world.add_child(fx)
 	if fx is Node2D:
-		(fx as Node2D).global_position = global_position
+		var n := fx as Node2D
+		n.global_position = at
+		n.z_index = 50 # render over the enemy sprite it hit, not behind it
+		n.visible = true
+	var life := 0.5
 	var emitters: Array = []
 	if fx is CPUParticles2D or fx is GPUParticles2D:
 		emitters.append(fx)
@@ -388,14 +404,21 @@ func _spawn_impact() -> void:
 	for em in emitters:
 		em.one_shot = true
 		em.emitting = true
-	if emitters.is_empty():
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			if is_instance_valid(fx):
-				fx.queue_free())
-	else:
-		emitters[0].finished.connect(func() -> void:
-			if is_instance_valid(fx):
-				fx.queue_free())
+		life = maxf(life, em.lifetime)
+	get_tree().create_timer(life + 0.4).timeout.connect(func() -> void:
+		if is_instance_valid(fx):
+			fx.queue_free())
+
+
+## Where the hit reads on a struck `victim`: its hurtbox's COLLISION-SHAPE centre (the body/torso), NOT the
+## hurtbox node origin (at the feet, which would drop the impact to the floor). Falls back to the origin.
+func _hit_point(victim: Hurtbox) -> Vector2:
+	if victim == null:
+		return global_position
+	var shapes := victim.find_children("*", "CollisionShape2D", true, false)
+	if not shapes.is_empty():
+		return (shapes[0] as Node2D).global_position
+	return victim.global_position
 
 
 ## Pull the visual's headline colour out of its gradient so the ground trail matches

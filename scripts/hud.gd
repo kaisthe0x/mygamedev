@@ -27,8 +27,11 @@ var _low_hp_time: float = 0.0   ## clock for the heartbeat pulse
 const LOW_HP_RATIO := 0.20        ## effect kicks in UNDER this HP fraction (matches Player.HEALTH_WARN_LOW)
 const LOW_HP_MIN := 0.35          ## intensity right at the threshold, so it's clearly visible at 20%
 const LOW_HP_FADE := 3.5          ## how fast intensity eases toward its target (per second)
-const LOW_HP_PULSE_SPEED := 4.2   ## heartbeat throb rate (rad/s)
-const LOW_HP_PULSE_DEPTH := 0.18  ## how deep the throb dips (fraction)
+# Heartbeat pulse: a punchy lub-dub that SWELLS the red on each beat (not a gentle dip). Between beats the
+# intensity sits at BASE x level (a calmer trough); each thump swells it up by PUNCH x level toward/over 1.
+const LOW_HP_BEAT_HZ := 1.15      ## heartbeats per second (elevated, urgent)
+const LOW_HP_PULSE_BASE := 0.72   ## trough intensity between beats (fraction of the eased level)
+const LOW_HP_PULSE_PUNCH := 0.6   ## how hard each beat swells on top (fraction of level, added at the peak)
 
 # Built-in-code widgets (direct children of this CanvasLayer, explicit positions).
 var _root: Control ## a plain container we show/hide as one
@@ -289,8 +292,17 @@ func _update_low_health(delta: float) -> void:
 	var on := _low_hp_level > 0.001
 	_low_hp_layer.visible = on
 	if on:
-		var throb := 1.0 - LOW_HP_PULSE_DEPTH * (0.5 - 0.5 * cos(_low_hp_time * LOW_HP_PULSE_SPEED))
-		_low_hp_mat.set_shader_parameter("intensity", clampf(_low_hp_level * throb, 0.0, 1.0))
+		var mult := LOW_HP_PULSE_BASE + LOW_HP_PULSE_PUNCH * _heartbeat(_low_hp_time)
+		_low_hp_mat.set_shader_parameter("intensity", clampf(_low_hp_level * mult, 0.0, 1.0))
+
+
+## Heartbeat envelope 0..1: a sharp "lub" thump at the start of each beat plus a softer "dub" just after,
+## so the pulse punches instead of gliding like a sine. `LOW_HP_BEAT_HZ` beats per second.
+func _heartbeat(t: float) -> float:
+	var ph := fposmod(t * LOW_HP_BEAT_HZ, 1.0) # 0..1 across one beat
+	var lub := exp(-pow(ph / 0.055, 2.0))
+	var dub := 0.6 * exp(-pow((ph - 0.17) / 0.07, 2.0))
+	return minf(lub + dub, 1.0)
 
 
 func _on_character_changed(id: String) -> void:

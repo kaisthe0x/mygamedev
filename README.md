@@ -722,8 +722,9 @@ shield's block/parry is a separate feedback (a `_shake` sprite vibrate, not a st
 
 **Low-health screen effect.** Under **20% HP** a full-screen red overlay kicks in — the **whole screen**
 washes evenly toward red (a slight desaturate + red multiply, applied uniformly — no framed border or
-untouched centre), with only a **subtle edge darken** for depth, deepening as HP falls to 0 and gently
-**pulsing** like a heartbeat. It's a screen-space post shader (`vfx/shaders/low_health.gdshader`, one
+untouched centre), with only a **subtle edge darken** for depth, deepening as HP falls to 0 and
+**pulsing with a punchy lub-dub heartbeat** (`_heartbeat`: a sharp thump + softer second beat that swells
+the red, not a gentle sine). It's a screen-space post shader (`vfx/shaders/low_health.gdshader`, one
 `intensity` uniform: whole-screen red grade + a soft multiplicative vignette) on a `ColorRect` the **HUD** builds on its own
 `CanvasLayer` at **layer 50** — above the world so it tints it, below the HUD (layer 100) so the UI stays
 crisp. The HUD drives `intensity` off `_on_health_changed` (`_update_low_health`, eased in `_process`):
@@ -1182,6 +1183,18 @@ to hand-wire. Key traits:
     `_expire()`s: stops damaging/moving, sets `emitting = false` on all its
     emitters, and frees only after the longest particle lifetime, so the wave and
     its trail fade out instead of popping.
+  - **Impact vfx** — authored as a child node named **`Impact`** *inside the projectile's own scene* (a
+    Node2D/particle node, left dormant with `emitting = false`), so you build + tune it right there in the
+    scene — no separate file, registry, or path convention. On hit (`_on_struck` → `_spawn_impact`, fired
+    each hit so a ricochet bursts at every enemy) the projectile `find_child("Impact")`s it, **duplicates**
+    it (so a bouncing shot gets a fresh one per enemy), drops the copy into the world, fires its emitters
+    once, and frees it after the longest particle lifetime. Two deliberate placements: it spawns **on the
+    thing it hit** — the struck victim's hurtbox collision-shape centre / torso via `_hit_point(victim)`,
+    NOT the projectile's own origin (a sized hitbox fires while the body is still a *variable* distance
+    short — worse with a big box / bounce / homing — so spawning at the projectile looked random + short);
+    and its `z_index` is lifted to **50** so it renders *over* the enemy sprite instead of behind it. No
+    `Impact` node = no impact. `impact_sfx` is the audio twin (played positionally at the same spot). Lobs
+    explode via `LobProjectile`, separate from this.
 - **Melee** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
 - **`attack_loops`** (default **off**): when on, the melee `attack` **loops** while the
