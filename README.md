@@ -714,8 +714,23 @@ hurt-anim length)` so a tiny or zero stagger never cuts the flinch off. A fresh 
 flinching** (a barrage / multiple enemies) only *extends* it — it does **not** restart the anim at frame 0,
 or a continuous pummel would freeze it on the first frame and never visibly play. One smooth flinch plays
 and holds until the barrage ends. (Per-enemy knockback/stun live in [`scripts/run/enemies.gd`](scripts/run/enemies.gd).) `take_damage()` also fires one of a few random hurt grunts (`hurt.1/2/3`, pitch-wobbled)
-so he doesn't repeat. A character with no `hurt` sheet falls back to the old idle-during-stagger look. The
+so he doesn't repeat, and a **low-HP warning cue** when a hit crosses a threshold **downward** —
+`health_half` at 50%, `health_low` at 20% (`_warn_low_health`, `HEALTH_WARN_HALF`/`_LOW`). It's a
+stateless edge trigger: it plays only on the crossing (never spams while you sit low), re-arms once a
+heal lifts you back above the line, and the lower/urgent cue wins if one big hit crosses both. A character with no `hurt` sheet falls back to the old idle-during-stagger look. The
 shield's block/parry is a separate feedback (a `_shake` sprite vibrate, not a state) — see **Redere Shield**.
+
+**Low-health screen effect.** Under **20% HP** a full-screen red overlay kicks in — the **whole screen**
+washes evenly toward red (a slight desaturate + red multiply, applied uniformly — no framed border or
+untouched centre), with only a **subtle edge darken** for depth, deepening as HP falls to 0 and
+**pulsing with a punchy lub-dub heartbeat** (`_heartbeat`: a sharp thump + softer second beat that swells
+the red, not a gentle sine). It's a screen-space post shader (`vfx/shaders/low_health.gdshader`, one
+`intensity` uniform: whole-screen red grade + a soft multiplicative vignette) on a `ColorRect` the **HUD** builds on its own
+`CanvasLayer` at **layer 50** — above the world so it tints it, below the HUD (layer 100) so the UI stays
+crisp. The HUD drives `intensity` off `_on_health_changed` (`_update_low_health`, eased in `_process`):
+target ramps `LOW_HP_MIN`→1.0 from the 20% threshold down to 0 HP, re-arming on heal; the whole layer is
+hidden (no screen-read cost) whenever it's fully faded out. Tunables are consts on the HUD
+(`LOW_HP_RATIO`/`_MIN`/`_FADE`/`_PULSE_*`) + the shader's `hue_amount`/`vignette_*` uniforms.
 
 ---
 
@@ -1168,6 +1183,20 @@ to hand-wire. Key traits:
     `_expire()`s: stops damaging/moving, sets `emitting = false` on all its
     emitters, and frees only after the longest particle lifetime, so the wave and
     its trail fade out instead of popping.
+  - **Impact vfx** — authored as a child node named **`Impact`** *inside the projectile's own scene* (a
+    Node2D/particle node, left dormant with `emitting = false`), so you build + tune it right there in the
+    scene — no separate file, registry, or path convention. On hit (`_on_struck` → `_spawn_impact`, fired
+    each hit so a ricochet bursts at every enemy) the projectile `find_child("Impact")`s it, **duplicates**
+    it (so a bouncing shot gets a fresh one per enemy), drops the copy into the world, fires its emitters
+    once, and frees it after the longest particle lifetime. Two deliberate placements: it spawns **on the
+    thing it hit** — the struck victim's hurtbox collision-shape centre / torso via `_hit_point(victim)`,
+    NOT the projectile's own origin (a sized hitbox fires while the body is still a *variable* distance
+    short — worse with a big box / bounce / homing — so spawning at the projectile looked random + short);
+    and its `z_index` is lifted to **50** so it renders *over* the enemy sprite instead of behind it. No
+    `Impact` node = no impact. Every straight-shot projectile carries one, colour-matched to its shot
+    (frisbee/cherry red, kebus green, baghel red-orange); a player shot's `Impact` is a child of its scene
+    root, an enemy shot's lives inside its **visual** scene (`kebus_projectile.tscn` etc.). `impact_sfx` is
+    the audio twin (played positionally at the same spot). Lobs explode via `LobProjectile`, separate from this.
 - **Melee** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
 - **`attack_loops`** (default **off**): when on, the melee `attack` **loops** while the
@@ -1204,13 +1233,15 @@ to hand-wire. Key traits:
   in `configs/icons.gd` (one line each) when real pips are drawn, no code change. Add a status by an
   entry in `StatusTypes`, a `status:<id>` path in `Icons`, and one line in `_refresh_status_icons`.
 - **Over-head halo** (`scripts/combat/overhead_status.gd` → `OverheadStatus`). The over-head twin of the
-  pips: a looping animation that **hovers over the enemy's head** while a status is active — today the
-  swirling-stars **stun halo** (`sprites/things/state/stunned.png`, a 256×64 four-frame strip). Built in
-  code (no scene), it's fed the **same active-status set** as `StatusIcons` from `_refresh_status_icons()`
-  and shows the highest-priority status that has an over-head anim (one at a time), bobbing gently. The
-  anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached `SpriteFrames`),
-  so giving another status its own halo is a config line + art — no code change. Anchored at the enemy's
-  head line (just under the floating bar); pixel-filtered like the rest of the art.
+  pips: a looping animation that **hovers over the enemy's head** while a status is active. Two today: the
+  swirling-stars **stun halo** (`sprites/things/state/stunned.png`, 256×64 / 4 frames) and the pulsing
+  skull **dying halo** for a reaped enemy (`sprites/things/state/dying.png`, 768×64 / 12 frames — only
+  Twin Reaper's `reap` DoT applies it for now). Built in code (no scene), it's fed the **same
+  active-status set** as `StatusIcons` from `_refresh_status_icons()` and shows the highest-priority status
+  (by `StatusTypes.ORDER`, so `reap` beats `stun`) that has an over-head anim — one at a time — bobbing
+  gently. The anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached
+  `SpriteFrames`), so giving another status its own halo is a config line + art — no code change. Anchored
+  at the enemy's head line (just under the floating bar); pixel-filtered like the rest of the art.
 - **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
   label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude, overrides)`. It parents the label to
   the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it

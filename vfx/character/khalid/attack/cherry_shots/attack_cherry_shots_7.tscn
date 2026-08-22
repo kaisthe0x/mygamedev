@@ -3,12 +3,17 @@
 [ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="1_proj"]
 [ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
 
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="ImpactDot"]
 [sub_resource type="Curve" id="curve_taper"]
 _data = [Vector2(0.0056074746, 0), 0.0, 0.0, 0, 0, Vector2(0.9644859, 0.41921395), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="RectangleShape2D" id="shape_big"]
 size = Vector2(46, 16)
+
+[sub_resource type="Curve" id="ImpactCurve"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [node name="ShotBig" type="Node2D"]
 script = ExtResource("1_proj")
@@ -34,3 +39,22 @@ knockback = 90.0
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox"]
 shape = SubResource("shape_big")
+
+[node name="Impact" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 20
+texture = ExtResource("ImpactDot")
+lifetime = 0.6
+one_shot = true
+explosiveness = 1.0
+emission_shape = 2
+emission_sphere_radius = 8.5
+direction = Vector2(0, -1)
+spread = 81.82
+gravity = Vector2(0, 0)
+initial_velocity_min = 86.42
+initial_velocity_max = 86.42
+scale_amount_min = 0.08
+scale_amount_max = 0.1
+scale_amount_curve = SubResource("ImpactCurve")
+color = Color(2.3, 0.3, 0.22, 1)

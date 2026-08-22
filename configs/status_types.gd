@@ -13,6 +13,8 @@ extends RefCounted
 ##
 ## >>> TODO(art): the icons are TEMP placeholders (reused pngs) -- see the TODO in configs/icons.gd. <<<
 
+# TODO: Think of more possible effects
+
 const DEFS := {
 	"reap": {"color": Color(0.55, 0.95, 0.45), "label": "Reaped"}, # dying / DoT (Twin Reaper)
 	"stun": {"color": Color(1.0, 0.86, 0.28), "label": "Stunned"}, # frozen / staggered
@@ -23,12 +25,19 @@ const DEFS := {
 ## Fixed draw order (left -> right). Ids not listed fall to the end in DEFS order.
 const ORDER := ["reap", "stun", "slow", "charm"]
 
+# TODO: Add the rest of the overhead effects
+
 ## Optional OVER-HEAD animation for a status -- a looping sheet that hovers over the enemy's head like a
 ## halo (drawn by scripts/combat/overhead_status.gd; ONE shows at a time, picked by ORDER priority). Only
 ## STUN has one today: the swirling-stars "dazed halo". Give another status one by dropping in art + an
 ## entry here. Fields: sheet (horizontal strip), hframes (cells), fps, scale, y_off (px below the head line,
 ## + = lower, to sit the halo on the crown just under the health bar).
 const OVERHEAD := {
+	# reap sits FIRST in ORDER, so a dying enemy shows the skull even if it's also stunned.
+	"reap": {
+		"sheet": "res://sprites/things/state/dying.png", # 12x pulsing red/grey skull-in-a-ring (768x64 -> 64x64 cells)
+		"hframes": 12, "fps": 12.0, "scale": 0.3, "y_off": 22.0,
+	},
 	"stun": {
 		"sheet": "res://sprites/things/state/stunned.png", # 4x swirling yellow stars (256x64 -> 64x64 cells)
 		"hframes": 4, "fps": 12.0, "scale": 0.3, "y_off": 20.0,
