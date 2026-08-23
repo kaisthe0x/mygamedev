@@ -24,7 +24,7 @@ const BAGHEL := {
 	"id": "baghel", "tier": Tier.CHIP,
 	"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0, "projectile_speed": 200.0,
 	"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9), "ranged_damage": 7.0,
-	"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0, "idle_time_min": 5.0, "idle_time_max": 7.0,
+	"idle_time_min": 5.0, "idle_time_max": 7.0, # idle bounces frame 1..last by default (settle then breathe)
 }
 const MAZAB := {
 	"id": "mazab", "tier": Tier.MID, "attack_type": "delayed_projectile",

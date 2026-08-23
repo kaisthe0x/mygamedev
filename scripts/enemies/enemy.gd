@@ -56,12 +56,13 @@ signal damaged(amount: float, source: Node)
 @export var idle_time_max: float = 3.0
 ## Won't step past an edge: how far ahead of the feet ground is probed for.
 @export var edge_check_x: float = 14.0
-## Optional resting-idle flourish: while idling, loop emitted frames
-## [idle_loop_from..idle_loop_to] (e.g. a back-scratch) for idle_loop_time
-## seconds, then play one full idle cycle, and repeat. Disabled when to <= from.
-@export var idle_loop_from := 0
-@export var idle_loop_to := 0
-@export var idle_loop_time := 2.5
+## Idle plays ONCE from the top -- frame 0 is the settle/intro pose (e.g. baghel dropping both arms) --
+## then LOOPS the rest BACK AND FORTH (ping-pong) so that intro pose never repeats every cycle (which reads
+## as a twitch). The bounce range is [idle_loop_from .. idle_loop_to]: defaults suit the common case --
+## from 1 (skip only the intro frame), to 0 -> the LAST idle frame. Set an explicit `to` to keep tail
+## frames out of the bounce (e.g. mazab bounces [1..3] of its 5). Bounce is skipped if the range is < 2 wide.
+@export var idle_loop_from := 1
+@export var idle_loop_to := 0 ## <= from -> auto: the last idle frame
 
 @export_group("Combat ranges")
 ## Player within this horizontal distance -> melee. Small = must be adjacent.
@@ -211,8 +212,7 @@ var _magnet_stun := 3.0
 var _frenemy_left := 0.0
 var _contact_cd := 0.0
 var _contact_hitbox: Hitbox
-var _scratch_timer := 0.0
-var _scratch_full_cycle := false
+var _idle_back := false ## true while the idle bounce is travelling BACKWARD (last -> 1); see _idle_bounce
 ## Player is in reach (attacking distance) -> we're in combat, so the idle
 ## between attacks holds a tense ready-stance instead of the patrol flourish.
 var _engaged := false
@@ -289,7 +289,6 @@ func _ready() -> void:
 
 	_sprite.frame_changed.connect(_on_frame_changed)
 	_sprite.animation_finished.connect(_on_anim_finished)
-	_sprite.animation_looped.connect(_on_anim_looped)
 	_face(_facing)
 	_play(&"patrol" if _has_patrol else &"idle") # a patrolless enemy (sleeper) just idles
 
@@ -444,43 +443,40 @@ func _physics_process(delta: float) -> void:
 		_act(delta)
 
 	if _state == State.IDLE:
-		_idle_scratch(delta)
+		_keep_idle_live()
 	_tick_contact(delta)
 	move_and_slide()
 
 
-## Resting-idle flourish: hold the sub-loop for a while, then a full cycle.
-func _idle_scratch(delta: float) -> void:
-	# In combat, play a LIVE idle loop (a ready-stance that breathes) rather than freezing on one
-	# frame -- a paused sprite reads as a bug. Reverts to the patrol flourish once the player leaves
-	# reach (_engaged clears). Just ensure idle is playing; don't restart it every frame.
-	if _engaged:
-		if _sprite.animation != &"idle" or not _sprite.is_playing():
-			_sprite.play(&"idle")
+## Keep the idle animation LIVE while resting or holding a combat stance (a paused sprite reads as a bug).
+## The actual "settle once, then breathe" motion is driven per render frame in _idle_bounce; here we only
+## make sure playback is running (and never yank it back to frame 0, so the bounce isn't reset every tick).
+func _keep_idle_live() -> void:
+	if _sprite.animation != &"idle" or not _sprite.is_playing():
+		_sprite.play(&"idle")
+
+
+## Idle "settle then breathe": the anim plays once from frame 0 (the intro pose), then this PING-PONGS the
+## frame between [lo..hi] forever -- so it never lands back on frame 0 (e.g. baghel dropping both arms) on
+## every loop. Driven on frame_changed (render), so the past-the-edge frame never flashes. lo/hi come from
+## idle_loop_from/idle_loop_to (auto: 1..last). We reverse AT each edge, so playback never wraps past it.
+func _idle_bounce() -> void:
+	if _state != State.IDLE or _sprite.animation != &"idle":
 		return
-	if idle_loop_to <= idle_loop_from or _scratch_full_cycle:
-		return # not configured, or letting a full idle play (_on_anim_looped ends it)
-	_scratch_timer -= delta
-	if _scratch_timer <= 0.0:
-		_scratch_full_cycle = true
-		_sprite.set_frame_and_progress(0, 0.0) # play one full idle from the top
-
-
-## The sub-range loop is clamped here (on the render frame it changes) rather
-## than in physics, so the past-the-range frame never flashes.
-func _clamp_scratch() -> void:
-	if _state != State.IDLE or _scratch_full_cycle or _sprite.animation != &"idle":
-		return
-	if idle_loop_to <= idle_loop_from:
-		return
-	if _sprite.frame > idle_loop_to or _sprite.frame < idle_loop_from:
-		_sprite.set_frame_and_progress(idle_loop_from, 0.0)
-
-
-func _on_anim_looped() -> void:
-	if _sprite.animation == &"idle" and _scratch_full_cycle:
-		_scratch_full_cycle = false
-		_scratch_timer = idle_loop_time
+	var last := _sprite.sprite_frames.get_frame_count(&"idle") - 1
+	var lo: int = clampi(idle_loop_from, 1, maxi(last, 1))
+	var hi: int = (idle_loop_to if idle_loop_to > lo else last)
+	hi = clampi(hi, lo, last)
+	if hi <= lo:
+		return # fewer than 2 frames past the intro -> nothing to bounce; just let it sit
+	var f := _sprite.frame
+	if not _idle_back:
+		if f >= hi:
+			_idle_back = true
+			_sprite.play_backwards(&"idle") # reached the top -> swing back down toward `lo`
+	elif f <= lo:
+		_idle_back = false
+		_sprite.play(&"idle") # reached the bottom (never frame 0) -> swing back up toward `hi`
 
 
 func _tick_contact(delta: float) -> void:
@@ -667,7 +663,7 @@ func _on_frame_changed() -> void:
 		_fire_projectile()
 		_begin_hitstop()
 	elif _state == State.IDLE:
-		_clamp_scratch()
+		_idle_bounce()
 
 
 ## Freeze the attack on this impact frame for a beat and shake the sprite, so the
@@ -1199,12 +1195,8 @@ func _set_state(state: State) -> void:
 	_state = state
 	match state:
 		State.IDLE:
-			_play(&"idle")
-			_scratch_timer = idle_loop_time # fresh scratch loop each time he rests
-			_scratch_full_cycle = false
-			if _engaged: # combat: snap straight to the held ready-stance, no flicker
-				_sprite.set_frame_and_progress(0, 0.0)
-				_sprite.pause()
+			_idle_back = false # restart the bounce: the intro frame plays once, THEN it ping-pongs
+			_play(&"idle") # from the top -- _idle_bounce takes over once it's past the intro
 		State.STUN: _sprite.pause() # freeze on the current frame -- don't snap to idle
 		State.PATROL: _play(&"patrol" if _has_patrol else &"idle")
 

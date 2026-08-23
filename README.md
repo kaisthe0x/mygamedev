@@ -1252,14 +1252,18 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   plays once and only the strike cycle repeats; when the player leaves reach it ends with
   the normal cooldown → idle. (Built on the same `_loop_from`/`_replay_from` helpers Nasen's
   rage uses.)
-- **`idle_loop_from..idle_loop_to`** (optional): a resting-idle flourish — loops
-  those emitted frames for `idle_loop_time` seconds, then plays one full idle
-  cycle, and repeats (Baghel scratches his back). Disabled when `to <= from`.
-- **Combat vs resting idle.** An `_engaged` flag tracks whether the player is in
-  reach (attacking distance). While engaged, the between-attacks idle **holds the
-  first idle frame** as a tense ready-stance — no patrolling or scratch flourish.
-  The moment the player leaves reach `_engaged` clears and normal patrol/idle
-  (and the flourish) resume on their own.
+- **Idle: settle once, then breathe (ping-pong).** The idle animation plays **once from frame 0** — the
+  settle/intro pose (e.g. Baghel dropping *both* arms) — then loops the rest **back and forth** between
+  `idle_loop_from` and `idle_loop_to`, never landing back on frame 0. Looping the *whole* clip made that
+  intro pose twitch on every cycle (arms slam down, scratch, slam down…); the bounce keeps only the
+  natural motion (the one-armed scratch) alive. Driven by `_idle_bounce` on `frame_changed`, which reverses
+  playback (`play` ⇄ `play_backwards`) **at** each edge so it never wraps past it. Defaults suit every
+  enemy: `idle_loop_from = 1` (skip just the intro), `idle_loop_to = 0` → the **last** idle frame. Set an
+  explicit `to` to keep tail frames out of the bounce; a range under 2 frames wide just sits. This is the
+  **universal** idle behaviour now — the old `idle_loop_time` full-cycle flourish is gone.
+- **Combat vs resting idle.** An `_engaged` flag tracks whether the player is in reach (attacking distance).
+  Engaged or resting, the idle **breathes via the same bounce** (a paused sprite reads as a bug); `_engaged`
+  only gates patrolling. The moment the player leaves reach `_engaged` clears and normal patrol/idle resume.
 - **Attack feel — hit-stop + shake.** On the impact frame (melee contact / the
   ranged smash), `_begin_hitstop()` freezes the sprite on that pose for
   `attack_hitstop` s and jitters it by up to `attack_shake` px (decaying to 0),
