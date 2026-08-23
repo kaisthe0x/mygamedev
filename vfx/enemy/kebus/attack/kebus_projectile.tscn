@@ -2,6 +2,8 @@
 
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="ProjSc"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="HbSc"]
 
 [sub_resource type="Gradient" id="Gradient_bolt"]
 colors = PackedColorArray(0.55, 1, 0.45, 1, 0.55, 1, 0.45, 0)
@@ -10,7 +12,13 @@ colors = PackedColorArray(0.55, 1, 0.45, 1, 0.55, 1, 0.45, 0)
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
 
-[node name="Bolt" type="CPUParticles2D" unique_id=86089438]
+[sub_resource type="RectangleShape2D" id="hb_box"]
+size = Vector2(14, 20)
+
+[node name="KebusProjectile" type="Node2D"]
+script = ExtResource("ProjSc")
+
+[node name="Bolt" type="CPUParticles2D" parent="." unique_id=86089438]
 texture_filter = 1
 amount = 18
 texture = ExtResource("1_ember")
@@ -48,3 +56,10 @@ scale_amount_min = 0.08
 scale_amount_max = 0.1
 scale_amount_curve = SubResource("ImpactCurve")
 color = Color(0.6, 1.0, 0.5, 1)
+
+[node name="Hitbox" type="Area2D" parent="."]
+script = ExtResource("HbSc")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, 0)
+shape = SubResource("hb_box")

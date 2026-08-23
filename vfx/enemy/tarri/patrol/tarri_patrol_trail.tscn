@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://bg323gntk04kq"]
+
+[sub_resource type="Curve" id="shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="trail_grad"]
+colors = PackedColorArray(1.5, 1.25, 0.12, 0.7, 0.6, 0.5, 0.04, 0)
+
+[node name="PatrolTrail" type="CPUParticles2D" unique_id=1777075432]
+amount = 50
+lifetime = 0.7
+emission_shape = 2
+emission_sphere_radius = 3.53
+direction = Vector2(0, 1)
+spread = 25.0
+gravity = Vector2(0, 15)
+initial_velocity_min = 2.0
+initial_velocity_max = 12.0
+scale_amount_max = 1.2
+scale_amount_curve = SubResource("shrink")
+color_ramp = SubResource("trail_grad")

@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://c8einblast1fx"]
 
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="StrikeSc"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="HitboxSc"]
 
 [sub_resource type="CanvasTexture" id="CanvasTexture_xg5vw"]
 
@@ -24,7 +26,12 @@ colors = PackedColorArray(0.007843138, 0.007843138, 0.011764706, 1, 0.16078432, 
 offsets = PackedFloat32Array(0, 0.4, 1)
 colors = PackedColorArray(0.4, 0.9, 0.98, 1, 0.62, 0.16, 0.7, 1, 0.3, 0.05, 0.35, 0)
 
+[sub_resource type="RectangleShape2D" id="hb_box"]
+size = Vector2(76, 64)
+
 [node name="EinExplosion" type="Node2D" unique_id=216861655]
+script = ExtResource("StrikeSc")
+lifetime = 0.4
 
 [node name="Flash" type="CPUParticles2D" parent="." unique_id=1492585560]
 z_index = 1
@@ -77,3 +84,11 @@ scale_amount_min = 0.4
 scale_amount_max = 0.9
 scale_amount_curve = SubResource("Curve_shrink")
 color_ramp = SubResource("Grad_shard")
+
+[node name="Hitbox" type="Area2D" parent="."]
+script = ExtResource("HitboxSc")
+ranged = true
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, -16)
+shape = SubResource("hb_box")

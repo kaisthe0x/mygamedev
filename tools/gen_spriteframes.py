@@ -199,6 +199,9 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("matat", "attack"): [
         4
     ],  # the AoE erupts as his arms sweep round (its hitbox+VFX span frames 4-8)
+    ("tarri", "attack"): [
+        3
+    ],  # the stationary forward blast erupts on the LAST frame (he holds+vibrates there)
 }
 
 # Per-frame duration multipliers, (char, anim) -> {sheet_frame: multiplier}. Each

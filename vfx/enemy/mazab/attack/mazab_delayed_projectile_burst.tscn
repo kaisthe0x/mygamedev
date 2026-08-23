@@ -2,6 +2,8 @@
 
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_ember"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="StrikeSc"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="HitboxSc"]
 
 [sub_resource type="Curve" id="Curve_shrink"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -14,7 +16,12 @@ colors = PackedColorArray(0.9, 0.95, 1, 1, 0.62, 0.74, 0.82, 1, 0.4, 0.5, 0.6, 0
 [sub_resource type="Gradient" id="Grad_dust"]
 colors = PackedColorArray(0.6, 0.7, 0.78, 0.8, 0.45, 0.55, 0.62, 0)
 
+[sub_resource type="RectangleShape2D" id="hb_box"]
+size = Vector2(96, 52)
+
 [node name="MazabExplosion" type="Node2D" unique_id=1622210443]
+script = ExtResource("StrikeSc")
+lifetime = 0.4
 
 [node name="Shards" type="CPUParticles2D" parent="." unique_id=885911861]
 texture_filter = 1
@@ -54,3 +61,11 @@ scale_amount_min = 0.5
 scale_amount_max = 1.1
 scale_amount_curve = SubResource("Curve_shrink")
 color_ramp = SubResource("Grad_dust")
+
+[node name="Hitbox" type="Area2D" parent="."]
+script = ExtResource("HitboxSc")
+ranged = true
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, -26)
+shape = SubResource("hb_box")
