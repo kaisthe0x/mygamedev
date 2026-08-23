@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://b2rsk0melee02"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
+[ext_resource type="Texture2D" uid="uid://ceiwd6arsh4o0" path="res://vfx/shared/textures/slash_texture_1.png" id="2_pgwm5"]
+
+[sub_resource type="Curve" id="shrink"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.9912281, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="heavy_grad"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1.7, 0.6, 0.26, 1, 0.9215686, 0.31764707, 0.16470589, 1, 0.5176471, 0.1764706, 0.09411765, 0)
+
+[sub_resource type="RectangleShape2D" id="heavy_box"]
+size = Vector2(62, 32)
+
+[node name="BreskiMelee9" type="Node2D" unique_id=96246403]
+script = ExtResource("1_strike")
+
+[node name="Slam" type="CPUParticles2D" parent="." unique_id=46831748]
+emitting = false
+amount = 1
+texture = ExtResource("2_pgwm5")
+lifetime = 0.32
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+spread = 0.0
+gravity = Vector2(0, -60)
+initial_velocity_min = 128.31
+initial_velocity_max = 289.16
+scale_amount_min = 0.16
+scale_amount_max = 0.8
+scale_amount_curve = SubResource("shrink")
+color_ramp = SubResource("heavy_grad")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1044084698]
+position = Vector2(0, -10)
+script = ExtResource("2_hitbox")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=1601937663]
+position = Vector2(29, 0)
+shape = SubResource("heavy_box")
