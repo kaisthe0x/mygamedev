@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://biqd1skrlmega"]
+
+[ext_resource type="Script" path="res://scripts/enemies/SleeperEnemy.cs" id="1"]
+
+[node name="SleeperEnemy" type="CharacterBody2D"]
+script = ExtResource("1")

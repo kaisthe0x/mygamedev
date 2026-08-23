@@ -1,0 +1,12 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Required for Godot to hot-load the game assembly. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>MyGame</RootNamespace>
+    <!-- Strictness the migration is FOR: nullable reference types + latest C#. -->
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>

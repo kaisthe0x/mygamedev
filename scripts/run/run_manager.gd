@@ -82,7 +82,7 @@ func _ready() -> void:
 	_build_bg()
 	_build_floor()
 	if _player != null:
-		_player.set_character(START_CHARACTER)
+		_player.character = START_CHARACTER # the setter re-applies the character (C# property; set_character collided with its accessor)
 	_build_level(0)
 	if _player != null:
 		_player.spawn()
@@ -102,7 +102,7 @@ func _physics_process(delta: float) -> void:
 	if _player.is_dead():
 		_handle_death(delta)
 		return
-	if _player.get_state() == Player.State.SPAWN:
+	if _player.is_spawning():
 		_handle_spawn(delta)
 		return
 	if _player.global_position.y > DEATH_Y: # fell off -> reposition, no life lost
@@ -616,4 +616,4 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_damage"):
 		_player.take_damage(12.0)
 	elif event.is_action_pressed("debug_heal"):
-		_player.ruh += Player.RUH_PER_BLOCK # +1 Ruh charge (test the surge meter)
+		_player.ruh += _player.RUH_PER_BLOCK # +1 Ruh charge (test the surge meter)

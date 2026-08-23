@@ -57,6 +57,13 @@ static func set_picks(new_picks: Dictionary) -> void:
 	picks = new_picks.duplicate()
 
 
+## The run's chosen PRIMARY (hair) colour, or the default red when unpicked -- Khalid's own floating
+## damage number tints to this (see Player.take_damage). A bridge for the C# Player, which can't read the
+## `picks` static var directly.
+static func hair_color() -> Color:
+	return picks.get("hair", Color(DEFAULT["hair"][0]))
+
+
 ## Build a ready-to-use body ShaderMaterial: the LUT recolour (from `body_picks`, default = default look)
 ## plus every effect param. Used by BOTH the preview and player._apply_character, so they always match.
 static func make_material(body_picks: Dictionary = picks) -> ShaderMaterial:

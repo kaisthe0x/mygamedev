@@ -428,9 +428,10 @@ func _fire_burst(b: Dictionary, m: float, tilt: float = 0.0) -> void:
 		node.rotation += tilt
 	for em in emitters:
 		_boost(em, b.get("boost", {}))
-	# A Strike with emit_duration > 0 emits CONTINUOUSLY for that long (a held stream,
-	# e.g. a burning field); anything else is a one-shot burst. Set below, after placement.
-	var emit_dur: float = node.emit_duration if node is Strike else 0.0
+	# A BlastStrike (channel) emits CONTINUOUSLY for its emit_duration (a held stream, e.g. a burning
+	# field); every other strike is a one-shot burst. emit_duration lives on BlastStrike, not the base
+	# Strike, so guard on the concrete type -- a MeleeStrike/AoeStrike has no emit_duration. Set below.
+	var emit_dur: float = (node as BlastStrike).emit_duration if node is BlastStrike else 0.0
 	# A burst is a one-shot blast that belongs at the spot it fires -- NOT stuck to
 	# the player. Parented under him, the emitter and its hitbox would follow as he
 	# walks and hit enemies away from the blast. Anchor it in the world at the strike

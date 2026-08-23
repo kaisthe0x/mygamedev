@@ -32,8 +32,19 @@ const MAZAB := {
 	"ranged_damage": 16.0, "ranged_knockback": 160.0, "ranged_stun": 0.25,
 	"lob_arc_time": 0.9, "lob_dwell": 1.0, "lob_explosion_extents": Vector2(48, 26),
 }
-const NASEN := {"scene": "res://scenes/nasen.tscn", "tier": Tier.STRONG, "optional": true, "attack_type": "aoe"} # optional: needn't be killed to clear
-const EIN := {"scene": "res://scenes/ein.tscn", "tier": Tier.MID}
+# Nasen: a stationary SLEEPER (the SleeperEnemy archetype). Dozes until the player is near, then rage-loops an
+# AoE; melee stuns him, ranged only chips. Now a pure KIT -- identity + tuning here, behaviour in SleeperEnemy.cs.
+const NASEN := {
+	"scene": "res://scenes/sleeper_enemy.tscn", "id": "nasen", "display_name": "Nasen",
+	"max_health": 90.0, "tier": Tier.STRONG, "optional": true, "attack_type": "aoe", # optional: needn't be killed to clear
+}
+# Ein: a floating kamikaze dive-bomber (the DiverEnemy archetype). Floats + bobs, locks the player's position
+# and dive-bombs it, erupting an AoE on arrival/contact. Now a pure KIT -- behaviour in DiverEnemy.cs.
+const EIN := {
+	"scene": "res://scenes/diver_enemy.tscn", "id": "ein", "display_name": "Ein", "max_health": 28.0,
+	"body_size": Vector2(22, 22), "hurtbox_size": Vector2(26, 26), "move_speed": 34.0, "patrol_distance": 70.0,
+	"tier": Tier.MID,
+}
 # Matat: a big MELEE AoE bruiser. Like the other enemies he PATROLS and only engages when the player is
 # in his line (roughly his own height, within `ranged_range`) -- NOT aggro, so he doesn't relentlessly
 # follow. Being pure-melee he then WALKS IN (Enemy._act closes the gap for a melee-only enemy) and sweeps

@@ -2,8 +2,8 @@
 
 [ext_resource type="Texture2D" uid="uid://ceiwd6arsh4o0" path="res://vfx/shared/textures/slash_texture_1.png" id="1_kmc70"]
 [ext_resource type="Texture2D" uid="uid://mnae2d5t7ywc" path="res://vfx/shared/textures/slash_texture_1_flipped.png" id="2_03ge2"]
-[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="StrikeSc"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="HitboxSc"]
+[ext_resource type="Script" path="res://scripts/combat/AoeStrike.cs" id="StrikeSc"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/Hitbox.cs" id="HitboxSc"]
 
 [sub_resource type="Curve" id="Curve_shrink"]
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]

@@ -193,7 +193,7 @@ func _build_ruh_meter(block_count: int) -> void:
 
 ## Fill each cell 0..1 by how much of its block the current ruh covers.
 func _update_ruh_meter(current: float) -> void:
-	var per := _player.RUH_PER_BLOCK if _player != null else 50.0
+	var per: float = _player.RUH_PER_BLOCK if _player != null else 50.0
 	for i in _ruh_cells.size():
 		var ratio: float = clampf(current / per - float(i), 0.0, 1.0)
 		(_ruh_cells[i] as ColorRect).size.x = _ruh_cell_w * ratio
@@ -340,7 +340,7 @@ func _recolor_hp() -> void:
 
 
 func _on_ruh_changed(current: float, maximum: float) -> void:
-	var per := _player.RUH_PER_BLOCK if _player != null else 50.0
+	var per: float = _player.RUH_PER_BLOCK if _player != null else 50.0
 	var blocks := maxi(roundi(maximum / per), 1)
 	if blocks != _ruh_cells.size():
 		_build_ruh_meter(blocks)

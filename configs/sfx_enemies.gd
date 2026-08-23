@@ -51,3 +51,9 @@ const FRAMES := {
 	"breski": {"attack": {4: "breski.melee.4", 9: "breski.melee.9"}},  # 2-hit combo -- one cue per hit (sheet-relative)
 	# (ein's arrival blast is a CODE event, not a sprite frame -- played from ein.gd via "ein.delayed_aoe".)
 }
+
+
+## The per-frame cue map for one enemy (empty if none) -- a getter so the C# Enemy can read this const
+## during the migration (GDScript consts aren't accessible from C#; a static func called via GD.Load is).
+static func frames_for(id: String) -> Dictionary:
+	return FRAMES.get(id, {})

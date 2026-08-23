@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cgaiawi5xtuy5"]
 
-[ext_resource type="Script" uid="uid://c7150pixjqvhw" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" uid="uid://c7150pixjqvhw" path="res://scripts/Player.cs" id="1_player"]
 [ext_resource type="SpriteFrames" uid="uid://bcyv4jkebxmh4" path="res://resources/characters/khalid.tres" id="2_g2els"]
 
 [sub_resource type="RectangleShape2D" id="body_shape"]

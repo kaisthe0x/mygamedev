@@ -87,15 +87,18 @@ static func _find(id: String) -> Reward:
 	return null
 
 
-## Instantiate a reward-granted Passive by id (scripts/abilities/<id>.gd). Null (with a warning) if
-## missing or not a Passive.
+## Instantiate a reward-granted Passive by id. The passives are C# global classes now (Phase 4b), so we
+## `.new()` them by name instead of loading a .gd -- add a case when a new passive ships. Null (with a
+## warning) if unknown or not a Passive.
 static func _make_passive(passive_id: String) -> Passive:
-	var path := "res://scripts/abilities/%s.gd" % passive_id
-	if ResourceLoader.exists(path):
-		var p: Variant = load(path).new()
-		if p is Passive:
-			return p
-	push_warning("Rewards: no Passive script for '%s' at %s" % [passive_id, path])
+	var p: Variant = null
+	match passive_id:
+		"leech": p = Leech.new()
+		"parry_mend": p = ParryMend.new()
+		"reaper_edge": p = ReaperEdge.new()
+	if p is Passive:
+		return p
+	push_warning("Rewards: no Passive for '%s'" % passive_id)
 	return null
 
 
@@ -116,7 +119,7 @@ static func _buff(id: String, player: Player) -> void:
 		"atk_dmg": player.damage_mult += 0.12
 		"multishot": player.attack_projectile_bonus += 1
 		# special
-		"ruh_cap": player.ruh_cap += Player.RUH_PER_BLOCK
+		"ruh_cap": player.ruh_cap += player.RUH_PER_BLOCK # instance accessor -- GDScript can't read a C# const
 		"longer_imp": player.special_invuln_bonus += 3.0
 		"imp_until_hit": player.impervious_until_hit = true
 		"bigger_blast": player.special_radius_mult *= 1.2

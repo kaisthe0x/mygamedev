@@ -1,5 +1,10 @@
 # mygamedev
 
+> **⚙️ C# migration in progress** (branch `feature/csharp-migration`). The game is being ported from
+> GDScript to C# (typed attack hierarchy + reward system + compile-time strictness). This README still
+> describes the GDScript architecture; sections are updated as each subsystem flips. Run/verify with
+> **`godot-mono`**, not `godot`. Plan, interop rules, and phase status: [`docs/csharp-migration.md`](docs/csharp-migration.md).
+
 A 2D pixel-art action platformer in **Godot 4.7**. A character-agnostic player controller
 drives the playable character. This repo ships **Khalid only** — four other characters were
 parked in the gitignored `playground/` directory (for a future separate repo); the engine
@@ -33,8 +38,8 @@ resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
 scripts/              player, hud
 scripts/run/          the roguelite run: levels, batches, Ruh, reward doors, attack picker (see scripts/run/README.md)
-scripts/abilities/    Passive base + per-character abilities + reward passives, named <id>.gd
-scripts/combat/       Hurtbox, hitbox, combatant base, health bar, floating text (damage numbers, callouts) (constants -> configs/combat.gd)
+scripts/abilities/    Passive/Buff base (C#) + reward passives (Leech/ParryMend/ReaperEdge.cs) + reward-tier/trigger types (RewardTypes.cs)
+scripts/combat/       Hurtbox, hitbox, Combatant base (C#), health bar, floating text (damage numbers, callouts) (constants -> configs/Combat.cs)
 scripts/enemies/      Enemy base + projectile
 sprites/characters/   Source pixel-art sheets, one folder per character
 sprites/enemies/      Source enemy sheets, one folder per enemy
@@ -76,7 +81,7 @@ platform. Fully automatic — no aiming, no pumping. (This replaced an earlier c
   body radius (`LAUNCH_PULL_RANGE` ~96px) — the press check matters because Khalid's default dash is a
   **blink/teleport** that could otherwise skip past the orb. On capture he's magneted to the orb over
   `LAUNCH_MAGNET_TIME` (i-frames on), then flung; `LAUNCH_CD` blocks an instant re-trigger. Tuning is the
-  `LAUNCH_*` consts at the top of `player.gd` plus each orb's `launch_*` exports.
+  `LAUNCH_*` consts at the top of `Player.cs` plus each orb's `launch_*` exports.
 - **The orb is dumb by design** (`LaunchOrb`). It bobs and joins the `"orbs"` group; the Player owns the
   range test (`_orb_in_pull_range`, the way it scans `"enemies"`), drives which orb is lit (`set_near`),
   and owns the magnet/launch. Adding one to a level is a single `Vector2` in that level's **`orbs`** list
@@ -208,7 +213,7 @@ Because every character lands on the same canvas, swapping is a one-line
 
 **The canvas size is derived, not fixed** — it grows to fit the widest padded
 frame, so art changes can move it (156x71 -> 164x80 -> 128x80 so far).
-`player.gd` reads the frame size on load and sets the sprite offset from it
+`Player.cs` reads the frame size on load and sets the sprite offset from it
 (origin at the feet), so nothing has to be updated by hand when it moves.
 
 ### Target frame size: 128x80
@@ -291,7 +296,7 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
 
 `loop_from` / `loop_to` exist because Godot's `loop` flag is all-or-nothing. The
 generator writes the (emitted) indices as resource metadata; **it doesn't set the loop
-flag** — the reader decides what to do with the range. For a **looping** anim `player.gd`
+flag** — the reader decides what to do with the range. For a **looping** anim `Player.cs`
 jumps back to `loop_from` when the anim wraps (`_on_animation_looped`) or steps past
 `loop_to` (`_on_frame_changed`). For a **non-looping** anim an enemy uses `loop_from` as
 the frame a *re-played* attack restarts at (`Enemy._replay_from`), so a channel/rage's
@@ -311,7 +316,7 @@ A separate config next to `OVERRIDES` maps `(character, "attack")` to the
 click, each segment ending on a hit frame, with the frames between hits animating
 for smoothness (see **Player → Attack combo**). Any attack not listed defaults to
 "every frame is a hit" — one frame per click, the older snap feel. Emitted as
-`metadata/hit_frames`, read by `player.gd`.
+`metadata/hit_frames`, read by `Player.cs`.
 
 **Snappy timing (automatic).** For any character `attack_*`/`special_*` with hit frames, the
 generator plays the **non-hit frames at `BETWEEN_HIT_MULT` (0.25×)** a hit frame's duration — so
@@ -353,11 +358,11 @@ without one the special lands on its middle frame.
    `<name>_<anim>_frames.png` (lower case).
 2. Add a 1080x1080 portrait at `assets/portraits/<Name>.png`
    (**capitalised** — the lookup expects it).
-3. Add the name to `CHARACTERS` and the `@export_enum` list in
-   `scripts/player.gd`.
+3. Add the name to `CharacterIds` and the `[Export(PropertyHint.Enum, …)]` list in
+   `scripts/Player.cs`.
 4. Import in Godot (`godot --headless --import`) so the PNGs get UIDs, then run
    the generator and the verifier.
-5. Optionally add `scripts/abilities/<name>.gd` — see **Character abilities**.
+5. Optionally add a C# `CharacterAbility` (wired in `Player.CharacterAbilityFor`) — see **Character abilities**.
 
 ### Rules the art must follow
 
@@ -380,14 +385,14 @@ detection (it reads as a gap, not padding) and merges frames — keep gaps out o
 middle.
 
 Adding a new *animation type* (`hurt`, `death`, ...) means one line in `ANIMS`
-and a matching case in `_animation_for()` in `player.gd`.
+and a matching case in `_animation_for()` in `Player.cs`.
 
 ---
 
 ## Player
 
-`scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM / DEATH / SPAWN`).
+`scripts/Player.cs` — a `CharacterBody2D` (extends the C# `Combatant`) with a small state machine
+(`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM / DEATH / SPAWN / HURT / SURGE / LAUNCH`).
 
 **Movement stats live in typed config, not the inspector.** Every movement/physics knob is a
 `Locomotion` (`configs/locomotion.gd`, the shared baseline) attached to a **movement Action**
@@ -743,18 +748,24 @@ Player itself stays generic, with no per-character or per-reward branching. A **
 such rule bundle; the Player holds a **list** of them (`_passives`) and dispatches every hook to each.
 Two flavours, identical interface:
 
-- a character's **intrinsic ability** — `scripts/abilities/<character_id>.gd` extending
-  `CharacterAbility` (which *is* a `Passive`). Found by filename when that character is equipped —
-  no registration; seeded FIRST in the list. A character with no file simply has no ability.
-- a **reward-granted passive** (Phase 4) — `scripts/abilities/<id>.gd` extending `Passive`, added at
-  runtime via `Player.add_passive()` when its reward is taken (a reward row's `passive: "<id>"`), and
-  cleared on run restart (each passive's `teardown` runs so it can undo lingering effects).
+The passive/buff stack + the Player are **C#** now (`scripts/abilities/*.cs`, `Player.cs`) — they ported
+together because an `extends` chain must be one language (see `docs/csharp-migration.md`). Concrete passives
+are `[GlobalClass]` so the still-GDScript `Rewards` service can `Leech.new()` them by name.
 
-```gdscript
-extends Passive   # (or CharacterAbility for a character-intrinsic one)
+- a character's **intrinsic ability** — a `CharacterAbility` (which *is* a `Passive`) returned by
+  `Player.CharacterAbilityFor(id)`, seeded FIRST in the list. Khalid ships without one.
+- a **reward-granted passive** — a `Passive` subclass, added at runtime via `Player.add_passive()` when its
+  reward is taken (a reward row's `passive: "<id>"` → `Rewards._make_passive` `.new()`s the C# class), and
+  cleared on run restart (each passive's `Teardown` runs so it can undo lingering effects).
 
-func on_hit_dealt(player: Player, amount: float, _target: Node) -> void:
-    player.heal(amount * 0.08)   # Leech: lifesteal (scripts/abilities/leech.gd)
+```csharp
+[GlobalClass]
+public partial class Leech : Passive   // (or : Buff for a move-scoped one, : CharacterAbility for intrinsic)
+{
+    public Leech() => Id = "leech";
+    public override void OnHitDealt(Player player, float amount, Node target)
+        => player.heal(amount * 0.08f);   // lifesteal (scripts/abilities/Leech.cs)
+}
 ```
 
 Hooks, all optional (override only what you need):
@@ -771,41 +782,53 @@ Hooks, all optional (override only what you need):
 | `on_hit_dealt(player, amount, target)` | Player deals damage (via RunManager) | Lifesteal, on-hit procs, stacks |
 | `modify_tuning(player, action, seg, tuning) → Dictionary` | Inside `resolve_tuning`, for every swing | **Alter a move's numbers** — damage/knockback/keys; the buff path |
 
-`physics` runs last on purpose, so a passive can override anything the state machine decided.
+`Physics` runs last on purpose, so a passive can override anything the state machine decided.
 `player.get_state()` exposes the current state, and the whole Player API — `take_damage()`,
-`velocity`, `add_passive()`, every tunable — is available. Each rule is "on EVENT, if CONDITION, do
-ACTION"; add new event hooks to `passive.gd` + fire them from the player as more are needed.
+`Velocity`, `add_passive()`, every tunable — is available. Each rule is "on EVENT, if CONDITION, do
+ACTION"; add new event hooks to `Passive.cs` + fire them from the player as more are needed.
+
+**The reward doc's trigger set is landing here** (`docs/rewards-design.md`). Beyond the hooks above, `Passive`
+now also fires the movement/attack moments the doc organises buffs by — `OnDash` / `OnGroundJump` /
+`OnAirJump` / `OnSlamTrigger` / `OnSlamLand` — and a `Trigger` enum names the whole growing vocabulary; the
+harder ones (`OnMiss`, `OnPerfectDodge`, a level timer) are reserved there until the player learns to emit
+them.
 
 ### Current passives
 
-- **Leech** (`scripts/abilities/leech.gd`) — a reward-granted passive: heal 8% of damage dealt, via
-  `on_hit_dealt`. The worked example of a rewardable behavioural ability.
-- **No character-intrinsic ability ships** — Khalid has no `scripts/abilities/khalid.gd`; his
+- **Leech** (`scripts/abilities/Leech.cs`) — a reward-granted passive: heal 8% of damage dealt, via
+  `OnHitDealt`. The worked example of a rewardable behavioural ability.
+- **No character-intrinsic ability ships** — Khalid has no C# `CharacterAbility`; his
   attacks/specials are all data (`Actions`) + effect scenes. Dropping that file gives him an intrinsic
   hook set. The parked characters in `playground/` had abilities (fall-damage-on-land, a channeled
   special that cancels when hit) — reference for what the hooks can do. Khalid used to carry the blink
   as an ability; it's now a **per-character dash option** (see **Blink dash** above).
 
-### Buffs — move-scoped passives (`scripts/abilities/buff.gd`)
+### Buffs — move-scoped passives (`scripts/abilities/Buff.cs`)
 
 A **`Buff` IS a `Passive`** (so it grants, dispatches, and tears down through the exact same machinery —
-a reward row's `passive: "<id>"` → `add_passive`), plus two extras that make it the **item/build layer**:
+a reward row's `passive: "<id>"` → `add_passive`), plus the **item/build layer** the reward doc calls for
+(`docs/rewards-design.md`):
 
-- **`applies_to`** — *which* move(s) it touches: a move id (`"twin_reaper"`), a family keyword
+- **`AppliesTo`** — *which* move(s) it touches: a move id (`"twin_reaper"`), a family keyword
   (`"attack"`/`"special"`, matched on `Action.category`), a tag (matched on `Action.tags`), or `"*"`.
-  Empty = all. One field expresses both a **tailor-made per-attack** buff and a **shared** one. Gate a
-  `modify_tuning` override with `applies_to_action(action)`; behavioural hooks (`on_parry`, …) already
-  self-scope to their fire site, so `applies_to` there is for reward gating / display.
-- **`family`** — a **replace-in-place** group: granting a buff whose `family` is already held tears down
-  the old one first (in `add_passive`), so tiered upgrades *supersede* (Ricochet I→II→III) rather than
-  stack. `""` = independent.
+  Empty = all. One field expresses both a **tailor-made per-move** buff and a **general** (category-wide)
+  one. Gate a `ModifyTuning` override with `AppliesToAction(action)`; behavioural hooks (`OnParry`, …)
+  already self-scope to their fire site, so `AppliesTo` there is for reward gating / display.
+- **`Family`** — a **replace-in-place** group: granting a buff whose `Family` is already held tears down
+  the old one first (in `add_passive`), so a higher **tier** *supersedes* its predecessor rather than
+  stacking. The doc's rule: same buff, different tier → replace (by family); a *different* buff → stacks.
+- **`Tier`** — the doc's rarity ladder, `Common → Rare → Hot → Sensational → Epic` (`RewardTypes.cs`),
+  carrying the badge colour (none/blue/orange/purple/red); the concrete buff reads its own `Tier` to scale
+  its magnitude (and can add effects per tier, e.g. +bounces).
+- **`DurationLevels`** — the doc's lifetime: `null` = permanent (whole run), `N` = expires after N level
+  advances. `Player.advance_level()` ticks it down each level and tears the buff out when it runs out.
 
-Two ways a buff acts (either/both): **numbers** — override `modify_tuning` to change a move's tuning
-dict (folded in last inside `resolve_tuning`); **behaviour** — override an event hook. Current buffs:
+Two ways a buff acts (either/both): **numbers** — override `ModifyTuning` to change a move's tuning dict
+(folded in last inside `resolve_tuning`); **behaviour** — override an event hook. Current buffs:
 
-- **Reaper's Edge** (`reaper_edge.gd`, `["twin_reaper"]`) — +25% Twin Reaper damage via `modify_tuning`.
+- **Reaper's Edge** (`ReaperEdge.cs`, `["twin_reaper"]`) — +25% Twin Reaper damage via `ModifyTuning`.
   The worked example of the numbers path (a single move, unlike the global "+12% attack damage" reward).
-- **Guardian's Mend** (`parry_mend.gd`, `["redere_shield"]`) — a perfect parry also heals, via `on_parry`.
+- **Guardian's Mend** (`ParryMend.cs`, `["redere_shield"]`) — a perfect parry also heals, via `OnParry`.
 
 ---
 
@@ -832,7 +855,7 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 ### Sprite tint shaders (Khalid's living hair + recolourable outfit)
 
 A character's sprite can carry a `canvas_item` shader for a permanent, animated
-tint. `player.gd`'s `_apply_character()` looks for `res://resources/<char>_tint.tres`
+tint. `Player.cs`'s `_apply_character()` looks for `res://resources/<char>_tint.tres`
 after loading the SpriteFrames and, if present, assigns it as `sprite.material`
 (else clears it) — so it's pure convention, no per-character code.
 
@@ -921,7 +944,7 @@ the part to black (the nearest-shade anchor keeps the shift small).
 > **Wired into the run.** The preview screen is now the **boot scene** (`project.godot`
 > `main_scene`), and its **Start run** button stamps the picks into `PaletteConfig.picks`
 > (body) + `VfxPalette.picks` (powers) — both statics that survive the scene change — then
-> loads `level.tscn`. In `player.gd`, `_apply_character()` builds Khalid's body material from
+> loads `level.tscn`. In `Player.cs`, `_apply_character()` builds Khalid's body material from
 > `PaletteConfig.make_material()` (the SAME builder the preview uses, so run == preview), and
 > the Ruh-absorb hair flare now drives the LUT's `hair_surge` uniform. The old tint shader
 > (`khalid_tint.tres`) is retained only as a legacy path for non-Khalid characters.
@@ -955,7 +978,7 @@ in `_on_character_changed`, the preview shows it live next to the sprite.
   raise `sat_floor`. The coat stays dark by design (dark in the source art) — it now reads as its hue,
   but making it *brighter* would need a value lift, which would flatten its shading.
 
-**Ruh-absorb hair flare follows the scheme.** The flare (`player.gd` `_hair_surge`) drives the body
+**Ruh-absorb hair flare follows the scheme.** The flare (`Player.cs` `_hair_surge`) drives the body
 LUT's `hair_surge` uniform toward `hair_surge_color`, which `make_material()` sets to
 `VfxPalette.recolor(PaletteConfig.RUH_CORE)` — the Ruh orb's core colour run through the *power* picks.
 So it matches the recoloured Ruh soul (pick Power 1 = blue → blue orb **and** blue flare) instead of a
@@ -985,7 +1008,7 @@ purple, `> HUE_TOL`) are left untouched.
   default red/gold/teal look. **Dedicated to VFX**, independent of the body pickers.
 - **Choke points** — `ParticleDirector._spawn()` calls `recolor_tree` on every effect it fires
   (dash / run / all attacks / all specials / slam / spawn / death / blink). The surge aura
-  recolours its code-set `moon_color` in `player.gd`; the **Ruh orb** (in
+  recolours its code-set `moon_color` in `Player.cs`; the **Ruh orb** (in
   `vfx/character/khalid/ruh_orb/`) is recoloured at its spawn in `run_manager`; the **status
   overlays** (`vfx/character/khalid/status/` — ground_breaker + frenemy stun) are recoloured in
   `Combatant.spawn_victim_vfx(..., recolor: true)`, passed **only** from the enemy-victim path
@@ -1436,8 +1459,8 @@ the enemy `friendly_fire` flag above.)
   hits fire on each combo hit frame; the special lands on its authored
   `special` hit frame (or the middle frame if none). Whoever is hit applies
   the knockback/stun and takes a brief stagger.
-- **`Combatant`** (`scripts/combat/combatant.gd`) is the shared base for `Player`
-  and `Enemy` (both `extends Combatant`, itself a `CharacterBody2D`). It holds the
+- **`Combatant`** (`scripts/combat/Combatant.cs`, C#) is the shared base for `Player`
+  and `Enemy` (both `: Combatant`, itself a `CharacterBody2D`). It holds the
   pieces they'd otherwise each reimplement: `anchor_to_feet` (sprite offset),
   `make_box` (rect collider), `apply_knockback` (turns a `Hit`'s knockback into a
   shove + returns the stagger time), and two "took a hit" tells:
@@ -1595,7 +1618,7 @@ from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds 
   charge**, and rate-limited (`RUH_FLASH_REFRACTORY`) so a cluster of arrivals folds into one surge
   instead of strobing. Ruh is banked at the kill, not the arrival (`RunManager._spawn_ruh_orb` passes
   the charge flag), so the special stays available immediately; the absorb palette (`HAIR_ABSORB_*`
-  in `player.gd`) is the knob to play with. World-parented + no Area2D, so it's safe mid-physics-flush.
+  in `Player.cs`) is the knob to play with. World-parented + no Area2D, so it's safe mid-physics-flush.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.
