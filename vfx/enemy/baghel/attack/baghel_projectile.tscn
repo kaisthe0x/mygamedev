@@ -2,6 +2,9 @@
 
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="1_t43o7"]
 
+[ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="ImpactDot"]
+[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="ProjSc"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="HbSc"]
 [sub_resource type="Curve" id="Curve_filc8"]
 _data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(0.4, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.1685394), 0.0, 0.0, 0, 0]
 point_count = 3
@@ -10,7 +13,17 @@ point_count = 3
 offsets = PackedFloat32Array(0, 0, 0, 0, 0.3, 0.65, 1)
 colors = PackedColorArray(0.95686275, 0.023529412, 0, 1, 0, 0, 0, 1, 0.8745098, 0.07450981, 0.07450981, 1, 0.99607843, 0.17254902, 0.101960786, 1, 0, 0, 0, 0.43137255, 0, 0, 0, 0.83137256, 0.43137255, 0.078431375, 0.05490196, 0)
 
-[node name="GroundWave" type="CPUParticles2D" unique_id=793401725]
+[sub_resource type="Curve" id="ImpactCurve"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="RectangleShape2D" id="hb_box"]
+size = Vector2(8, 30)
+
+[node name="BaghelProjectile" type="Node2D"]
+script = ExtResource("ProjSc")
+
+[node name="GroundWave" type="CPUParticles2D" parent="." unique_id=793401725]
 texture_filter = 1
 amount = 200
 texture = ExtResource("1_t43o7")
@@ -28,3 +41,29 @@ scale_amount_min = 0.7
 scale_amount_max = 1.7
 scale_amount_curve = SubResource("Curve_filc8")
 color_ramp = SubResource("Gradient_4w36n")
+
+[node name="Impact" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 20
+texture = ExtResource("ImpactDot")
+lifetime = 0.6
+one_shot = true
+explosiveness = 1.0
+emission_shape = 2
+emission_sphere_radius = 8.5
+direction = Vector2(0, -1)
+spread = 81.82
+gravity = Vector2(0, 0)
+initial_velocity_min = 86.42
+initial_velocity_max = 86.42
+scale_amount_min = 0.08
+scale_amount_max = 0.1
+scale_amount_curve = SubResource("ImpactCurve")
+color = Color(1.0, 0.15, 0.05, 1)
+
+[node name="Hitbox" type="Area2D" parent="."]
+script = ExtResource("HbSc")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, -9)
+shape = SubResource("hb_box")

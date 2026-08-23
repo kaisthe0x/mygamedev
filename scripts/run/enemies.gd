@@ -24,7 +24,7 @@ const BAGHEL := {
 	"id": "baghel", "tier": Tier.CHIP,
 	"ranged_mode": "forward", "ranged_range": 130.0, "ranged_travel": 100.0, "projectile_speed": 200.0,
 	"ranged_hitbox_extents": Vector2(4, 15), "ranged_hitbox_offset": Vector2(0, -9), "ranged_damage": 7.0,
-	"idle_loop_from": 1, "idle_loop_to": 3, "idle_loop_time": 2.0, "idle_time_min": 5.0, "idle_time_max": 7.0,
+	"idle_time_min": 5.0, "idle_time_max": 7.0, # idle bounces frame 1..last by default (settle then breathe)
 }
 const MAZAB := {
 	"id": "mazab", "tier": Tier.MID, "attack_type": "delayed_projectile",
@@ -49,4 +49,20 @@ const MATAT := {
 	"attack_loops": true, "attack_hitstop": 0.0,
 	"melee_damage": 11.0, "melee_knockback": 150.0, "melee_stun": 0.25,
 	"melee_hitbox_x": 0.0, "melee_hitbox_extents": Vector2(46, 30), "melee_strike_lifetime": 0.35,
+}
+# Tarri: a lit-yellow BLAST caster -- his own take on Bakshen's charged strike, just with more REACH. Being
+# pure-MELEE he WALKS into his line (aligned + within melee_range), then on the LAST attack frame ERUPTS a
+# wide STATIONARY forward blast in front (a melee Strike, NOT a travelling shot) while he HOLDS + vibrates
+# for ~2s (`attack_hitstop` + `attack_shake`). The blast's hitbox reaches forward (melee_hitbox_x + extents)
+# and stays live `melee_strike_lifetime` (~2s) so its particles sustain. `attack_type "blast"` keys the SFX
+# (`tarri.blast` at the start + `tarri.blast.3` on the frame) and the strike VFX (EmittersEnemies `tarri ->
+# blast`, which rides the strike), plus a passive `patrol_trail`.
+const TARRI := {
+	"id": "tarri", "display_name": "Tarri", "tier": Tier.MID, "attack_type": "blast",
+	"max_health": 70.0, "body_size": Vector2(18, 24), "hurtbox_size": Vector2(22, 28),
+	"move_speed": 34.0, "patrol_distance": 100.0,
+	"melee_range": 140.0, "attack_align_y": 52.0, "attack_cooldown": 2.6,
+	"melee_hitbox_x": 70.0, "melee_hitbox_extents": Vector2(70, 22), "melee_strike_lifetime": 2.0,
+	"melee_damage": 16.0, "melee_knockback": 120.0, "melee_stun": 0.3,
+	"attack_hitstop": 2.0, "attack_shake": 1.5, # hold + vibrate on the attack frame for the ~2s blast
 }

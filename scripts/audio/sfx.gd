@@ -158,6 +158,20 @@ func make_oneshot(key: String) -> AudioStreamPlayer:
 	return pl
 
 
+## Positional twin of make_oneshot(): a one-shot AudioStreamPlayer2D the caller parents at/on a world
+## object -- for a sound that PANS with the emitter AND may need to STOP early (an enemy's channelled
+## blast cut short by a stun). The caller parents it (frees with its owner) and drives play()/stop().
+## Null if the key is unregistered or its file is missing.
+func make_oneshot_2d(key: String) -> AudioStreamPlayer2D:
+	var s := _stream(key)
+	if s == null:
+		return null
+	var pl := AudioStreamPlayer2D.new()
+	pl.bus = _bus
+	pl.stream = s
+	return pl
+
+
 ## Positional twin of make_loop(): a looping AudioStreamPlayer2D the caller parents at a world spot --
 ## for a sound an object EMITS on loop (a launch orb's hum), which then pans/attenuates with distance.
 func make_loop_2d(key: String) -> AudioStreamPlayer2D:

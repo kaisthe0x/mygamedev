@@ -157,25 +157,13 @@ func _die() -> void:
 ## particle-only explosion look, centred on the orb. Same pattern as Nasen's rage / the lob blast.
 func _spawn_explosion() -> void:
 	Sfx.play_at("ein.delayed_aoe", global_position) # the eruption is a code event, not a sprite frame
-	var strike := Strike.new()
-	strike.hostile = true
-	strike.friendly_fire = friendly_fire
-	strike.lifetime = 0.4
-	strike.source = self
-	var hb := Hitbox.new()
-	hb.damage = explosion_damage
-	hb.knockback = explosion_knockback
-	hb.stun = explosion_stun
-	hb.ranged = true # an AoE blast, not a melee stab (nasen-style reactions read this)
-	hb.source = self
-	hb.add_child(Shapes.make_box(explosion_extents * 2.0, explosion_offset))
-	strike.add_child(hb)
-	var fx := _make_vfx("delayed_aoe") # AoE blast LOOK from config (null if no scene listed)
-	if fx != null:
-		strike.add_child(fx)
-	get_parent().add_child(strike) # live in the level, centred where the orb arrived
-	Nodes.place_at(strike, global_position)
-	hb.activate()
+	# Player pattern: spawn the `delayed_aoe` Strike SCENE (its own Hitbox + visual) into the LEVEL so it
+	# outlives our death, centred where we arrived; our explosion numbers injected. The blast's shape (+ its
+	# `ranged` flag) + lifetime are authored in ein_delayed_aoe.tscn.
+	var strike := _spawn_attack(_vfx_scene("delayed_aoe"),
+		{"damage": explosion_damage, "knockback": explosion_knockback, "stun": explosion_stun}, true)
+	if strike != null:
+		Nodes.place_at(strike, global_position)
 
 
 ## Wear the trail for `effect` (the Emitters config key: "patrol_trail" / "delayed_aoe_trail"), or ""

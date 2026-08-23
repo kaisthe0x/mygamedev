@@ -157,27 +157,41 @@ func _explode() -> void:
 	# `source` a freed reference -- assigning that to a Node property errors. Drop it to null
 	# (knockback credit is just lost); the blast still fires.
 	var src: Node = source if is_instance_valid(source) else null
-	var strike := Strike.new()
-	strike.hostile = hostile
-	strike.friendly_fire = friendly_fire
-	strike.lifetime = 0.4
-	strike.source = src
-	var hb := Hitbox.new()
-	hb.damage = explosion_damage
-	hb.knockback = explosion_knockback
-	hb.stun = explosion_stun
-	hb.ranged = true # a thrown-bomb blast reads as ranged (nasen etc. react by hit type)
-	hb.source = src
-	hb.add_child(Shapes.make_box(explosion_extents * 2.0, Vector2(0, -explosion_extents.y)))
-	strike.add_child(hb)
-	if explosion_effect != null:
-		var fx := explosion_effect.instantiate()
-		if fx is Node2D:
-			(fx as Node2D).position = explosion_effect_pos
-		strike.add_child(fx)
-	parent.add_child(strike) # _ready: team layers + self-free timer
-	Nodes.place_at(strike, global_position)
-	hb.activate()
+	var effect: Node2D = explosion_effect.instantiate() if explosion_effect != null else null
+	if effect != null and effect.has_method("apply_tuning"):
+		# Player pattern: the explosion_effect scene IS a self-contained Strike (its own Hitbox + visual).
+		# Spawn + inject it -- shape/lifetime/`ranged` authored in the scene, numbers from this bomb's tuning.
+		effect.set("hostile", hostile)
+		effect.set("friendly_fire", friendly_fire)
+		effect.set("source", src)
+		parent.add_child(effect)
+		Nodes.place_at(effect, global_position)
+		effect.apply_tuning({"damage": explosion_damage, "knockback": explosion_knockback, "stun": explosion_stun}, src)
+		for a in effect.find_children("*", "Area2D", true, false):
+			if a is Hitbox:
+				(a as Hitbox).source = src # credit the blast (knockback + `hit.source is Enemy` checks)
+				(a as Hitbox).activate()
+	else:
+		# Fallback for a visual-only (or missing) explosion_effect: build the Strike + Hitbox in code.
+		var strike := Strike.new()
+		strike.hostile = hostile
+		strike.friendly_fire = friendly_fire
+		strike.lifetime = 0.4
+		strike.source = src
+		var hb := Hitbox.new()
+		hb.damage = explosion_damage
+		hb.knockback = explosion_knockback
+		hb.stun = explosion_stun
+		hb.ranged = true # a thrown-bomb blast reads as ranged (nasen etc. react by hit type)
+		hb.source = src
+		hb.add_child(Shapes.make_box(explosion_extents * 2.0, Vector2(0, -explosion_extents.y)))
+		strike.add_child(hb)
+		if effect != null:
+			effect.position = explosion_effect_pos
+			strike.add_child(effect)
+		parent.add_child(strike) # _ready: team layers + self-free timer
+		Nodes.place_at(strike, global_position)
+		hb.activate()
 	queue_free()
 
 

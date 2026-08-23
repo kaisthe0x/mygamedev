@@ -714,8 +714,23 @@ hurt-anim length)` so a tiny or zero stagger never cuts the flinch off. A fresh 
 flinching** (a barrage / multiple enemies) only *extends* it — it does **not** restart the anim at frame 0,
 or a continuous pummel would freeze it on the first frame and never visibly play. One smooth flinch plays
 and holds until the barrage ends. (Per-enemy knockback/stun live in [`scripts/run/enemies.gd`](scripts/run/enemies.gd).) `take_damage()` also fires one of a few random hurt grunts (`hurt.1/2/3`, pitch-wobbled)
-so he doesn't repeat. A character with no `hurt` sheet falls back to the old idle-during-stagger look. The
+so he doesn't repeat, and a **low-HP warning cue** when a hit crosses a threshold **downward** —
+`health_half` at 50%, `health_low` at 20% (`_warn_low_health`, `HEALTH_WARN_HALF`/`_LOW`). It's a
+stateless edge trigger: it plays only on the crossing (never spams while you sit low), re-arms once a
+heal lifts you back above the line, and the lower/urgent cue wins if one big hit crosses both. A character with no `hurt` sheet falls back to the old idle-during-stagger look. The
 shield's block/parry is a separate feedback (a `_shake` sprite vibrate, not a state) — see **Redere Shield**.
+
+**Low-health screen effect.** Under **20% HP** a full-screen red overlay kicks in — the **whole screen**
+washes evenly toward red (a slight desaturate + red multiply, applied uniformly — no framed border or
+untouched centre), with only a **subtle edge darken** for depth, deepening as HP falls to 0 and
+**pulsing with a punchy lub-dub heartbeat** (`_heartbeat`: a sharp thump + softer second beat that swells
+the red, not a gentle sine). It's a screen-space post shader (`vfx/shaders/low_health.gdshader`, one
+`intensity` uniform: whole-screen red grade + a soft multiplicative vignette) on a `ColorRect` the **HUD** builds on its own
+`CanvasLayer` at **layer 50** — above the world so it tints it, below the HUD (layer 100) so the UI stays
+crisp. The HUD drives `intensity` off `_on_health_changed` (`_update_low_health`, eased in `_process`):
+target ramps `LOW_HP_MIN`→1.0 from the 20% threshold down to 0 HP, re-arming on heal; the whole layer is
+hidden (no screen-read cost) whenever it's fully faded out. Tunables are consts on the HUD
+(`LOW_HP_RATIO`/`_MIN`/`_FADE`/`_PULSE_*`) + the shader's `hue_amount`/`vignette_*` uniforms.
 
 ---
 
@@ -1054,30 +1069,77 @@ running game (F5), not headless. Colour-*tiers* (per-spawn recolour driving beha
 ### The `Enemy` node (`scripts/enemies/enemy.gd`, `scenes/enemy.tscn`)
 
 One reusable ground enemy. `enemy.tscn` is a thin wrapper (root + script) so it
-can be dropped into a level and tuned in the inspector; the sprite, hurtbox,
-hitboxes and health bar are still built in code, so the scene has nothing fragile
-to hand-wire. Key traits:
+can be dropped into a level and tuned in the inspector; the enemy's **body** (sprite,
+hurtbox, contact box, health bar) is built in code, but its **attacks** are
+self-contained SCENES (see below), so the scene has nothing fragile to hand-wire. Key traits:
 
 - **Capabilities are inferred from the art.** An `attack` sheet (a strike/melee) enables
   the melee box; an `attack_projectile` sheet enables the ranged shot. An enemy with only
   one — or, like a stationary sleeper, **no `patrol`** — just works; missing animations
   are never used (a patrol-less enemy stands instead of patrolling).
-- **Melee jab vs. AoE.** The melee box is placed at `melee_hitbox_x` in front of the body with
-  `melee_hitbox_extents` half-size, fired on the `attack` hit frame(s). For an **AoE swing**, set
-  `melee_hitbox_x = 0` (centre it on the body) and the extents wide, and raise `melee_strike_lifetime`
-  so the box stays live across the swing frames (it still hits once — `Hitbox` dedups). An optional
-  `aoe` effect from `EmittersEnemies` rides the strike for the look. **Matat** is the worked example: a
+- **Attacks are self-contained scenes (the PLAYER pattern).** Every enemy attack — a melee `Strike`,
+  a `Projectile`, or the lob's `Strike` explosion — is authored AS a scene: the component script on the
+  root + its **own `Hitbox`** (shape authored) + the visual. `Enemy._spawn_attack` (shared by the melee
+  strike, Nasen's rage, and Ein's blast; `_fire_projectile` and the lob's `_explode` do the same) instantiates
+  it, **mirrors the whole thing by facing** (so a directional strike/beam comes out the way the enemy
+  faces — this is what fixed Tarri's blast), and **injects** the numbers (`damage`/`knockback`/`stun`)
+  into the scene's hitbox via `apply_tuning`, exactly like the `ParticleDirector` does for the player. The
+  hitbox SHAPE + lifetime + emit window live in the scene now — so the old `melee_hitbox_extents`/`_x` /
+  `melee_strike_lifetime` / `ranged_hitbox_extents` exports are **superseded by the authored scene** (the
+  scene wins). This replaced the earlier code-built-hitbox approach so enemies and the player are consistent.
+  Two knobs ride on this: the `EmittersEnemies` **`pos`** anchors the whole attack (mirrored by facing —
+  move it to reposition a strike's beam/box together), and the enemy **engages at its REAL reach** — on
+  `_ready` `melee_range` is derived from the attack scene's hitbox far-edge (+ `pos.x`) via `_melee_reach()`,
+  and a `"forward"` shot's `ranged_range` is clamped to `ranged_travel`. So an enemy closes exactly as far
+  as it can hit, and shrinking a hitbox brings it *closer* — no separate range to keep in sync with the box.
+- **Melee jab vs. AoE.** The `attack` hit frame(s) fire the strike scene (`EmittersEnemies` `<id> -> aoe`
+  / `attack_type`); its **Hitbox is authored in that scene** — a jab is a small box in front, an **AoE swing**
+  a wide box centred on the body with a long lifetime (it still hits once — `Hitbox` dedups). **Matat** is the worked example: a
   chasing bruiser who sweeps his arms for a wide orange shockwave (kit `EnemyKits.MATAT`; VFX
   `vfx/enemy/matat/attack/matat_aoe.tscn`; the AoE erupts on attack frame 4). His `attack_loops = true`
   so the whole swing **cycles continuously** (re-erupting the AoE) while you stay in reach — no
   one-swing-then-freeze-on-cooldown — and `attack_hitstop = 0` keeps that loop smooth; damage is low
   since it hits every cycle.
+- **Channelled stationary blast.** **Tarri** is a Bakshen-style caster with more reach: a lit-yellow mob who,
+  on his **last attack frame**, **holds + vibrates** (the freeze-on-fire-frame hit-stop + `attack_shake`)
+  while he ERUPTS a **wide stationary forward blast in front — a melee `Strike`, NOT a travelling shot**.
+  He's pure-melee (anim `attack`), so he walks into `melee_range` (his blast reach) and swings;
+  `tarri_blast.tscn` (a `Strike` scene) authors the forward hitbox + a **beam that emits from his body and
+  mirrors with facing** (fixed via `_spawn_attack`). **The hold length is the blast's own `emit_duration`,
+  not `attack_hitstop`:** when a fire frame spawns a channeled Strike, `_on_frame_changed` feeds that Strike's
+  `emit_duration` to `_begin_hitstop`, so the fire-frame freeze ends **exactly** when the emission does — he
+  snaps back to idle the instant the blast is gone, never stranded on the attack frame (tweak `emit_duration`
+  in `tarri_blast.tscn` to retime the whole thing). Non-channel melees (Matat's instant `aoe`) still use the
+  plain `attack_hitstop`. His `attack_type = "blast"` keys both the SFX (`tarri.blast`
+  at the start, `tarri.blast.3` on the fire frame) **and** the strike VFX — `_spawn_melee_strike` looks up
+  the effect under the enemy's `attack_type` (falling back to `aoe`), so a typed strike (Matat's `aoe`, Tarri's `blast`) finds its scene
+  under that key. Kit `EnemyKits.TARRI`; VFX `vfx/enemy/tarri/attack/tarri_blast.tscn`.
+  **Getting hit mid-channel cancels it — visuals AND audio.** A channeled Strike (`emit_duration > 0`) is
+  remembered as `Enemy._active_channel` when it spawns; if a hit **staggers or stuns** us before the window
+  ends (`_on_hurt`, the magnet stun, Nasen's rage-break — and `_die`), `_cancel_channel()` calls the Strike's
+  `cancel()` so the emission + beam break **with** the enemy instead of playing out while he stands frozen —
+  honouring the Strike's own `interrupt_on_hurt` opt-out. The **sound stops too**: a channel attack's cues
+  (start + fire-frame) don't go through the fire-and-forget pool — `_play_attack_sfx` routes them through
+  **enemy-owned `AudioStreamPlayer2D`s** (`_attack_sfx`, detected once via the `_is_channel` peek in
+  `_melee_reach`), which `_stop_attack_sfx()` cuts on the same interrupt. So a stunned Tarri goes fully
+  silent, not a beam that vanishes while the blast is still roaring. (`Sfx.make_oneshot_2d` is the stoppable,
+  positional one-shot this uses; non-channel attacks keep using the pool.)
+  **He stays committed until the blast fully clears.** The fire-frame freeze ends with the *emission*, but
+  the blast's hitbox + particles linger a beat longer; while `_active_channel` is still valid, `_act`
+  holds his ground **and facing** (early-returns before the face/pursue logic), so a player who dashes
+  behind him can't yank him around to chase while his blast is still firing the other way. `_active_channel`
+  goes invalid the instant the Strike frees, releasing him exactly when the blast is gone.
+- **Passive patrol trail.** An enemy with a `patrol_trail` row in `EmittersEnemies` wears a particle trail
+  while it walks: `Enemy._build_patrol_trail` attaches the scene once and `_physics_process` toggles its
+  emitters by whether it's actually moving (author the emitters `local_coords = false` so the particles
+  linger in the world). Tarri uses one (`vfx/enemy/tarri/patrol/tarri_patrol_trail.tscn`).
 - **Emitter naming (`EmittersEnemies`).** An enemy's particle rows are keyed by the attack's **strike
   type** (`configs/strike_spec.gd`: `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`, `blast`,
   …), never an ad-hoc name. A component of an attack appends a role: `<type>_burst` (a projectile's
   explosion, e.g. `mazab → delayed_projectile + delayed_projectile_burst`), `<type>_trail` (the motion
   trail into it, e.g. `ein → delayed_aoe + delayed_aoe_trail`). A passive movement trail is
-  `<state>_trail` (`patrol_trail`). So `nasen`/`matat → aoe`, `kebus`/`baghel → projectile`. **The SFX
+  `<state>_trail` (`patrol_trail`, worn by Tarri). So `nasen`/`matat → aoe`, `kebus`/`baghel → projectile`,
+  `tarri → blast`. **The SFX
   side (`SfxEnemies`) uses the same type keys** — `<id>.<type>` where `type` is the enemy's
   `attack_type` (`@export`, set per kit; empty falls back to melee/projectile from the anim) — and the
   scene/wav **filenames** follow suit (`nasen_aoe.tscn`, `mazab_delayed_projectile.tscn`, `aoe.wav`, …).
@@ -1168,6 +1230,20 @@ to hand-wire. Key traits:
     `_expire()`s: stops damaging/moving, sets `emitting = false` on all its
     emitters, and frees only after the longest particle lifetime, so the wave and
     its trail fade out instead of popping.
+  - **Impact vfx** — authored as a child node named **`Impact`** *inside the projectile's own scene* (a
+    Node2D/particle node, left dormant with `emitting = false`), so you build + tune it right there in the
+    scene — no separate file, registry, or path convention. On hit (`_on_struck` → `_spawn_impact`, fired
+    each hit so a ricochet bursts at every enemy) the projectile `find_child("Impact")`s it, **duplicates**
+    it (so a bouncing shot gets a fresh one per enemy), drops the copy into the world, fires its emitters
+    once, and frees it after the longest particle lifetime. Two deliberate placements: it spawns **on the
+    thing it hit** — the struck victim's hurtbox collision-shape centre / torso via `_hit_point(victim)`,
+    NOT the projectile's own origin (a sized hitbox fires while the body is still a *variable* distance
+    short — worse with a big box / bounce / homing — so spawning at the projectile looked random + short);
+    and its `z_index` is lifted to **50** so it renders *over* the enemy sprite instead of behind it. No
+    `Impact` node = no impact. Every straight-shot projectile carries one, colour-matched to its shot
+    (frisbee/cherry red, kebus green, baghel red-orange); a player shot's `Impact` is a child of its scene
+    root, an enemy shot's lives inside its **visual** scene (`kebus_projectile.tscn` etc.). `impact_sfx` is
+    the audio twin (played positionally at the same spot). Lobs explode via `LobProjectile`, separate from this.
 - **Melee** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
 - **`attack_loops`** (default **off**): when on, the melee `attack` **loops** while the
@@ -1176,14 +1252,18 @@ to hand-wire. Key traits:
   plays once and only the strike cycle repeats; when the player leaves reach it ends with
   the normal cooldown → idle. (Built on the same `_loop_from`/`_replay_from` helpers Nasen's
   rage uses.)
-- **`idle_loop_from..idle_loop_to`** (optional): a resting-idle flourish — loops
-  those emitted frames for `idle_loop_time` seconds, then plays one full idle
-  cycle, and repeats (Baghel scratches his back). Disabled when `to <= from`.
-- **Combat vs resting idle.** An `_engaged` flag tracks whether the player is in
-  reach (attacking distance). While engaged, the between-attacks idle **holds the
-  first idle frame** as a tense ready-stance — no patrolling or scratch flourish.
-  The moment the player leaves reach `_engaged` clears and normal patrol/idle
-  (and the flourish) resume on their own.
+- **Idle: settle once, then breathe (ping-pong).** The idle animation plays **once from frame 0** — the
+  settle/intro pose (e.g. Baghel dropping *both* arms) — then loops the rest **back and forth** between
+  `idle_loop_from` and `idle_loop_to`, never landing back on frame 0. Looping the *whole* clip made that
+  intro pose twitch on every cycle (arms slam down, scratch, slam down…); the bounce keeps only the
+  natural motion (the one-armed scratch) alive. Driven by `_idle_bounce` on `frame_changed`, which reverses
+  playback (`play` ⇄ `play_backwards`) **at** each edge so it never wraps past it. Defaults suit every
+  enemy: `idle_loop_from = 1` (skip just the intro), `idle_loop_to = 0` → the **last** idle frame. Set an
+  explicit `to` to keep tail frames out of the bounce; a range under 2 frames wide just sits. This is the
+  **universal** idle behaviour now — the old `idle_loop_time` full-cycle flourish is gone.
+- **Combat vs resting idle.** An `_engaged` flag tracks whether the player is in reach (attacking distance).
+  Engaged or resting, the idle **breathes via the same bounce** (a paused sprite reads as a bug); `_engaged`
+  only gates patrolling. The moment the player leaves reach `_engaged` clears and normal patrol/idle resume.
 - **Attack feel — hit-stop + shake.** On the impact frame (melee contact / the
   ranged smash), `_begin_hitstop()` freezes the sprite on that pose for
   `attack_hitstop` s and jitters it by up to `attack_shake` px (decaying to 0),
@@ -1204,13 +1284,15 @@ to hand-wire. Key traits:
   in `configs/icons.gd` (one line each) when real pips are drawn, no code change. Add a status by an
   entry in `StatusTypes`, a `status:<id>` path in `Icons`, and one line in `_refresh_status_icons`.
 - **Over-head halo** (`scripts/combat/overhead_status.gd` → `OverheadStatus`). The over-head twin of the
-  pips: a looping animation that **hovers over the enemy's head** while a status is active — today the
-  swirling-stars **stun halo** (`sprites/things/state/stunned.png`, a 256×64 four-frame strip). Built in
-  code (no scene), it's fed the **same active-status set** as `StatusIcons` from `_refresh_status_icons()`
-  and shows the highest-priority status that has an over-head anim (one at a time), bobbing gently. The
-  anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached `SpriteFrames`),
-  so giving another status its own halo is a config line + art — no code change. Anchored at the enemy's
-  head line (just under the floating bar); pixel-filtered like the rest of the art.
+  pips: a looping animation that **hovers over the enemy's head** while a status is active. Two today: the
+  swirling-stars **stun halo** (`sprites/things/state/stunned.png`, 256×64 / 4 frames) and the pulsing
+  skull **dying halo** for a reaped enemy (`sprites/things/state/dying.png`, 768×64 / 12 frames — only
+  Twin Reaper's `reap` DoT applies it for now). Built in code (no scene), it's fed the **same
+  active-status set** as `StatusIcons` from `_refresh_status_icons()` and shows the highest-priority status
+  (by `StatusTypes.ORDER`, so `reap` beats `stun`) that has an over-head anim — one at a time — bobbing
+  gently. The anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached
+  `SpriteFrames`), so giving another status its own halo is a config line + art — no code change. Anchored
+  at the enemy's head line (just under the floating bar); pixel-filtered like the rest of the art.
 - **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
   label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude, overrides)`. It parents the label to
   the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it
@@ -1242,9 +1324,10 @@ to hand-wire. Key traits:
   body-tint throb (`StatusOverlay.clear()`) — because `_physics_process` bails on `DEAD`, so nothing else
   would clear them and they'd otherwise linger frozen on the corpse for the death anim's ~2s.
 - Exposed knobs: health, speed, patrol, ranges, cooldown, damages, knockback,
-  stun, hitbox sizes/offsets, aggro, contact damage, and **`body_size` /
-  `hurtbox_size`** (per-enemy colliders, so a bigger or smaller enemy fits its
-  own sprite instead of a shared hardcoded box). Tune per enemy.
+  stun, hitbox sizes/offsets, aggro, contact damage, `attack_hitstop` /
+  `attack_shake` (the freeze + vibrate on the fire frame — stretch it for a
+  channel), and **`body_size` / `hurtbox_size`** (per-enemy colliders, so a bigger
+  or smaller enemy fits its own sprite instead of a shared hardcoded box). Tune per enemy.
 
 > **Bosses are not Enemies.** They get their own scene/script so their move-sets
 > aren't constrained to melee/ranged. `Enemy` is for regular mobs.

@@ -54,6 +54,7 @@ static func _build() -> Array:
 			{"kit": EnemyKits.BAGHEL, "pos": Vector2(-350.0, 0.0)},
 			{"kit": EnemyKits.BAGHEL, "pos": Vector2(200.0, 0.0)},
 			{"kit": EnemyKits.MATAT, "pos": Vector2(750.0, 0.0)}, # the AoE bruiser -- testbed
+			{"kit": EnemyKits.TARRI, "pos": Vector2(1050.0, 0.0)}, # the blast caster -- testbed
 			{"kit": EnemyKits.KEBUS, "pos": Vector2(1400.0, 0.0)},
 		],
 		"waves": [], # intro level: just the 4-enemy start batch -- clear those 4 and the exit opens

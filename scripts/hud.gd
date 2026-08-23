@@ -17,6 +17,22 @@ extends CanvasLayer
 var _player: Player
 var _target: float = 0.0
 
+# Low-health screen effect (full-screen red hue + edge vignette, below the HUD; see low_health.gdshader).
+var _low_hp_layer: CanvasLayer
+var _low_hp_mat: ShaderMaterial
+var _low_hp_level: float = 0.0  ## smoothed 0..1 actually applied (eases toward _low_hp_target)
+var _low_hp_target: float = 0.0 ## where the HP ratio wants it (set in _on_health_changed)
+var _low_hp_time: float = 0.0   ## clock for the heartbeat pulse
+
+const LOW_HP_RATIO := 0.20        ## effect kicks in UNDER this HP fraction (matches Player.HEALTH_WARN_LOW)
+const LOW_HP_MIN := 0.35          ## intensity right at the threshold, so it's clearly visible at 20%
+const LOW_HP_FADE := 3.5          ## how fast intensity eases toward its target (per second)
+# Heartbeat pulse: a punchy lub-dub that SWELLS the red on each beat (not a gentle dip). Between beats the
+# intensity sits at BASE x level (a calmer trough); each thump swells it up by PUNCH x level toward/over 1.
+const LOW_HP_BEAT_HZ := 1.15      ## heartbeats per second (elevated, urgent)
+const LOW_HP_PULSE_BASE := 0.72   ## trough intensity between beats (fraction of the eased level)
+const LOW_HP_PULSE_PUNCH := 0.6   ## how hard each beat swells on top (fraction of level, added at the peak)
+
 # Built-in-code widgets (direct children of this CanvasLayer, explicit positions).
 var _root: Control ## a plain container we show/hide as one
 var _markers: OffscreenMarkers ## full-viewport overlay: arrows at off-screen enemies
@@ -42,6 +58,7 @@ const RUH_EMPTY := Color(0.16, 0.08, 0.10, 0.9) ## empty block slot
 func _ready() -> void:
 	layer = 100 # keep the HUD above every other CanvasLayer
 	_build_hud()
+	_build_low_health()
 	_build_stats()
 	_set_shown(false)
 	get_tree().node_added.connect(_on_node_added)
@@ -101,6 +118,25 @@ func _build_hud() -> void:
 
 	_controls = _mk_label(Vector2(16, 140), 12, Color(0.62, 0.62, 0.68))
 	_controls.text = "A/D move   Space jump   Shift dash   LMB attack   RMB special/slam   Z hurt   X +ruh   0 rebuild"
+
+
+## Full-screen low-health post effect: a ColorRect running low_health.gdshader on its OWN CanvasLayer
+## at layer 50 -- ABOVE the world (layer 0) so it re-hues it, but BELOW the HUD (layer 100) so the UI
+## stays crisp. Full-rect anchored, so it tracks the viewport on resize. Hidden until HP goes low.
+func _build_low_health() -> void:
+	_low_hp_layer = CanvasLayer.new()
+	_low_hp_layer.layer = 50
+	_low_hp_layer.visible = false
+	add_child(_low_hp_layer)
+
+	var rect := ColorRect.new()
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT) # fills the viewport, auto-resizes
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_low_hp_mat = ShaderMaterial.new()
+	_low_hp_mat.shader = load("res://vfx/shaders/low_health.gdshader")
+	_low_hp_mat.set_shader_parameter("intensity", 0.0)
+	rect.material = _low_hp_mat
+	_low_hp_layer.add_child(rect)
 
 
 func _mk_label(pos: Vector2, font_size: int, col: Color) -> Label:
@@ -222,6 +258,12 @@ func _set_shown(shown: bool) -> void:
 	_root.visible = shown
 	_stats.visible = shown
 	_markers.visible = shown
+	# Kill the low-health tint outright when there's no player (menus, between runs).
+	if not shown:
+		_low_hp_target = 0.0
+		_low_hp_level = 0.0
+		if _low_hp_layer != null:
+			_low_hp_layer.visible = false
 	# processing stays ON even when hidden, so _process can re-bind (see below).
 
 
@@ -235,8 +277,32 @@ func _process(delta: float) -> void:
 	if not is_equal_approx(_bar.value, _target):
 		_bar.value = move_toward(_bar.value, _target, drain_speed * delta)
 		_recolor_hp() # shift the fill green->orange->red as the animated drain crosses thresholds
+	_update_low_health(delta)
 	_levels_label.text = "LEVELS  %d   ·   BEST %d" % [SaveData.current_cleared, SaveData.levels_record()]
 	_stats_label.text = _stats_text()
+
+
+## Ease the applied intensity toward its HP target and modulate it with a slow heartbeat throb; hide the
+## whole effect layer (so there's no screen-read cost) once it's fully faded out.
+func _update_low_health(delta: float) -> void:
+	if _low_hp_layer == null:
+		return
+	_low_hp_time += delta
+	_low_hp_level = move_toward(_low_hp_level, _low_hp_target, LOW_HP_FADE * delta)
+	var on := _low_hp_level > 0.001
+	_low_hp_layer.visible = on
+	if on:
+		var mult := LOW_HP_PULSE_BASE + LOW_HP_PULSE_PUNCH * _heartbeat(_low_hp_time)
+		_low_hp_mat.set_shader_parameter("intensity", clampf(_low_hp_level * mult, 0.0, 1.0))
+
+
+## Heartbeat envelope 0..1: a sharp "lub" thump at the start of each beat plus a softer "dub" just after,
+## so the pulse punches instead of gliding like a sine. `LOW_HP_BEAT_HZ` beats per second.
+func _heartbeat(t: float) -> float:
+	var ph := fposmod(t * LOW_HP_BEAT_HZ, 1.0) # 0..1 across one beat
+	var lub := exp(-pow(ph / 0.055, 2.0))
+	var dub := 0.6 * exp(-pow((ph - 0.17) / 0.07, 2.0))
+	return minf(lub + dub, 1.0)
 
 
 func _on_character_changed(id: String) -> void:
@@ -253,6 +319,14 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	_target = current
 	_value_label.text = "%d / %d" % [roundi(current), roundi(maximum)]
 	_recolor_hp()
+	# Low-health screen effect target: 0 while healthy, then ramp from LOW_HP_MIN (at the 20% threshold)
+	# up to 1.0 as HP approaches 0, so the red deepens the closer he is to death. _process eases to this.
+	var ratio := current / maximum if maximum > 0.0 else 0.0
+	if ratio >= LOW_HP_RATIO:
+		_low_hp_target = 0.0
+	else:
+		var t := clampf((LOW_HP_RATIO - ratio) / LOW_HP_RATIO, 0.0, 1.0)
+		_low_hp_target = lerpf(LOW_HP_MIN, 1.0, t)
 
 
 ## Tint the HP fill by how full it is -- green / orange / red -- from the SAME bands the floating

@@ -2,6 +2,8 @@
 
 [ext_resource type="Texture2D" uid="uid://ceiwd6arsh4o0" path="res://vfx/shared/textures/slash_texture_1.png" id="1_kmc70"]
 [ext_resource type="Texture2D" uid="uid://mnae2d5t7ywc" path="res://vfx/shared/textures/slash_texture_1_flipped.png" id="2_03ge2"]
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="StrikeSc"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="HitboxSc"]
 
 [sub_resource type="Curve" id="Curve_shrink"]
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
@@ -30,7 +32,12 @@ point_count = 2
 offsets = PackedFloat32Array(0.15923567, 0.35796177)
 colors = PackedColorArray(0.9490196, 0.4509804, 0.28627452, 1, 1.7, 0.4, 0.1, 0.9)
 
+[sub_resource type="RectangleShape2D" id="hb_box"]
+size = Vector2(92, 60)
+
 [node name="MatatAoe" type="Node2D" unique_id=1717391371]
+script = ExtResource("StrikeSc")
+lifetime = 0.35
 
 [node name="Right" type="Node2D" parent="." unique_id=1654430766]
 
@@ -99,3 +106,10 @@ scale_amount_min = 0.1
 scale_amount_max = 0.1
 scale_amount_curve = SubResource("Curve_yap18")
 color_ramp = SubResource("Gradient_8y53d")
+
+[node name="Hitbox" type="Area2D" parent="."]
+script = ExtResource("HitboxSc")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, -30)
+shape = SubResource("hb_box")

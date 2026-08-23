@@ -38,4 +38,10 @@ const TABLE := {
 		"delayed_aoe": {"scene": preload("res://vfx/enemy/ein/attack/ein_delayed_aoe.tscn"), "pos": Vector2(0, -16)},
 		"delayed_aoe_trail": {"scene": preload("res://vfx/enemy/ein/attack/ein_delayed_aoe_trail.tscn"), "pos": Vector2(0, -12)},
 	},
+	# --- blast (a wide STATIONARY forward blast -- a melee strike, like Bakshen with more reach) + patrol trail.
+	# The blast VFX rides the strike (already placed at melee_hitbox_x forward), so `pos` is just a body-height nudge.
+	"tarri": {
+		"blast": {"scene": preload("res://vfx/enemy/tarri/attack/tarri_blast.tscn"), "pos": Vector2(15, -17)},
+		"patrol_trail": {"scene": preload("res://vfx/enemy/tarri/patrol/tarri_patrol_trail.tscn"), "pos": Vector2(0, -6)},
+	},
 }

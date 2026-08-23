@@ -70,6 +70,10 @@ const BASE_RUH_CAP := 300.0 # start a run with 3 special charges (rewards raise 
 const BASE_MAX_HEALTH := 100.0
 ## Where Khalid's own floating damage number spawns (local, feet at y=0 -> above his head). Tunable.
 const HURT_NUMBER_OFFSET := Vector2(0, -40)
+## Low-HP warning thresholds (fraction of max). A hit that drops health DOWN through one plays its cue
+## once (`health_half` / `health_low`); the lower one wins if a single hit crosses both. Re-arms on heal.
+const HEALTH_WARN_HALF := 0.5
+const HEALTH_WARN_LOW := 0.2
 var damage_mult: float = 1.0
 ## Run-speed multiplier from rewards (Fleetfoot), applied OVER the equipped run option's base so a
 ## loadout swap doesn't wipe the buff. Reset by begin_run().
@@ -667,7 +671,9 @@ func portrait_path() -> String:
 ## hit tell; death when HP hits 0. The setter clamps and emits for the HUD.
 func take_damage(amount: float) -> void:
 	var dealt := amount * damage_taken_mult * _surge_dmg_taken_mult # Thick Hide reward + Jnoon surge (0.5x) reduce this
+	var before := health
 	health -= dealt
+	_warn_low_health(before, health) # low-HP cue when this hit crosses a threshold downward
 	# Pop a floating damage number over Khalid, tinted with his chosen PRIMARY (hair) colour so his own
 	# HP loss reads like the enemy numbers but coloured to him. PaletteConfig.picks is the same source
 	# that recolours his hair (default red when unpicked). Skip a non-damaging tick (0 / a heal).
@@ -680,6 +686,21 @@ func take_damage(amount: float) -> void:
 	Sfx.play_random(["hurt.1", "hurt.2", "hurt.3"], 0.0, randf_range(0.95, 1.06))
 	if health <= 0.0 and not _dead:
 		_die()
+
+
+## Play a low-HP warning when THIS hit dropped health down through a threshold (`old` -> `new` HP).
+## Stateless: it fires only on the crossing, so it won't spam while you stay low, and re-arms on its
+## own once a heal lifts you back above the line. The more urgent (lower) cue wins if a single big hit
+## crosses both at once, so they never overlap. Death (HP 0) is its own sting, handled in _die.
+func _warn_low_health(old_hp: float, new_hp: float) -> void:
+	if max_health <= 0.0 or new_hp >= old_hp:
+		return
+	var old_r := old_hp / max_health
+	var new_r := new_hp / max_health
+	if old_r > HEALTH_WARN_LOW and new_r <= HEALTH_WARN_LOW:
+		Sfx.play("health_low")
+	elif old_r > HEALTH_WARN_HALF and new_r <= HEALTH_WARN_HALF:
+		Sfx.play("health_half")
 
 
 ## Start a sprite SHAKE: `amp` px of decaying random jitter over `time` seconds (applied in

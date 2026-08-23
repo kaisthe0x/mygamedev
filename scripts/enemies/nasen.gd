@@ -105,24 +105,12 @@ func _on_hurt(hit: Hit) -> void:
 		# player is still in the zone, starts the attack over.
 		_stun_left = rage_stun_time
 		_set_state(State.STUN)
+		_cancel_channel() # jolted out of a rage -> cut any channeled emission short with us
 
 
 ## Build the rage AoE: a hostile Strike centred on nasen with a wide ground hitbox, plus the
 ## particle-only `rage_effect` for the look. Same activation pattern as Enemy's melee strike.
 func _spawn_rage_aoe() -> void:
-	var strike := Strike.new()
-	strike.hostile = true
-	strike.friendly_fire = friendly_fire
-	strike.lifetime = 0.5
-	strike.source = self
-	var hb := Hitbox.new()
-	hb.damage = rage_damage
-	hb.knockback = rage_knockback
-	hb.source = self
-	hb.add_child(Shapes.make_box(rage_extents * 2.0, Vector2(0, -rage_extents.y)))
-	strike.add_child(hb)
-	var fx := _make_vfx("aoe") # AoE LOOK + emit point from the Emitters config (null if none)
-	if fx != null:
-		strike.add_child(fx)
-	add_child(strike) # centred on nasen (his feet); Strike._ready sets team layers, frees itself
-	hb.activate()
+	# Player pattern: spawn the `aoe` Strike SCENE (its own Hitbox + visual, centred on nasen), our rage
+	# numbers injected. Shape + lifetime authored in nasen_aoe.tscn; _spawn_attack mirrors + arms it.
+	_spawn_attack(_vfx_scene("aoe"), {"damage": rage_damage, "knockback": rage_knockback}, false, _vfx_pos("aoe"))

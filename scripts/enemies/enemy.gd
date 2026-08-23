@@ -56,12 +56,13 @@ signal damaged(amount: float, source: Node)
 @export var idle_time_max: float = 3.0
 ## Won't step past an edge: how far ahead of the feet ground is probed for.
 @export var edge_check_x: float = 14.0
-## Optional resting-idle flourish: while idling, loop emitted frames
-## [idle_loop_from..idle_loop_to] (e.g. a back-scratch) for idle_loop_time
-## seconds, then play one full idle cycle, and repeat. Disabled when to <= from.
-@export var idle_loop_from := 0
-@export var idle_loop_to := 0
-@export var idle_loop_time := 2.5
+## Idle plays ONCE from the top -- frame 0 is the settle/intro pose (e.g. baghel dropping both arms) --
+## then LOOPS the rest BACK AND FORTH (ping-pong) so that intro pose never repeats every cycle (which reads
+## as a twitch). The bounce range is [idle_loop_from .. idle_loop_to]: defaults suit the common case --
+## from 1 (skip only the intro frame), to 0 -> the LAST idle frame. Set an explicit `to` to keep tail
+## frames out of the bounce (e.g. mazab bounces [1..3] of its 5). Bounce is skipped if the range is < 2 wide.
+@export var idle_loop_from := 1
+@export var idle_loop_to := 0 ## <= from -> auto: the last idle frame
 
 @export_group("Combat ranges")
 ## Player within this horizontal distance -> melee. Small = must be adjacent.
@@ -165,6 +166,9 @@ var _has_melee := false
 var _has_ranged := false
 var _has_death := false
 var _has_patrol := false
+## Passive movement trail worn while walking (EmittersEnemies `<id>.patrol_trail`); its emitters are
+## toggled on/off by whether the enemy is actually moving. Empty when the enemy has no patrol_trail scene.
+var _patrol_trail_emitters: Array = []
 var _frame_sfx := {} ## anim -> {emitted_frame: sound path}, built at spawn from the enemy's sound folder
 var _attack_cd := 0.0
 var _attack_fired := false
@@ -173,6 +177,17 @@ var _point_b := 0.0
 var _patrol_target := 0.0
 var _idle_timer := 0.0
 var _stun_left := 0.0
+## The current channeled melee blast (a Strike with emit_duration > 0, e.g. tarri's 2s blast) while it
+## is emitting -- so a hit that staggers/stuns us mid-channel can CANCEL its emission (see _cancel_channel)
+## instead of letting the beam play out its full window while we stand frozen. null when not channeling.
+var _active_channel: Strike = null
+## True if this enemy's melee attack is a CHANNEL (its Strike scene has emit_duration > 0) -- detected once
+## at spawn (_melee_reach peek). When set, the attack's SOUNDS play through OWNED, stoppable players
+## (_attack_sfx) instead of the fire-and-forget pool, so _cancel_channel can cut the blast audio too.
+var _is_channel := false
+## Owned AudioStreamPlayer2Ds for the CURRENT channelled attack's sounds (start cue + fire-frame cue) --
+## children of us (so they pan with us + free with us), stopped by _stop_attack_sfx on interrupt/death.
+var _attack_sfx: Array[AudioStreamPlayer2D] = []
 ## REAP (damage-over-time, e.g. Twin Reaper): while `_dot_left` > 0 the enemy keeps losing health in
 ## discrete 1-second bites of `_dot_tick` HP (= max_health x the move's `reap` fraction, snapshot when
 ## the mark lands). `_dot_accum` is the sub-second timer; `_dot_source` credits the attacker for the
@@ -197,8 +212,7 @@ var _magnet_stun := 3.0
 var _frenemy_left := 0.0
 var _contact_cd := 0.0
 var _contact_hitbox: Hitbox
-var _scratch_timer := 0.0
-var _scratch_full_cycle := false
+var _idle_back := false ## true while the idle bounce is travelling BACKWARD (last -> 1); see _idle_bounce
 ## Player is in reach (attacking distance) -> we're in combat, so the idle
 ## between attacks holds a tense ready-stance instead of the patrol flourish.
 var _engaged := false
@@ -253,6 +267,18 @@ func _ready() -> void:
 	_has_death = _sprite.sprite_frames.has_animation(&"death")
 	_has_patrol = _sprite.sprite_frames.has_animation(&"patrol")
 	_build_frame_sfx()
+	_build_patrol_trail()
+	# A melee enemy ENGAGES as far as its attack can actually HIT: derive `melee_range` from the attack
+	# scene's authored hitbox reach (falls back to the export if unmeasurable). So it closes to real reach
+	# and shrinking the hitbox brings it CLOSER -- no separate range to keep in sync with the box.
+	if _has_melee:
+		var reach := _melee_reach()
+		if reach > 0.0:
+			melee_range = reach
+	# A FORWARD shot only reaches `ranged_travel` -- don't fire from beyond that, or it falls short. (Aimed
+	# shots home to the target and lobs land at it, so only "forward" needs clamping to its actual reach.)
+	if _has_ranged and ranged_mode == "forward":
+		ranged_range = minf(ranged_range, ranged_travel)
 
 	health = max_health
 	_bar.set_ratio(1.0)
@@ -263,7 +289,6 @@ func _ready() -> void:
 
 	_sprite.frame_changed.connect(_on_frame_changed)
 	_sprite.animation_finished.connect(_on_anim_finished)
-	_sprite.animation_looped.connect(_on_anim_looped)
 	_face(_facing)
 	_play(&"patrol" if _has_patrol else &"idle") # a patrolless enemy (sleeper) just idles
 
@@ -358,6 +383,12 @@ func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
 		return
 	_refresh_status_icons()
+	# Patrol trail emits only while actually walking (last frame's horizontal velocity) -- off when idle,
+	# attacking, stunned, or dead. Cheap toggle; the trail's particles are world-anchored so they linger.
+	if not _patrol_trail_emitters.is_empty():
+		var moving := absf(velocity.x) > 5.0
+		for em in _patrol_trail_emitters:
+			em.emitting = moving
 
 	if _frenemy_left > 0.0: # count down the charm; revert to hostile when it runs out
 		_frenemy_left -= delta
@@ -389,6 +420,7 @@ func _physics_process(delta: float) -> void:
 				velocity.x = 0.0 # STOP dead -- no momentum, or it slides past Khalid during the stun
 				_stun_left = maxf(_stun_left, _magnet_stun)
 				_set_state(State.STUN)
+				_cancel_channel() # magnetized mid-blast -> cut the emission short too
 				_status.show_for(Color(0.6, 0.4, 1.0, 0.6), _magnet_stun) # a faint pull/stun tint
 				_magnet_anchor = null
 			else:
@@ -411,43 +443,40 @@ func _physics_process(delta: float) -> void:
 		_act(delta)
 
 	if _state == State.IDLE:
-		_idle_scratch(delta)
+		_keep_idle_live()
 	_tick_contact(delta)
 	move_and_slide()
 
 
-## Resting-idle flourish: hold the sub-loop for a while, then a full cycle.
-func _idle_scratch(delta: float) -> void:
-	# In combat, play a LIVE idle loop (a ready-stance that breathes) rather than freezing on one
-	# frame -- a paused sprite reads as a bug. Reverts to the patrol flourish once the player leaves
-	# reach (_engaged clears). Just ensure idle is playing; don't restart it every frame.
-	if _engaged:
-		if _sprite.animation != &"idle" or not _sprite.is_playing():
-			_sprite.play(&"idle")
+## Keep the idle animation LIVE while resting or holding a combat stance (a paused sprite reads as a bug).
+## The actual "settle once, then breathe" motion is driven per render frame in _idle_bounce; here we only
+## make sure playback is running (and never yank it back to frame 0, so the bounce isn't reset every tick).
+func _keep_idle_live() -> void:
+	if _sprite.animation != &"idle" or not _sprite.is_playing():
+		_sprite.play(&"idle")
+
+
+## Idle "settle then breathe": the anim plays once from frame 0 (the intro pose), then this PING-PONGS the
+## frame between [lo..hi] forever -- so it never lands back on frame 0 (e.g. baghel dropping both arms) on
+## every loop. Driven on frame_changed (render), so the past-the-edge frame never flashes. lo/hi come from
+## idle_loop_from/idle_loop_to (auto: 1..last). We reverse AT each edge, so playback never wraps past it.
+func _idle_bounce() -> void:
+	if _state != State.IDLE or _sprite.animation != &"idle":
 		return
-	if idle_loop_to <= idle_loop_from or _scratch_full_cycle:
-		return # not configured, or letting a full idle play (_on_anim_looped ends it)
-	_scratch_timer -= delta
-	if _scratch_timer <= 0.0:
-		_scratch_full_cycle = true
-		_sprite.set_frame_and_progress(0, 0.0) # play one full idle from the top
-
-
-## The sub-range loop is clamped here (on the render frame it changes) rather
-## than in physics, so the past-the-range frame never flashes.
-func _clamp_scratch() -> void:
-	if _state != State.IDLE or _scratch_full_cycle or _sprite.animation != &"idle":
-		return
-	if idle_loop_to <= idle_loop_from:
-		return
-	if _sprite.frame > idle_loop_to or _sprite.frame < idle_loop_from:
-		_sprite.set_frame_and_progress(idle_loop_from, 0.0)
-
-
-func _on_anim_looped() -> void:
-	if _sprite.animation == &"idle" and _scratch_full_cycle:
-		_scratch_full_cycle = false
-		_scratch_timer = idle_loop_time
+	var last := _sprite.sprite_frames.get_frame_count(&"idle") - 1
+	var lo: int = clampi(idle_loop_from, 1, maxi(last, 1))
+	var hi: int = (idle_loop_to if idle_loop_to > lo else last)
+	hi = clampi(hi, lo, last)
+	if hi <= lo:
+		return # fewer than 2 frames past the intro -> nothing to bounce; just let it sit
+	var f := _sprite.frame
+	if not _idle_back:
+		if f >= hi:
+			_idle_back = true
+			_sprite.play_backwards(&"idle") # reached the top -> swing back down toward `lo`
+	elif f <= lo:
+		_idle_back = false
+		_sprite.play(&"idle") # reached the bottom (never frame 0) -> swing back up toward `hi`
 
 
 func _tick_contact(delta: float) -> void:
@@ -462,6 +491,14 @@ func _tick_contact(delta: float) -> void:
 func _act(delta: float) -> void:
 	_attack_cd = maxf(_attack_cd - delta, 0.0)
 	_alert_left = maxf(_alert_left - delta, 0.0)
+
+	# COMMITTED to a live channeled blast: the fire-frame freeze ends when the emission does, but the
+	# blast (hitbox + particles) lingers a moment longer -- so hold ground + facing until it fully clears
+	# instead of spinning to chase a dodging player while our own blast is still firing the other way.
+	# `_active_channel` goes invalid the instant the Strike frees, so this releases exactly when it's gone.
+	if is_instance_valid(_active_channel):
+		velocity.x = move_toward(velocity.x, 0.0, 600.0 * delta)
+		return
 
 	var player := _target() # the player normally; the nearest OTHER enemy while charmed (frenemy)
 	if player != null:
@@ -570,7 +607,8 @@ func _play_attack_start_sfx(anim: StringName) -> void:
 	# The strike TYPE keys the cue (`<id>.<type>`). Prefer the enemy's declared `attack_type`; else the
 	# coarse melee/projectile from the anim (so a plain melee / straight shot needs no attack_type set).
 	var kind := attack_type if attack_type != "" else ("melee" if anim == &"attack" else "projectile")
-	Sfx.play_at("%s.%s" % [enemy_id, kind], global_position)
+	_stop_attack_sfx() # fresh swing -> drop any owned sound left over from the previous one
+	_play_attack_sfx("%s.%s" % [enemy_id, kind])
 
 
 ## Play the per-frame HIT cue for the attack anim currently PLAYING, if this frame has one. Keyed by
@@ -579,31 +617,65 @@ func _play_frame_sfx() -> void:
 	if _frame_sfx.is_empty():
 		return
 	var cue: String = (_frame_sfx.get(_sprite.animation, {}) as Dictionary).get(_sprite.frame, "")
-	if cue != "":
+	_play_attack_sfx(cue)
+
+
+## Play one of the current attack's cues. For a CHANNEL attack (_is_channel) through an OWNED, stoppable
+## AudioStreamPlayer2D parented to us (tracked in _attack_sfx), so _cancel_channel/_die can cut the blast
+## audio mid-flight; otherwise the fire-and-forget pool (Sfx.play_at), unchanged. No-op on an empty cue.
+func _play_attack_sfx(cue: String) -> void:
+	if cue == "":
+		return
+	if not _is_channel:
 		Sfx.play_at(cue, global_position)
+		return
+	var pl := Sfx.make_oneshot_2d(cue)
+	if pl == null:
+		return
+	add_child(pl) # rides us -- pans with us, frees with us
+	_attack_sfx.append(pl)
+	pl.finished.connect(func() -> void: # self-clean when it plays out on its own
+		_attack_sfx.erase(pl)
+		pl.queue_free())
+	pl.play()
+
+
+## Stop + free every owned sound of the current channel attack NOW (a stun/magnet interrupt or death).
+## Safe to call when there are none.
+func _stop_attack_sfx() -> void:
+	for pl in _attack_sfx:
+		if is_instance_valid(pl):
+			pl.stop()
+			pl.queue_free()
+	_attack_sfx.clear()
 
 
 func _on_frame_changed() -> void:
 	_play_frame_sfx()
 	if _state == State.MELEE and _sprite.frame in _hit_frames(&"attack"):
 		_spawn_melee_strike()
-		_begin_hitstop()
+		# A CHANNELED blast holds the fire frame for exactly its emit window (then resumes to idle) --
+		# so the freeze can't outlast the emission (Tarri looking stuck after the blast ends) or cut it short.
+		var hold := _active_channel.emit_duration if is_instance_valid(_active_channel) else attack_hitstop
+		_begin_hitstop(hold)
 	elif _state == State.RANGE and not _attack_fired and _sprite.frame >= _fire_frame():
 		_attack_fired = true
 		_fire_projectile()
 		_begin_hitstop()
 	elif _state == State.IDLE:
-		_clamp_scratch()
+		_idle_bounce()
 
 
 ## Freeze the attack on this impact frame for a beat and shake the sprite, so the
 ## blow lands with weight. Once per attack; the physics loop resumes it.
-func _begin_hitstop() -> void:
-	if _impacted or attack_hitstop <= 0.0:
+func _begin_hitstop(dur := -1.0) -> void:
+	if dur < 0.0:
+		dur = attack_hitstop # default freeze; a channeled blast passes its emit_duration instead
+	if _impacted or dur <= 0.0:
 		return
 	_impacted = true
-	_hitstop_dur = attack_hitstop
-	_hitstop_left = attack_hitstop
+	_hitstop_dur = dur
+	_hitstop_left = dur
 	_sprite.pause() # hold the impact frame; resumes in _end_hitstop
 
 
@@ -655,6 +727,26 @@ func _vfx_scene(effect: String) -> PackedScene:
 	return Emitters.enemy_effect(enemy_id, effect).get("scene", null)
 
 
+## Attach this enemy's passive patrol trail (EmittersEnemies `<id>.patrol_trail`), if it has one -- a
+## particle trail worn while it walks. Its emitters are collected once and toggled by movement in
+## _physics_process; author them with `local_coords = false` so the particles linger in the world as a
+## trail. No `patrol_trail` scene = nothing attached (the list stays empty).
+func _build_patrol_trail() -> void:
+	var scene := _vfx_scene("patrol_trail")
+	if scene == null:
+		return
+	var trail := scene.instantiate()
+	add_child(trail)
+	if trail is Node2D:
+		(trail as Node2D).position = _vfx_pos("patrol_trail")
+	if trail is CPUParticles2D or trail is GPUParticles2D:
+		_patrol_trail_emitters.append(trail)
+	_patrol_trail_emitters.append_array(trail.find_children("*", "CPUParticles2D", true, false))
+	_patrol_trail_emitters.append_array(trail.find_children("*", "GPUParticles2D", true, false))
+	for em in _patrol_trail_emitters:
+		em.emitting = false
+
+
 ## Instantiate this enemy's `effect` emitter (from config), positioned at its config offset
 ## (mirrored by facing). Returns null when the config lists no scene for it -- so a deleted
 ## config row simply produces no effect. The caller parents it (to the body, or a spawned Strike).
@@ -699,27 +791,79 @@ func _in_melee_reach() -> bool:
 ## melee. Its Hitbox is built from this enemy's melee tuning; Strike sets the team layers
 ## from `hostile` and frees itself after a brief flash. Attached to the enemy so it sits
 ## in front of the body for the swing.
+## Spawn a self-contained attack SCENE (a Strike or Projectile authored WITH its own Hitbox + visual) --
+## the PLAYER pattern, now shared by every enemy attack. Instantiate it, set team from `hostile`, MIRROR
+## the whole thing by facing (so a directional strike/beam comes out the way we face), inject our tuning
+## into its hitbox, and arm it. `to_world` parents it in the level (a shot that outlives us) instead of as
+## our child (a strike that rides us). Combat NUMBERS come from `tuning`; the hitbox SHAPE + lifetime +
+## emit window are authored IN THE SCENE (resized only if `tuning` carries `extents`/`x`), exactly like the
+## player's Strike/Projectile scenes. Returns the spawned node (or null).
+func _spawn_attack(scene: PackedScene, tuning: Dictionary, to_world := false, at := Vector2.ZERO) -> Node2D:
+	if scene == null:
+		return null
+	var node := scene.instantiate() as Node2D
+	if node == null:
+		return null
+	node.set("hostile", not is_frenemy()) # a charmed frenemy's attack hits enemies, not the player
+	node.set("friendly_fire", friendly_fire)
+	node.set("source", self)
+	node.scale.x = absf(node.scale.x) * float(_facing) # mirror the WHOLE attack (visual + hitbox) by facing
+	node.position = at # anchor offset from the enemy (the emitter `pos`, already facing-mirrored); to_world overrides
+	if to_world:
+		get_parent().add_child(node) # lives in the level -> outlives us
+	else:
+		add_child(node) # rides us
+	if node.has_method("apply_tuning"):
+		node.apply_tuning(tuning, self)
+	for a in node.find_children("*", "Area2D", true, false):
+		if a is Hitbox:
+			(a as Hitbox).source = self # credit hits to US -- knockback + `hit.source is Enemy` (Wara) rely on it
+			(a as Hitbox).activate() # arm (a Strike doesn't self-arm; a Projectile re-arm is harmless)
+	# Remember a CHANNELED strike (long emit window, rides us) so being hit mid-channel can cut it short.
+	if not to_world and node is Strike and (node as Strike).emit_duration > 0.0:
+		_active_channel = node
+	return node
+
+
+## Cut short an in-progress channeled blast -- called when we're staggered/stunned mid-attack so the
+## emission (and its lingering visual) BREAKS with us instead of playing out its full window while we're
+## frozen. Honours the Strike's own `interrupt_on_hurt` opt-out (leave it running if the author disabled it).
+func _cancel_channel() -> void:
+	if is_instance_valid(_active_channel) and _active_channel.interrupt_on_hurt:
+		_active_channel.cancel() # graceful fade -- stops the hitbox + emission, frees once particles clear
+		_active_channel = null
+		_stop_attack_sfx() # ...and cut the blast AUDIO with it, so a stunned enemy goes fully silent
+
+
+## MELEE strike: spawn the attack's Strike SCENE (keyed by attack_type, else `aoe`) as a child, mirrored by
+## facing, with our melee NUMBERS injected. The Strike's Hitbox SHAPE + visual + lifetime live in that scene
+## now (authored per attack, the point of "hitbox in the scene") -- we only feed damage/knockback/stun.
 func _spawn_melee_strike() -> void:
-	var strike := Strike.new()
-	strike.hostile = not is_frenemy() # a charmed frenemy's swing hits enemies, not the player
-	strike.friendly_fire = friendly_fire # also catch other enemies, if flagged
-	strike.lifetime = melee_strike_lifetime
-	strike.source = self
-	var hb := Hitbox.new()
-	hb.damage = melee_damage
-	hb.knockback = melee_knockback
-	hb.stun = melee_stun
-	hb.source = self
-	hb.add_child(Shapes.make_box(melee_hitbox_extents * 2.0, Vector2(0, -melee_hitbox_extents.y)))
-	strike.add_child(hb)
-	# Optional melee/AoE LOOK: the `aoe` effect from the Emitters config (null if none), attached to the
-	# strike so it rides the swing and frees with it -- e.g. Matat's shockwave. Same pattern as nasen's rage.
-	var fx := _make_vfx("aoe")
-	if fx != null:
-		strike.add_child(fx)
-	add_child(strike) # _ready: team layers + free timer
-	strike.position = Vector2(melee_hitbox_x * _facing, 0)
-	hb.activate()
+	var key := attack_type if attack_type != "" else "aoe"
+	_spawn_attack(_vfx_scene(key), {
+		"damage": melee_damage, "knockback": melee_knockback, "stun": melee_stun,
+	}, false, _vfx_pos(key)) # `pos` (mirrored by facing) anchors the whole attack -- tweak it to move the blast
+
+
+## The FORWARD reach of the melee attack -- derived from its Strike scene's authored Hitbox (the far edge of
+## the box) plus the emitter `pos`, so the enemy ENGAGES exactly as far as it can actually HIT. It's what
+## `melee_range` is set to on _ready, so shrinking/growing the hitbox in the scene auto-adjusts how close the
+## enemy comes -- no separate range to keep in sync. Returns 0 if there's no measurable box (keeps the export).
+func _melee_reach() -> float:
+	var key := attack_type if attack_type != "" else "aoe"
+	var scene := _vfx_scene(key)
+	if scene == null:
+		return 0.0
+	var inst := scene.instantiate()
+	_is_channel = inst is Strike and (inst as Strike).emit_duration > 0.0 # peek once: channel -> owned, stoppable sfx
+	var far := 0.0
+	for cs in inst.find_children("*", "CollisionShape2D", true, false):
+		if cs.shape is RectangleShape2D:
+			far = maxf(far, cs.position.x + (cs.shape as RectangleShape2D).size.x * 0.5)
+	inst.free()
+	if far <= 0.0:
+		return 0.0
+	return far + Emitters.enemy_effect(enemy_id, key).get("pos", Vector2.ZERO).x
 
 
 func _fire_projectile() -> void:
@@ -727,27 +871,18 @@ func _fire_projectile() -> void:
 		_fire_lob() # a thrown bomb (LobProjectile), not a straight-line shot
 		return
 	var muzzle := global_position + _vfx_pos("projectile", DEFAULT_MUZZLE) # config-driven launch point
-	# One shared Projectile class for players AND enemies -- hostile = true puts it on the
-	# enemy-hit layer scanning player hurtboxes, homing = 0 flies straight, and the look/damage
-	# are the `projectile` scene (the Emitters config) + a Hitbox built from this enemy's tuning.
-	var proj := Projectile.new()
+	# Player pattern: the `projectile` (or attack_type) SCENE IS a self-contained Projectile -- its own
+	# Hitbox (shape authored) + visual. We spawn it, set team + flight, and inject damage/knockback/stun.
+	# Projectile._ready arms the hitbox + sets its team layers from `hostile`.
+	var scene := _vfx_scene(attack_type if attack_type != "" else "projectile")
+	if scene == null:
+		return # no projectile scene -> no shot (every ranged enemy authors one)
+	var proj := scene.instantiate()
 	proj.hostile = not is_frenemy() # a charmed frenemy's shot hits enemies, not the player
 	proj.friendly_fire = friendly_fire # also catch other enemies, if flagged
 	proj.homing = 0.0 # aim once / surge forward -- no steering
 	proj.rotate_to_heading = false # visual authored blasting +x -> mirror, don't rotate
 	proj.source = self
-	var vis := _vfx_scene("projectile") # null -> the projectile's built-in orb fallback
-	if vis != null:
-		proj.add_child(vis.instantiate())
-
-	# The shot's damage box, sized from this enemy's ranged hitbox exports. The
-	# Projectile arms it and sets its team layers from `hostile` on _ready.
-	var hb := Hitbox.new()
-	hb.damage = ranged_damage
-	hb.knockback = ranged_knockback
-	hb.stun = ranged_stun
-	hb.add_child(Shapes.make_box(ranged_hitbox_extents * 2.0, ranged_hitbox_offset))
-	proj.add_child(hb)
 
 	if ranged_mode == "forward":
 		# Surge straight ahead along the ground; capped distance via max_range.
@@ -765,9 +900,9 @@ func _fire_projectile() -> void:
 		proj.max_life = 3.0
 
 	# Live in the level, not under the enemy, so it keeps going if the enemy dies.
-	# Nodes.place_at snaps it to the muzzle without physics-interpolation smear.
 	get_parent().add_child(proj)
-	Nodes.place_at(proj, muzzle)
+	Nodes.place_at(proj, muzzle) # snap to the muzzle without physics-interpolation smear
+	proj.apply_tuning({"damage": ranged_damage, "knockback": ranged_knockback, "stun": ranged_stun}, self)
 
 
 ## Throw a lobbed bomb (ranged_mode = "lob"): a LobProjectile that arcs from the muzzle to a
@@ -877,6 +1012,7 @@ func _on_hurt(hit: Hit) -> void:
 		# so a hit can EXTEND a stun but never cut it short.
 		_stun_left = maxf(_stun_left, stagger)
 		_set_state(State.STUN) # freezes the sprite on whatever frame it was on (see _set_state)
+		_cancel_channel() # staggered mid-blast -> break the emission with us, don't let it play out frozen
 		if hit.status_color.a > 0.0:
 			_status.show_for(hit.status_color, hit.status_time)
 
@@ -885,6 +1021,8 @@ func _on_hurt(hit: Hit) -> void:
 ## animation; debug_respawn clears and re-spawns the roster.
 func _die() -> void:
 	_set_state(State.DEAD) # _physics_process bails on DEAD, so the AI stops here
+	_cancel_channel() # killed mid-blast -> drop the emission + its audio, don't let them play on the corpse
+	_stop_attack_sfx() # (also covers a lingering start cue after the channel itself already ended)
 	Sfx.play_at("enemy_death", global_position) # positional -- pans with where it fell
 	died.emit() # count the kill (RunManager banks Ruh + tracks arena clear)
 	remove_from_group("enemies") # stop being a homing target NOW -- the death anim/fade below
@@ -1057,12 +1195,8 @@ func _set_state(state: State) -> void:
 	_state = state
 	match state:
 		State.IDLE:
-			_play(&"idle")
-			_scratch_timer = idle_loop_time # fresh scratch loop each time he rests
-			_scratch_full_cycle = false
-			if _engaged: # combat: snap straight to the held ready-stance, no flicker
-				_sprite.set_frame_and_progress(0, 0.0)
-				_sprite.pause()
+			_idle_back = false # restart the bounce: the intro frame plays once, THEN it ping-pongs
+			_play(&"idle") # from the top -- _idle_bounce takes over once it's past the intro
 		State.STUN: _sprite.pause() # freeze on the current frame -- don't snap to idle
 		State.PATROL: _play(&"patrol" if _has_patrol else &"idle")
 
