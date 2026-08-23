@@ -44,4 +44,11 @@ const TABLE := {
 		"blast": {"scene": preload("res://vfx/enemy/tarri/attack/tarri_blast.tscn"), "pos": Vector2(15, -17)},
 		"patrol_trail": {"scene": preload("res://vfx/enemy/tarri/patrol/tarri_patrol_trail.tscn"), "pos": Vector2(0, -6)},
 	},
+	# --- melee (a 2-hit COMBO -- each hit is its own self-contained Strike scene, keyed by the SHEET FRAME it
+	# fires on (`melee_<frame>`, matching HIT_FRAMES + the `breski.melee.<frame>` SFX): `melee_4` = the jab
+	# (frame 4), `melee_9` = the heavier follow-up (frame 9). `pos` places the whole strike (burst + hitbox).
+	"breski": {
+		"melee_4": {"scene": preload("res://vfx/enemy/breski/attack/breski_melee_4.tscn"), "pos": Vector2(26, -18)},
+		"melee_9": {"scene": preload("res://vfx/enemy/breski/attack/breski_melee_9.tscn"), "pos": Vector2(32, -20)},
+	},
 }

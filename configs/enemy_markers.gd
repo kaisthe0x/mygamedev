@@ -14,6 +14,7 @@ const COLORS := {
 	"ein": Color(1.00, 0.56, 0.20),     # orange
 	"matat": Color(1.00, 0.42, 0.12),   # deep orange-red (his repalette body)
 	"tarri": Color(1.00, 0.87, 0.10),   # yellow-gold (his repalette body)
+	"breski": Color(0.92, 0.32, 0.16),  # blood-red (his repalette body)
 }
 const FALLBACK := Color(1.0, 0.30, 0.30)  # a neutral threat red for any unmapped enemy
 

@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://b1rsk0melee01"]
+
+[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
+
+[sub_resource type="Curve" id="shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="jab_grad"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1.4, 0.5, 0.22, 1, 0.9215686, 0.31764707, 0.16470589, 1, 0.5176471, 0.1764706, 0.09411765, 0)
+
+[sub_resource type="RectangleShape2D" id="jab_box"]
+size = Vector2(37, 26)
+
+[node name="BreskiMelee4" type="Node2D" unique_id=626078375]
+script = ExtResource("1_strike")
+lifetime = 0.24
+
+[node name="Jab" type="CPUParticles2D" parent="." unique_id=1827842528]
+amount = 90
+lifetime = 0.22
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+emission_shape = 2
+emission_sphere_radius = 1.0
+spread = 28.97
+gravity = Vector2(0, 0)
+initial_velocity_min = 220.0
+initial_velocity_max = 360.0
+scale_amount_min = 2.0
+scale_amount_max = 2.0
+scale_amount_curve = SubResource("shrink")
+color_ramp = SubResource("jab_grad")
+
+[node name="Spark" type="CPUParticles2D" parent="." unique_id=2111875683]
+amount = 40
+lifetime = 0.18
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+emission_shape = 2
+emission_sphere_radius = 6.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 120.0
+initial_velocity_max = 240.0
+scale_amount_min = 1.4
+scale_amount_max = 2.2
+scale_amount_curve = SubResource("shrink")
+color = Color(1.4, 0.5, 0.22, 1)
+color_ramp = SubResource("jab_grad")
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=1682248287]
+position = Vector2(0, -10)
+script = ExtResource("2_hitbox")
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox" unique_id=878558597]
+position = Vector2(18.5, 10)
+shape = SubResource("jab_box")

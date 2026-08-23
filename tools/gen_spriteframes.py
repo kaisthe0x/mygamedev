@@ -202,6 +202,12 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("tarri", "attack"): [
         3
     ],  # the stationary forward blast erupts on the LAST frame (he holds+vibrates there)
+    ("breski", "attack"): [
+        4,
+        9,
+    ],
+    # a 2-hit melee combo -- a jab (f4) then a heavier follow-up (f9);
+    # each spawns its own strike
 }
 
 # Per-frame duration multipliers, (char, anim) -> {sheet_frame: multiplier}. Each

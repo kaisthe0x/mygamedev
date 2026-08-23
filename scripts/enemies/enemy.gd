@@ -653,7 +653,8 @@ func _stop_attack_sfx() -> void:
 func _on_frame_changed() -> void:
 	_play_frame_sfx()
 	if _state == State.MELEE and _sprite.frame in _hit_frames(&"attack"):
-		_spawn_melee_strike()
+		# Per-hit VFX scene, keyed by the frame this hit fires on (so a combo's swings differ; see _melee_vfx_key).
+		_spawn_melee_strike(_melee_vfx_key(_sprite.frame))
 		# A CHANNELED blast holds the fire frame for exactly its emit window (then resumes to idle) --
 		# so the freeze can't outlast the emission (Tarri looking stuck after the blast ends) or cut it short.
 		var hold := _active_channel.emit_duration if is_instance_valid(_active_channel) else attack_hitstop
@@ -681,6 +682,7 @@ func _begin_hitstop(dur := -1.0) -> void:
 
 func _end_hitstop() -> void:
 	_hitstop_left = 0.0
+	_impacted = false # re-arm: a later hit frame in the SAME swing (a combo's 2nd hit) gets its own freeze
 	_sprite.position = Vector2.ZERO # undo the shake
 	if _state == State.MELEE or _state == State.RANGE or _state == State.RAGE:
 		_sprite.play() # let the swing (or nasen's rage) follow through to its finish
@@ -838,11 +840,23 @@ func _cancel_channel() -> void:
 ## MELEE strike: spawn the attack's Strike SCENE (keyed by attack_type, else `aoe`) as a child, mirrored by
 ## facing, with our melee NUMBERS injected. The Strike's Hitbox SHAPE + visual + lifetime live in that scene
 ## now (authored per attack, the point of "hitbox in the scene") -- we only feed damage/knockback/stun.
-func _spawn_melee_strike() -> void:
-	var key := attack_type if attack_type != "" else "aoe"
+func _spawn_melee_strike(vfx_key := "") -> void:
+	var key := vfx_key if vfx_key != "" else (attack_type if attack_type != "" else "aoe")
 	_spawn_attack(_vfx_scene(key), {
 		"damage": melee_damage, "knockback": melee_knockback, "stun": melee_stun,
 	}, false, _vfx_pos(key)) # `pos` (mirrored by facing) anchors the whole attack -- tweak it to move the blast
+
+
+## The EmittersEnemies key for the melee hit on `emitted_frame`. A COMBO keys each hit by the SHEET FRAME it
+## fires on -- `<type>_<frame>` (e.g. `melee_4`, `melee_9`) -- matching HIT_FRAMES + the `<id>.<type>.<frame>`
+## SFX cues, so a hit's scene/sound/frame all read the same number. `_sprite` reports EMITTED frames (the
+## idle-ref F0 is dropped), so we add the anim's `sheet_start` back to name the row. A single-hit attack has
+## no framed row -> fall back to the bare `attack_type` (Matat's `aoe`, Tarri's `blast`), so those still work.
+func _melee_vfx_key(emitted_frame: int) -> String:
+	var base := attack_type if attack_type != "" else "aoe"
+	var sheet_frame := emitted_frame + AnimMeta.sheet_start(_sprite.sprite_frames, &"attack")
+	var framed := "%s_%d" % [base, sheet_frame]
+	return framed if _vfx_scene(framed) != null else base
 
 
 ## The FORWARD reach of the melee attack -- derived from its Strike scene's authored Hitbox (the far edge of
@@ -851,6 +865,11 @@ func _spawn_melee_strike() -> void:
 ## enemy comes -- no separate range to keep in sync. Returns 0 if there's no measurable box (keeps the export).
 func _melee_reach() -> float:
 	var key := attack_type if attack_type != "" else "aoe"
+	# A frame-keyed combo (Breski) has no bare scene -- measure its FIRST hit's scene (the one he closes in
+	# to land). Single-hit enemies fall straight through to the bare key.
+	var hits := _hit_frames(&"attack")
+	if not hits.is_empty():
+		key = _melee_vfx_key(int(hits[0]))
 	var scene := _vfx_scene(key)
 	if scene == null:
 		return 0.0

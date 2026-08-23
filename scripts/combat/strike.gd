@@ -58,6 +58,13 @@ func _ready() -> void:
 		_hitbox.collision_layer = Combat.hit_layer(hostile)
 		_hitbox.collision_mask = Combat.hurt_mask(hostile, friendly_fire)
 
+	# Fire every emitter on spawn REGARDLESS of its serialized `emitting` flag. The Godot editor flips a
+	# one_shot emitter's `emitting` to false when you open the scene (its preview burst already played) --
+	# which would otherwise leave a freshly-spawned strike with no visible effect. restart() re-arms and
+	# emits either kind (a single pop for one_shot, the continuous stream otherwise). _fade_out stops them.
+	for em in _emitters():
+		em.restart()
+
 	var vis := _visuals()
 	if not vis.is_empty():
 		var tw := create_tween().set_parallel(true)

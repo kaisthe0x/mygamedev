@@ -334,6 +334,8 @@ with wind-up / in-between frames between the hits:
 | baghel (enemy) | `attack_projectile` | `[6]` |
 | nasen (enemy) | `attack` | `[2]` — the rage AoE erupts here |
 | mazab (enemy) | `attack_projectile` | `[5]` — the lobbed bomb leaves his hand here |
+| tarri (enemy) | `attack` | `[3]` — the stationary blast erupts on the last frame |
+| breski (enemy) | `attack` | `[4, 9]` — a 2-hit melee combo: jab, then a heavier follow-up |
 
 Specials list a strike frame the same way (keyed by the special's animation);
 without one the special lands on its middle frame.
@@ -1092,6 +1094,11 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   `_ready` `melee_range` is derived from the attack scene's hitbox far-edge (+ `pos.x`) via `_melee_reach()`,
   and a `"forward"` shot's `ranged_range` is clamped to `ranged_travel`. So an enemy closes exactly as far
   as it can hit, and shrinking a hitbox brings it *closer* — no separate range to keep in sync with the box.
+  **Authoring the particles:** the `Strike` leaves emission to the scene, so a `CPUParticles2D` at its default
+  `one_shot = false` **loops for the strike's whole life** (reads as "it keeps emitting"). For a single hit
+  flash set **`one_shot = true`** (+ high `explosiveness` for a crisp pop). And since `pos` moves the whole
+  strike, the clean workflow is: **author each emitter dead-centre `(0,0)` and position it with `pos`** — no
+  hand-nudging nodes in the editor. (`pos` carries the hitbox too, so the burst and the box stay together.)
 - **Melee jab vs. AoE.** The `attack` hit frame(s) fire the strike scene (`EmittersEnemies` `<id> -> aoe`
   / `attack_type`); its **Hitbox is authored in that scene** — a jab is a small box in front, an **AoE swing**
   a wide box centred on the body with a long lifetime (it still hits once — `Hitbox` dedups). **Matat** is the worked example: a
@@ -1129,6 +1136,19 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   holds his ground **and facing** (early-returns before the face/pursue logic), so a player who dashes
   behind him can't yank him around to chase while his blast is still firing the other way. `_active_channel`
   goes invalid the instant the Strike frees, releasing him exactly when the blast is gone.
+- **Multi-hit melee combo (per-hit VFX + SFX).** A melee `attack` with **several `HIT_FRAMES`** fires one
+  strike **per hit frame** — each an independent self-contained Strike scene, so a combo's swings can look
+  and sound different. **Breski** is the worked example: a blood-red bruiser whose `attack` hits on frames
+  **4 (a jab)** and **9 (a heavier follow-up)** (kit `EnemyKits.BRESKI`; `attack_type = "melee"`). The
+  per-hit scene is keyed by the **frame it fires on** — `_melee_vfx_key(_sprite.frame)` names the
+  `EmittersEnemies` row `<type>_<sheet-frame>`: **`melee_4`** (the jab) and **`melee_9`** (the heavy),
+  matching `HIT_FRAMES` and the SFX cue numbers so a hit's scene, sound, and frame all read the same number.
+  (`_sprite` reports emitted frames, so `AnimMeta.sheet_start` is added back to name the row; a single-hit
+  attack has no framed row and falls back to the bare `attack_type`, so Matat's `aoe` / Tarri's `blast`
+  still work.) SFX follow the standard per-frame path (`SfxEnemies.FRAMES` → `breski.melee.4` /
+  `breski.melee.9`) plus the shared start cue (`breski.melee`). Each hit also gets **its own hit-stop** —
+  `_end_hitstop` re-arms `_impacted`, so the 2nd swing freezes/shakes too instead of only the 1st. VFX:
+  `vfx/enemy/breski/attack/breski_melee_4.tscn` (jab) + `breski_melee_9.tscn` (heavy).
 - **Passive patrol trail.** An enemy with a `patrol_trail` row in `EmittersEnemies` wears a particle trail
   while it walks: `Enemy._build_patrol_trail` attaches the scene once and `_physics_process` toggles its
   emitters by whether it's actually moving (author the emitters `local_coords = false` so the particles
@@ -1695,7 +1715,8 @@ group through the camera — `get_viewport().get_canvas_transform() * enemy.glob
 any that land **outside the view** it draws a **chevron clamped to an inset screen edge**, rotated to
 point at the enemy. On-screen enemies get nothing (you can already see them). Each arrow is:
 - **tinted per enemy** so you can tell which is where — `EnemyMarkers.color_for(enemy_id)`
-  (`configs/enemy_markers.gd`: kebus gold, baghel purple, nasen blue, mazab crimson, ein orange; tune
+  (`configs/enemy_markers.gd`: kebus gold, baghel purple, nasen blue, mazab crimson, ein orange, matat
+  orange-red, tarri yellow-gold, breski blood-red; tune
   there), and
 - **faded + shrunk by world distance** from the camera centre (`FADE_START`/`FADE_END`), so a nearby
   off-screen enemy reads bold and a distant one is small/faint.

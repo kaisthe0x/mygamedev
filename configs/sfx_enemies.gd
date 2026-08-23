@@ -28,6 +28,7 @@ const CUES := {
 	"nasen.aoe": "res://sfx/enemy/nasen/attack/aoe.wav",
 	"matat.aoe": "res://sfx/enemy/matat/attack/aoe.wav",  # PLACEHOLDER -- AoE wind-up/roar
 	"tarri.blast": "res://sfx/enemy/tarri/attack/blast.wav",  # PLACEHOLDER -- blast channel wind-up (attack start)
+	"breski.melee": "res://sfx/enemy/breski/attack/melee.wav",  # PLACEHOLDER -- combo wind-up (attack start)
 	"ein.delayed_aoe": "res://sfx/enemy/ein/attack/delayed_aoe.wav",  # ein's arrival blast (ein.gd)
 	# --- delayed_projectile bursts (<id>.delayed_projectile_burst) ---
 	"mazab.delayed_projectile_burst": "res://sfx/enemy/mazab/attack/delayed_projectile_burst.wav",
@@ -37,6 +38,8 @@ const CUES := {
 	"nasen.aoe.2": "res://sfx/enemy/nasen/attack/aoe_2.wav",
 	"matat.aoe.4": "res://sfx/enemy/matat/attack/aoe_4.wav",  # PLACEHOLDER -- the AoE erupt/impact
 	"tarri.blast.3": "res://sfx/enemy/tarri/attack/blast_3.wav",  # PLACEHOLDER -- the blast FIRES (last frame)
+	"breski.melee.4": "res://sfx/enemy/breski/attack/melee_4.wav",  # PLACEHOLDER -- combo hit 1 (the jab connects)
+	"breski.melee.9": "res://sfx/enemy/breski/attack/melee_9.wav",  # PLACEHOLDER -- combo hit 2 (heavy follow-up)
 }
 
 const FRAMES := {
@@ -45,5 +48,6 @@ const FRAMES := {
 	"nasen": {"attack": {2: "nasen.aoe.2"}},  # the rage AoE erupts on this frame
 	"matat": {"attack": {4: "matat.aoe.4"}},  # the AoE erupts on this frame (sheet-relative)
 	"tarri": {"attack": {3: "tarri.blast.3"}},  # the blast erupts on the last frame (sheet-relative)
+	"breski": {"attack": {4: "breski.melee.4", 9: "breski.melee.9"}},  # 2-hit combo -- one cue per hit (sheet-relative)
 	# (ein's arrival blast is a CODE event, not a sprite frame -- played from ein.gd via "ein.delayed_aoe".)
 }

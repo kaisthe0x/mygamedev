@@ -66,3 +66,18 @@ const TARRI := {
 	"melee_damage": 16.0, "melee_knockback": 120.0, "melee_stun": 0.3,
 	"attack_hitstop": 2.0, "attack_shake": 1.5, # hold + vibrate on the attack frame for the ~2s blast
 }
+# Breski: a blood-red BRUISER with a 2-hit melee COMBO. Being pure-melee (anim `attack`, no projectile) he
+# WALKS into range (melee_range is DERIVED from his 1st-hit scene's hitbox reach) and swings twice -- a jab
+# on frame 4, a heavier follow-up on frame 9 (HIT_FRAMES). Each hit spawns its OWN self-contained Strike
+# scene (own hitbox + VFX), keyed by FRAME: `breski -> melee_4` (jab) / `melee_9` (heavy) in EmittersEnemies, and
+# gets its own light hit-stop (attack_hitstop re-arms per hit). `attack_type "melee"` keys the start SFX
+# (`breski.melee`) + the per-hit SFX (`breski.melee.4` / `.9`, from SfxEnemies.FRAMES). No hitbox exports --
+# the scenes author their own reach (the current standard).
+const BRESKI := {
+	"id": "breski", "display_name": "Breski", "tier": Tier.STRONG, "attack_type": "melee",
+	"max_health": 110.0, "body_size": Vector2(18, 28), "hurtbox_size": Vector2(22, 34),
+	"move_speed": 46.0, "patrol_distance": 90.0,
+	"melee_range": 56.0, "attack_align_y": 44.0, "attack_cooldown": 1.8, # melee_range is a fallback (derived on _ready)
+	"melee_damage": 10.0, "melee_knockback": 130.0, "melee_stun": 0.2, # per hit; both combo hits share this tuning
+	"attack_hitstop": 0.12, "attack_shake": 1.0, # a light freeze + shake on EACH of the two hits
+}
