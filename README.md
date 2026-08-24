@@ -39,7 +39,7 @@ scenes/               player, level, hud
 scripts/              player, hud
 scripts/run/          the roguelite run: levels, batches, Ruh, reward doors, attack picker (see scripts/run/README.md)
 scripts/abilities/    Passive/Buff base (C#) + reward passives (Leech/ParryMend/ReaperEdge.cs) + reward-tier/trigger types (RewardTypes.cs)
-scripts/combat/       Hurtbox, hitbox, Combatant base (C#), health bar, floating text (damage numbers, callouts) (constants -> configs/Combat.cs)
+scripts/combat/       Hurtbox, hitbox, Combatant base, health bar, floating text, status overlay — all C# now (constants -> configs/Combat.cs)
 scripts/enemies/      Enemy base + projectile
 sprites/characters/   Source pixel-art sheets, one folder per character
 sprites/enemies/      Source enemy sheets, one folder per enemy
@@ -102,7 +102,7 @@ platform. Fully automatic — no aiming, no pumping. (This replaced an earlier c
   (the swing animation was discarded); `State.LAUNCH` plays the `dash` anim through the magnet.
 
 **Which character you play is chosen in code.** In-game Q/E switching is **gone** — set the
-**`START_CHARACTER`** constant near the top of `scripts/run/run_manager.gd` to any id in
+**`START_CHARACTER`** constant near the top of `scripts/run/RunManager.cs` to any id in
 `CharacterConfig.IDS` (`khalid` — the others are parked in `playground/`). The dev keys (Z/X
 debug damage/heal, `0` rebuild-level) live in that same file.
 
@@ -123,7 +123,7 @@ independent — they **upgrade by layering buffs**, not by turning into a differ
 & Redere Frisbee are now standalone swaps, not successors). Rewards are **build-aware** — a reward can
 `require` something equipped (a per-move buff like *Reaper's Edge* only shows once Twin Reaper is),
 weight its odds by `synergy`, or grant a **behavioural passive / buff** (Leech) — see the
-*Passives, abilities & buffs* section + [`configs/rewards_catalog.gd`](configs/rewards_catalog.gd). Take 0
+*Passives, abilities & buffs* section + [`configs/RewardsCatalog.cs`](configs/RewardsCatalog.cs). Take 0
 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pools, the attack
 picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s root;
 `Levels` / `EnemyKits` / `Rewards` / `RewardsCatalog` / `Build` / `Icons` are the data + logic). The `.tscn` stays minimal because the editor
@@ -838,7 +838,7 @@ All VFX — the frame-indexed particle system and the drawn `Strike` slashes —
 live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 
 - **Particles:** data-driven emitters layered on the sprites. A `ParticleDirector`
-  (`vfx/script/particle_director.gd`, a child of the player) watches the sprite and
+  (`vfx/script/ParticleDirector.cs`, a child of the player) watches the sprite and
   emits authored types at authored frames. It resolves a type by recursively
   indexing `vfx/character/<char>/` + `vfx/shared/`, so a scene resolves wherever it's
   filed. Adding one = a scene under `vfx/character/<id>/…` + a line in
@@ -1022,8 +1022,8 @@ purple, `> HUE_TOL`) are left untouched.
 ## Audio (SFX + Music)
 
 Sound effects split **config from code**, mirroring `Emitters`. The **catalog** of what sounds exist
-is pure data in per-area files — **`SfxCharacters`**, **`SfxEnemies`**, **`SfxWorld`** (`configs/sfx_*.gd`)
-— and the autoload **`Sfx`** (`scripts/audio/sfx.gd`) is just the runtime that plays them. Files live in
+is pure data in per-area files — **`SfxCharacters`**, **`SfxEnemies`**, **`SfxWorld`** (`configs/Sfx*.cs`)
+— and the autoload **`Sfx`** (`scripts/audio/Sfx.cs`) is just the runtime that plays them. Files live in
 **`sfx/`**.
 
 Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/music.gd`), files in
@@ -1112,6 +1112,10 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   hitbox SHAPE + lifetime + emit window live in the scene now — so the old `melee_hitbox_extents`/`_x` /
   `melee_strike_lifetime` / `ranged_hitbox_extents` exports are **superseded by the authored scene** (the
   scene wins). This replaced the earlier code-built-hitbox approach so enemies and the player are consistent.
+  **Fallback:** an enemy with an `attack` (melee) anim but **no melee scene** — a ranged enemy like Kebus
+  doing a point-blank jab — instead builds a bare **code hitbox** from `melee_hitbox_x` + `melee_hitbox_extents`
+  (half-size) + `melee_strike_lifetime` (`Enemy.SpawnCodeMeleeStrike`), so the swing still connects. (Without
+  it those enemies' melee dealt no damage — a long-standing gap, fixed 2026-08.)
   Two knobs ride on this: the `EmittersEnemies` **`pos`** anchors the whole attack (mirrored by facing —
   move it to reposition a strike's beam/box together), and the enemy **engages at its REAL reach** — on
   `_ready` `melee_range` is derived from the attack scene's hitbox far-edge (+ `pos.x`) via `_melee_reach()`,
@@ -1595,7 +1599,7 @@ through projectiles and attacks unharmed.
 
 ### Spawning & the run
 
-`scripts/run/run_manager.gd` (`RunManager`, the level-scene root) builds each level in code
+`scripts/run/RunManager.cs` (`RunManager`, the level-scene root) builds each level in code
 from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds it open. See
 [`scripts/run/README.md`](scripts/run/README.md) for the full loop; the build basics:
 

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cwarasurge01"]
 
-[ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/orbit_aura.gd" id="1_orbit"]
+[ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/OrbitAura.cs" id="1_orbit"]
 [ext_resource type="Texture2D" uid="uid://csl8040d4baq2" path="res://vfx/shared/impervious/shield.png" id="2_vklmt"]
 
 [node name="SurgeWara" type="Node2D" unique_id=1900001005]

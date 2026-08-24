@@ -93,7 +93,7 @@ public partial class SleeperEnemy : Enemy
         if (State == EState.Dead)
             return;
         Health = Mathf.Max(Health - hit.amount, 0.0f);
-        Bar.Call("set_ratio", Health / max_health);
+        Bar.SetRatio(Health / max_health);
         Flash(Sprite);
         if (Health <= 0.0f)
         {

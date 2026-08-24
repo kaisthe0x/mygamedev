@@ -246,7 +246,7 @@ public partial class Projectile : Node2D
         Vector2 at = HitPoint(victim);
         SpawnImpact(at);
         if (impact_sfx != "")
-            GetNodeOrNull("/root/Sfx")?.Call("play_at", impact_sfx, at);
+            GetNodeOrNull<Sfx>("/root/Sfx")?.play_at(impact_sfx, at);
 
         Node struckEnemy = victim.GetParent();
         if (struckEnemy != null && !_hitTargets.Contains(struckEnemy))

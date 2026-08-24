@@ -1,0 +1,97 @@
+using Godot;
+using GDict = Godot.Collections.Dictionary;
+using GArr = Godot.Collections.Array;
+
+namespace MyGame;
+
+/// <summary>
+/// The pick-a-reward popup shown after passing an exit gate. RunManager creates one, calls <see cref="Open"/>,
+/// and awaits <c>chosen(id)</c>; the player clicks a card, we un-pause and report it. Built in code, pauses the
+/// game while up. C# port of <c>scripts/run/reward_ui.gd</c>.
+/// </summary>
+[GlobalClass]
+public partial class RewardUI : CanvasLayer
+{
+    [Signal] public delegate void chosenEventHandler(string id);
+
+    public RewardUI()
+    {
+        Layer = 50;
+        ProcessMode = ProcessModeEnum.Always; // keep working while the tree is paused
+    }
+
+    private static Color TierColor(string tier) =>
+        GD.Load<GDScript>("res://configs/loadout.gd").Call("tier_color", tier).As<Color>();
+    private static string TierLabel(string tier) =>
+        GD.Load<GDScript>("res://configs/loadout.gd").Call("tier_label", tier).AsString();
+
+    /// <summary>Show a card per reward ({id, name, desc}) and pause until one is picked. `doorType` titles the popup.</summary>
+    public void Open(GArr rewards, string doorType = "")
+    {
+        GetTree().Paused = true;
+
+        var dim = new ColorRect { Color = new Color(0, 0, 0, 0.62f), MouseFilter = Control.MouseFilterEnum.Stop };
+        dim.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(dim);
+
+        var center = new CenterContainer();
+        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(center);
+
+        var col = new VBoxContainer();
+        col.AddThemeConstantOverride("separation", 16);
+        center.AddChild(col);
+
+        var title = new Label
+        {
+            Text = doorType != "" ? $"{doorType.ToUpper()} REWARD" : "CHOOSE A REWARD",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        title.AddThemeFontSizeOverride("font_size", 22);
+        col.AddChild(title);
+
+        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        row.AddThemeConstantOverride("separation", 18);
+        col.AddChild(row);
+
+        const float cardW = 190.0f;
+        Button first = null;
+        foreach (Variant rv in rewards)
+        {
+            var r = rv.As<GDict>();
+            var card = new Button { CustomMinimumSize = new Vector2(cardW, 150), ClipContents = true };
+            // A swap card carries its Action's own icon PATH; a buff falls back to the buff-id registry icon.
+            Texture2D tex = r.ContainsKey("icon") ? Icons.LoadPath(r["icon"].AsString()) : Icons.Texture($"buff:{r["id"].AsString()}");
+            card.AddChild(AttackSelect.CardBody(tex, $"{r["name"].AsString()}\n\n{r["desc"].AsString()}", cardW));
+            string id = r["id"].AsString();
+            card.Pressed += () => Pick(id);
+            row.AddChild(card);
+            // Loadout-swap cards carry a tier -- badge it + tint the border.
+            if (r.ContainsKey("tier"))
+            {
+                string tier = r["tier"].AsString();
+                Color tcol = TierColor(tier);
+                var badge = new Label { Text = TierLabel(tier).ToUpper(), Position = new Vector2(8, 6) };
+                badge.AddThemeFontSizeOverride("font_size", 12);
+                badge.AddThemeColorOverride("font_color", tcol);
+                badge.AddThemeColorOverride("font_outline_color", Colors.Black);
+                badge.AddThemeConstantOverride("outline_size", 3);
+                card.AddChild(badge);
+                var sb = new StyleBoxFlat { BgColor = new Color(0.12f, 0.12f, 0.15f, 0.96f), BorderColor = tcol };
+                sb.SetBorderWidthAll(2);
+                sb.SetCornerRadiusAll(4);
+                card.AddThemeStyleboxOverride("normal", sb);
+                card.AddThemeStyleboxOverride("hover", sb);
+            }
+            first ??= card;
+        }
+        first?.GrabFocus();
+    }
+
+    private void Pick(string id)
+    {
+        GetTree().Paused = false;
+        EmitSignal(SignalName.chosen, id);
+        QueueFree();
+    }
+}

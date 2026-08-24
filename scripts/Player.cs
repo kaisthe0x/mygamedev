@@ -31,13 +31,9 @@ public partial class Player : Combatant
     private static readonly string[] MovementCats = { "run", "jump", "dash", "slam" };
 
     // --- bridged GDScript statics/singletons (cached in _Ready) ---
-    private GodotObject _sfx = null!;
-    private GDScript _actionsScript = null!;
-    private GDScript _loadoutScript = null!;
-    private GDScript _animMetaScript = null!;
+    private Sfx _sfx = null!;
     private GDScript _paletteScript = null!;
     private GDScript _vfxPaletteScript = null!;
-    private GDScript _floatingTextScript = null!;
 
     // =====================================================================================================
     // Character
@@ -237,7 +233,7 @@ public partial class Player : Combatant
 
     private float _specialCd = 0.0f;
     private float _attackCd = 0.0f;
-    private GodotObject _cooldownBar = null; // FloatingHealthBar (bridged)
+    private FloatingHealthBar _cooldownBar = null;
     private AudioStreamPlayer _runSfx = null;
     private AudioStreamPlayer _slamDownSfx = null;
     private const float RuhFlashRefractory = 0.2f;
@@ -250,9 +246,9 @@ public partial class Player : Combatant
     private static readonly Color HairAbsorbA = new(2.3f, 1.0f, 0.35f);
     private static readonly Color HairAbsorbB = new(1.9f, 0.6f, 0.25f);
 
-    private GodotObject _particles = null; // ParticleDirector (bridged)
+    private ParticleDirector _particles = null;
     private Hurtbox _hurtbox = null;
-    private GodotObject _status = null;    // StatusOverlay (bridged)
+    private StatusOverlay _status = null;
     private AnimatedSprite2D _sprite = null;
 
     // =====================================================================================================
@@ -261,25 +257,21 @@ public partial class Player : Combatant
     public override void _Ready()
     {
         _sprite = GetNode<AnimatedSprite2D>("AnimatedSprite2D");
-        _actionsScript = GD.Load<GDScript>("res://configs/actions.gd");
-        _loadoutScript = GD.Load<GDScript>("res://configs/loadout.gd");
-        _animMetaScript = GD.Load<GDScript>("res://helpers/anim_meta.gd");
         _paletteScript = GD.Load<GDScript>("res://configs/palette_config.gd");
         _vfxPaletteScript = GD.Load<GDScript>("res://configs/vfx_palette.gd");
-        _floatingTextScript = GD.Load<GDScript>("res://scripts/combat/floating_text.gd");
 
         health = max_health;
         ApplyCharacter();
         if (Engine.IsEditorHint())
             return;
-        _sfx = GetNode("/root/Sfx");
+        _sfx = GetNode<Sfx>("/root/Sfx");
         _sprite.AnimationFinished += OnAnimationFinished;
         _sprite.AnimationLooped += OnAnimationLooped;
 
-        _particles = GD.Load<GDScript>("res://vfx/script/particle_director.gd").New().AsGodotObject();
-        AddChild((Node)_particles);
-        _particles.Call("setup", _sprite);
-        _particles.Call("set_character", character);
+        _particles = new ParticleDirector();
+        AddChild(_particles);
+        _particles.setup(_sprite);
+        _particles.set_character(character);
 
         BuildCombat();
         _sprite.FrameChanged += OnFrameChanged;
@@ -347,7 +339,7 @@ public partial class Player : Combatant
         sprite.SpeedScale = 1.0f;
         sprite.Play(AnimationFor(_state));
         SeedPassives();
-        _particles?.Call("set_character", character);
+        _particles?.set_character(character);
         EmitSignal(SignalName.character_changed, character);
     }
 
@@ -367,8 +359,7 @@ public partial class Player : Combatant
 
     private GodotObject GetAction(string kind, string id)
     {
-        Variant v = _actionsScript.Call("get_action", character, kind, id);
-        return v.VariantType == Variant.Type.Object ? v.AsGodotObject() : null;
+        return Actions.GetAction(character, kind, id);
     }
 
     private void ApplyMovement(string category, string optionId)
@@ -428,10 +419,10 @@ public partial class Player : Combatant
     {
         if (_loadout.ContainsKey(category))
             return _loadout[category].AsString();
-        return _loadoutScript.Call("default_id", character, category).AsString();
+        return Loadout.DefaultId(character, category);
     }
 
-    public GArr loadout_choices() => _loadoutScript.Call("swap_choices", character, _loadout).As<GArr>();
+    public GArr loadout_choices() => Loadout.SwapChoices(character, _loadout);
 
     private void SeedPassives()
     {
@@ -526,7 +517,7 @@ public partial class Player : Combatant
         return total;
     }
 
-    private void FireEffect(string anim, float tilt = 0.0f) => _particles?.Call("fire_effect", anim, tilt);
+    private void FireEffect(string anim, float tilt = 0.0f) => _particles?.fire_effect(anim, tilt);
     public void fire_effect(string anim, float tilt = 0.0f) => FireEffect(anim, tilt);
 
     private void DoBlink()
@@ -558,10 +549,10 @@ public partial class Player : Combatant
         if (dealt > 0.0f)
         {
             Color hair = _paletteScript.Call("hair_color").As<Color>();
-            _floatingTextScript.Call("emit", "player_damage", this, HurtNumberOffset,
+            FloatingText.Emit("player_damage", this, HurtNumberOffset,
                 Mathf.RoundToInt(dealt).ToString(), dealt, new GDict { { "color", hair } });
         }
-        _sfx.Call("play_random", new GArr { "hurt.1", "hurt.2", "hurt.3" }, 0.0f, (float)GD.RandRange(0.95, 1.06));
+        _sfx.play_random(new GArr { "hurt.1", "hurt.2", "hurt.3" }, 0.0f, (float)GD.RandRange(0.95, 1.06));
         if (health <= 0.0f && !_dead)
             Die();
     }
@@ -573,9 +564,9 @@ public partial class Player : Combatant
         float oldR = oldHp / max_health;
         float newR = newHp / max_health;
         if (oldR > HealthWarnLow && newR <= HealthWarnLow)
-            _sfx.Call("play", "health_low");
+            _sfx.play("health_low");
         else if (oldR > HealthWarnHalf && newR <= HealthWarnHalf)
-            _sfx.Call("play", "health_half");
+            _sfx.play("health_half");
     }
 
     private void Shake(float amp, float time)
@@ -602,7 +593,7 @@ public partial class Player : Combatant
             return;
         _ruhFlashCd = RuhFlashRefractory;
         HairSurge(completedCharge ? 1.0f : 0.6f, completedCharge ? 0.6f : 0.35f);
-        _sfx.Call("play", "ruh_absorb", 0.0f, completedCharge ? 1.12f : 1.0f);
+        _sfx.play("ruh_absorb", 0.0f, completedCharge ? 1.12f : 1.0f);
     }
 
     private void HairSurge(float strength, float dur)
@@ -647,22 +638,24 @@ public partial class Player : Combatant
         AddChild(_hurtbox);
         _hurtbox.hurt += OnHurt;
 
-        _status = GD.Load<GDScript>("res://scripts/combat/status_overlay.gd").New().AsGodotObject();
-        AddChild((Node)_status);
-        _status.Call("setup", _sprite);
+        _status = new StatusOverlay();
+        AddChild(_status);
+        _status.Setup(_sprite);
 
-        _cooldownBar = GD.Load<GDScript>("res://scripts/combat/health_bar.gd").New().AsGodotObject();
-        _cooldownBar.Set("fill_color", new Color(1.0f, 0.08f, 0.08f));
-        _cooldownBar.Set("position", new Vector2(0, -52));
-        _cooldownBar.Set("visible", false);
-        AddChild((Node)_cooldownBar);
+        _cooldownBar = new FloatingHealthBar
+        {
+            FillColor = new Color(1.0f, 0.08f, 0.08f),
+            Position = new Vector2(0, -52),
+            Visible = false,
+        };
+        AddChild(_cooldownBar);
 
         if (!Engine.IsEditorHint())
         {
-            _runSfx = _sfx.Call("make_loop", "run").As<AudioStreamPlayer>();
+            _runSfx = _sfx.make_loop("run");
             if (_runSfx != null)
                 AddChild(_runSfx);
-            _slamDownSfx = _sfx.Call("make_oneshot", "slam_down").As<AudioStreamPlayer>();
+            _slamDownSfx = _sfx.make_oneshot("slam_down");
             if (_slamDownSfx != null)
                 AddChild(_slamDownSfx);
         }
@@ -709,13 +702,13 @@ public partial class Player : Combatant
                         var back = new Hit { Amount = hit.Amount * shield_reflect_mult, Knockback = 120.0f, Source = this };
                         reflEnemy.apply_hit(back);
                     }
-                    _sfx.Call("play", "redere_shield_parry");
+                    _sfx.play("redere_shield_parry");
                     foreach (var p in _passives)
                         p.OnParry(this, hit);
                 }
                 else
                 {
-                    _sfx.Call("play", "redere_shield_block");
+                    _sfx.play("redere_shield_block");
                 }
                 Flash(_sprite);
                 Shake(shield_shake_amp, shield_shake_time);
@@ -768,7 +761,7 @@ public partial class Player : Combatant
             _bufferedSpecial = false;
         }
         if (hit.StatusColor.A > 0.0f)
-            _status.Call("show_for", hit.StatusColor, hit.StatusTime);
+            _status.ShowFor(hit.StatusColor, hit.StatusTime);
         if (hit.VictimVfx != null)
             SpawnVictimVfx(hit.VictimVfx, hit.VictimVfxTime);
     }
@@ -843,7 +836,7 @@ public partial class Player : Combatant
         ruh -= s.Get("cost").As<float>();
         BeginSurge(s);
         Flash(_sprite);
-        _sfx.Call("play", Anim(_currentSurge).ToString());
+        _sfx.play(Anim(_currentSurge).ToString());
         if (_state != State.SPAWN && HasAnim(Anim(_currentSurge)))
             Enter(State.SURGE);
     }
@@ -920,7 +913,7 @@ public partial class Player : Combatant
                 GetTree().CreateTimer(1.5).Timeout += b.QueueFree;
             }
         }
-        _sfx.Call("play", "surge_wara_trigger");
+        _sfx.play("surge_wara_trigger");
         Flash(_sprite);
         EndSurge();
     }
@@ -950,7 +943,7 @@ public partial class Player : Combatant
 
     private int SpecialStrikeFrame()
     {
-        var hits = _animMetaScript.Call("hit_frames", _sprite.SpriteFrames, Anim(_currentSpecial)).As<GArr>();
+        var hits = AnimMeta.HitFrames(_sprite.SpriteFrames, Anim(_currentSpecial));
         if (hits.Count > 0)
             return hits[0].As<int>();
         return _sprite.SpriteFrames.GetFrameCount(Anim(_currentSpecial)) / 2;
@@ -973,7 +966,7 @@ public partial class Player : Combatant
             return;
         _dead = true;
         _deathFinished = false;
-        _sfx.Call("play", "player_death");
+        _sfx.play("player_death");
         _stunLeft = 0.0f;
         _comboPlaying = false;
         _flurry = false;
@@ -1275,7 +1268,7 @@ public partial class Player : Combatant
             {
                 SetVelY(_jumpVelocity);
                 _jumpLaunch = true;
-                _sfx.Call("play", "jump");
+                _sfx.play("jump");
                 foreach (var p in _passives)
                     p.OnGroundJump(this);
             }
@@ -1412,7 +1405,7 @@ public partial class Player : Combatant
     {
         SetVelY(_jumpVelocity);
         _airJumpsUsed += 1;
-        _sfx.Call("play", "jump");
+        _sfx.play("jump");
         _apexY = GlobalPosition.Y;
         _fallPeak = 0.0f;
         _jumpLaunch = true;
@@ -1422,7 +1415,7 @@ public partial class Player : Combatant
         if (_particles != null)
         {
             float lean = Mathf.Clamp(Velocity.X / Mathf.Max(_runSpeedV, 1.0f), -1.0f, 1.0f);
-            _particles.Call("fire_effect", "double_jump", lean * DoubleJumpLean);
+            _particles.fire_effect("double_jump", lean * DoubleJumpLean);
         }
         foreach (var p in _passives)
             p.OnAirJump(this);
@@ -1697,7 +1690,7 @@ public partial class Player : Combatant
         _sprite.Visible = true;
         _sprite.SpeedScale = 1.0f;
         _slamDownSfx?.Stop();
-        _sfx.Call("play", "slam");
+        _sfx.play("slam");
         float drop = GlobalPosition.Y - _slamStartY;
         float t = Mathf.Clamp((drop - _slamMinDrop) / Mathf.Max(_slamMaxDrop - _slamMinDrop, 1.0f), 0.0f, 1.0f);
         _activeHit = new GDict { { "damage_scale", Mathf.Lerp(1.0f, _slamMaxDamageMult, t) * slam_damage_mult } };
@@ -1788,17 +1781,17 @@ public partial class Player : Combatant
         }
         if (cd <= 0.0f || left <= 0.0f)
         {
-            if (_cooldownBar.Get("visible").As<bool>())
-                _cooldownBar.Set("visible", false);
+            if (_cooldownBar.Visible)
+                _cooldownBar.Visible = false;
             return;
         }
-        _cooldownBar.Set("visible", true);
-        _cooldownBar.Call("set_ratio", 1.0f - left / cd);
+        _cooldownBar.Visible = true;
+        _cooldownBar.SetRatio(1.0f - left / cd);
     }
 
     private GArr AttackHits()
     {
-        var hits = _animMetaScript.Call("hit_frames", _sprite.SpriteFrames, Anim(_currentAttack)).As<GArr>();
+        var hits = AnimMeta.HitFrames(_sprite.SpriteFrames, Anim(_currentAttack));
         if (hits.Count > 0)
             return hits;
         var all = new GArr();
@@ -1819,7 +1812,7 @@ public partial class Player : Combatant
                 _dashAnimLeft = Mathf.Max(_dashAnimTime, _dashTime);
                 _dashCd = _dashCooldown;
                 _bufferedAttack = false;
-                _sfx.Call("play", "dash");
+                _sfx.play("dash");
                 foreach (var p in _passives)
                     p.OnDash(this);
                 if (_dashEffect != "")
@@ -1959,7 +1952,7 @@ public partial class Player : Combatant
     }
 
     private int LoopMeta(StringName key) =>
-        _animMetaScript.Call("loop_bound", _sprite.SpriteFrames, _sprite.Animation, key.ToString()).As<int>();
+        AnimMeta.LoopBound(_sprite.SpriteFrames, _sprite.Animation, key.ToString());
 
     private void OnAnimationFinished()
     {

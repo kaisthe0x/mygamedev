@@ -12,11 +12,11 @@ namespace MyGame;
 /// status overlays. C# port of <c>scripts/enemies/enemy.gd</c>; behaviour archetypes subclass it (SleeperEnemy,
 /// DiverEnemy).
 ///
-/// MIGRATION NOTES: combat deps (Hit/Hitbox/Strike/…) are typed C#. The UI helpers (health bar / status) are
-/// still GDScript, held as <c>Node2D</c> and driven by dynamic Call/Get; the config readers (Emitters/SfxEnemies/
-/// AnimMeta) and the Sfx autoload are bridged via <c>GD.Load&lt;GDScript&gt;().Call</c> / <c>GetNode("/root/Sfx")</c>;
-/// Shapes/Nodes helpers are inlined. Snake_case public surface (kit-set by RunManager, GDScript callers);
-/// idiomatic PascalCase internal surface (the C# subclasses use it). Transitional cruft, cleaned up in 4b/5/6.
+/// MIGRATION NOTES: combat deps (Hit/Hitbox/Strike/…), the UI helpers (FloatingHealthBar/StatusIcons/
+/// OverheadStatus), the config readers (Emitters/SfxEnemies/AnimMeta) and the Sfx autoload are ALL typed C# now.
+/// Shapes/Nodes helpers are inlined. Snake_case public surface (kit-set by RunManager); idiomatic PascalCase
+/// internal surface (the C# subclasses use it). Remaining dynamic Call/Get is C#→C# polymorphism (apply_tuning,
+/// is_dead/is_frenemy), not a GDScript bridge.
 /// </summary>
 [GlobalClass]
 public partial class Enemy : Combatant
@@ -122,10 +122,10 @@ public partial class Enemy : Combatant
 
     protected AnimatedSprite2D Sprite = null!;
     protected Hurtbox Hurt = null!;
-    protected Node2D Bar = null!;         // FloatingHealthBar (GDScript) — dynamic Call/Get
-    private Node2D _status = null!;       // StatusOverlay
-    private Node2D _statusIcons = null!;  // StatusIcons
-    private Node2D _overhead = null!;     // OverheadStatus
+    protected FloatingHealthBar Bar = null!;
+    private StatusOverlay _status = null!;
+    private StatusIcons _statusIcons = null!;
+    private OverheadStatus _overhead = null!;
     protected float HeadY;
     private string _shownStatus = "";
     private RayCast2D _edgeRayLeft = null!, _edgeRayRight = null!;
@@ -145,19 +145,19 @@ public partial class Enemy : Combatant
         BuildHealthBar();
         BuildEdgeRays();
 
-        _status = NewGd("res://scripts/combat/status_overlay.gd");
+        _status = new StatusOverlay();
         AddChild(_status);
-        _status.Call("setup", Sprite);
+        _status.Setup(Sprite);
 
-        _statusIcons = NewGd("res://scripts/combat/status_icons.gd");
+        _statusIcons = new StatusIcons();
         AddChild(_statusIcons);
-        float barW = Bar.Get("bar_width").AsSingle();
-        float barH = Bar.Get("bar_height").AsSingle();
+        float barW = Bar.BarWidth;
+        float barH = Bar.BarHeight;
         _statusIcons.Position = Bar.Position + new Vector2(barW / 2.0f + 3.0f, -barH / 2.0f);
 
-        _overhead = NewGd("res://scripts/combat/overhead_status.gd");
+        _overhead = new OverheadStatus();
         AddChild(_overhead);
-        _overhead.Call("setup", HeadY);
+        _overhead.Setup(HeadY);
 
         HasMelee = Sprite.SpriteFrames.HasAnimation("attack");
         HasRanged = Sprite.SpriteFrames.HasAnimation("attack_projectile");
@@ -175,7 +175,7 @@ public partial class Enemy : Combatant
             ranged_range = Mathf.Min(ranged_range, ranged_travel);
 
         Health = max_health;
-        Bar.Call("set_ratio", 1.0f);
+        Bar.SetRatio(1.0f);
 
         PointA = GlobalPosition.X;
         PointB = GlobalPosition.X + patrol_distance;
@@ -258,10 +258,9 @@ public partial class Enemy : Combatant
 
     private void BuildHealthBar()
     {
-        Bar = NewGd("res://scripts/combat/health_bar.gd");
-        Bar.Set("ratio_colors", true);
+        Bar = new FloatingHealthBar { RatioColors = true };
         AddChild(Bar);
-        Bar.Call("setup", display_name);
+        Bar.Setup(display_name);
         var frame = Sprite.SpriteFrames.GetFrameTexture("idle", 0);
         HeadY = -(frame != null ? frame.GetHeight() : 70) + 8;
         Bar.Position = new Vector2(0, HeadY);
@@ -322,7 +321,7 @@ public partial class Enemy : Combatant
                     StunLeft = Mathf.Max(StunLeft, _magnetStun);
                     SetState(EState.Stun);
                     CancelChannel();
-                    _status.Call("show_for", new Color(0.6f, 0.4f, 1.0f, 0.6f), _magnetStun);
+                    _status.ShowFor(new Color(0.6f, 0.4f, 1.0f, 0.6f), _magnetStun);
                     _magnetAnchor = null;
                 }
                 else
@@ -503,7 +502,7 @@ public partial class Enemy : Combatant
     private void BuildFrameSfx()
     {
         _frameSfx = new GDict();
-        var byAnim = SfxEnemiesScript.Call("frames_for", enemy_id).AsGodotDictionary();
+        var byAnim = SfxEnemies.FramesFor(enemy_id);
         var sf = Sprite.SpriteFrames;
         foreach (var animKey in byAnim.Keys)
         {
@@ -745,10 +744,40 @@ public partial class Enemy : Combatant
     protected void SpawnMeleeStrike(string vfxKey = "")
     {
         string key = vfxKey != "" ? vfxKey : (attack_type != "" ? attack_type : "aoe");
-        SpawnAttack(VfxScene(key), new GDict
+        var scene = VfxScene(key);
+        if (scene != null)
         {
-            { "damage", melee_damage }, { "knockback", melee_knockback }, { "stun", melee_stun },
-        }, false, VfxPos(key));
+            SpawnAttack(scene, new GDict
+            {
+                { "damage", melee_damage }, { "knockback", melee_knockback }, { "stun", melee_stun },
+            }, false, VfxPos(key));
+            return;
+        }
+        // No authored melee SCENE (e.g. Kebus's point-blank jab -- a ranged enemy with an "attack" anim but
+        // no melee VFX): build a bare CODE hitbox from melee_hitbox_x/extents so the swing still connects.
+        // These exports were dead before, so a scene-less enemy's melee dealt no damage at all.
+        SpawnCodeMeleeStrike();
+    }
+
+    /// <summary>A visual-less melee hitbox for an enemy with no authored melee scene — sized/placed from
+    /// <see cref="melee_hitbox_x"/> + <see cref="melee_hitbox_extents"/> (half-size), armed with our melee
+    /// tuning, and freed after <see cref="melee_strike_lifetime"/>. Built like the contact hitbox.</summary>
+    private void SpawnCodeMeleeStrike()
+    {
+        bool hostile = !is_frenemy();
+        var hb = new Hitbox
+        {
+            CollisionLayer = Combat.HitLayer(hostile),
+            CollisionMask = Combat.HurtMask(hostile, friendly_fire),
+            damage = melee_damage,
+            knockback = melee_knockback,
+            stun = melee_stun,
+            source = this,
+        };
+        hb.AddChild(MakeBox(melee_hitbox_extents * 2.0f, new Vector2(melee_hitbox_x * Facing, -hurtbox_size.Y / 2.0f)));
+        AddChild(hb);
+        hb.activate();
+        GetTree().CreateTimer(melee_strike_lifetime).Timeout += hb.QueueFree;
     }
 
     private string MeleeVfxKey(int emittedFrame)
@@ -869,7 +898,7 @@ public partial class Enemy : Combatant
     }
 
     protected GArray HitFramesOf(StringName anim) =>
-        AnimMetaScript.Call("hit_frames", Sprite.SpriteFrames, anim).AsGodotArray();
+        AnimMeta.HitFrames(Sprite.SpriteFrames, anim);
 
     // --- damage / death -----------------------------------------------------
 
@@ -881,7 +910,7 @@ public partial class Enemy : Combatant
         float before = Health;
         Health = Mathf.Max(Health - hit.amount, 0.0f);
         EmitSignal(SignalName.damaged, before - Health, hit.source);
-        Bar.Call("set_ratio", Health / max_health);
+        Bar.SetRatio(Health / max_health);
         HitReact(Sprite, hit.amount);
         if (alert_duration > 0.0f)
         {
@@ -912,7 +941,7 @@ public partial class Enemy : Combatant
             SetState(EState.Stun);
             CancelChannel();
             if (hit.status_color.A > 0.0f)
-                _status.Call("show_for", hit.status_color, hit.status_time);
+                _status.ShowFor(hit.status_color, hit.status_time);
         }
     }
 
@@ -927,9 +956,9 @@ public partial class Enemy : Combatant
         Hurt.SetDeferred(Area2D.PropertyName.Monitorable, false);
         SetDeferred(CollisionObject2D.PropertyName.CollisionLayer, 0);
         Bar.Visible = false;
-        _statusIcons.Call("set_active", new GArray());
-        _overhead.Call("set_active", new GArray());
-        _status.Call("clear");
+        _statusIcons.SetActive(new GArray());
+        _overhead.SetActive(new GArray());
+        _status.Clear();
         if (HasDeath)
             Play("death");
         else
@@ -973,7 +1002,7 @@ public partial class Enemy : Combatant
             return;
         last_hit_from_special = false;
         EmitSignal(SignalName.damaged, dealt, (IsInstanceValid(_dotSource) ? _dotSource : null)!);
-        Bar.Call("set_ratio", Health / max_health);
+        Bar.SetRatio(Health / max_health);
         if (Health <= 0.0f)
         {
             _dotLeft = 0.0f;
@@ -993,8 +1022,8 @@ public partial class Enemy : Combatant
         if (key == _shownStatus)
             return;
         _shownStatus = key;
-        _statusIcons.Call("set_active", ids);
-        _overhead.Call("set_active", ids);
+        _statusIcons.SetActive(ids);
+        _overhead.SetActive(ids);
     }
 
     // --- helpers ------------------------------------------------------------
@@ -1089,28 +1118,19 @@ public partial class Enemy : Combatant
 
     // --- bridges (GDScript configs / UI / autoload / util) ------------------
 
-    private static GDScript? _emittersScript, _animMetaScript, _sfxEnemiesScript;
-    private static GDScript EmittersScript => _emittersScript ??= GD.Load<GDScript>("res://vfx/config/emitters.gd");
-    private static GDScript AnimMetaScript => _animMetaScript ??= GD.Load<GDScript>("res://helpers/anim_meta.gd");
-    private static GDScript SfxEnemiesScript => _sfxEnemiesScript ??= GD.Load<GDScript>("res://configs/sfx_enemies.gd");
-
-    private GDict EnemyEffect(string effect) =>
-        EmittersScript.Call("enemy_effect", enemy_id, effect).AsGodotDictionary();
+    private GDict EnemyEffect(string effect) => Emitters.EnemyEffect(enemy_id, effect);
 
     private int SheetStart(StringName anim) =>
-        AnimMetaScript.Call("sheet_start", Sprite.SpriteFrames, anim).AsInt32();
+        AnimMeta.SheetStart(Sprite.SpriteFrames, anim);
 
     private int LoopBound(StringName anim, string key) =>
-        AnimMetaScript.Call("loop_bound", Sprite.SpriteFrames, anim, key).AsInt32();
+        AnimMeta.LoopBound(Sprite.SpriteFrames, anim, key);
 
     protected void SfxPlayAt(string cue, Vector2 pos) =>
-        GetNodeOrNull("/root/Sfx")?.Call("play_at", cue, pos);
+        GetNodeOrNull<Sfx>("/root/Sfx")?.play_at(cue, pos);
 
     private AudioStreamPlayer2D? SfxMakeOneshot2d(string cue) =>
-        GetNodeOrNull("/root/Sfx")?.Call("make_oneshot_2d", cue).As<AudioStreamPlayer2D>();
-
-    /// <summary>Instantiate a GDScript-class node from C# (the UI helpers are still GDScript during the migration).</summary>
-    protected static Node2D NewGd(string path) => (Node2D)GD.Load<GDScript>(path).New().AsGodotObject();
+        GetNodeOrNull<Sfx>("/root/Sfx")?.make_oneshot_2d(cue);
 
     protected static CollisionShape2D MakeBox(Vector2 size, Vector2 offset = default) =>
         new() { Position = offset, Shape = new RectangleShape2D { Size = size } };

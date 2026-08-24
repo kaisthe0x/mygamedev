@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cruhorbsoul1"]
 
-[ext_resource type="Script" uid="uid://bdew5q47qiwuu" path="res://vfx/script/ruh_orb.gd" id="1_orb"]
+[ext_resource type="Script" uid="uid://bdew5q47qiwuu" path="res://vfx/script/RuhOrb.cs" id="1_orb"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_dot"]
 
 [sub_resource type="Curve" id="curve_shrink"]

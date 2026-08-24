@@ -14,6 +14,17 @@ static var _record := -1
 static var current_cleared := 0
 
 
+## Set the current run's cleared count. A function (not a bare static-var write) so the C# RunManager can
+## set it -- C# can call a GDScript static func (via the loaded script) but can't write a GDScript static var.
+static func set_current_cleared(n: int) -> void:
+	current_cleared = n
+
+
+## Read the current run's cleared count -- the C# HUD's bridge to the static var (same reason as the setter).
+static func get_current_cleared() -> int:
+	return current_cleared
+
+
 ## The record: most levels cleared in a single run, ever. Read from disk once, then cached.
 static func levels_record() -> int:
 	if _record < 0:

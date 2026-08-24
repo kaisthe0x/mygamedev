@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://by7wokt6d2jug"]
 
 [ext_resource type="PackedScene" uid="uid://cgaiawi5xtuy5" path="res://scenes/player.tscn" id="1_2q6dc"]
-[ext_resource type="Script" uid="uid://pl8q0jlcf73e" path="res://scripts/run/run_manager.gd" id="2_switch"]
+[ext_resource type="Script" uid="uid://pl8q0jlcf73e" path="res://scripts/run/RunManager.cs" id="2_switch"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
 size = Vector2(3200, 40)

@@ -138,7 +138,7 @@ public partial class LobProjectile : Node2D
     {
         _phase = Phase.Spent;
         if (explosion_sfx != "")
-            GetNodeOrNull("/root/Sfx")?.Call("play_at", explosion_sfx, GlobalPosition); // the delayed POP
+            GetNodeOrNull<Sfx>("/root/Sfx")?.play_at(explosion_sfx, GlobalPosition); // the delayed POP
         Node parent = GetParent();
         if (parent == null)
         {

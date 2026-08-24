@@ -17,8 +17,8 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Sfx="*res://scripts/audio/sfx.gd"
-Music="*res://scripts/audio/music.gd"
+Sfx="*res://scripts/audio/Sfx.cs"
+Music="*res://scripts/audio/Music.cs"
 HUD="*res://scenes/hud.tscn"
 
 [display]

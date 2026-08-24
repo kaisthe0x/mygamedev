@@ -7,14 +7,17 @@ extends SceneTree
 # The base anims every character shares. Attacks/specials are named per character
 # now (see configs/moves.gd), so they aren't required here.
 const EXPECTED := ["idle", "run", "jump", "dash"]
+# Mirror of CharacterConfig.cs (C#) -- this GDScript --script tool can't read a C# static class.
+const CHARACTER_IDS := ["khalid"]
+const FRAMES_PATH := "res://resources/characters/%s.tres"
 
 
 func _init() -> void:
 	var canvases := {}
 	var failures := 0
 
-	for id in CharacterConfig.IDS:
-		var path := CharacterConfig.FRAMES_PATH % id
+	for id in CHARACTER_IDS:
+		var path := FRAMES_PATH % id
 		var frames := load(path) as SpriteFrames
 		if frames == null:
 			print("FAIL %s: could not load %s" % [id, path])

@@ -70,10 +70,22 @@ More boundary facts (all verified):
   collides with a `foo` property (`CS0082`). The GDScript `player.gd` had both a `character` property AND a
   `set_character()` method; in C# only one can exist. Drop the method and route callers through the property
   (`_player.character = id` runs the same setter) — GDScript writing a C# property triggers its setter.
+- **`GodotObject.Call("method", …)` on a C# target needs the EXACT arity** — it does NOT fill the C# method's
+  default parameters. A C# `play(string, float = 0, float = 1)` called as `_sfx.Call("play", "jump")` fails with
+  *"Nonexistent function 'play'"* (no 1-arg overload). Once a bridged autoload/helper is itself C#, stop calling
+  it by string and call it **typed** (`GetNode<Sfx>("/root/Sfx").play("jump")` — the C# compiler fills the
+  defaults). This is also the phase-7 cleanup, so do it when the target ports. (GDScript direct calls to a C#
+  method hit the same "can't fill C# defaults" wall — pass every arg explicitly there.)
 - **Exposing a C# `const` to GDScript:** GDScript can't read a C# static/const, but a GDScript consumer that
   needs the value (HUD reading `RUH_PER_BLOCK` to size the Ruh meter) can read a C# **instance property**
   mirroring it (`public float RUH_PER_BLOCK => 100f;`). Class-qualified reads (`Player.RUH_PER_BLOCK`) still
   fail and must switch to the instance (`player.RUH_PER_BLOCK`).
+- **GDScript `--script` TOOLS that referenced a now-C# config** (`tools/verify_frames.gd`, `tools/capture_shots.gd`
+  read `CharacterConfig.IDS`/`.FRAMES_PATH`): these stay GDScript (build/QA tools), so they hit the same wall —
+  GDScript can't read a C# static class, and there's no instance to bridge through in a `SceneTree`-root tool.
+  Fix = **inline a local mirror `const`** in the tool (`const CHARACTER_IDS := ["khalid"]`) with a "mirror of
+  <Class>.cs" comment. Caught late (only surfaced when the editor reloaded and re-parsed the tool scripts) — a
+  reminder to re-parse the WHOLE project after migrating any `class_name`, not just the game scenes.
 - **NODE ported from a `.gd` that scenes reference:** keep the **exact public surface names** the scenes/`.gd`
   callers use (snake_case fields/methods/signals — forced anyway because `.tscn` `[Export]` values serialize
   by name and GDScript calls by exact name). Internals stay idiomatic. **Reuse the uid**: put the old
@@ -198,9 +210,105 @@ harnesses (GDScript, per the carve-out).
     Passive hooks extended with the doc's wired movement/attack moments (`OnDash`/`OnGroundJump`/`OnAirJump`/
     `OnSlamTrigger`/`OnSlamLand`); the harder triggers (OnMiss/OnPerfectDodge/level-timer) are reserved in
     `Trigger` until the player learns to emit them. This is the scalable base future buffs drop into as data.
-- [ ] **C#→GDScript static bridge** pattern (recorded): to call a GDScript `class_name` static from C# during
-  the transition, `GD.Load<GDScript>("res://…​.gd").Call("method", args…)` (used for `VfxPalette.recolor_tree`).
-- [ ] **5 · Run system** — RunManager / Levels / EnemyKits / **Rewards** (designed typed) + UI.
-- [ ] **6 · Autoloads** — Sfx / Music / HUD + remaining UI. (Removes the `GetNode("/root/Sfx").Call(…)` bridges.)
-- [ ] **7 · Cleanup** — delete interop scaffolding + the GDScript duplication bridges (`Combat.gd`) + the
-  snake_case aliases/naming; PascalCase the combat surface now every caller is C#; all-C# end state.
+- [x] **C#→GDScript static bridge** pattern (recorded + used widely in Phase 5): call a GDScript `class_name`
+  static from C# via `GD.Load<GDScript>("res://…​.gd").Call("method", args…)`; read a GDScript `const` via
+  `.GetScriptConstantMap()["NAME"]` (Terrain cells, SfxCharacters.CUES). A GDScript **static var** can't be
+  written from C#, so add a tiny static **setter** func and bridge-call it (`SaveData.set_current_cleared`).
+- [x] **5 · Run system — DONE & verified.** The forced static-call cluster ported to C#:
+  - **5a · Reward system** — `Reward.cs` / `RewardsCatalog.cs` / `Build.cs` / `Rewards.cs` (was
+    `configs/reward.gd`+`rewards_catalog.gd`, `scripts/run/build.gd`+`rewards.gd`). `Rewards` is `[GlobalClass]`
+    with **instance** methods so the (then-still-GDScript) RunManager called it via `Rewards.new()`; its
+    `_make_passive` is now direct C# (`new Leech()`). Verified by a throwaway QA (offer_for roulette + build
+    gating + special-swap cards + apply stat/passive/per-move effects + records) → **PASS**.
+  - **5b · RunManager** — `RunManager.cs` (~620-line port; `level.tscn` root rewired, uid `pl8q0jlcf73e`
+    reused; `run_manager.gd` deleted). Talks to the C# body tree + `Rewards` directly; BRIDGES the still-GDScript
+    layer it depends on: **Levels** (get_level/count via Call), **Terrain** (funcs via Call + consts via the
+    constant map), **Music/Sfx** (`/root/*`), **SaveData** (report_run + the new `set_current_cleared`),
+    **FloatingText/VfxPalette** (static Call), and **ExitGate/RewardUI/AttackSelect/LaunchOrb** (GDScript `.New()`
+    + signal connect). Enemy `died`/`damaged` bound via per-enemy capturing lambdas on `Connect` (safe: the enemy
+    holds the connection). Verified: clean boot (builds level 0 — terrain/platforms/orbs/gate/enemy-kits/camera/
+    glow/floor/attack-picker) + a programmatic flow QA driving clear → gate-touch → reward → **level advance** →
+    **PASS**. ⚠ The death cinematic + camera feel + input-driven clear are headless-verified only by construction;
+    confirm by **playtest**.
+  - Still GDScript (bridged; move in phase 6/7): `Levels`/`EnemyKits` (data), `ExitGate`/`RewardUI`/
+    `AttackSelect` (UI nodes), Terrain + the autoloads/helpers.
+- [~] **6 · Autoloads + UI — IN PROGRESS.** Done so far: the **combat presentation helpers** cluster (the
+  cleanly-migratable leaves) — `StatusOverlay.cs`, `FloatingText.cs`, `FloatingHealthBar.cs` (were
+  `scripts/combat/status_overlay.gd` / `floating_text.gd` / `health_bar.gd`). All C#-only consumers now, so
+  Player/Enemy/RunManager hold them TYPED (removed the `NewGd`/`Call/Get`/`_floatingText.Call("emit")` bridges);
+  `FloatingText` reads its GDScript type presets via the constant map. The one blocker — `hud.gd` called the
+  `FloatingHealthBar.color_for_ratio` **static** — was resolved by inlining the colour bands in `hud.gd` (GDScript
+  can't call a C# static; keep the two copies in sync). Verified: build clean + clean boot (bars/overlays built at
+  construction) + a QA that `take_damage` spawns a `FloatingText`. Then the **run UI** cluster — `ExitGate.cs`,
+  `RewardUI.cs`, `AttackSelect.cs` (were `scripts/run/exit_gate.gd`/`reward_ui.gd`/`attack_select.gd`). C#-only
+  consumers (RunManager + `RewardUI` uses `AttackSelect.CardBody`), so RunManager holds them TYPED (removed the
+  `.New()`/`Call("open"/"setup"/"reflect")`/`Connect` bridges; signals are now `gate.touched += …` / `ui.chosen += …`).
+  They bridge Icons/Loadout/Actions (config statics) + read the GDScript Action via `.Get`. Verified: build clean +
+  clean boot + the phase-5 flow QA re-run finding the UI by C# type (`is ExitGate`/`is RewardUI`/`is AttackSelect`),
+  driving clear → touch → reward → advance → **PASS**. ⚠ The button/keyboard INPUT + visual layout need a **playtest**.
+  Then **overhead_status/status_icons** (`StatusIcons.cs`/`OverheadStatus.cs`, Enemy holds them typed; bridge
+  StatusTypes/Icons; verified by a stun-status QA). Then the **audio autoloads** — `AudioBus.cs` (static),
+  `Sfx.cs`/`Music.cs` (the two `Node` autoloads; `project.godot` repointed to the `.cs`). Snake public surface so
+  GDScript `Sfx.play(...)` still resolves; the ~26 C# `_sfx.Call("play",…)` bridges converted to **typed** calls
+  (`GetNode<Sfx>("/root/Sfx").play(…)`) because `Call` can't fill C# defaults (see interop note) — so the audio
+  bridge cleanup is DONE. Two GDScript `Sfx.play_at(k,p)` callers now pass all args. Verified: build clean + boot +
+  the run-flow QA (Music crossfade level→base_rest, Sfx across the loop) fire with no errors. ⚠ **Sound itself
+  (crossfade feel, volumes, pooling, pinned output device) needs a PLAYTEST** — headless has no audio out.
+  Then the **HUD** — `HUD.cs` (~420-line port; `hud.tscn` root repointed) + `OffscreenMarkers.cs` (its only
+  consumer). No caller churn (nothing calls HUD — it binds to the Player + reads its C# signals). Now that HUD is
+  C# it calls `FloatingHealthBar.ColorForRatio` DIRECTLY (dropped the mirrored colour-band duplication); bridges
+  SaveData (added a `get_current_cleared` getter beside the setter) / PaletteConfig / Loadout / EnemyMarkers.
+  Verified: build clean + clean boot (HUD builds, binds, seeds from signals; OffscreenMarkers draws). ⚠ The
+  visual LAYOUT (portrait/bars/markers) is a faithful port but worth a glance in a **playtest**.
+  **Remaining phase 6:** `things/launch_orb.gd` (small) + `ui/palette_preview.gd` (the standalone pre-game colour
+  picker — its own screen, no game-loop bridge value; optional / can ride with phase 7).
+- [~] **7 · Config data → C# + cleanup — IN PROGRESS** (user chose "everything → C#"). All game logic/UI/audio
+  is already C#; this phase ports the remaining ~30 `.gd` (config DATA tables + the VFX driver + the pre-game
+  colour picker) and, as each config ports, converts its C# consumers from `GD.Load<GDScript>().Call`/constant-map
+  BRIDGES to direct C# static calls (that's the bridge cleanup). Clusters migrate atomically with their consumers.
+  - [x] **Leaf data:** `StatusTypes` / `EnemyMarkers` / `FloatingTextTypes` / `Icons` → C# (consumers
+    StatusIcons/OverheadStatus/OffscreenMarkers/FloatingText/ExitGate/RewardUI/AttackSelect updated to direct calls).
+  - [x] **Terrain** → `Terrain.cs` (RunManager updated; the `_terr*` constant-map bridge deleted). Data as C#
+    `static readonly` arrays/consts; funcs as static methods. Boot-verified.
+  - [x] **Actions cluster** (the largest) — `Action`/`StrikeSpec`/`Locomotion`/`SurgeSpec`/`ActionsKhalid`/`Actions`/
+    `Loadout`/`CharacterConfig` → C#. Data records are `: RefCounted` with SNAKE public members, so the consumers'
+    `.Get("animation")`/`.Call("segment", seg)` access on an Action works UNCHANGED (property/method exposure
+    confirmed at runtime); only the accessor calls (`Actions.get_action`, `Loadout.tier_label`) switched to direct
+    C# statics in Player/Build/Rewards/AttackSelect/HUD. Verified: build clean + boot + flow QA (equip a non-default
+    attack, clear, reward, advance) PASS.
+  - [x] **VFX driver — `ParticleDirector.cs`** (588-line `particle_director.gd` → C#, the biggest single file).
+    Player now creates it typed (`new ParticleDirector()`) + calls `setup`/`set_character`/`fire_effect` directly
+    (the old 1-arg `.Call("fire_effect", dash)` bridge was an arity trap — C# won't fill the `tilt` default via
+    `Call`). Config readers still GDScript, **bridged**: `Emitters.character(id)` via `GD.Load<GDScript>.Call`,
+    `SfxCharacters.FRAMES` via `GetScriptConstantMap`, `VfxPalette.recolor_tree` via `.Call`; `Combat.Layer.World`
+    used **directly** (C#). Inlined `Nodes.find_all` (→ `FindChildren`) + `MathUtil.clip_band`/`scale_min_max_pair`;
+    CPU/GPUParticles2D `finished` connected by **name** (`Connect("finished", …)`) since the two have different C#
+    signal-delegate types. **Deleted** the now-orphaned GDScript `configs/combat.gd` dup + `helpers/math_util.gd` +
+    `helpers/nodes.gd` (particle_director was their last consumer; no `.gd`/`.cs`/`.tscn` references remain).
+    Verified: build 0 errors + clean boot (which runs `set_character` = every sustained row instantiated via the
+    config bridges) + direct-`fire_effect` QA firing `double_jump`/`attack_ora_ora`/`special_ground_breaker` (the
+    `clip_to_ground` branch) — fx-node count climbed each burst, zero SCRIPT ERROR. (Headless input can't drive the
+    attack — documented gotcha — so the QA calls `fire_effect` on the director node directly.)
+  - [x] **Emitters\* config** — `Emitters.cs` + `EmittersCharacters.cs` + `EmittersEnemies.cs` (3 `.gd` → C#
+    `static` classes). Data ported as `static readonly GDict TABLE` built via `GD.Load<PackedScene>` (was
+    `preload`); rows stay Godot Dictionaries so consumers' `.As<GDict>()`/`.As<GArr>()`/`row["pos"].As<Vector2>()`
+    reads are **unchanged**. **Dropped both bridges**: ParticleDirector's `_emittersScript.Call("character", id)` →
+    `Emitters.Character(id)`; Enemy's `EmittersScript.Call("enemy_effect", …)` → `Emitters.EnemyEffect(…)`. Reused
+    the old `.gd` uids for the new `.cs.uid`. Verified: build 0 errors + clean boot + fire_effect QA (spear/twin_reaper/
+    frenemy/slam bursts all spawned, base 5→21) + 6 enemies resolved their `EnemyEffect` emitters, zero errors.
+  - [x] **Sfx cue configs** — `SfxCharacters.cs` + `SfxEnemies.cs` + `SfxWorld.cs` (3 `.gd` → C# `static` classes;
+    `CUES`/`FRAMES` as `static readonly GDict`, int frame-keys preserved). **De-bridged 4 sites**: Sfx.cs's
+    3-path `GetScriptConstantMap()["CUES"]` merge loop → 3 direct `_cues.Merge(Sfx*.CUES)`; Enemy's
+    `SfxEnemiesScript.Call("frames_for", …)` → `SfxEnemies.FramesFor(…)` (bridge field deleted); ParticleDirector's
+    `sfx_characters.gd…["FRAMES"]` → `SfxCharacters.FRAMES`; RunManager's `_sfxCharsC` map field → `SfxCharacters.CUES`
+    directly (field deleted). Reused the old `.gd` uids. Verified: build 0 errors + clean boot + QA (played one cue
+    per config through the live Sfx autoload — zero "cue … not found" warnings ⇒ all 3 CUES tables merged with
+    correct paths; 240 frames of 6-enemy combat exercised the FRAMES tables via Enemy/ParticleDirector, zero errors).
+  - [ ] **Remaining GDScript** (5 files; migrate each with its consumers + build/boot test):
+    1. **VfxPalette + PaletteConfig** — `configs/vfx_palette.gd` (bridged by ParticleDirector) + `configs/palette_config.gd`.
+    2. **Pre-game colour cluster** — `scripts/save_data.gd` (SaveData) + `scripts/ui/palette_preview.gd` (coupled:
+       palette_preview reads SaveData/PaletteConfig statics). **NOTE:** VfxPalette + PaletteConfig are BOTH read by
+       `palette_preview.gd` (GDScript can't read C# statics), so items 1 + 2 are really ONE atomic colour cluster.
+    3. **`helpers/shapes.gd`** (Shapes — small leaf).
+    `vfx/script/build_particles.gd` STAYS GDScript (build tool, `extends SceneTree`, run via `--script`). Then final
+    snake→PascalCase polish. **Done since:** Levels, EnemyKits, AnimMeta, the VFX driver, Emitters\*, Sfx configs.

@@ -8,6 +8,8 @@ extends SceneTree
 
 const ANIMS := ["idle", "run", "jump", "dash", "attack"]
 const OUT_DIR := "user://shots"
+# Mirror of CharacterConfig.cs (C#) -- this GDScript --script tool can't read a C# static class.
+const CHARACTER_IDS := ["khalid"]
 
 
 func _init() -> void:
@@ -37,7 +39,7 @@ func _run() -> void:
 
 	await process_frame
 
-	for id in CharacterConfig.IDS:
+	for id in CHARACTER_IDS:
 		player.character = id
 		for anim in ANIMS:
 			var count := sprite.sprite_frames.get_frame_count(anim)
