@@ -73,7 +73,6 @@ public partial class RunManager : Node2D
     // --- bridges (cached in _Ready) ---
     private Music _music;
     private Sfx _sfx;
-    private GDScript _saveData, _vfxPalette;
     private PackedScene _enemyScene, _spawnFx, _ruhOrb;
 
     public override void _Ready()
@@ -82,8 +81,6 @@ public partial class RunManager : Node2D
         _camera = GetNodeOrNull<Camera2D>("Camera2D");
         _music = GetNode<Music>("/root/Music");
         _sfx = GetNode<Sfx>("/root/Sfx");
-        _saveData = GD.Load<GDScript>("res://scripts/save_data.gd");
-        _vfxPalette = GD.Load<GDScript>("res://configs/vfx_palette.gd");
         _enemyScene = GD.Load<PackedScene>("res://scenes/enemy.tscn");
         _spawnFx = GD.Load<PackedScene>("res://vfx/spawn/enemy_spawn.tscn");
         _ruhOrb = GD.Load<PackedScene>("res://vfx/character/khalid/ruh_orb/ruh_orb.tscn");
@@ -364,7 +361,7 @@ public partial class RunManager : Node2D
         if (_player == null)
             return;
         var orb = _ruhOrb.Instantiate<Node2D>();
-        _vfxPalette.Call("recolor_tree", orb);
+        VfxPalette.RecolorTree(orb);
         AddChild(orb);
         PlaceAt(orb, at + new Vector2(0, -18));
         orb.Call("launch", _player, completedCharge);
@@ -442,7 +439,7 @@ public partial class RunManager : Node2D
     {
         new Rewards().apply(id, _player);
         _clearedThisRun += 1;
-        _saveData.Call("set_current_cleared", _clearedThisRun);
+        SaveData.SetCurrentCleared(_clearedThisRun);
         if (_levelIndex >= LevelCount() - 1)
             RestartRun();
         else
@@ -452,9 +449,9 @@ public partial class RunManager : Node2D
     private void RestartRun()
     {
         Engine.TimeScale = 1.0;
-        _saveData.Call("report_run", _clearedThisRun);
+        SaveData.ReportRun(_clearedThisRun);
         _clearedThisRun = 0;
-        _saveData.Call("set_current_cleared", 0);
+        SaveData.SetCurrentCleared(0);
         _deadPrev = false;
         BuildLevel(0);
         if (_player != null)

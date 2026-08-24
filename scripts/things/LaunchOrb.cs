@@ -59,7 +59,7 @@ public partial class LaunchOrb : Node2D
         if (!ResourceLoader.Exists(RecolorShader))
             return;
         _mat = new ShaderMaterial { Shader = GD.Load<Shader>(RecolorShader) };
-        _mat.SetShaderParameter("tint", GD.Load<GDScript>("res://configs/vfx_palette.gd").Call("recolor", Sample).As<Color>());
+        _mat.SetShaderParameter("tint", VfxPalette.Recolor(Sample));
         _mat.SetShaderParameter("shine", 0.0f);
         _sprite.Material = _mat;
     }

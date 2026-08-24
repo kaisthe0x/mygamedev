@@ -54,12 +54,9 @@ public partial class HUD : CanvasLayer
     private static readonly string[] StrikeTypeNames =
         { "MELEE", "PROJECTILE", "DELAYED_PROJECTILE", "AOE", "DELAYED_AOE", "BLAST", "TRAP" };
 
-    private GDScript _saveData, _palette;
 
     public override void _Ready()
     {
-        _saveData = GD.Load<GDScript>("res://scripts/save_data.gd");
-        _palette = GD.Load<GDScript>("res://configs/palette_config.gd");
         Layer = 100;
         BuildHud();
         BuildLowHealth();
@@ -275,7 +272,7 @@ public partial class HUD : CanvasLayer
             RecolorHp();
         }
         UpdateLowHealth(delta);
-        _levelsLabel.Text = $"LEVELS  {_saveData.Call("get_current_cleared").As<int>()}   ·   BEST {_saveData.Call("levels_record").As<int>()}";
+        _levelsLabel.Text = $"LEVELS  {SaveData.GetCurrentCleared()}   ·   BEST {SaveData.LevelsRecord()}";
         _statsLabel.Text = StatsText();
     }
 
@@ -308,7 +305,7 @@ public partial class HUD : CanvasLayer
         _nameLabel.Text = id.ToUpper();
         string path = _player.portrait_path();
         _portrait.Texture = ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
-        _portrait.Material = _palette.Call("make_portrait_material").As<ShaderMaterial>();
+        _portrait.Material = PaletteConfig.MakePortraitMaterial();
         _statsLabel.Text = StatsText();
     }
 

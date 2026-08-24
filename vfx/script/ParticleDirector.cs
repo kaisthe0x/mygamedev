@@ -10,8 +10,8 @@ namespace MyGame;
 /// drawn sprites. Driven by the Emitters config (character table keyed id → animation → [rows]); a row is
 /// sustained (emit while a listed frame shows) or burst (a one-shot on frame entry). Also fires frame-synced
 /// SFX (SfxCharacters.FRAMES) and injects the player's resolved hit tuning into an effect's Hitbox. C# port of
-/// <c>vfx/script/particle_director.gd</c>. Reads <see cref="Emitters"/>/<see cref="SfxCharacters"/>/<see cref="Combat"/>
-/// directly (C#); only <c>VfxPalette.recolor_tree</c> is still GDScript-bridged.
+/// <c>vfx/script/particle_director.gd</c>. Reads <see cref="Emitters"/>/<see cref="SfxCharacters"/>/<see cref="VfxPalette"/>/
+/// <see cref="Combat"/> directly — no GDScript bridges.
 /// </summary>
 public partial class ParticleDirector : Node2D
 {
@@ -32,8 +32,6 @@ public partial class ParticleDirector : Node2D
     private readonly List<Burst> _bursts = new();
     private GDict _sfxFrames = new(); // anim -> { emitted_frame -> cue_key }
 
-    // config bridges (still GDScript for now)
-    private GDScript _vfxPaletteScript;
     private GDict _sfxCharsFrames;
     private Sfx _sfx;
 
@@ -41,7 +39,6 @@ public partial class ParticleDirector : Node2D
     public void setup(AnimatedSprite2D sprite)
     {
         _sprite = sprite;
-        _vfxPaletteScript = GD.Load<GDScript>("res://configs/vfx_palette.gd");
         _sfxCharsFrames = SfxCharacters.FRAMES;
         _sfx = GetNode<Sfx>("/root/Sfx");
         _sprite.FrameChanged += Refresh;
@@ -181,7 +178,7 @@ public partial class ParticleDirector : Node2D
             node.QueueFree();
             return null;
         }
-        _vfxPaletteScript.Call("recolor_tree", node); // honour power-colour picks (no-op without picks)
+        VfxPalette.RecolorTree(node); // honour power-colour picks (no-op without picks)
         return node;
     }
 

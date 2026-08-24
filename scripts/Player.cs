@@ -32,8 +32,6 @@ public partial class Player : Combatant
 
     // --- bridged GDScript statics/singletons (cached in _Ready) ---
     private Sfx _sfx = null!;
-    private GDScript _paletteScript = null!;
-    private GDScript _vfxPaletteScript = null!;
 
     // =====================================================================================================
     // Character
@@ -257,8 +255,6 @@ public partial class Player : Combatant
     public override void _Ready()
     {
         _sprite = GetNode<AnimatedSprite2D>("AnimatedSprite2D");
-        _paletteScript = GD.Load<GDScript>("res://configs/palette_config.gd");
-        _vfxPaletteScript = GD.Load<GDScript>("res://configs/vfx_palette.gd");
 
         health = max_health;
         ApplyCharacter();
@@ -298,7 +294,7 @@ public partial class Player : Combatant
         if (character == "khalid")
         {
             // Khalid wears the material-aware palette LUT (recolour + glow / hair-flow effects).
-            _tintMat = _paletteScript.Call("make_material").As<ShaderMaterial>();
+            _tintMat = PaletteConfig.MakeMaterial();
             _bodyIsLut = true;
             sprite.Material = _tintMat;
             _hairBase = new GDict();
@@ -548,7 +544,7 @@ public partial class Player : Combatant
         WarnLowHealth(before, health);
         if (dealt > 0.0f)
         {
-            Color hair = _paletteScript.Call("hair_color").As<Color>();
+            Color hair = PaletteConfig.HairColor();
             FloatingText.Emit("player_damage", this, HurtNumberOffset,
                 Mathf.RoundToInt(dealt).ToString(), dealt, new GDict { { "color", hair } });
         }
@@ -815,8 +811,8 @@ public partial class Player : Combatant
             {
                 Variant mc = _specialAura.Get("moon_color");
                 if (mc.VariantType == Variant.Type.Color)
-                    _specialAura.Set("moon_color", _vfxPaletteScript.Call("recolor", mc.As<Color>()));
-                _vfxPaletteScript.Call("recolor_tree", _specialAura);
+                    _specialAura.Set("moon_color", VfxPalette.Recolor(mc.As<Color>()));
+                VfxPalette.RecolorTree(_specialAura);
                 AddChild(_specialAura);
             }
         }
@@ -908,7 +904,7 @@ public partial class Player : Combatant
             var b = scene?.Instantiate() as Node2D;
             if (b != null)
             {
-                _vfxPaletteScript.Call("recolor_tree", b);
+                VfxPalette.RecolorTree(b);
                 AddChild(b);
                 GetTree().CreateTimer(1.5).Timeout += b.QueueFree;
             }
@@ -977,7 +973,9 @@ public partial class Player : Combatant
         _channel = null;
         _launchOrb = null;
         if (_hurtbox != null)
-            _hurtbox.Monitorable = false;
+            // Die() runs inside the hurtbox's hit-signal flush; a direct set is blocked while physics
+            // queries flush ("Function blocked during in/out signal"), so defer it to after the flush.
+            _hurtbox.SetDeferred(Area2D.PropertyName.Monitorable, false);
         if (HasAnim("death"))
             Enter(State.DEATH);
         else

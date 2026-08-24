@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c2wr6dl1n8l8j"]
 
-[ext_resource type="Script" uid="uid://cq1p6ne34umec" path="res://scripts/ui/palette_preview.gd" id="1"]
+[ext_resource type="Script" uid="uid://cq1p6ne34umec" path="res://scripts/ui/PalettePreview.cs" id="1"]
 
 [node name="PalettePreview" type="Control" unique_id=377085786]
 layout_mode = 3

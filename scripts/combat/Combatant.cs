@@ -86,8 +86,7 @@ public partial class Combatant : CharacterBody2D
             return;
         var fx = scene.Instantiate();
         if (recolor)
-            // VfxPalette is a GDScript static utility (still) — bridge to its recolor via the loaded script.
-            GD.Load<GDScript>("res://configs/vfx_palette.gd").Call("recolor_tree", fx);
+            VfxPalette.RecolorTree(fx);
         AddChild(fx);
         if (fitH > 0.0f && fx is Node2D n)
             n.Scale = Vector2.One * (fitH / VictimVfxRefH);

@@ -20,10 +20,8 @@ public partial class RewardUI : CanvasLayer
         ProcessMode = ProcessModeEnum.Always; // keep working while the tree is paused
     }
 
-    private static Color TierColor(string tier) =>
-        GD.Load<GDScript>("res://configs/loadout.gd").Call("tier_color", tier).As<Color>();
-    private static string TierLabel(string tier) =>
-        GD.Load<GDScript>("res://configs/loadout.gd").Call("tier_label", tier).AsString();
+    private static Color TierColor(string tier) => Loadout.TierColor(tier);
+    private static string TierLabel(string tier) => Loadout.TierLabel(tier);
 
     /// <summary>Show a card per reward ({id, name, desc}) and pause until one is picked. `doorType` titles the popup.</summary>
     public void Open(GArr rewards, string doorType = "")

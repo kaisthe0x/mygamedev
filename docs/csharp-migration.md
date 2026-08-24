@@ -80,6 +80,17 @@ More boundary facts (all verified):
   needs the value (HUD reading `RUH_PER_BLOCK` to size the Ruh meter) can read a C# **instance property**
   mirroring it (`public float RUH_PER_BLOCK => 100f;`). Class-qualified reads (`Player.RUH_PER_BLOCK`) still
   fail and must switch to the instance (`player.RUH_PER_BLOCK`).
+- **STALE `GD.Load<GDScript>("…gd")` BRIDGES in C# after the target migrated** — a latent-until-triggered crash:
+  `RewardUI.cs` still did `GD.Load<GDScript>("res://configs/loadout.gd").Call("tier_color", …)` after `loadout.gd`
+  became `Loadout.cs`, so opening a reward door threw `Error loading resource: loadout.gd` → `NullReferenceException`
+  (only on the final levels, when a loadout-swap card with a `tier` was offered — that's the only card that calls
+  `TierColor`). Fix = call the C# static directly (`Loadout.TierColor(tier)`). **Sweep after every cluster:**
+  `grep -rhoE '"res://[^"]+\.gd"' **/*.cs` and existence-check each — a migrated `.gd` that any C# still loads is a
+  runtime bomb the compiler can't catch. (After this fix the only live `.gd` bridges are the colour cluster.)
+- **Setting `Area2D.Monitorable` inside a hit signal** — `Player.Die()` runs from the hurtbox's `take_hit` → OnHurt
+  chain, i.e. during physics-query flush, so `_hurtbox.Monitorable = false` was blocked ("Function blocked during
+  in/out signal"). Fix = `SetDeferred(Area2D.PropertyName.Monitorable, false)`. Applies to any monitorable/monitoring
+  toggle reachable from a body/area-entered handler.
 - **GDScript `--script` TOOLS that referenced a now-C# config** (`tools/verify_frames.gd`, `tools/capture_shots.gd`
   read `CharacterConfig.IDS`/`.FRAMES_PATH`): these stay GDScript (build/QA tools), so they hit the same wall —
   GDScript can't read a C# static class, and there's no instance to bridge through in a `SceneTree`-root tool.
@@ -304,11 +315,26 @@ harnesses (GDScript, per the carve-out).
     directly (field deleted). Reused the old `.gd` uids. Verified: build 0 errors + clean boot + QA (played one cue
     per config through the live Sfx autoload — zero "cue … not found" warnings ⇒ all 3 CUES tables merged with
     correct paths; 240 frames of 6-enemy combat exercised the FRAMES tables via Enemy/ParticleDirector, zero errors).
-  - [ ] **Remaining GDScript** (5 files; migrate each with its consumers + build/boot test):
-    1. **VfxPalette + PaletteConfig** — `configs/vfx_palette.gd` (bridged by ParticleDirector) + `configs/palette_config.gd`.
-    2. **Pre-game colour cluster** — `scripts/save_data.gd` (SaveData) + `scripts/ui/palette_preview.gd` (coupled:
-       palette_preview reads SaveData/PaletteConfig statics). **NOTE:** VfxPalette + PaletteConfig are BOTH read by
-       `palette_preview.gd` (GDScript can't read C# statics), so items 1 + 2 are really ONE atomic colour cluster.
-    3. **`helpers/shapes.gd`** (Shapes — small leaf).
-    `vfx/script/build_particles.gd` STAYS GDScript (build tool, `extends SceneTree`, run via `--script`). Then final
-    snake→PascalCase polish. **Done since:** Levels, EnemyKits, AnimMeta, the VFX driver, Emitters\*, Sfx configs.
+  - [x] **Pre-game colour cluster (atomic)** — `VfxPalette.cs` + `PaletteConfig.cs` + `SaveData.cs` +
+    `scripts/ui/PalettePreview.cs` (4 `.gd` → C#, migrated together because `palette_preview` reads all three as
+    statics and GDScript can't read C# statics). PalettePreview is the **main scene** (`project.godot` main_scene);
+    its `.tscn` ext_resource path rewired to the `.cs` (uid kept). Statics (`VfxPalette.picks`/`PaletteConfig.picks`/
+    SaveData's schemes) persist across the picker→run `ChangeSceneToFile` exactly as GDScript statics did. **De-bridged
+    every C# consumer** (Player, HUD, RunManager, Combatant, LaunchOrb, ParticleDirector — the last one now has ZERO
+    bridges) from `GD.Load<GDScript>(…).Call(…)` to direct `VfxPalette.RecolorTree`/`PaletteConfig.MakeMaterial`/
+    `SaveData.ReportRun` etc. **Gotcha:** Godot .NET has no `PackedFloat32Array`/`PackedVector3Array` C# types — the
+    bindings marshal them as `float[]`/`Vector3[]` (a `SetShaderParameter` of a `float[]` becomes a packed uniform).
+    Reused the old `.gd` uids. Verified: build 0 errors + clean boot of the picker (main scene) + interactive QA
+    (10 pickers built; body/power colour_changed → PaletteConfig/VfxPalette SetPicks + RecolorTree; slot-select + Save
+    round-tripped to `user://save.cfg` — `active` re-read from disk; **Start → ChangeSceneToFile → level loaded with a
+    live player**), zero errors. **QA caveat noted:** driving Save wrote to the real `user://save.cfg` — avoid QA that
+    mutates real user data (point it at a temp path / back up first).
+  - [x] **`helpers/shapes.gd`** — DELETED, not ported: it was already **dead** (both C# consumers, Enemy + LobProjectile,
+    had inlined `MakeBox`; the only remaining `Shapes.make_box` references were comments). Confirmed no code/`.tscn`
+    reference before deleting. Build + boot clean after.
+  - [x] **MIGRATION COMPLETE.** Every gameplay/runtime script is C#. The ONLY `.gd` left in the project are intentional
+    build/QA tools run via `--script` (they stay GDScript, and mirror any C# config they need via a local `const` —
+    see the tools finding above): `vfx/script/build_particles.gd`, `tools/{capture_shots,verify_frames,gen_effect_frames}.gd`.
+    No C# `GD.Load<GDScript>` config/logic bridges remain (only the Sfx/Music/HUD **autoload** `GetNode` lookups, which
+    are typed C#→C# now). Optional follow-up: a final snake→PascalCase polish of the public surfaces that were kept
+    snake_case only for the migration (now every caller is C#).
