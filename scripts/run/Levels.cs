@@ -5,14 +5,25 @@ using GArr = Godot.Collections.Array;
 namespace MyGame;
 
 /// <summary>
-/// The 5 arena levels of a run, as data. RunManager builds and runs each one. Per level: name, bg tint,
-/// platforms ([cx, top_y, width]), player_spawn, exit_pos, `start` batch, and escalating `waves`. Each spawn is
-/// {kit (an <see cref="EnemyKits"/> dict), pos}. C# port of <c>scripts/run/levels.gd</c>.
+/// The 5 arena levels of a run, as data. RunManager builds and runs each one. **This is where you design a level:**
+/// edit its <c>platforms</c> (add/shorten/move), spawns, spawn/exit points. C# port of <c>scripts/run/levels.gd</c>.
+///
+/// <para>COORDINATES: world pixels, +X = right, **+Y = DOWN** (so a platform higher up has a MORE-NEGATIVE topY).
+/// The ground floor sits at y = 0; the player spawns at <c>player_spawn</c>. A camera zoom of 1.5× means ~768×432
+/// world units are on screen at once.</para>
+///
+/// <para>PLATFORMS: each <see cref="P"/>(centerX, topY, width) is one floating one-way platform — you jump up
+/// through it and land on top. <c>centerX</c> = its middle, <c>topY</c> = the walkable surface height (negative =
+/// higher), <c>width</c> = how long it is (px; ~32 = one tile, so 110 ≈ 3½ tiles). Add more P(...) entries for
+/// more platforms; shrink <c>width</c> for shorter ones; the tileset skin auto-paints over whatever you define.</para>
 /// </summary>
 public static class Levels
 {
     // A spawn spec {kit, pos}.
     private static GDict K(GDict kit, float x, float y) => new() { { "kit", kit }, { "pos", new Vector2(x, y) } };
+
+    // A platform spec [centerX, topY, width] — see the class summary. Returned as an array so RunManager reads p[0..2].
+    private static GArr P(float centerX, float topY, float width) => new() { centerX, topY, width };
 
     private static readonly GArr LEVELS = new()
     {
@@ -21,7 +32,7 @@ public static class Levels
         {
             { "name", "The Shallows" },
             { "bg", new Color(0.06f, 0.10f, 0.13f) },
-            { "platforms", new GArr { new GArr { 0.0, -320.0, 110.0 }, new GArr { 800.0, -360.0, 110.0 }, new GArr { 1600.0, -320.0, 110.0 } } },
+            { "platforms", new GArr { P(0, -320, 110), P(800, -360, 110), P(1600, -320, 110) } },
             { "orbs", new GArr { new Vector2(-300, -160), new Vector2(400, -190), new Vector2(1200, -170) } },
             { "player_spawn", new Vector2(-600, 0) },
             { "exit_pos", new Vector2(2200, -20) },
@@ -37,7 +48,7 @@ public static class Levels
         {
             { "name", "Redward" },
             { "bg", new Color(0.13f, 0.05f, 0.06f) },
-            { "platforms", new GArr { new GArr { -350.0, -120.0, 150.0 }, new GArr { -40.0, -190.0, 170.0 }, new GArr { 280.0, -140.0, 160.0 }, new GArr { 430.0, -240.0, 140.0 } } },
+            { "platforms", new GArr { P(-350, -120, 150), P(-40, -190, 170), P(280, -140, 160), P(430, -240, 140) } },
             { "player_spawn", new Vector2(-470, 0) },
             { "exit_pos", new Vector2(520, -20) },
             { "start", new GArr
@@ -57,7 +68,7 @@ public static class Levels
         {
             { "name", "The Gullet" },
             { "bg", new Color(0.09f, 0.05f, 0.12f) },
-            { "platforms", new GArr { new GArr { -280.0, -110.0, 160.0 }, new GArr { 80.0, -160.0, 200.0 }, new GArr { 360.0, -120.0, 150.0 }, new GArr { -120.0, -250.0, 150.0 } } },
+            { "platforms", new GArr { P(-280, -110, 160), P(80, -160, 200), P(360, -120, 150), P(-120, -250, 150) } },
             { "player_spawn", new Vector2(-470, 0) },
             { "exit_pos", new Vector2(520, -20) },
             { "start", new GArr
@@ -77,7 +88,7 @@ public static class Levels
         {
             { "name", "Ossuary" },
             { "bg", new Color(0.05f, 0.11f, 0.08f) },
-            { "platforms", new GArr { new GArr { -330.0, -100.0, 150.0 }, new GArr { -60.0, -170.0, 160.0 }, new GArr { 220.0, -130.0, 170.0 }, new GArr { 420.0, -220.0, 150.0 }, new GArr { 60.0, -270.0, 160.0 } } },
+            { "platforms", new GArr { P(-330, -100, 150), P(-60, -170, 160), P(220, -130, 170), P(420, -220, 150), P(60, -270, 160) } },
             { "player_spawn", new Vector2(-470, 0) },
             { "exit_pos", new Vector2(520, -20) },
             { "start", new GArr
@@ -97,7 +108,7 @@ public static class Levels
         {
             { "name", "Way of All Flesh" },
             { "bg", new Color(0.13f, 0.08f, 0.03f) },
-            { "platforms", new GArr { new GArr { -350.0, -110.0, 150.0 }, new GArr { -80.0, -180.0, 170.0 }, new GArr { 200.0, -140.0, 160.0 }, new GArr { 420.0, -230.0, 150.0 }, new GArr { -200.0, -260.0, 150.0 } } },
+            { "platforms", new GArr { P(-350, -110, 150), P(-80, -180, 170), P(200, -140, 160), P(420, -230, 150), P(-200, -260, 150) } },
             { "player_spawn", new Vector2(-470, 0) },
             { "exit_pos", new Vector2(520, -20) },
             { "start", new GArr
