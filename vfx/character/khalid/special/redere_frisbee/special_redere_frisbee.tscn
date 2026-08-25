@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cu1n24fd2ffxj"]
 
-[ext_resource type="Script" uid="uid://bgkm0ietbu5au" path="res://scripts/combat/projectile.gd" id="1_proj"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hb"]
+[ext_resource type="Script" path="res://scripts/combat/Projectile.cs" id="1_proj"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/Hitbox.cs" id="2_hb"]
 [ext_resource type="Texture2D" uid="uid://coc64l4i7me5j" path="res://vfx/character/khalid/special/redere_frisbee/shield_texture.png" id="2_ya3um"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="4_akj23"]
 

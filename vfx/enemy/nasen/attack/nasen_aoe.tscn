@@ -6,8 +6,8 @@
 
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="1_dot"]
 [ext_resource type="Texture2D" uid="uid://bek7iyn8fo4ci" path="res://vfx/shared/textures/pixel_ember.png" id="2_ember"]
-[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="StrikeSc"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="HitboxSc"]
+[ext_resource type="Script" path="res://scripts/combat/AoeStrike.cs" id="StrikeSc"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/Hitbox.cs" id="HitboxSc"]
 
 [sub_resource type="Gradient" id="Grad_flame"]
 offsets = PackedFloat32Array(0, 0.45, 1)

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cjnoonsurge01"]
 
-[ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/orbit_aura.gd" id="1_orbit"]
+[ext_resource type="Script" uid="uid://ikkgf7gai5c7" path="res://vfx/shared/OrbitAura.cs" id="1_orbit"]
 [ext_resource type="Texture2D" uid="uid://du6eawwgas0gr" path="res://vfx/shared/textures/skull_texture.png" id="2_du2gv"]
 
 [node name="SurgeJnoon" type="Node2D" unique_id=1900001002]

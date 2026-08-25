@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://c1hgtkm0g7m6c"]
 
-[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_hitbox"]
+[ext_resource type="Script" path="res://scripts/combat/BlastStrike.cs" id="1_strike"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/Hitbox.cs" id="2_hitbox"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="3_dot"]
 
 [sub_resource type="Curve" id="shrink"]

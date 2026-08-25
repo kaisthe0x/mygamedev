@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://blga5y3x338rq"]
 
-[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_gyk1e"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="2_whsy2"]
+[ext_resource type="Script" path="res://scripts/combat/MeleeStrike.cs" id="1_gyk1e"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/Hitbox.cs" id="2_whsy2"]
 [ext_resource type="Texture2D" uid="uid://c7j5ubxiby3wu" path="res://vfx/character/khalid/attack/dual_executioner/dual_executioner_texture_slash.png" id="3_gyk1e"]
 
 [sub_resource type="RectangleShape2D" id="box_de"]

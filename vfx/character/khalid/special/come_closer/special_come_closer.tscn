@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://8eaq6wvthe05"]
 
-[ext_resource type="Script" uid="uid://c6163fme2evuw" path="res://scripts/combat/magnet_field.gd" id="1_field"]
+[ext_resource type="Script" path="res://scripts/combat/MagnetField.cs" id="1_field"]
 [ext_resource type="Texture2D" uid="uid://8p37oikm7md7" path="res://vfx/shared/textures/soft_dot.png" id="2_4ywwh"]
 
 [sub_resource type="Gradient" id="grad"]

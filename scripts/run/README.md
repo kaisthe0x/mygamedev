@@ -10,13 +10,13 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 
 | File | What it is |
 |---|---|
-| `run_manager.gd` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, **awards Ruh per damaging hit landed** (via `gain_ruh_on_hit`, skipping a special's own hits — not per kill), runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
+| `RunManager.cs` (`RunManager`) | The brain + the level root. Builds each level, spawns start enemies + waves, **awards Ruh per damaging hit landed** (via `gain_ruh_on_hit`, skipping a special's own hits — not per kill), runs the exit→reward→next-level flow, restarts the run on death, and owns the camera/death/spawn flair. |
 | `levels.gd` (`Levels`) | **The 5 levels, as data** — per level: look (`bg`), `platforms`, `player_spawn`, `exit_pos`, `exit_cost`, `start` enemies, and escalating `waves`. Edit here to change *what a level is*. |
 | `enemies.gd` (`EnemyKits`) | **The enemy roster** — one named kit per type (combat tuning + which scene), plus a `Tier` for wave-building. Levels reference these by name. Edit here to change *who* the enemies are. |
-| `rewards.gd` (`Rewards`) | **The reward OFFER + EFFECT service** over the typed catalog (`configs/rewards_catalog.gd` data → `Reward` objects), **build-aware** (Phase 4): `offer_for()` filters by each reward's `requires` and weights by `synergy` against the queryable `Build`, then samples; `apply()` runs the effect — a stat buff, a granted **`Passive`**, or an **`equip`** (move upgrade). Still mixes in **loadout-swap cards** from `Loadout` (id `swap:<cat>:<opt>`) for a category with >1 option. |
-| `build.gd` (`Build`) | A **queryable snapshot of the player's build** — equipped Action ids per category + rewards taken + their tags — that conditional rewards predicate over. `Build.of(player)`; `matches(cond)` evaluates a condition dict (`equipped`/`tag`/`reward`). |
-| `exit_gate.gd` (`ExitGate`) | The exit door (an `Area2D`): detects the player, shows/greens/reds by affordability, reports `touched`. RunManager owns the decision. |
-| `reward_ui.gd` (`RewardUI`) | The pick-a-reward popup (pauses the game, emits `chosen(id)`). |
+| `Rewards.cs` (`Rewards`) | **The reward OFFER + EFFECT service** over the typed catalog (`configs/RewardsCatalog.cs` data → `Reward` objects), **build-aware** (Phase 4): `offer_for()` filters by each reward's `requires` and weights by `synergy` against the queryable `Build`, then samples; `apply()` runs the effect — a stat buff, a granted **`Passive`**, or an **`equip`** (move upgrade). Still mixes in **loadout-swap cards** from `Loadout` (id `swap:<cat>:<opt>`) for a category with >1 option. |
+| `Build.cs` (`Build`) | A **queryable snapshot of the player's build** — equipped Action ids per category + rewards taken + their tags — that conditional rewards predicate over. `Build.of(player)`; `matches(cond)` evaluates a condition dict (`equipped`/`tag`/`reward`). |
+| `ExitGate.cs` (`ExitGate`) | The exit door (an `Area2D`): detects the player, shows/greens/reds by affordability, reports `touched`. RunManager owns the decision. |
+| `RewardUI.cs` (`RewardUI`) | The pick-a-reward popup (pauses the game, emits `chosen(id)`). |
 
 **Terrain look** (the tiled art skin): `RunManager` paints the floor + platforms with the 32px
 tileset as positioned sprites over the (unchanged) colliders — `_paint_surface` stamps a surface
@@ -28,7 +28,7 @@ To hand-paint tiles yourself there's a real TileSet (`resources/terrain/stage1_t
 sandbox scene (`scenes/tile_paint.tscn`) — see [`docs/painting-levels.md`](../../docs/painting-levels.md).
 
 Related, but not in this folder:
-- **Player HP + Ruh** live on the `Player` (`scripts/player.gd`) as **two independent pools**:
+- **Player HP + Ruh** live on the `Player` (`scripts/Player.cs`) as **two independent pools**:
   `health` (damage hits this only; heals ONLY via rewards) and `ruh` — the **surge meter**, in
   charges/blocks of `RUH_PER_BLOCK` (100), capped by `ruh_cap`. You **start a run with 3 charges**
   (`BASE_RUH_CAP` = 300 — `begin_run` sets it full) and **refill by landing HITS** (`RUH_PER_HIT` = 20,
@@ -71,14 +71,15 @@ Related, but not in this folder:
 - **Change the Ruh / surge economy** → `Player.RUH_PER_HIT` (fill rate per hit), `RUH_PER_BLOCK`
   (charge size), `BASE_RUH_CAP` (starting charges), and the Aegis surge's `cost` / `duration` in
   `configs/actions_khalid.gd` (`SURGES`) for its Ruh price + invuln window. (Specials are free — no cost knob.)
-- **Add/change a reward** → add a row to `configs/rewards_catalog.gd` (pure data); wire its effect in
-  `rewards.gd` `_buff()` unless it's a `passive`/`equip` reward (those are handled generically). Keep a
-  heal in the pool — it's the only way to mend HP.
+- **Add/change a reward** → add a row to `RewardsCatalog.POOLS` (in `configs/RewardsCatalog.cs`, data); wire
+  its effect in `Rewards.cs` `Buff()` unless it's a `passive`/`equip` reward (those are handled generically).
+  Keep a heal in the pool — it's the only way to mend HP. (Add a matching `MakePassive` case for a new passive id.)
 - **Make a reward build-aware** → on its catalog row: `requires` (a `Build` condition dict — only offer
   when it holds, e.g. `{"equipped":"twin_reaper"}`), `synergy` (`{"when":<cond>,"weight":N}` — nudge the
   roll odds), `unique` (once-only), `upgrades`/`equip` (a move upgrade), `passive` (grant a `Passive`).
-- **Add a reward passive** → a `scripts/abilities/<id>.gd` `extends Passive` (hooks: on_hit_dealt,
-  on_hurt, on_land, physics, …); reference it from a reward's `passive: "<id>"`. See `leech.gd`.
+- **Add a reward passive** → a `scripts/abilities/<Name>.cs` `[GlobalClass] : Passive` (hooks: `OnHitDealt`,
+  `OnHurt`, `OnLand`, `Physics`, `OnDash`, …); add a `MakePassive` case in `Rewards.cs` mapping its id, and
+  reference it from a reward's `passive: "<id>"`. See `Leech.cs`.
 
 ## Known template gaps (deliberate, for later)
 

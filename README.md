@@ -1,5 +1,10 @@
 # mygamedev
 
+> **⚙️ C# migration in progress** (branch `feature/csharp-migration`). The game is being ported from
+> GDScript to C# (typed attack hierarchy + reward system + compile-time strictness). This README still
+> describes the GDScript architecture; sections are updated as each subsystem flips. Run/verify with
+> **`godot-mono`**, not `godot`. Plan, interop rules, and phase status: [`docs/csharp-migration.md`](docs/csharp-migration.md).
+
 A 2D pixel-art action platformer in **Godot 4.7**. A character-agnostic player controller
 drives the playable character. This repo ships **Khalid only** — four other characters were
 parked in the gitignored `playground/` directory (for a future separate repo); the engine
@@ -33,8 +38,8 @@ resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
 scripts/              player, hud
 scripts/run/          the roguelite run: levels, batches, Ruh, reward doors, attack picker (see scripts/run/README.md)
-scripts/abilities/    Passive base + per-character abilities + reward passives, named <id>.gd
-scripts/combat/       Hurtbox, hitbox, combatant base, health bar, floating text (damage numbers, callouts) (constants -> configs/combat.gd)
+scripts/abilities/    Passive/Buff base (C#) + reward passives (Leech/ParryMend/ReaperEdge.cs) + reward-tier/trigger types (RewardTypes.cs)
+scripts/combat/       Hurtbox, hitbox, Combatant base, health bar, floating text, status overlay — all C# now (constants -> configs/Combat.cs)
 scripts/enemies/      Enemy base + projectile
 sprites/characters/   Source pixel-art sheets, one folder per character
 sprites/enemies/      Source enemy sheets, one folder per enemy
@@ -66,7 +71,7 @@ removed). If you want cursor-aim back for keyboard+mouse without breaking contro
 play, the clean way is "last input device wins" — ask and I'll wire it.
 
 **Launch orbs — magnet traversal (`State.LAUNCH`).** Levels place **launch orbs**
-(`scripts/things/swing_orb.gd`, `SwingOrb`) — levitating orbs above/between platforms. **Dash into (or
+(`scripts/things/LaunchOrb.cs`, `LaunchOrb`) — levitating orbs above/between platforms. **Dash into (or
 near) one** and it acts as a **magnet**: it sucks Khalid through and flings him out the far side with the
 orb's **own set impulse** — a strong **up + forward** along his facing (`SwingOrb.launch_up` /
 `launch_forward`). He keeps brief dash i-frames and **air-dashes** the rest of the way to the next
@@ -76,15 +81,15 @@ platform. Fully automatic — no aiming, no pumping. (This replaced an earlier c
   body radius (`LAUNCH_PULL_RANGE` ~96px) — the press check matters because Khalid's default dash is a
   **blink/teleport** that could otherwise skip past the orb. On capture he's magneted to the orb over
   `LAUNCH_MAGNET_TIME` (i-frames on), then flung; `LAUNCH_CD` blocks an instant re-trigger. Tuning is the
-  `LAUNCH_*` consts at the top of `player.gd` plus each orb's `launch_*` exports.
+  `LAUNCH_*` consts at the top of `Player.cs` plus each orb's `launch_*` exports.
 - **The orb is dumb by design** (`LaunchOrb`). It bobs and joins the `"orbs"` group; the Player owns the
   range test (`_orb_in_pull_range`, the way it scans `"enemies"`), drives which orb is lit (`set_near`),
   and owns the magnet/launch. Adding one to a level is a single `Vector2` in that level's **`orbs`** list
-  (`scripts/run/levels.gd`); RunManager instantiates them in `_build_level`.
+  (`scripts/run/Levels.cs`); RunManager instantiates them in `_build_level`.
 - **The orb reshades to the power palette AND glows.** Its red art is baked into its *texture* (which
-  `VfxPalette.recolor_tree` can't touch) **and is dark** (luma ~0.19 — a hue-swap alone rendered
+  `VfxPalette.RecolorTree` can't touch) **and is dark** (luma ~0.19 — a hue-swap alone rendered
   near-black). So it wears `vfx/shaders/thing_recolor.gdshader`, which paints every pixel a single
-  **`tint`** (set to the family colour via `VfxPalette.recolor`) scaled by the baked pixel's brightness,
+  **`tint`** (set to the family colour via `VfxPalette.Recolor`) scaled by the baked pixel's brightness,
   times a **`glow`** lift so it blooms — same simple shape as the proven `enemy_glow` shader (no hsv, no
   `COLOR` multiply, which is what a straight canvas shader renders reliably). A `shine` uniform adds the
   proximity glow. Net: pick teal powers and the orb glows bright teal.
@@ -97,7 +102,7 @@ platform. Fully automatic — no aiming, no pumping. (This replaced an earlier c
   (the swing animation was discarded); `State.LAUNCH` plays the `dash` anim through the magnet.
 
 **Which character you play is chosen in code.** In-game Q/E switching is **gone** — set the
-**`START_CHARACTER`** constant near the top of `scripts/run/run_manager.gd` to any id in
+**`START_CHARACTER`** constant near the top of `scripts/run/RunManager.cs` to any id in
 `CharacterConfig.IDS` (`khalid` — the others are parked in `playground/`). The dev keys (Z/X
 debug damage/heal, `0` rebuild-level) live in that same file.
 
@@ -118,12 +123,12 @@ independent — they **upgrade by layering buffs**, not by turning into a differ
 & Redere Frisbee are now standalone swaps, not successors). Rewards are **build-aware** — a reward can
 `require` something equipped (a per-move buff like *Reaper's Edge* only shows once Twin Reaper is),
 weight its odds by `synergy`, or grant a **behavioural passive / buff** (Leech) — see the
-*Passives, abilities & buffs* section + [`configs/rewards_catalog.gd`](configs/rewards_catalog.gd). Take 0
+*Passives, abilities & buffs* section + [`configs/RewardsCatalog.cs`](configs/RewardsCatalog.cs). Take 0
 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pools, the attack
 picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s root;
 `Levels` / `EnemyKits` / `Rewards` / `RewardsCatalog` / `Build` / `Icons` are the data + logic). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset
-skin ([`configs/terrain.gd`](configs/terrain.gd)) stamped as sprites over the colliders — tiled
+skin ([`configs/Terrain.cs`](configs/Terrain.cs)) stamped as sprites over the colliders — tiled
 neon terrain, ground plants, tree props — art in `assets/terrain/`, gameplay unchanged.
 
 ---
@@ -208,7 +213,7 @@ Because every character lands on the same canvas, swapping is a one-line
 
 **The canvas size is derived, not fixed** — it grows to fit the widest padded
 frame, so art changes can move it (156x71 -> 164x80 -> 128x80 so far).
-`player.gd` reads the frame size on load and sets the sprite offset from it
+`Player.cs` reads the frame size on load and sets the sprite offset from it
 (origin at the feet), so nothing has to be updated by hand when it moves.
 
 ### Target frame size: 128x80
@@ -291,7 +296,7 @@ Frame counts vary enough that one fps makes some swings drag and others snap, so
 
 `loop_from` / `loop_to` exist because Godot's `loop` flag is all-or-nothing. The
 generator writes the (emitted) indices as resource metadata; **it doesn't set the loop
-flag** — the reader decides what to do with the range. For a **looping** anim `player.gd`
+flag** — the reader decides what to do with the range. For a **looping** anim `Player.cs`
 jumps back to `loop_from` when the anim wraps (`_on_animation_looped`) or steps past
 `loop_to` (`_on_frame_changed`). For a **non-looping** anim an enemy uses `loop_from` as
 the frame a *re-played* attack restarts at (`Enemy._replay_from`), so a channel/rage's
@@ -311,7 +316,7 @@ A separate config next to `OVERRIDES` maps `(character, "attack")` to the
 click, each segment ending on a hit frame, with the frames between hits animating
 for smoothness (see **Player → Attack combo**). Any attack not listed defaults to
 "every frame is a hit" — one frame per click, the older snap feel. Emitted as
-`metadata/hit_frames`, read by `player.gd`.
+`metadata/hit_frames`, read by `Player.cs`.
 
 **Snappy timing (automatic).** For any character `attack_*`/`special_*` with hit frames, the
 generator plays the **non-hit frames at `BETWEEN_HIT_MULT` (0.25×)** a hit frame's duration — so
@@ -353,11 +358,11 @@ without one the special lands on its middle frame.
    `<name>_<anim>_frames.png` (lower case).
 2. Add a 1080x1080 portrait at `assets/portraits/<Name>.png`
    (**capitalised** — the lookup expects it).
-3. Add the name to `CHARACTERS` and the `@export_enum` list in
-   `scripts/player.gd`.
+3. Add the name to `CharacterIds` and the `[Export(PropertyHint.Enum, …)]` list in
+   `scripts/Player.cs`.
 4. Import in Godot (`godot --headless --import`) so the PNGs get UIDs, then run
    the generator and the verifier.
-5. Optionally add `scripts/abilities/<name>.gd` — see **Character abilities**.
+5. Optionally add a C# `CharacterAbility` (wired in `Player.CharacterAbilityFor`) — see **Character abilities**.
 
 ### Rules the art must follow
 
@@ -380,17 +385,17 @@ detection (it reads as a gap, not padding) and merges frames — keep gaps out o
 middle.
 
 Adding a new *animation type* (`hurt`, `death`, ...) means one line in `ANIMS`
-and a matching case in `_animation_for()` in `player.gd`.
+and a matching case in `_animation_for()` in `Player.cs`.
 
 ---
 
 ## Player
 
-`scripts/player.gd` — a `CharacterBody2D` with a small state machine
-(`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM / DEATH / SPAWN`).
+`scripts/Player.cs` — a `CharacterBody2D` (extends the C# `Combatant`) with a small state machine
+(`IDLE / RUN / JUMP / FALL / DASH / ATTACK / SPECIAL / LAND / SLAM / DEATH / SPAWN / HURT / SURGE / LAUNCH`).
 
 **Movement stats live in typed config, not the inspector.** Every movement/physics knob is a
-`Locomotion` (`configs/locomotion.gd`, the shared baseline) attached to a **movement Action**
+`Locomotion` (`configs/Locomotion.cs`, the shared baseline) attached to a **movement Action**
 (run/jump/dash/slam), with per-character deviations in each character's `MOVEMENTS` catalog
 (`configs/actions_<char>.gd`). The Player seeds its runtime movement vars from the equipped movement
 Actions on every character change / swap (`_apply_movement`). Only non-movement feel (health/ruh,
@@ -469,14 +474,14 @@ light **attack** still lacks an effect scene, so it deals no damage for now.)
 **Khalid's specials** (all in the `Actions` catalog; presentation keyed by `special_<id>` animation):
 - **Ground Breaker** — AOE slam `Strike` (stun + a ground-crack).
 - **Frenemy** — a charm blast: the hit enemy becomes a temporary ally (`Hit.frenemy_time` → `Enemy.become_frenemy`).
-- **Come Closer** — a magnet: the `special_come_closer` effect scene (`scripts/combat/magnet_field.gd`) grabs
+- **Come Closer** — a magnet: the `special_come_closer` effect scene (`scripts/combat/MagnetField.cs`) grabs
   the **nearest** enemy in range and `Enemy.magnetize()`s it toward Khalid, stunning it on arrival (no damage).
   The field's **`max_targets`** (=1 today) caps how many it yanks — bump it to 3 later for a wider pull. The
   grab is measured from **Khalid's** position, *not* the field's own transform: the director spawns the field
   with `add_child()` (which runs its `_ready` scan) and only sets its world position with `Nodes.place_at()`
   **afterwards**, so reading `self.global_position` in `_ready` saw a stale pre-placement transform (near world
   origin) — the pull then only landed when Khalid stood near x≈0 (i.e. right after load) and missed once he
-  moved into the level. Has its own **1s cooldown** (`actions_khalid.gd`).
+  moved into the level. Has its own **1s cooldown** (`ActionsKhalid.cs`).
 - **Redere Shield** — a held guard: the block is *state-based* — active only while Khalid is in the shield
   special (`Player._is_shielding()`), so it drops the instant he releases or is staggered (no lingering timer,
   so a hit taken right after the guard is down lands — and sounds — normally). It **blocks** all front-side
@@ -500,7 +505,7 @@ recoloured by the power picks) spawned for the buff's duration. `Player._try_sur
 `_physics_process` (any state, no-op while dead or spawning) and gates on `if ruh < s.cost: return` then
 `ruh -= s.cost`. `Player._begin_surge(s)` applies the effect flags on the `_surge_left` timer; `_end_surge`
 clears them together. The data lives as `Action.Category.SURGE` rows carrying a **`SurgeSpec`**
-(`configs/surge_spec.gd`: `cost` + `duration` + `invuln` + `damage_mult` + `damage_taken_mult` + `aura`)
+(`configs/SurgeSpec.cs`: `cost` + `duration` + `invuln` + `damage_mult` + `damage_taken_mult` + `aura`)
 in the `ActionsKhalid.SURGES` catalog (`DEFAULT_SURGE = "aegis"`). Two ship:
 - **Aegis** (`aegis`) — full damage **immunity for 5s** (`invuln`; drops the hurtbox, same channel as dash
   i-frames). The old `special_default` "Flex/Impervious" promoted out of the specials pool.
@@ -622,7 +627,7 @@ extend the drain, so the rate of death can't be stacked up. The keys ride the sa
 `Strike.apply_tuning` (and `Projectile._inject_tuning`) copy them onto the `Hitbox` → `Hit.dot_percent`
 / `dot_time` → the victim. On an enemy, `_on_hurt` snapshots a per-tick HP and `_tick_dot` drains it in
 discrete once-a-second bites (`Enemy._reap_tick`) — ticking even while stunned, and creditable as a
-normal (Ruh-eligible) kill. Bump `reap` toward `0.15` in `actions_khalid.gd` for a deadlier mark. Any
+normal (Ruh-eligible) kill. Bump `reap` toward `0.15` in `ActionsKhalid.cs` for a deadlier mark. Any
 future move (melee **or** ranged) can carry a `reap` to inflict a DoT.
 
 **Attack cooldown (`Action.style` `COOLDOWN` + `Action.cooldown`).** A heavy one-shot can carry a
@@ -715,7 +720,7 @@ which carry `knockback 0 + stun 0`) just deal damage + a grunt. The state is hel
 hurt-anim length)` so a tiny or zero stagger never cuts the flinch off. A fresh hit **while already
 flinching** (a barrage / multiple enemies) only *extends* it — it does **not** restart the anim at frame 0,
 or a continuous pummel would freeze it on the first frame and never visibly play. One smooth flinch plays
-and holds until the barrage ends. (Per-enemy knockback/stun live in [`scripts/run/enemies.gd`](scripts/run/enemies.gd).) `take_damage()` also fires one of a few random hurt grunts (`hurt.1/2/3`, pitch-wobbled)
+and holds until the barrage ends. (Per-enemy knockback/stun live in [`scripts/run/EnemyKits.cs`](scripts/run/EnemyKits.cs).) `take_damage()` also fires one of a few random hurt grunts (`hurt.1/2/3`, pitch-wobbled)
 so he doesn't repeat, and a **low-HP warning cue** when a hit crosses a threshold **downward** —
 `health_half` at 50%, `health_low` at 20% (`_warn_low_health`, `HEALTH_WARN_HALF`/`_LOW`). It's a
 stateless edge trigger: it plays only on the crossing (never spams while you sit low), re-arms once a
@@ -743,18 +748,24 @@ Player itself stays generic, with no per-character or per-reward branching. A **
 such rule bundle; the Player holds a **list** of them (`_passives`) and dispatches every hook to each.
 Two flavours, identical interface:
 
-- a character's **intrinsic ability** — `scripts/abilities/<character_id>.gd` extending
-  `CharacterAbility` (which *is* a `Passive`). Found by filename when that character is equipped —
-  no registration; seeded FIRST in the list. A character with no file simply has no ability.
-- a **reward-granted passive** (Phase 4) — `scripts/abilities/<id>.gd` extending `Passive`, added at
-  runtime via `Player.add_passive()` when its reward is taken (a reward row's `passive: "<id>"`), and
-  cleared on run restart (each passive's `teardown` runs so it can undo lingering effects).
+The passive/buff stack + the Player are **C#** now (`scripts/abilities/*.cs`, `Player.cs`) — they ported
+together because an `extends` chain must be one language (see `docs/csharp-migration.md`). Concrete passives
+are `[GlobalClass]` so the still-GDScript `Rewards` service can `Leech.new()` them by name.
 
-```gdscript
-extends Passive   # (or CharacterAbility for a character-intrinsic one)
+- a character's **intrinsic ability** — a `CharacterAbility` (which *is* a `Passive`) returned by
+  `Player.CharacterAbilityFor(id)`, seeded FIRST in the list. Khalid ships without one.
+- a **reward-granted passive** — a `Passive` subclass, added at runtime via `Player.add_passive()` when its
+  reward is taken (a reward row's `passive: "<id>"` → `Rewards._make_passive` `.new()`s the C# class), and
+  cleared on run restart (each passive's `Teardown` runs so it can undo lingering effects).
 
-func on_hit_dealt(player: Player, amount: float, _target: Node) -> void:
-    player.heal(amount * 0.08)   # Leech: lifesteal (scripts/abilities/leech.gd)
+```csharp
+[GlobalClass]
+public partial class Leech : Passive   // (or : Buff for a move-scoped one, : CharacterAbility for intrinsic)
+{
+    public Leech() => Id = "leech";
+    public override void OnHitDealt(Player player, float amount, Node target)
+        => player.heal(amount * 0.08f);   // lifesteal (scripts/abilities/Leech.cs)
+}
 ```
 
 Hooks, all optional (override only what you need):
@@ -771,41 +782,53 @@ Hooks, all optional (override only what you need):
 | `on_hit_dealt(player, amount, target)` | Player deals damage (via RunManager) | Lifesteal, on-hit procs, stacks |
 | `modify_tuning(player, action, seg, tuning) → Dictionary` | Inside `resolve_tuning`, for every swing | **Alter a move's numbers** — damage/knockback/keys; the buff path |
 
-`physics` runs last on purpose, so a passive can override anything the state machine decided.
+`Physics` runs last on purpose, so a passive can override anything the state machine decided.
 `player.get_state()` exposes the current state, and the whole Player API — `take_damage()`,
-`velocity`, `add_passive()`, every tunable — is available. Each rule is "on EVENT, if CONDITION, do
-ACTION"; add new event hooks to `passive.gd` + fire them from the player as more are needed.
+`Velocity`, `add_passive()`, every tunable — is available. Each rule is "on EVENT, if CONDITION, do
+ACTION"; add new event hooks to `Passive.cs` + fire them from the player as more are needed.
+
+**The reward doc's trigger set is landing here** (`docs/rewards-design.md`). Beyond the hooks above, `Passive`
+now also fires the movement/attack moments the doc organises buffs by — `OnDash` / `OnGroundJump` /
+`OnAirJump` / `OnSlamTrigger` / `OnSlamLand` — and a `Trigger` enum names the whole growing vocabulary; the
+harder ones (`OnMiss`, `OnPerfectDodge`, a level timer) are reserved there until the player learns to emit
+them.
 
 ### Current passives
 
-- **Leech** (`scripts/abilities/leech.gd`) — a reward-granted passive: heal 8% of damage dealt, via
-  `on_hit_dealt`. The worked example of a rewardable behavioural ability.
-- **No character-intrinsic ability ships** — Khalid has no `scripts/abilities/khalid.gd`; his
+- **Leech** (`scripts/abilities/Leech.cs`) — a reward-granted passive: heal 8% of damage dealt, via
+  `OnHitDealt`. The worked example of a rewardable behavioural ability.
+- **No character-intrinsic ability ships** — Khalid has no C# `CharacterAbility`; his
   attacks/specials are all data (`Actions`) + effect scenes. Dropping that file gives him an intrinsic
   hook set. The parked characters in `playground/` had abilities (fall-damage-on-land, a channeled
   special that cancels when hit) — reference for what the hooks can do. Khalid used to carry the blink
   as an ability; it's now a **per-character dash option** (see **Blink dash** above).
 
-### Buffs — move-scoped passives (`scripts/abilities/buff.gd`)
+### Buffs — move-scoped passives (`scripts/abilities/Buff.cs`)
 
 A **`Buff` IS a `Passive`** (so it grants, dispatches, and tears down through the exact same machinery —
-a reward row's `passive: "<id>"` → `add_passive`), plus two extras that make it the **item/build layer**:
+a reward row's `passive: "<id>"` → `add_passive`), plus the **item/build layer** the reward doc calls for
+(`docs/rewards-design.md`):
 
-- **`applies_to`** — *which* move(s) it touches: a move id (`"twin_reaper"`), a family keyword
+- **`AppliesTo`** — *which* move(s) it touches: a move id (`"twin_reaper"`), a family keyword
   (`"attack"`/`"special"`, matched on `Action.category`), a tag (matched on `Action.tags`), or `"*"`.
-  Empty = all. One field expresses both a **tailor-made per-attack** buff and a **shared** one. Gate a
-  `modify_tuning` override with `applies_to_action(action)`; behavioural hooks (`on_parry`, …) already
-  self-scope to their fire site, so `applies_to` there is for reward gating / display.
-- **`family`** — a **replace-in-place** group: granting a buff whose `family` is already held tears down
-  the old one first (in `add_passive`), so tiered upgrades *supersede* (Ricochet I→II→III) rather than
-  stack. `""` = independent.
+  Empty = all. One field expresses both a **tailor-made per-move** buff and a **general** (category-wide)
+  one. Gate a `ModifyTuning` override with `AppliesToAction(action)`; behavioural hooks (`OnParry`, …)
+  already self-scope to their fire site, so `AppliesTo` there is for reward gating / display.
+- **`Family`** — a **replace-in-place** group: granting a buff whose `Family` is already held tears down
+  the old one first (in `add_passive`), so a higher **tier** *supersedes* its predecessor rather than
+  stacking. The doc's rule: same buff, different tier → replace (by family); a *different* buff → stacks.
+- **`Tier`** — the doc's rarity ladder, `Common → Rare → Hot → Sensational → Epic` (`RewardTypes.cs`),
+  carrying the badge colour (none/blue/orange/purple/red); the concrete buff reads its own `Tier` to scale
+  its magnitude (and can add effects per tier, e.g. +bounces).
+- **`DurationLevels`** — the doc's lifetime: `null` = permanent (whole run), `N` = expires after N level
+  advances. `Player.advance_level()` ticks it down each level and tears the buff out when it runs out.
 
-Two ways a buff acts (either/both): **numbers** — override `modify_tuning` to change a move's tuning
-dict (folded in last inside `resolve_tuning`); **behaviour** — override an event hook. Current buffs:
+Two ways a buff acts (either/both): **numbers** — override `ModifyTuning` to change a move's tuning dict
+(folded in last inside `resolve_tuning`); **behaviour** — override an event hook. Current buffs:
 
-- **Reaper's Edge** (`reaper_edge.gd`, `["twin_reaper"]`) — +25% Twin Reaper damage via `modify_tuning`.
+- **Reaper's Edge** (`ReaperEdge.cs`, `["twin_reaper"]`) — +25% Twin Reaper damage via `ModifyTuning`.
   The worked example of the numbers path (a single move, unlike the global "+12% attack damage" reward).
-- **Guardian's Mend** (`parry_mend.gd`, `["redere_shield"]`) — a perfect parry also heals, via `on_parry`.
+- **Guardian's Mend** (`ParryMend.cs`, `["redere_shield"]`) — a perfect parry also heals, via `OnParry`.
 
 ---
 
@@ -815,15 +838,15 @@ All VFX — the frame-indexed particle system and the drawn `Strike` slashes —
 live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 
 - **Particles:** data-driven emitters layered on the sprites. A `ParticleDirector`
-  (`vfx/script/particle_director.gd`, a child of the player) watches the sprite and
+  (`vfx/script/ParticleDirector.cs`, a child of the player) watches the sprite and
   emits authored types at authored frames. It resolves a type by recursively
   indexing `vfx/character/<char>/` + `vfx/shared/`, so a scene resolves wherever it's
   filed. Adding one = a scene under `vfx/character/<id>/…` + a line in
   `EmittersCharacters`, no code.
 - **Drawn slashes:** a directional crescent that must mirror with facing is a
-  **`Strike`** (`scripts/combat/strike.gd`) — a `Sprite2D`/`AnimatedSprite2D` + a
+  **`Strike`** (`scripts/combat/Strike.cs`) — a `Sprite2D`/`AnimatedSprite2D` + a
   `Hitbox` that grows/fades and self-frees, and covers melee slashes, blasts, and ground
-  AoEs. Use it instead of a `CPUParticles2D` when the texture itself must h-flip (a directional drawn slash). Its projectile sibling is **`Projectile`** (`scripts/combat/projectile.gd`).
+  AoEs. Use it instead of a `CPUParticles2D` when the texture itself must h-flip (a directional drawn slash). Its projectile sibling is **`Projectile`** (`scripts/combat/Projectile.cs`).
 - **Where to add an attack effect:** a visual → `EmittersCharacters`; a hit's
   numbers → the action's `hit.segments` in `configs/actions_<char>.gd`; a spawned thing/behavior → a
   `scripts/abilities/<id>.gd` hook. Full walkthrough (composites, `boost`,
@@ -832,7 +855,7 @@ live in **`vfx/`**, documented in **[vfx/README.md](vfx/README.md)**. In short:
 ### Sprite tint shaders (Khalid's living hair + recolourable outfit)
 
 A character's sprite can carry a `canvas_item` shader for a permanent, animated
-tint. `player.gd`'s `_apply_character()` looks for `res://resources/<char>_tint.tres`
+tint. `Player.cs`'s `_apply_character()` looks for `res://resources/<char>_tint.tres`
 after loading the SpriteFrames and, if present, assigns it as `sprite.material`
 (else clears it) — so it's pure convention, no per-character code.
 
@@ -888,12 +911,12 @@ that's the linear-vs-sRGB trap — key it off `khsv`, not `hsv`.
 
 #### Colour-picker preview (`scenes/palette_preview.tscn`)
 
-A standalone pre-game screen (`godot res://scenes/palette_preview.tscn`, controller
-`scripts/ui/palette_preview.gd`) runs Khalid's `run` cycle on a black (adjustable)
+A standalone pre-game screen (`godot-mono res://scenes/palette_preview.tscn`, controller
+`scripts/ui/PalettePreview.cs`) runs Khalid's `run` cycle on a black (adjustable)
 backdrop with one picker per body part **and** per power-colour family.
 
 **Body recolour = the material-aware palette LUT** (`vfx/shaders/sprite_palette.gdshader`
-+ `configs/palette_config.gd`), *not* the tint shader. The repalette baked the sprite to
++ `configs/PaletteConfig.cs`), *not* the tint shader. The repalette baked the sprite to
 exactly 36 known colours (6 materials × 6 shades). The shader matches each pixel to its
 `src` slot and outputs the `dst` slot, so a picker that rewrites `dst` recolours **every**
 pixel of a part — fixing the old tint-shader problem where the hair *hue-key* only caught
@@ -903,17 +926,17 @@ per-material **HDR glow** (`glow[6]`) and the living-hair **flow** (dark accents
 through the bright shades on a moving wave). Same effects, now on an exact + complete
 recolour. All six parts recolour — **including pants** (no hue-key gap anymore).
 
-`PaletteConfig.derive()` is **anchor-by-value**: the picked colour lands verbatim on the
+`PaletteConfig.Derive()` is **anchor-by-value**: the picked colour lands verbatim on the
 shade whose lightness is nearest it, and the rest of the ramp shifts by the same delta —
 so the colour you pick is the colour that covers most of the part (fixing "I picked bright
 but it showed deeper"), the light→dark shading survives, and a dark pick doesn't collapse
 the part to black (the nearest-shade anchor keeps the shift small).
 
 **Where to tweak:**
-- **Glow / vibrance / flow** — `_apply_body_effects()` in the controller (`glow`, `vibrancy`,
-  `flow_speed`/`flow_amount`/`flow_freq`/`flow_shift`) + the per-material defaults in
-  `PaletteConfig.MATERIAL_GLOW`. The flow maths itself is in `sprite_palette.gdshader`.
-- **"Colour chosen == colour shown" (accuracy)** — `PaletteConfig.derive()`. It anchors the
+- **Glow / vibrance / flow** — the `VIBRANCY`/`FLOW_*` consts + the per-material `MATERIAL_GLOW`
+  defaults in `PaletteConfig.cs` (fed to the shader by `PaletteConfig.MakeMaterial()`). The flow
+  maths itself is in `sprite_palette.gdshader`.
+- **"Colour chosen == colour shown" (accuracy)** — `PaletteConfig.Derive()`. It anchors the
   pick to its natural shade; adjust how the ramp shifts there if you want a different feel.
 - **Gauntlets vs boots** — still one `metal` material; split it into two materials (add a
   seventh to `MATERIALS`/`DEFAULT`, re-swatch the sprite) to pick them independently. TODO.
@@ -921,8 +944,8 @@ the part to black (the nearest-shade anchor keeps the shift small).
 > **Wired into the run.** The preview screen is now the **boot scene** (`project.godot`
 > `main_scene`), and its **Start run** button stamps the picks into `PaletteConfig.picks`
 > (body) + `VfxPalette.picks` (powers) — both statics that survive the scene change — then
-> loads `level.tscn`. In `player.gd`, `_apply_character()` builds Khalid's body material from
-> `PaletteConfig.make_material()` (the SAME builder the preview uses, so run == preview), and
+> loads `level.tscn`. In `Player.cs`, `_apply_character()` builds Khalid's body material from
+> `PaletteConfig.MakeMaterial()` (the SAME builder the preview uses, so run == preview), and
 > the Ruh-absorb hair flare now drives the LUT's `hair_surge` uniform. The old tint shader
 > (`khalid_tint.tres`) is retained only as a legacy path for non-Khalid characters.
 >
@@ -955,13 +978,13 @@ in `_on_character_changed`, the preview shows it live next to the sprite.
   raise `sat_floor`. The coat stays dark by design (dark in the source art) — it now reads as its hue,
   but making it *brighter* would need a value lift, which would flatten its shading.
 
-**Ruh-absorb hair flare follows the scheme.** The flare (`player.gd` `_hair_surge`) drives the body
+**Ruh-absorb hair flare follows the scheme.** The flare (`Player.cs` `_hair_surge`) drives the body
 LUT's `hair_surge` uniform toward `hair_surge_color`, which `make_material()` sets to
 `VfxPalette.recolor(PaletteConfig.RUH_CORE)` — the Ruh orb's core colour run through the *power* picks.
 So it matches the recoloured Ruh soul (pick Power 1 = blue → blue orb **and** blue flare) instead of a
 fixed gold. No picks → the default red flare (matching the default red Ruh).
 
-#### Power / VFX recolour (`configs/vfx_palette.gd`)
+#### Power / VFX recolour (`configs/VfxPalette.cs`)
 
 The emitter-side counterpart to the body tint. A colour audit showed Khalid's ~40 effect
 colours collapse to **three well-separated hue families** — red (~0°, the signature crimson
@@ -985,25 +1008,25 @@ purple, `> HUE_TOL`) are left untouched.
   default red/gold/teal look. **Dedicated to VFX**, independent of the body pickers.
 - **Choke points** — `ParticleDirector._spawn()` calls `recolor_tree` on every effect it fires
   (dash / run / all attacks / all specials / slam / spawn / death / blink). The surge aura
-  recolours its code-set `moon_color` in `player.gd`; the **Ruh orb** (in
+  recolours its code-set `moon_color` in `Player.cs`; the **Ruh orb** (in
   `vfx/character/khalid/ruh_orb/`) is recoloured at its spawn in `run_manager`; the **status
   overlays** (`vfx/character/khalid/status/` — ground_breaker + frenemy stun) are recoloured in
   `Combatant.spawn_victim_vfx(..., recolor: true)`, passed **only** from the enemy-victim path
-  (`enemy.gd`) so an enemy effect landing on the *player* keeps its own colour. Everything a
+  (`scripts/enemies/Enemy.cs`) so an enemy effect landing on the *player* keeps its own colour. Everything a
   Khalid power emits lives under `vfx/character/` and is recoloured; a regression test
   instantiates all 37 `.tscn` there under picks and asserts no red survives.
-- **Where to tweak** — family hue centres, `SAT_FLOOR`, `HUE_TOL` in `vfx_palette.gd`.
+- **Where to tweak** — family hue centres, `SAT_FLOOR`, `HUE_TOL` in `configs/VfxPalette.cs`.
 
 ---
 
 ## Audio (SFX + Music)
 
 Sound effects split **config from code**, mirroring `Emitters`. The **catalog** of what sounds exist
-is pure data in per-area files — **`SfxCharacters`**, **`SfxEnemies`**, **`SfxWorld`** (`configs/sfx_*.gd`)
-— and the autoload **`Sfx`** (`scripts/audio/sfx.gd`) is just the runtime that plays them. Files live in
+is pure data in per-area files — **`SfxCharacters`**, **`SfxEnemies`**, **`SfxWorld`** (`configs/Sfx*.cs`)
+— and the autoload **`Sfx`** (`scripts/audio/Sfx.cs`) is just the runtime that plays them. Files live in
 **`sfx/`**.
 
-Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/music.gd`), files in
+Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/Music.cs`), files in
 **`music/`**. It's a **two-player crossfader**: `Music.play("key")` fades the current track out on one
 player while the new one fades in on the other, **always started from the top** — so switching beds is
 smooth and re-entering a level restarts its music fresh. `Music.stop()` fades to silence;
@@ -1034,7 +1057,7 @@ exists. Same "drop a file, add one line" workflow as `Sfx`.
   key whose file is missing = one warning** — so a cue can be listed before its audio lands.
 - **Buses & mixing:** the mixer is split **Master → SFX + Music** (`default_bus_layout.tres`), so the
   two categories have independent volume + effects; `Sfx`/`Music` players auto-route to their bus.
-  Control them at runtime with **`AudioBus`** (`scripts/audio/audio_bus.gd`) or the convenience
+  Control them at runtime with **`AudioBus`** (`scripts/audio/AudioBus.cs`) or the convenience
   wrappers **`Sfx.set_volume(0..1)`** / **`Music.set_volume(0..1)`** (+ `set_muted`) — bind a settings
   slider straight to those. **Effects** (EQ to tweak frequencies, low/high-pass filters, reverb,
   compressor, …) go on a bus: author them in the editor's **Audio panel** (bottom dock) for anything
@@ -1062,13 +1085,13 @@ The sheets are **repaletted** (collapsed from hundreds/thousands of AI-shading c
 by the `grunt` profile in the art repo's repalette tool, each enemy carrying its own **body hue**
 (`GRUNT_ENEMIES` there — Nasen blue, Mazab crimson, …). In-engine they wear a **shared accent-glow**
 material — `resources/enemy_glow.tres` → `vfx/shaders/enemy_glow.gdshader`, applied to every enemy
-sprite in `enemy.gd` (`GLOW_MATERIAL`). It gates on saturation + brightness so **only the bright accent**
+sprite in `scripts/enemies/Enemy.cs` (`GLOW_MATERIAL`). It gates on saturation + brightness so **only the bright accent**
 (eyes / orb / iris) blooms while the dark body stays flat — a fraction of Khalid's glow, so they read as
 "alive in the dark" without lighting up. **Tweak** `glow` / `sat_min` / `val_min` on the material (raise
 `sat_min`/`val_min` if the body starts glowing; raise `glow` for punchier eyes). Bloom only renders in the
 running game (F5), not headless. Colour-*tiers* (per-spawn recolour driving behaviour) are a later step.
 
-### The `Enemy` node (`scripts/enemies/enemy.gd`, `scenes/enemy.tscn`)
+### The `Enemy` node (`scripts/enemies/Enemy.cs`, `scenes/enemy.tscn`)
 
 One reusable ground enemy. `enemy.tscn` is a thin wrapper (root + script) so it
 can be dropped into a level and tuned in the inspector; the enemy's **body** (sprite,
@@ -1089,6 +1112,10 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   hitbox SHAPE + lifetime + emit window live in the scene now — so the old `melee_hitbox_extents`/`_x` /
   `melee_strike_lifetime` / `ranged_hitbox_extents` exports are **superseded by the authored scene** (the
   scene wins). This replaced the earlier code-built-hitbox approach so enemies and the player are consistent.
+  **Fallback:** an enemy with an `attack` (melee) anim but **no melee scene** — a ranged enemy like Kebus
+  doing a point-blank jab — instead builds a bare **code hitbox** from `melee_hitbox_x` + `melee_hitbox_extents`
+  (half-size) + `melee_strike_lifetime` (`Enemy.SpawnCodeMeleeStrike`), so the swing still connects. (Without
+  it those enemies' melee dealt no damage — a long-standing gap, fixed 2026-08.)
   Two knobs ride on this: the `EmittersEnemies` **`pos`** anchors the whole attack (mirrored by facing —
   move it to reposition a strike's beam/box together), and the enemy **engages at its REAL reach** — on
   `_ready` `melee_range` is derived from the attack scene's hitbox far-edge (+ `pos.x`) via `_melee_reach()`,
@@ -1154,7 +1181,7 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   emitters by whether it's actually moving (author the emitters `local_coords = false` so the particles
   linger in the world). Tarri uses one (`vfx/enemy/tarri/patrol/tarri_patrol_trail.tscn`).
 - **Emitter naming (`EmittersEnemies`).** An enemy's particle rows are keyed by the attack's **strike
-  type** (`configs/strike_spec.gd`: `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`, `blast`,
+  type** (`configs/StrikeSpec.cs`: `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`, `blast`,
   …), never an ad-hoc name. A component of an attack appends a role: `<type>_burst` (a projectile's
   explosion, e.g. `mazab → delayed_projectile + delayed_projectile_burst`), `<type>_trail` (the motion
   trail into it, e.g. `ein → delayed_aoe + delayed_aoe_trail`). A passive movement trail is
@@ -1198,15 +1225,15 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   deals it on `contact_interval`. Also per-instance.
 - **Ranged** fires from the **muzzle** (the `Emitters` config `<id> → projectile → pos`) on the
   animation's hit frame (`hit_frames` metadata). Three `ranged_mode`s:
-  - `"aimed"` — a `projectile.gd` that points at the player's torso **the moment it fires**
+  - `"aimed"` — a `scripts/combat/Projectile.cs` that points at the player's torso **the moment it fires**
     (Kebus' staff bolt). The shot doesn't steer after that (`homing = 0` for enemies), but
     that fire-time aim is what reads as "homing." **To stop enemies tracking you, set
     `ranged_mode = "forward"`** (per instance / roster entry). Separately, `aggro`
     (default off) is what makes an enemy *chase* — leave it off to have them guard.
-  - `"forward"` — a `projectile.gd` that surges straight ahead in the enemy's facing for
+  - `"forward"` — a `scripts/combat/Projectile.cs` that surges straight ahead in the enemy's facing for
     `ranged_travel` px then fizzles, hitting whatever it passes — ignores where you are
     (Baghel's red energy). The look comes from the Emitters `projectile` scene.
-  - `"lob"` — a **`LobProjectile`** (`scripts/combat/lob_projectile.gd`), a *thrown bomb*
+  - `"lob"` — a **`LobProjectile`** (`scripts/combat/LobProjectile.cs`), a *thrown bomb*
     (Mazab). It arcs out of the muzzle **aimed** at a spot next to the player (`lob_land_offset`,
     biased toward the thrower), then **flies ballistically** until it lands on a real surface,
     where it sits **harmless but blinking** for `lob_dwell` (~1s) and **explodes** into a wide
@@ -1231,7 +1258,7 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
     (`<id> → projectile → scene`, e.g. Baghel's `attack_ground_wave.tscn`, Kebus' `attack_bolt.tscn`),
     which the projectile instances as its visual — you edit/preview it in the editor like any scene
     (they're built `emitting = true`). Empty = a simple orb trail built in code (the
-    `projectile.gd` fallback). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
+    `scripts/combat/Projectile.cs` fallback). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
     (a small box for a bolt, a tall slab rising from the ground for a wave).
     Baghel's wave is a **crest**: chunks kick up-and-forward out of a
     ground-hugging emission strip and arc back down under gravity while the
@@ -1239,7 +1266,7 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
     swell. Keep his `projectile` `pos.y` (the muzzle, in the `Emitters` config) near 0 so the
     emission base sits on the ground — a negative y lifts the whole wave off it.
   - **Ground trail** — a `"forward"` shot sets `proj.ground_trail`, so
-    `projectile.gd` adds a second, code-built emitter that lays longer-lived red
+    `scripts/combat/Projectile.cs` adds a second, code-built emitter that lays longer-lived red
     embers along the floor (`local_coords = off`, so they stay put as the shot
     rolls on) that linger and fade behind it. Its colour is **sampled from the
     wave's gradient** (`_sample_visual_color`), so it always matches whatever red
@@ -1294,16 +1321,16 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   **colour-coded by fill** — green when healthy, orange as it drops, red when low
   (`FloatingHealthBar.ratio_colors`; the thresholds/colours live in one place,
   `color_for_ratio`, so the HUD player HP bar reads from the exact same bands).
-- **Status pips** (`scripts/combat/status_icons.gd` → `StatusIcons`). A small row of tinted icons
+- **Status pips** (`scripts/combat/StatusIcons.cs` → `StatusIcons`). A small row of tinted icons
   sits just to the right of the health bar, one per active status — **reap** (dying/DoT), **stun**,
   **charm** (frenemy); **slow** is reserved for a future effect. `Enemy._refresh_status_icons()`
   recomputes the active set each frame from the enemy's own timers and only redraws when the set
   changes (a joined-key compare). Icon **art** comes from the shared `Icons` registry under
-  `status:<id>` keys and the tint/label from `configs/status_types.gd` (`StatusTypes.DEFS` + `ORDER`
+  `status:<id>` keys and the tint/label from `configs/StatusTypes.cs` (`StatusTypes.DEFS` + `ORDER`
   for the fixed left→right slot order), so all four are **temp placeholders** today — swap the paths
-  in `configs/icons.gd` (one line each) when real pips are drawn, no code change. Add a status by an
+  in `configs/Icons.cs` (one line each) when real pips are drawn, no code change. Add a status by an
   entry in `StatusTypes`, a `status:<id>` path in `Icons`, and one line in `_refresh_status_icons`.
-- **Over-head halo** (`scripts/combat/overhead_status.gd` → `OverheadStatus`). The over-head twin of the
+- **Over-head halo** (`scripts/combat/OverheadStatus.cs` → `OverheadStatus`). The over-head twin of the
   pips: a looping animation that **hovers over the enemy's head** while a status is active. Two today: the
   swirling-stars **stun halo** (`sprites/things/state/stunned.png`, 256×64 / 4 frames) and the pulsing
   skull **dying halo** for a reaped enemy (`sprites/things/state/dying.png`, 768×64 / 12 frames — only
@@ -1313,12 +1340,12 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   gently. The anim/scale/`y_off` come from `StatusTypes.OVERHEAD` (sliced once into a shared, cached
   `SpriteFrames`), so giving another status its own halo is a config line + art — no code change. Anchored
   at the enemy's head line (just under the floating bar); pixel-filtered like the rest of the art.
-- **Floating text** (`scripts/combat/floating_text.gd`, Risk-of-Rain style): a general, config-driven
+- **Floating text** (`scripts/combat/FloatingText.cs`, Risk-of-Rain style): a general, config-driven
   label emitter — `FloatingText.emit(type, host, local_pos, text, magnitude, overrides)`. It parents the label to
   the `host` and animates it (an explicit per-frame lerp, no Tween) in the host's *local* space, so it
   rides above a moving enemy/player and is immune to both the camera chasing the player and the host's
   own knockback/patrol (the two things that dragged world-space / screen-space versions across the
-  screen). **Every label TYPE is a preset** in [`configs/floating_text_types.gd`](configs/floating_text_types.gd) —
+  screen). **Every label TYPE is a preset** in [`configs/FloatingTextTypes.cs`](configs/FloatingTextTypes.cs) —
   its own size/colour (fixed or magnitude-ramped), font, `italic` slant, and independent in/out
   transition — so different events read and animate distinctly with no code change. The only live type
   live types today are the **`damage`** number over enemies (white → hot gold; `damage_special` =
@@ -1337,7 +1364,7 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   frame. An enemy with **no** `death` sheet has no animation to play out, so it does a straight
   alpha-fade instead (`_fade_and_free`). Leaving the group the instant it dies matters for
   **homing**: the node lingers for the death anim's duration, so a tracking shot re-checks
-  `is_in_group("enemies")` every frame (`projectile.gd::_target_alive()`) and **straightens
+  `is_in_group("enemies")` every frame (`scripts/combat/Projectile.cs::_target_alive()`) and **straightens
   onto its launch heading the moment the target dies** instead of curving down into the corpse.
   `_has_death` is inferred from the art, same as `_has_melee` / `_has_ranged`. `_die()` also **clears the
   UI overlays immediately** — hides the health bar, empties the status pips + stun halo, and stops the
@@ -1352,7 +1379,7 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
 > **Bosses are not Enemies.** They get their own scene/script so their move-sets
 > aren't constrained to melee/ranged. `Enemy` is for regular mobs.
 
-### Nasen — a sleeper (`scripts/enemies/nasen.gd`, `scenes/nasen.tscn`)
+### Nasen — a sleeper (`scripts/enemies/SleeperEnemy.cs`, `scenes/nasen.tscn`)
 
 A worked example of a **custom enemy that subclasses `Enemy`**: it reuses all the
 infrastructure (sprite / hurtbox / health-bar / hit-flash / death / hit-stop) and only
@@ -1378,7 +1405,7 @@ keeps raging for `rage_linger` (2s) before dozing off.
   `attack_loops`).
 - Spawned via the roster's **`scene`** key (below), not the default `enemy.tscn`.
 
-### Ein — a floating kamikaze (`scripts/enemies/ein.gd`, `scenes/ein.tscn`)
+### Ein — a floating kamikaze (`scripts/enemies/DiverEnemy.cs`, `scenes/ein.tscn`)
 
 A second custom subclass, and the first that **floats**. Ein is an orb with a dagger in its
 eye. He overrides `Enemy`'s grounded `_physics_process` entirely — **no gravity, floor, or
@@ -1419,7 +1446,7 @@ loop:
 ### Combat model (`scripts/combat/`)
 
 Damage flows **Hitbox → Hurtbox**, with teams enforced by physics layers (see
-`[layer_names]` in project.godot and `combat.gd`), so by default there's no friendly
+`[layer_names]` in project.godot and `configs/Combat.cs`), so by default there's no friendly
 fire and no group checks — a box scans only the opposing team's hurt layer. (Opt in
 per attacker with `friendly_fire`: `Combat.hurt_mask(hostile, true)` also scans its own
 team's layer, and the Hitbox skips its own `source` so it never hits itself. Used for
@@ -1436,8 +1463,8 @@ the enemy `friendly_fire` flag above.)
   hits fire on each combo hit frame; the special lands on its authored
   `special` hit frame (or the middle frame if none). Whoever is hit applies
   the knockback/stun and takes a brief stagger.
-- **`Combatant`** (`scripts/combat/combatant.gd`) is the shared base for `Player`
-  and `Enemy` (both `extends Combatant`, itself a `CharacterBody2D`). It holds the
+- **`Combatant`** (`scripts/combat/Combatant.cs`, C#) is the shared base for `Player`
+  and `Enemy` (both `: Combatant`, itself a `CharacterBody2D`). It holds the
   pieces they'd otherwise each reimplement: `anchor_to_feet` (sprite offset),
   `make_box` (rect collider), `apply_knockback` (turns a `Hit`'s knockback into a
   shove + returns the stagger time), and two "took a hit" tells:
@@ -1448,14 +1475,14 @@ the enemy `friendly_fire` flag above.)
     flat tint. Squash uses `sprite.scale` (enemies flip via `flip_h`, so scale is
     free); it re-punches cleanly on rapid hits. Feel constants live on `Combat`:
     `KNOCKBACK_POP`, `MIN_STAGGER`, `STRIKE_ACTIVE`, `HIT_FLASH`, `HIT_FLASH_TIME`.
-- **`StatusOverlay`** (`scripts/combat/status_overlay.gd`) engulfs a stunned body in
+- **`StatusOverlay`** (`scripts/combat/StatusOverlay.cs`) engulfs a stunned body in
   an additive tint that mirrors its pose (frame/flip/offset/**scale**) and **throbs**
   for visibility. Driven by a `Hit`'s `status_color` / `status_time`; Khalid's
   `special_stay` sets a red HDR colour (`>1`, so the bloom makes the frozen enemy glow).
 
 ### On-hit effects — the `Hit` object
 
-An attack delivers a `Hit` (`scripts/combat/hit.gd`) — `amount`, `knockback`,
+An attack delivers a `Hit` (`scripts/combat/Hit.cs`) — `amount`, `knockback`,
 `stun`, `source`, `ranged`, an optional status overlay (`status_color` / `status_time`),
 and an optional **reap DoT** (`dot_percent` / `dot_time` — fraction of the victim's max health
 drained per 1s tick, and for how long; see Twin Reaper's Reap above).
@@ -1495,18 +1522,18 @@ so a victim can react by attack type — e.g. nasen is stunned by melee but not 
 
 ### Player attacks — an `Action` (`hit` tuning) + a spawned `Strike` / `Projectile`
 
-An **`Action`** (`configs/action.gd`) is what a character performs — typed identity
+An **`Action`** (`configs/Action.cs`) is what a character performs — typed identity
 (`id`/`name`/`icon`), a `category` + cadence `style`, a `tier`, its `animation`, an optional
 `cooldown`, and — when it deals damage — a **`hit`** (a `StrikeSpec`: delivery `type` + per-segment
-tuning). Actions are pure code-config, one catalog per character (`configs/actions_khalid.gd`),
+tuning). Actions are pure code-config, one catalog per character (`configs/ActionsKhalid.cs`),
 reached through **`Actions`**. Presentation is deliberately NOT on the Action: its `animation` is the
 key the particles (`EmittersCharacters`) and sounds (`SfxCharacters`) hang off, so retexturing a move
-never touches its data. (This replaces the old `Move`/`moves.gd`.)
+never touches its data. (This replaces the old `Move`/`configs/ActionsKhalid.cs`.)
 
 There's **no built-in attack box** any more. Every attack is a **spawned node** that
-carries its own `Hitbox`: a **`Strike`** (`scripts/combat/strike.gd` — a melee slash /
+carries its own `Hitbox`: a **`Strike`** (`scripts/combat/Strike.cs` — a melee slash /
 blast / ground AoE that stays at the body) or a **`Projectile`**
-(`scripts/combat/projectile.gd` — a shot that leaves the body, used by players *and*
+(`scripts/combat/Projectile.cs` — a shot that leaves the body, used by players *and*
 enemies via a `hostile` flag). The `ParticleDirector` fires it on the attack's authored
 frames and feeds it the hit's numbers from the **`Action`'s `hit`** — so combat numbers
 live in one place, in code, never baked in a `.tscn`.
@@ -1572,7 +1599,7 @@ through projectiles and attacks unharmed.
 
 ### Spawning & the run
 
-`scripts/run/run_manager.gd` (`RunManager`, the level-scene root) builds each level in code
+`scripts/run/RunManager.cs` (`RunManager`, the level-scene root) builds each level in code
 from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds it open. See
 [`scripts/run/README.md`](scripts/run/README.md) for the full loop; the build basics:
 
@@ -1595,7 +1622,7 @@ from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds 
   charge**, and rate-limited (`RUH_FLASH_REFRACTORY`) so a cluster of arrivals folds into one surge
   instead of strobing. Ruh is banked at the kill, not the arrival (`RunManager._spawn_ruh_orb` passes
   the charge flag), so the special stays available immediately; the absorb palette (`HAIR_ABSORB_*`
-  in `player.gd`) is the knob to play with. World-parented + no Area2D, so it's safe mid-physics-flush.
+  in `Player.cs`) is the knob to play with. World-parented + no Area2D, so it's safe mid-physics-flush.
 - **Camera** follows the player in **`_physics_process`** with a smoothed `lerp`,
   so it tracks at the same rhythm as the player (see below) — you can traverse
   across.
@@ -1692,7 +1719,7 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
 
 ## HUD
 
-`scenes/hud.tscn` + `scripts/hud.gd` — portrait, name, health bar, Ruh charge
+`scenes/hud.tscn` + `scripts/HUD.cs` — portrait, name, health bar, Ruh charge
 meter, and a **`LEVELS n · BEST n`** line (levels cleared this run + the best-ever
 record). The HP bar's fill is **colour-coded green→orange→red by how full it is**,
 retinted each frame as it drains (`_recolor_hp`) from the shared
@@ -1706,7 +1733,7 @@ clean. This also means no scene file holds a reference to it.
 
 It follows character swaps and health changes over signals — nothing polls.
 
-### Off-screen enemy arrows (`scripts/ui/offscreen_markers.gd`)
+### Off-screen enemy arrows (`scripts/ui/OffscreenMarkers.cs`)
 
 With the tight 6× camera and the big orb launches, enemies leave the frame constantly — so you can't
 see where to slam/approach. `OffscreenMarkers` is a full-viewport overlay the HUD builds (a sibling of
@@ -1715,7 +1742,7 @@ group through the camera — `get_viewport().get_canvas_transform() * enemy.glob
 any that land **outside the view** it draws a **chevron clamped to an inset screen edge**, rotated to
 point at the enemy. On-screen enemies get nothing (you can already see them). Each arrow is:
 - **tinted per enemy** so you can tell which is where — `EnemyMarkers.color_for(enemy_id)`
-  (`configs/enemy_markers.gd`: kebus gold, baghel purple, nasen blue, mazab crimson, ein orange, matat
+  (`configs/EnemyMarkers.cs`: kebus gold, baghel purple, nasen blue, mazab crimson, ein orange, matat
   orange-red, tarri yellow-gold, breski blood-red; tune
   there), and
 - **faded + shrunk by world distance** from the camera centre (`FADE_START`/`FADE_END`), so a nearby
@@ -1724,7 +1751,7 @@ point at the enemy. On-screen enemies get nothing (you can already see them). Ea
 It's self-contained (finds enemies + the camera itself; no per-frame wiring) and screen-space, so it's
 immune to the zoom. Tunables (`MARGIN`, `SIZE_*`, `FADE_*`, `ALPHA_*`) live at the top of the script.
 
-### Persistent record — `SaveData` (`scripts/save_data.gd`)
+### Persistent record — `SaveData` (`scripts/SaveData.cs`)
 
 The best-ever *levels cleared in one run* survives between sessions. `SaveData` is
 an all-static helper backed by a `ConfigFile` at `user://save.cfg`:

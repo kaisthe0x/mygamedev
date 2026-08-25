@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://b64mvp2rqfl12"]
 
-[ext_resource type="Script" uid="uid://cf6pbtmmkuitd" path="res://scripts/combat/strike.gd" id="1_strike"]
+[ext_resource type="Script" path="res://scripts/combat/MeleeStrike.cs" id="1_strike"]
 [ext_resource type="Texture2D" uid="uid://d4a7kiok3pfpu" path="res://vfx/character/khalid/attack/ora_ora/gauntlet1.png" id="2_ri72s"]
-[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/hitbox.gd" id="3_hitbox"]
+[ext_resource type="Script" uid="uid://brpdnn6w3ctbk" path="res://scripts/combat/Hitbox.cs" id="3_hitbox"]
 [ext_resource type="Texture2D" uid="uid://cdmf8du7wrmuj" path="res://vfx/character/khalid/attack/ora_ora/gauntlet.png" id="3_lohr8"]
 
 [sub_resource type="Curve" id="Curve_shrink"]
