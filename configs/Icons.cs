@@ -61,6 +61,7 @@ public static class Icons
         return tex;
     }
 
-    public static Texture2D Door(string doorType) => Texture($"door:{doorType}");
+    public static Texture2D Door(DoorType doorType) => Texture($"door:{doorType.Key()}");
     public static Texture2D Buff(string id) => Texture($"buff:{id}");
+    public static Texture2D Status(StatusType status) => Texture($"status:{status.Key()}");
 }

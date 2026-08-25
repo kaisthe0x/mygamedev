@@ -20,11 +20,8 @@ public partial class RewardUI : CanvasLayer
         ProcessMode = ProcessModeEnum.Always; // keep working while the tree is paused
     }
 
-    private static Color TierColor(string tier) => Loadout.TierColor(tier);
-    private static string TierLabel(string tier) => Loadout.TierLabel(tier);
-
     /// <summary>Show a card per reward ({id, name, desc}) and pause until one is picked. `doorType` titles the popup.</summary>
-    public void Open(GArr rewards, string doorType = "")
+    public void Open(GArr rewards, DoorType doorType)
     {
         GetTree().Paused = true;
 
@@ -42,7 +39,7 @@ public partial class RewardUI : CanvasLayer
 
         var title = new Label
         {
-            Text = doorType != "" ? $"{doorType.ToUpper()} REWARD" : "CHOOSE A REWARD",
+            Text = $"{doorType.Key().ToUpper()} REWARD",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         title.AddThemeFontSizeOverride("font_size", 22);
@@ -64,12 +61,12 @@ public partial class RewardUI : CanvasLayer
             string id = r["id"].AsString();
             card.Pressed += () => Pick(id);
             row.AddChild(card);
-            // Loadout-swap cards carry a tier -- badge it + tint the border.
+            // Tiered reward cards carry a Tier -- badge it + tint the border.
             if (r.ContainsKey("tier"))
             {
-                string tier = r["tier"].AsString();
-                Color tcol = TierColor(tier);
-                var badge = new Label { Text = TierLabel(tier).ToUpper(), Position = new Vector2(8, 6) };
+                var tier = (Tier)r["tier"].As<int>();
+                Color tcol = Tiers.ColorOf(tier);
+                var badge = new Label { Text = Tiers.Label(tier).ToUpper(), Position = new Vector2(8, 6) };
                 badge.AddThemeFontSizeOverride("font_size", 12);
                 badge.AddThemeColorOverride("font_color", tcol);
                 badge.AddThemeColorOverride("font_outline_color", Colors.Black);

@@ -15,27 +15,25 @@ public partial class ExitGate : Area2D
 
     private static readonly Vector2 Size = new(44, 96);
 
-    public string door_type = "health";
+    public DoorType door_type = DoorType.Health;
 
     private ColorRect _fill;
     private TextureRect _icon;
     private Label _label;
     private bool _open;
 
-    private static bool Known(string t) => t is "health" or "athletic" or "attack" or "special";
-
     // door type -> (label, accent colour).
-    private static (string Label, Color Color) Info(string t) => t switch
+    private static (string Label, Color Color) Info(DoorType t) => t switch
     {
-        "athletic" => ("ATHLETIC", new Color(0.45f, 0.75f, 1.0f)),
-        "attack" => ("ATTACK", new Color(1.0f, 0.55f, 0.35f)),
-        "special" => ("SPECIAL", new Color(0.9f, 0.5f, 1.0f)),
+        DoorType.Athletic => ("ATHLETIC", new Color(0.45f, 0.75f, 1.0f)),
+        DoorType.Attack => ("ATTACK", new Color(1.0f, 0.55f, 0.35f)),
+        DoorType.Special => ("SPECIAL", new Color(0.9f, 0.5f, 1.0f)),
         _ => ("HEALTH", new Color(0.35f, 0.85f, 0.45f)),
     };
 
-    public void Setup(string type)
+    public void Setup(DoorType type)
     {
-        door_type = Known(type) ? type : "health";
+        door_type = type;
         CollisionLayer = 0;
         CollisionMask = (uint)Combat.Layer.PlayerBody; // detect the player's body
         AddChild(new CollisionShape2D

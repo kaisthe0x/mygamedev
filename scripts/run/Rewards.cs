@@ -19,31 +19,29 @@ public partial class Rewards : RefCounted
 {
     /// <summary>`n` rewards for a `door_type`, build-aware (requires + unique gates), sampled weighted by synergy.
     /// The SPECIAL door also mixes in change-special swap cards. Returns an array of card dicts for RewardUI.</summary>
-    public GArr offer_for(string doorType, Player player, int n)
+    public GArr offer_for(DoorType doorType, Player player, int n)
     {
         var build = Build.Of(player);
         var weighted = new List<(GDict card, float weight)>();
-        if (RewardsCatalog.POOLS.ContainsKey(doorType))
-            foreach (Variant dv in RewardsCatalog.POOLS[doorType].As<GArr>())
+        if (RewardsCatalog.POOLS.TryGetValue(doorType, out var pool))
+            foreach (Variant dv in pool)
             {
                 var r = Reward.Make(doorType, dv.As<GDict>());
                 if (r.Offerable(build))
                     weighted.Add((r.ToCard(), r.Weight(build)));
             }
-        if (doorType == "special" && player != null)
+        if (doorType == DoorType.Special && player != null)
             foreach (Variant cv in player.loadout_choices())
             {
                 var choice = cv.As<GDict>();
-                if (choice["category"].AsString() != "special")
+                if ((LoadoutCategory)choice["category"].As<int>() != LoadoutCategory.Special)
                     continue;
                 var o = choice["option"].As<GDict>();
-                string tierLbl = Loadout.TierLabel(o["tier"].AsString());
                 weighted.Add((new GDict
                 {
-                    { "id", $"swap:special:{o["id"].AsString()}" },
+                    { "id", $"swap:{LoadoutCategory.Special.Key()}:{o["id"].AsString()}" },
                     { "name", o["name"] },
-                    { "desc", $"Change special · {tierLbl}" },
-                    { "tier", o["tier"] },
+                    { "desc", "Change special" },
                     { "icon", o["icon"] },
                 }, 1.0f));
             }
@@ -83,8 +81,8 @@ public partial class Rewards : RefCounted
         if (id.StartsWith("swap:"))
         {
             var parts = id.Split(':'); // swap:<category>:<option_id>
-            if (parts.Length == 3)
-                player.equip(parts[1], parts[2]);
+            if (parts.Length == 3 && LoadoutCategories.Parse(parts[1]) is LoadoutCategory cat)
+                player.equip(cat, parts[2]);
             player.record_reward(id);
             return;
         }
@@ -95,9 +93,9 @@ public partial class Rewards : RefCounted
             return;
         }
         player.record_reward(id);
-        if (r.Equip.Count > 0) // a move swap / upgrade
+        if (r.Equip.Count > 0 && LoadoutCategories.Parse(r.Equip["category"].AsString()) is LoadoutCategory ec) // a move swap / upgrade
         {
-            player.equip(r.Equip["category"].AsString(), r.Equip["id"].AsString());
+            player.equip(ec, r.Equip["id"].AsString());
             return;
         }
         if (r.Passive != "") // a behavioural passive (ability)
@@ -114,11 +112,11 @@ public partial class Rewards : RefCounted
     private static Reward Find(string id)
     {
         foreach (var door in RewardsCatalog.POOLS.Keys)
-            foreach (Variant dv in RewardsCatalog.POOLS[door].As<GArr>())
+            foreach (Variant dv in RewardsCatalog.POOLS[door])
             {
                 var d = dv.As<GDict>();
                 if (d["id"].AsString() == id)
-                    return Reward.Make(door.AsString(), d);
+                    return Reward.Make(door, d);
             }
         return null;
     }
@@ -126,9 +124,9 @@ public partial class Rewards : RefCounted
     /// <summary>Instantiate a reward-granted Passive by id — the C# passives directly (no load-path bridge).</summary>
     private static Passive MakePassive(string passiveId) => passiveId switch
     {
-        "leech" => new Leech(),
-        "parry_mend" => new ParryMend(),
-        "reaper_edge" => new ReaperEdge(),
+        PassiveIds.Leech => new Leech(),
+        PassiveIds.ParryMend => new ParryMend(),
+        PassiveIds.ReaperEdge => new ReaperEdge(),
         _ => Warn(passiveId),
     };
 
@@ -144,23 +142,23 @@ public partial class Rewards : RefCounted
         switch (id)
         {
             // health
-            case "mend": player.heal(40.0f); break;
-            case "max_hp": player.max_health += 25.0f; player.heal(25.0f); break;
+            case RewardIds.Mend: player.heal(40.0f); break;
+            case RewardIds.MaxHp: player.max_health += 25.0f; player.heal(25.0f); break;
             // athletic
-            case "air_jump": player.air_jump_bonus += 1; player.equip("jump", player.loadout_id("jump")); break;
-            case "run": player.run_mult *= 1.1f; player.equip("run", player.loadout_id("run")); break;
-            case "tough": player.damage_taken_mult *= 0.9f; break;
-            case "slam_dmg": player.slam_damage_mult *= 1.25f; break;
-            case "crimson_vortex": player.set_dash_effect("dash_crimson_vortex"); break;
+            case RewardIds.AirJump: player.air_jump_bonus += 1; player.equip(LoadoutCategory.Jump, player.loadout_id(LoadoutCategory.Jump)); break;
+            case RewardIds.Run: player.run_mult *= 1.1f; player.equip(LoadoutCategory.Run, player.loadout_id(LoadoutCategory.Run)); break;
+            case RewardIds.Tough: player.damage_taken_mult *= 0.9f; break;
+            case RewardIds.SlamDmg: player.slam_damage_mult *= 1.25f; break;
+            case RewardIds.CrimsonVortex: player.set_dash_effect("dash_crimson_vortex"); break;
             // attack
-            case "reach": player.attack_reach_mult *= 1.15f; break;
-            case "atk_dmg": player.damage_mult += 0.12f; break;
-            case "multishot": player.attack_projectile_bonus += 1; break;
+            case RewardIds.Reach: player.attack_reach_mult *= 1.15f; break;
+            case RewardIds.AtkDmg: player.damage_mult += 0.12f; break;
+            case RewardIds.Multishot: player.attack_projectile_bonus += 1; break;
             // special
-            case "ruh_cap": player.ruh_cap += player.RUH_PER_BLOCK; break;
-            case "longer_imp": player.special_invuln_bonus += 3.0f; break;
-            case "imp_until_hit": player.impervious_until_hit = true; break;
-            case "bigger_blast": player.special_radius_mult *= 1.2f; break;
+            case RewardIds.RuhCap: player.ruh_cap += player.RUH_PER_BLOCK; break;
+            case RewardIds.LongerImp: player.special_invuln_bonus += 3.0f; break;
+            case RewardIds.ImpUntilHit: player.impervious_until_hit = true; break;
+            case RewardIds.BiggerBlast: player.special_radius_mult *= 1.2f; break;
             default: GD.PushWarning($"Rewards: unhandled buff id '{id}'"); break;
         }
     }

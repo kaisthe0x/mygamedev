@@ -1,5 +1,4 @@
 using Godot;
-using GDict = Godot.Collections.Dictionary;
 
 namespace MyGame;
 
@@ -15,14 +14,14 @@ public partial class ReaperEdge : Buff
 
     public ReaperEdge()
     {
-        Id = "reaper_edge";
-        AppliesTo = new Godot.Collections.Array { "twin_reaper" };
+        Id = PassiveIds.ReaperEdge;
+        AppliesTo = [AttackIds.TwinReaper];
     }
 
-    public override GDict ModifyTuning(Player player, GodotObject action, int seg, GDict tuning)
+    public override SegmentData ModifyTuning(Player player, Action action, int seg, SegmentData tuning)
     {
-        if (AppliesToAction(action) && tuning.ContainsKey("damage"))
-            tuning["damage"] = tuning["damage"].As<float>() * DamageMult;
+        if (AppliesToAction(action) && tuning.Damage.HasValue)
+            tuning.Damage *= DamageMult;
         return tuning;
     }
 }

@@ -147,7 +147,7 @@ public partial class DiverEnemy : Enemy
     {
         SfxPlayAt("ein.delayed_aoe", GlobalPosition);
         var strike = SpawnAttack(VfxScene("delayed_aoe"),
-            new GDict { { "damage", explosion_damage }, { "knockback", explosion_knockback }, { "stun", explosion_stun } },
+            new SegmentData { Damage = explosion_damage, Knockback = explosion_knockback, Stun = explosion_stun },
             true);
         if (strike != null)
             PlaceAt(strike, GlobalPosition);

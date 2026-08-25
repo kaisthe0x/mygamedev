@@ -13,7 +13,7 @@ public partial class Leech : Passive
 {
     private const float Fraction = 0.08f;
 
-    public Leech() => Id = "leech";
+    public Leech() => Id = PassiveIds.Leech;
 
     public override void OnHitDealt(Player player, float amount, Node target)
     {

@@ -26,10 +26,6 @@ public partial class AttackSelect : CanvasLayer
         ProcessMode = ProcessModeEnum.Always; // keep working while the tree is paused
     }
 
-    // --- shared config bridges ---
-    private static Color TierColor(string tier) => Loadout.TierColor(tier);
-    private static string TierLabel(string tier) => Loadout.TierLabel(tier);
-
     public void Open(string character)
     {
         GetTree().Paused = true;
@@ -72,9 +68,8 @@ public partial class AttackSelect : CanvasLayer
         scroll.AddChild(grid);
 
         Button first = null;
-        foreach (Variant idV in Actions.Ids(character, "attacks"))
+        foreach (string id in Actions.Ids(character, "attacks"))
         {
-            string id = idV.AsString();
             var a = Actions.GetAction(character, "attacks", id);
             if (a == null)
                 continue;
@@ -85,18 +80,16 @@ public partial class AttackSelect : CanvasLayer
         first?.GrabFocus();
     }
 
-    private Button MakeCard(string id, GodotObject action)
+    private Button MakeCard(string id, Action action)
     {
-        string tier = action.Get("tier").AsString();
-        Color tcol = TierColor(tier);
         var card = new Button { CustomMinimumSize = Card, ClipContents = true };
-        var sb = new StyleBoxFlat { BgColor = new Color(0.12f, 0.12f, 0.15f, 0.96f), BorderColor = tcol };
+        var sb = new StyleBoxFlat { BgColor = new Color(0.12f, 0.12f, 0.15f, 0.96f), BorderColor = new Color(0.55f, 0.47f, 0.16f) };
         sb.SetBorderWidthAll(2);
         sb.SetCornerRadiusAll(4);
         card.AddThemeStyleboxOverride("normal", sb);
         card.AddThemeStyleboxOverride("hover", sb);
-        string text = $"{action.Get("name").AsString()}\n[{TierLabel(tier)}]  dmg {Dmg(action)}";
-        card.AddChild(CardBody(Icons.LoadPath(action.Get("icon").AsString()), text, Card.X));
+        string text = $"{action.Name}\ndmg {Dmg(action)}";
+        card.AddChild(CardBody(Icons.LoadPath(action.Icon), text, Card.X));
         card.Pressed += () => Pick(id);
         return card;
     }
@@ -136,20 +129,13 @@ public partial class AttackSelect : CanvasLayer
     }
 
     /// <summary>Damage summary: a multi-segment combo shows "a/b/c", a single hit its damage, no hitbox "scene".</summary>
-    private static string Dmg(GodotObject action)
+    private static string Dmg(Action action)
     {
-        Variant hitV = action.Get("hit");
-        if (hitV.VariantType != Variant.Type.Object)
-            return "scene";
-        var segs = hitV.AsGodotObject().Get("segments").As<GArr>();
-        if (segs.Count == 0)
+        if (action.Hit == null || action.Hit.Segments.Length == 0)
             return "scene";
         var parts = new List<string>();
-        foreach (Variant sv in segs)
-        {
-            var s = sv.As<GDict>();
-            parts.Add(s.ContainsKey("damage") ? s["damage"].ToString() : "0");
-        }
+        foreach (var s in action.Hit.Segments)
+            parts.Add(s.Damage.HasValue ? s.Damage.Value.ToString() : "0");
         return parts.Count == 1 ? parts[0] : string.Join("/", parts);
     }
 

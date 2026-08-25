@@ -21,8 +21,8 @@ public sealed class Reward
     public string Name;
     public string Desc;
     public string Icon = "";
-    public string TierLabel = "";       // "" = no tier badge (Reward.tier in GDScript)
-    public string Door = "";
+    public Tier? RewardTier = null;     // null = no tier badge; else a RewardTypes.Tier (Common…Epic)
+    public DoorType Door = DoorType.Health;
     public GArr Tags = new();
     public GDict Requires = new();
     public GDict Synergy = new();
@@ -33,14 +33,13 @@ public sealed class Reward
 
     private static string S(GDict d, string k, string def = "") => d.ContainsKey(k) ? d[k].AsString() : def;
 
-    public static Reward Make(string doorType, GDict d)
+    public static Reward Make(DoorType doorType, GDict d)
     {
         var r = new Reward
         {
             Id = S(d, "id"),
             Door = doorType,
             Icon = S(d, "icon"),
-            TierLabel = S(d, "tier"),
             Upgrades = S(d, "upgrades"),
             Passive = S(d, "passive"),
             Unique = d.ContainsKey("unique") && d["unique"].AsBool(),
@@ -51,6 +50,7 @@ public sealed class Reward
         };
         r.Name = S(d, "name", Capitalize(r.Id));
         r.Desc = S(d, "desc");
+        r.RewardTier = d.ContainsKey("tier") ? (Tier)d["tier"].As<int>() : null;
         return r;
     }
 
@@ -58,8 +58,8 @@ public sealed class Reward
     public GDict ToCard()
     {
         var c = new GDict { { "id", Id }, { "name", Name }, { "desc", Desc } };
-        if (TierLabel != "")
-            c["tier"] = TierLabel;
+        if (RewardTier is Tier t)
+            c["tier"] = (int)t;
         if (Icon != "")
             c["icon"] = Icon;
         return c;

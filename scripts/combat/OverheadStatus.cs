@@ -1,7 +1,5 @@
 using Godot;
 using System.Collections.Generic;
-using GDict = Godot.Collections.Dictionary;
-using GArr = Godot.Collections.Array;
 
 namespace MyGame;
 
@@ -18,7 +16,7 @@ public partial class OverheadStatus : Node2D
 
     private AnimatedSprite2D _sprite;
     private float _yOff = 0.0f;
-    private string _shown = "";
+    private StatusType? _shown = null;
     private float _phase = 0.0f;
 
     // SpriteFrames are sliced ONCE per sheet and shared across every enemy (the art is identical).
@@ -41,10 +39,10 @@ public partial class OverheadStatus : Node2D
     public void Setup(float headY) => Position = new Vector2(0.0f, headY);
 
     /// <summary>Show the highest-priority active status that HAS an over-head anim; hide if none do.</summary>
-    public void SetActive(GArr ids)
+    public void SetActive(List<StatusType> ids)
     {
-        string pick = "";
-        foreach (string id in StatusTypes.ORDER)
+        StatusType? pick = null;
+        foreach (StatusType id in StatusTypes.ORDER)
         {
             if (ids.Contains(id) && StatusTypes.OVERHEAD.ContainsKey(id))
             {
@@ -55,16 +53,16 @@ public partial class OverheadStatus : Node2D
         if (pick == _shown)
             return;
         _shown = pick;
-        if (pick == "")
+        if (pick is not StatusType status)
         {
             _sprite.Visible = false;
             SetProcess(false);
             return;
         }
-        var spec = StatusTypes.OVERHEAD[pick].As<GDict>();
+        var spec = StatusTypes.OVERHEAD[status];
         _sprite.SpriteFrames = FramesFor(spec);
-        _sprite.Scale = Vector2.One * (spec.ContainsKey("scale") ? spec["scale"].As<float>() : 1.0f);
-        _yOff = spec.ContainsKey("y_off") ? spec["y_off"].As<float>() : 0.0f;
+        _sprite.Scale = Vector2.One * spec.Scale;
+        _yOff = spec.YOff;
         _phase = 0.0f;
         _sprite.Position = new Vector2(_sprite.Position.X, _yOff);
         _sprite.Play("default");
@@ -79,18 +77,18 @@ public partial class OverheadStatus : Node2D
     }
 
     /// <summary>Build (and cache) a looping SpriteFrames from a horizontal sheet: `hframes` cells of equal width.</summary>
-    private static SpriteFrames FramesFor(GDict spec)
+    private static SpriteFrames FramesFor(OverheadHalo spec)
     {
-        string path = spec["sheet"].AsString();
+        string path = spec.Sheet;
         if (SfCache.TryGetValue(path, out var cached))
             return cached;
         var tex = GD.Load<Texture2D>(path);
-        int hframes = spec.ContainsKey("hframes") ? spec["hframes"].As<int>() : 1;
+        int hframes = spec.HFrames;
         int fw = tex.GetWidth() / Mathf.Max(hframes, 1);
         int fh = tex.GetHeight();
         var sf = new SpriteFrames();
         sf.SetAnimationLoop("default", true);
-        sf.SetAnimationSpeed("default", spec.ContainsKey("fps") ? spec["fps"].As<double>() : 10.0);
+        sf.SetAnimationSpeed("default", spec.Fps);
         for (int i = 0; i < hframes; i++)
         {
             var at = new AtlasTexture { Atlas = tex, Region = new Rect2(i * fw, 0, fw, fh) };

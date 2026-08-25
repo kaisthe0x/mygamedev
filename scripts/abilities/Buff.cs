@@ -1,5 +1,5 @@
 using Godot;
-using GArr = Godot.Collections.Array;
+using System.Collections.Generic;
 
 namespace MyGame;
 
@@ -30,8 +30,8 @@ namespace MyGame;
 [GlobalClass]
 public partial class Buff : Passive
 {
-    /// <summary>Move ids / family keywords / tags this buff modifies ("" or "*" = all).</summary>
-    public GArr AppliesTo = new();
+    /// <summary>Move ids / family keywords / tags this buff modifies (empty or "*" = all).</summary>
+    public List<string> AppliesTo = new();
 
     /// <summary>Replace-in-place group ("" = never auto-replaced). Tiers of one buff share a family.</summary>
     public string Family = "";
@@ -48,22 +48,24 @@ public partial class Buff : Passive
     /// <summary>
     /// True if this buff should act on <paramref name="action"/> — by id, by category keyword ("attack"/"special"),
     /// by a tag, or unconditionally ("*"/empty). Gate <see cref="Passive.ModifyTuning"/> (and move-specific work) with it.
-    /// <paramref name="action"/> is the GDScript Action object (bridged fields).
     /// </summary>
-    public bool AppliesToAction(GodotObject action)
+    public bool AppliesToAction(Action action)
     {
         if (action == null)
             return false;
         if (AppliesTo.Count == 0 || AppliesTo.Contains("*"))
             return true;
-        if (AppliesTo.Contains(action.Get("id")))
+        if (AppliesTo.Contains(action.Id))
             return true;
-        // Action.Category: ATTACK = 0, SPECIAL = 1 (see configs/action.gd).
-        int cat = action.Get("category").As<int>();
-        string catKw = cat == 0 ? "attack" : cat == 1 ? "special" : "";
+        string catKw = action.Category switch
+        {
+            ActionCategory.Attack => "attack",
+            ActionCategory.Special => "special",
+            _ => "",
+        };
         if (catKw != "" && AppliesTo.Contains(catKw))
             return true;
-        foreach (Variant t in action.Get("tags").As<GArr>())
+        foreach (string t in action.Tags)
             if (AppliesTo.Contains(t))
                 return true;
         return false;

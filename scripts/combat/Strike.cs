@@ -20,7 +20,7 @@ namespace MyGame;
 /// so a code path can still build a bare one; author scenes against the typed subclasses.
 /// </summary>
 [GlobalClass]
-public partial class Strike : Node2D
+public partial class Strike : Node2D, ITunable
 {
     /// <summary>false = a player strike (hits enemies); true = an enemy strike (hits the player).</summary>
     [Export] public bool hostile { get; set; }
@@ -96,59 +96,55 @@ public partial class Strike : Node2D
     /// set the hitbox numbers + reach, and trigger wielder-effects (lunge/super-armor) on <c>source</c>.
     /// Called by the spawner after add_child, before the hitbox is armed. Absent fields keep authored values.
     /// </summary>
-    public void apply_tuning(GDict t, Node? striker)
+    public void apply_tuning(SegmentData t, Node? striker)
     {
         if (striker != null)
             source = striker;
         Box ??= FindHitbox();
-        if (Box != null && t.Count > 0)
+        if (Box != null)
         {
-            if (t.ContainsKey("damage")) Box.damage = GetF(t, "damage");
-            if (t.ContainsKey("knockback")) Box.knockback = GetF(t, "knockback");
-            if (t.ContainsKey("stun")) Box.stun = GetF(t, "stun");
-            if (t.ContainsKey("color")) Box.status_color = t["color"].AsColor();
-            if (t.ContainsKey("color") || t.ContainsKey("stun"))
-                Box.status_time = GetF(t, "color_time", GetF(t, "stun"));
-            if (t.ContainsKey("victim_effect"))
+            if (t.Damage.HasValue) Box.damage = t.Damage.Value;
+            if (t.Knockback.HasValue) Box.knockback = t.Knockback.Value;
+            if (t.Stun.HasValue) Box.stun = t.Stun.Value;
+            if (t.Color.HasValue) Box.status_color = t.Color.Value;
+            if (t.Color.HasValue || t.Stun.HasValue)
+                Box.status_time = t.ColorTime ?? t.Stun ?? 0.0f;
+            if (t.VictimEffect != null)
             {
-                Box.victim_vfx = GD.Load<PackedScene>(t["victim_effect"].AsString());
-                Box.victim_vfx_time = GetF(t, "victim_time"); // 0 -> defaults to the stun/status window
+                Box.victim_vfx = GD.Load<PackedScene>(t.VictimEffect);
+                Box.victim_vfx_time = t.VictimTime ?? 0.0f; // 0 -> defaults to the stun/status window
             }
-            if (t.ContainsKey("from_special")) Box.from_special = t["from_special"].AsBool();
-            if (t.ContainsKey("frenemy")) Box.frenemy_time = GetF(t, "frenemy");
-            if (t.ContainsKey("reap"))
+            if (t.FromSpecial.HasValue) Box.from_special = t.FromSpecial.Value;
+            if (t.Frenemy.HasValue) Box.frenemy_time = t.Frenemy.Value;
+            if (t.Reap.HasValue)
             {
-                Box.dot_percent = GetF(t, "reap");
-                Box.dot_time = GetF(t, "reap_time");
+                Box.dot_percent = t.Reap.Value;
+                Box.dot_time = t.ReapTime ?? 0.0f;
             }
             ResizeHitbox(t);
         }
         // Wielder-effects on the striker (option A): lunge shoves forward, armor shrugs off stagger. No-op when
-        // the method is absent. C#→GDScript is a dynamic Call (the striker is still a GDScript body).
+        // the method is absent (a dynamic Call — the striker may be any body type).
         if (source != null)
         {
-            float lunge = GetF(t, "lunge");
+            float lunge = t.Lunge ?? 0.0f;
             if (lunge != 0.0f && source.HasMethod("apply_lunge"))
                 source.Call("apply_lunge", lunge);
-            float armor = GetF(t, "super_armor");
+            float armor = t.SuperArmor ?? 0.0f;
             if (armor > 0.0f && source.HasMethod("set_armor"))
                 source.Call("set_armor", armor);
         }
-        int hits = GetI(t, "multi_hit", 1);
+        int hits = t.MultiHit ?? 1;
         if (hits > 1 && Box != null)
             SetupMultiHit(hits);
         // Injected DoT from a move's tuning (only if the scene didn't already author one in _Ready).
-        if (t.ContainsKey("tick") && Box != null && !IsInstanceValid(_tickTimer))
-        {
-            float injected = GetF(t, "tick");
-            if (injected > 0.0f)
-                StartTicking(injected);
-        }
+        if (t.Tick is float tick && tick > 0.0f && Box != null && !IsInstanceValid(_tickTimer))
+            StartTicking(tick);
         OnTuningApplied(t);
     }
 
     /// <summary>Subclass hook run at the end of <see cref="apply_tuning"/> (BlastStrike holds the caster's pose here).</summary>
-    protected virtual void OnTuningApplied(GDict t) { }
+    protected virtual void OnTuningApplied(SegmentData t) { }
 
     /// <summary>Hit `hits` times across the strike's life — a fixed COUNT of pulses (a buff). For a steady interval use <c>tick</c>.</summary>
     private void SetupMultiHit(int hits)
@@ -199,9 +195,9 @@ public partial class Strike : Node2D
     }
 
     /// <summary>Resize/reposition the hitbox from tuning `extents` (half-size) + `x` (forward reach, right-facing).</summary>
-    private void ResizeHitbox(GDict t)
+    private void ResizeHitbox(SegmentData t)
     {
-        if (Box == null || !(t.ContainsKey("extents") || t.ContainsKey("x")))
+        if (Box == null || !(t.Extents.HasValue || t.X.HasValue))
             return;
         foreach (var node in Box.FindChildren("*", "CollisionShape2D", true, false))
         {
@@ -209,11 +205,11 @@ public partial class Strike : Node2D
             {
                 var rect = (RectangleShape2D)cs.Shape.Duplicate();
                 cs.Shape = rect;
-                if (t.ContainsKey("extents")) rect.Size = t["extents"].AsVector2() * 2.0f;
-                if (t.ContainsKey("x"))
+                if (t.Extents.HasValue) rect.Size = t.Extents.Value * 2.0f;
+                if (t.X.HasValue)
                 {
                     Vector2 p = cs.Position;
-                    p.X = GetF(t, "x");
+                    p.X = t.X.Value;
                     cs.Position = p;
                 }
                 return;
@@ -266,9 +262,4 @@ public partial class Strike : Node2D
     };
 
     // --- tuning-dict helpers ---
-    protected static float GetF(GDict t, string key, float def = 0.0f) =>
-        t.TryGetValue(key, out var v) ? v.AsSingle() : def;
-
-    private static int GetI(GDict t, string key, int def) =>
-        t.TryGetValue(key, out var v) ? v.AsInt32() : def;
 }

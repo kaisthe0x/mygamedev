@@ -15,8 +15,8 @@ public partial class ParryMend : Buff
 
     public ParryMend()
     {
-        Id = "parry_mend";
-        AppliesTo = new Godot.Collections.Array { "redere_shield" };
+        Id = PassiveIds.ParryMend;
+        AppliesTo = [SpecialIds.RedereShield];
     }
 
     public override void OnParry(Player player, Hit hit)

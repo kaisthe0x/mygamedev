@@ -149,11 +149,11 @@ public partial class LobProjectile : Node2D
         Node? src = GodotObject.IsInstanceValid(source) ? source : null;
         Node? effect = explosion_effect != null ? explosion_effect.Instantiate() : null;
 
-        var tuning = new GDict
+        var tuning = new SegmentData
         {
-            { "damage", explosion_damage },
-            { "knockback", explosion_knockback },
-            { "stun", explosion_stun },
+            Damage = explosion_damage,
+            Knockback = explosion_knockback,
+            Stun = explosion_stun,
         };
         if (effect is Strike strike)
         {

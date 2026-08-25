@@ -386,34 +386,23 @@ public partial class HUD : CanvasLayer
         return string.Join("\n", lines);
     }
 
-    private string MoveLine(string label, GodotObject a)
+    private string MoveLine(string label, Action a)
     {
         if (a == null)
             return $"{label}: none";
-        Variant hitV = a.Get("hit");
-        string kindName = hitV.VariantType == Variant.Type.Object
-            ? StrikeTypeName(hitV.AsGodotObject().Get("type").As<int>())
-            : "—";
-        string tier = Loadout.TierLabel(a.Get("tier").AsString());
-        return $"{label}: {a.Get("id").AsString()} [{kindName}] {tier}  dmg {Dmg(a)}";
+        string kindName = a.Hit != null ? StrikeTypeName(a.Hit.Type) : "—";
+        return $"{label}: {a.Id} [{kindName}]  dmg {Dmg(a)}";
     }
 
-    private static string StrikeTypeName(int t) => t >= 0 && t < StrikeTypeNames.Length ? StrikeTypeNames[t] : "?";
+    private static string StrikeTypeName(StrikeType t) => StrikeTypeNames[(int)t];
 
-    private static string Dmg(GodotObject a)
+    private static string Dmg(Action a)
     {
-        Variant hitV = a.Get("hit");
-        if (hitV.VariantType != Variant.Type.Object)
-            return "scene";
-        var segs = hitV.AsGodotObject().Get("segments").As<GArr>();
-        if (segs.Count == 0)
+        if (a.Hit == null || a.Hit.Segments.Length == 0)
             return "scene";
         var parts = new List<string>();
-        foreach (Variant sv in segs)
-        {
-            var s = sv.As<GDict>();
-            parts.Add(s.ContainsKey("damage") ? s["damage"].ToString() : "0");
-        }
+        foreach (var s in a.Hit.Segments)
+            parts.Add(s.Damage.HasValue ? s.Damage.Value.ToString() : "0");
         return parts.Count == 1 ? parts[0] : string.Join("/", parts);
     }
 

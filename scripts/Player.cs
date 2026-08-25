@@ -10,10 +10,9 @@ namespace MyGame;
 /// switching is just swapping the SpriteFrames resource. C# port of <c>scripts/player.gd</c> (Phase 4b of the
 /// migration) — the state machine, combat seam, surges, launch orbs, and the passive/buff dispatch.
 ///
-/// <para>PUBLIC SURFACE stays snake_case: the scene, the still-GDScript run layer (RunManager, Rewards, Build,
-/// HUD) and the C# combat components (Strike calling <c>hold_animation</c>/<c>apply_lunge</c>) address these by
-/// exact name. Internals are idiomatic PascalCase. Config objects (Action/Locomotion/SurgeSpec/Actions/Loadout)
-/// stay GDScript and are bridged (held as <see cref="GodotObject"/>, read via <c>.Get/.Call</c>).</para>
+/// <para>PUBLIC SURFACE stays snake_case: the scene and the C# combat components (Strike calling
+/// <c>hold_animation</c>/<c>apply_lunge</c>) address these by exact name. Internals are idiomatic PascalCase.
+/// Config is fully typed C#: the equipped move is an <see cref="Action"/> record, its tuning a <see cref="SegmentData"/>.</para>
 /// </summary>
 [Tool]
 [GlobalClass]
@@ -28,7 +27,6 @@ public partial class Player : Combatant
     private const string FramesPathTmpl = "res://resources/characters/{0}.tres";
     private const string PortraitPathTmpl = "res://assets/portraits/{0}.png";
     private static readonly string[] CharacterIds = { "khalid" };
-    private static readonly string[] MovementCats = { "run", "jump", "dash", "slam" };
 
     // --- bridged GDScript statics/singletons (cached in _Ready) ---
     private Sfx _sfx = null!;
@@ -169,11 +167,11 @@ public partial class Player : Combatant
 
     private State _state = State.IDLE;
     private int _facing = 1;
-    private GodotObject _currentAttack;   // GDScript Action (or null)
-    private GodotObject _currentSpecial;
-    private GodotObject _currentSurge;
-    private readonly GDict _loadout = new();
-    private GDict _activeHit = new();
+    private Action _currentAttack;   // the equipped attack (or null)
+    private Action _currentSpecial;
+    private Action _currentSurge;
+    private readonly System.Collections.Generic.Dictionary<LoadoutCategory, string> _loadout = new();
+    private SegmentData _activeHit = new();
     private float _dashLeft = 0.0f;
     private float _dashAnimLeft = 0.0f;
     private float _dashCd = 0.0f;
@@ -217,7 +215,7 @@ public partial class Player : Combatant
     private float _surgeHealRate = 0.0f;
     private int _surgeSleepFrame = 0;
     private bool _surgeArmed = false;
-    private GodotObject _armedSurge = null; // SurgeSpec (bridged)
+    private SurgeSpec _armedSurge = null;
     private Node2D _specialAura = null;
 
     // --- shield / parry ---
@@ -342,80 +340,74 @@ public partial class Player : Combatant
     // =====================================================================================================
     // Loadout
     // =====================================================================================================
-    private string LoadoutGet(string cat, string def) => _loadout.ContainsKey(cat) ? _loadout[cat].AsString() : def;
+    private string LoadoutGet(LoadoutCategory cat, string def) => _loadout.GetValueOrDefault(cat, def);
 
     private void ApplyLoadout()
     {
-        _currentAttack = GetAction("attacks", LoadoutGet("attack", ""));
-        _currentSpecial = GetAction("specials", LoadoutGet("special", ""));
-        _currentSurge = GetAction("surges", LoadoutGet("surge", ""));
-        foreach (string cat in MovementCats)
+        _currentAttack = GetAction(LoadoutCategory.Attack.Kind(), LoadoutGet(LoadoutCategory.Attack, ""));
+        _currentSpecial = GetAction(LoadoutCategory.Special.Kind(), LoadoutGet(LoadoutCategory.Special, ""));
+        _currentSurge = GetAction(LoadoutCategory.Surge.Kind(), LoadoutGet(LoadoutCategory.Surge, ""));
+        foreach (var cat in LoadoutCategories.Movement)
             ApplyMovement(cat, LoadoutGet(cat, "default"));
     }
 
-    private GodotObject GetAction(string kind, string id)
+    private Action GetAction(string kind, string id)
     {
         return Actions.GetAction(character, kind, id);
     }
 
-    private void ApplyMovement(string category, string optionId)
+    private void ApplyMovement(LoadoutCategory category, string optionId)
     {
-        var a = GetAction(category, optionId);
-        if (a == null)
+        var a = GetAction(category.Kind(), optionId);
+        if (a?.Move is not Locomotion m)
             return;
-        Variant mv = a.Get("move");
-        if (mv.VariantType != Variant.Type.Object)
-            return;
-        var m = mv.AsGodotObject();
         switch (category)
         {
-            case "run":
-                _runSpeedV = m.Get("run_speed").As<float>() * run_mult;
-                _acceleration = m.Get("acceleration").As<float>();
-                _friction = m.Get("friction").As<float>();
-                _runAnimSpeed = m.Get("run_anim_speed").As<float>();
+            case LoadoutCategory.Run:
+                _runSpeedV = m.run_speed * run_mult;
+                _acceleration = m.acceleration;
+                _friction = m.friction;
+                _runAnimSpeed = m.run_anim_speed;
                 break;
-            case "jump":
-                _jumpVelocity = m.Get("jump_velocity").As<float>();
-                _maxAirJumps = m.Get("air_jumps").As<int>() + air_jump_bonus;
-                _gravity = m.Get("gravity").As<float>();
-                _fallGravityScale = m.Get("fall_gravity_scale").As<float>();
-                _landMinFallSpeed = m.Get("land_min_fall_speed").As<float>();
-                _landPredictDistance = m.Get("land_predict_distance").As<float>();
+            case LoadoutCategory.Jump:
+                _jumpVelocity = m.jump_velocity;
+                _maxAirJumps = m.air_jumps + air_jump_bonus;
+                _gravity = m.gravity;
+                _fallGravityScale = m.fall_gravity_scale;
+                _landMinFallSpeed = m.land_min_fall_speed;
+                _landPredictDistance = m.land_predict_distance;
                 break;
-            case "dash":
-                _dashSpeed = m.Get("dash_speed").As<float>();
-                _dashTime = m.Get("dash_time").As<float>();
-                _dashCooldown = m.Get("dash_cooldown").As<float>();
-                _dashAnimTime = m.Get("dash_anim_time").As<float>();
-                _dashGravityScale = m.Get("dash_gravity_scale").As<float>();
-                _blinkDash = m.Get("blink").As<bool>();
+            case LoadoutCategory.Dash:
+                _dashSpeed = m.dash_speed;
+                _dashTime = m.dash_time;
+                _dashCooldown = m.dash_cooldown;
+                _dashAnimTime = m.dash_anim_time;
+                _dashGravityScale = m.dash_gravity_scale;
+                _blinkDash = m.blink;
                 break;
-            case "slam":
-                _slamSpeed = m.Get("slam_speed").As<float>();
-                _slamMinClearance = m.Get("slam_min_clearance").As<float>();
-                _slamHoldFrame = m.Get("slam_hold_frame").As<int>();
-                _slamImpactDistance = m.Get("slam_impact_distance").As<float>();
-                _slamMinDrop = m.Get("slam_min_drop").As<float>();
-                _slamMaxDrop = m.Get("slam_max_drop").As<float>();
-                _slamMaxDamageMult = m.Get("slam_max_damage_mult").As<float>();
+            case LoadoutCategory.Slam:
+                _slamSpeed = m.slam_speed;
+                _slamMinClearance = m.slam_min_clearance;
+                _slamHoldFrame = m.slam_hold_frame;
+                _slamImpactDistance = m.slam_impact_distance;
+                _slamMinDrop = m.slam_min_drop;
+                _slamMaxDrop = m.slam_max_drop;
+                _slamMaxDamageMult = m.slam_max_damage_mult;
                 break;
         }
     }
 
-    public void equip(string category, string optionId)
+    public void equip(LoadoutCategory category, string optionId)
     {
         _loadout[category] = optionId;
         ApplyLoadout();
-        if (category == "attack" || category == "special")
+        if (category is LoadoutCategory.Attack or LoadoutCategory.Special)
             EmitSignal(SignalName.character_changed, character);
     }
 
-    public string loadout_id(string category)
+    public string loadout_id(LoadoutCategory category)
     {
-        if (_loadout.ContainsKey(category))
-            return _loadout[category].AsString();
-        return Loadout.DefaultId(character, category);
+        return _loadout.TryGetValue(category, out var id) ? id : Loadout.DefaultId(character, category);
     }
 
     public GArr loadout_choices() => Loadout.SwapChoices(character, _loadout);
@@ -480,18 +472,16 @@ public partial class Player : Combatant
 
     public int get_state() => (int)_state;
     public bool is_spawning() => _state == State.SPAWN;
-    public GodotObject current_attack() => _currentAttack;
-    public GodotObject current_special() => _currentSpecial;
+    public Action current_attack() => _currentAttack;
+    public Action current_special() => _currentSpecial;
 
     // =====================================================================================================
-    // Action helpers (bridge the GDScript Action object)
+    // Action helpers (thin typed accessors over the equipped Action)
     // =====================================================================================================
-    private static StringName Anim(GodotObject a) => a.Get("animation").As<StringName>();
-    private static GArr Tags(GodotObject a) => a.Get("tags").As<GArr>();
-    private static bool HasTag(GodotObject a, string t) => a != null && Tags(a).Contains(t);
-    private static float CooldownOf(GodotObject a) => a.Get("cooldown").As<float>();
-    private static bool IsFlurry(GodotObject a) => a.Call("is_flurry").As<bool>();
-    private static GDict Segment(GodotObject a, int seg) => a.Call("segment", seg).As<GDict>();
+    private static StringName Anim(Action a) => a.Animation;
+    private static bool HasTag(Action a, string t) => a != null && a.HasTag(t);
+    private static float CooldownOf(Action a) => a.Cooldown;
+    private static bool IsFlurry(Action a) => a.IsFlurry;
 
     private bool HasAnim(StringName anim) =>
         _sprite != null && _sprite.SpriteFrames != null && _sprite.SpriteFrames.HasAnimation(anim);
@@ -545,8 +535,8 @@ public partial class Player : Combatant
         if (dealt > 0.0f)
         {
             Color hair = PaletteConfig.HairColor();
-            FloatingText.Emit("player_damage", this, HurtNumberOffset,
-                Mathf.RoundToInt(dealt).ToString(), dealt, new GDict { { "color", hair } });
+            FloatingText.Emit(FloatingTextType.PlayerDamage, this, HurtNumberOffset,
+                Mathf.RoundToInt(dealt).ToString(), dealt, hair);
         }
         _sfx.play_random(new GArr { "hurt.1", "hurt.2", "hurt.3" }, 0.0f, (float)GD.RandRange(0.95, 1.06));
         if (health <= 0.0f && !_dead)
@@ -658,27 +648,27 @@ public partial class Player : Combatant
     }
 
     /// <summary>THE BUFF SEAM. Resolve the effective per-hit tuning of `action`'s combo segment `seg`.</summary>
-    private GDict ResolveTuning(GodotObject action, int seg = 0)
+    private SegmentData ResolveTuning(Action action, int seg = 0)
     {
-        GDict baseT = Segment(action, seg).Duplicate();
+        if (action == null)
+            return new SegmentData();
+        SegmentData baseT = action.Segment(seg).Clone();
         float dmgMult = damage_mult * _surgeDmgMult;
-        if (!Mathf.IsEqualApprox(dmgMult, 1.0f) && baseT.ContainsKey("damage"))
-            baseT["damage"] = baseT["damage"].As<float>() * dmgMult;
+        if (!Mathf.IsEqualApprox(dmgMult, 1.0f) && baseT.Damage.HasValue)
+            baseT.Damage *= dmgMult;
         if (!Mathf.IsEqualApprox(attack_reach_mult, 1.0f))
         {
-            if (baseT.ContainsKey("extents"))
-                baseT["extents"] = baseT["extents"].As<Vector2>() * attack_reach_mult;
-            if (baseT.ContainsKey("x"))
-                baseT["x"] = baseT["x"].As<float>() * attack_reach_mult;
+            if (baseT.Extents.HasValue)
+                baseT.Extents *= attack_reach_mult;
+            if (baseT.X.HasValue)
+                baseT.X *= attack_reach_mult;
         }
         foreach (var p in _passives)
             baseT = p.ModifyTuning(this, action, seg, baseT);
         return baseT;
     }
 
-    public GDict active_hit() => _activeHit;
-
-    private float AH(string key, float def) => _activeHit.ContainsKey(key) ? _activeHit[key].As<float>() : def;
+    public SegmentData active_hit() => _activeHit;
 
     private bool IsShielding() =>
         _state == State.SPECIAL && _currentSpecial != null && HasTag(_currentSpecial, "shield");
@@ -773,15 +763,15 @@ public partial class Player : Combatant
     // =====================================================================================================
     // Surges
     // =====================================================================================================
-    private void BeginSurge(GodotObject s)
+    private void BeginSurge(SurgeSpec s)
     {
         EndSurge();
-        _surgeInvuln = s.Get("invuln").As<bool>();
-        _surgeDmgMult = s.Get("damage_mult").As<float>();
-        _surgeDmgTakenMult = s.Get("damage_taken_mult").As<float>();
-        _surgeSpeedMult = s.Get("speed_mult").As<float>();
-        _surgeChannel = s.Get("channel").As<bool>();
-        _surgeArmed = s.Get("trigger").AsString() == "hit";
+        _surgeInvuln = s.invuln;
+        _surgeDmgMult = s.damage_mult;
+        _surgeDmgTakenMult = s.damage_taken_mult;
+        _surgeSpeedMult = s.speed_mult;
+        _surgeChannel = s.channel;
+        _surgeArmed = s.trigger == "hit";
         if (_surgeArmed)
         {
             _armedSurge = s;
@@ -791,8 +781,8 @@ public partial class Player : Combatant
         {
             _surgeAsleep = false;
             _surgeLeft = 0.0f;
-            _surgeHealTarget = Mathf.Min(health + s.Get("heal_frac").As<float>() * max_health, max_health);
-            _surgeHealRate = (_surgeHealTarget - health) / Mathf.Max(s.Get("duration").As<float>(), 0.01f);
+            _surgeHealTarget = Mathf.Min(health + s.heal_frac * max_health, max_health);
+            _surgeHealRate = (_surgeHealTarget - health) / Mathf.Max(s.duration, 0.01f);
             var anim = Anim(_currentSurge);
             int fcount = (_sprite.SpriteFrames != null && _sprite.SpriteFrames.HasAnimation(anim))
                 ? _sprite.SpriteFrames.GetFrameCount(anim) : 0;
@@ -800,9 +790,9 @@ public partial class Player : Combatant
         }
         else
         {
-            _surgeLeft = s.Get("duration").As<float>() + special_invuln_bonus;
+            _surgeLeft = s.duration + special_invuln_bonus;
         }
-        string aura = s.Get("aura").AsString();
+        string aura = s.aura;
         if (aura != "" && ResourceLoader.Exists(aura))
         {
             var scene = GD.Load<PackedScene>(aura);
@@ -820,16 +810,16 @@ public partial class Player : Combatant
 
     private void TrySurge()
     {
-        if (_dead || _currentSurge == null || _currentSurge.Get("surge").VariantType != Variant.Type.Object)
+        if (_dead || _currentSurge?.Surge == null)
             return;
         if (_surgeChannel || _surgeArmed)
             return;
         if (!Input.IsActionJustPressed("surge"))
             return;
-        var s = _currentSurge.Get("surge").AsGodotObject();
-        if (ruh < s.Get("cost").As<float>())
+        var s = _currentSurge.Surge;
+        if (ruh < s.cost)
             return;
-        ruh -= s.Get("cost").As<float>();
+        ruh -= s.cost;
         BeginSurge(s);
         Flash(_sprite);
         _sfx.play(Anim(_currentSurge).ToString());
@@ -879,8 +869,8 @@ public partial class Player : Combatant
             EndSurge();
             return;
         }
-        float stunRadius = s.Get("stun_radius").As<float>();
-        float stunTime = s.Get("stun_time").As<float>();
+        float stunRadius = s.stun_radius;
+        float stunTime = s.stun_time;
         foreach (Node e in GetTree().GetNodesInGroup("enemies"))
         {
             if (e is not Node2D en || !en.HasMethod("apply_hit"))
@@ -897,7 +887,7 @@ public partial class Player : Combatant
                 en.Call("apply_hit", h);
             }
         }
-        string burst = s.Get("burst").AsString();
+        string burst = s.burst;
         if (burst != "" && ResourceLoader.Exists(burst))
         {
             var scene = GD.Load<PackedScene>(burst);
@@ -1516,7 +1506,7 @@ public partial class Player : Combatant
 
     private void ProcessAttack(float delta)
     {
-        bool dashing = _activeHit.ContainsKey("lunge") && _recoveryLeft > 0.0f;
+        bool dashing = _activeHit.Lunge.HasValue && _recoveryLeft > 0.0f;
         if (dashing)
         {
             SetVelY(0.0f);
@@ -1553,7 +1543,7 @@ public partial class Player : Combatant
                 _sprite.SetFrameAndProgress(_segEnd, 0.0f);
                 _sprite.Pause();
                 _comboPlaying = false;
-                _recoveryLeft = Mathf.Max(attack_recovery, AH("hold", 0.0f));
+                _recoveryLeft = Mathf.Max(attack_recovery, _activeHit.Hold ?? 0.0f);
                 _comboWindow = combo_reset_time;
                 if (_bufferedSpecial)
                     StartSpecial();
@@ -1575,7 +1565,7 @@ public partial class Player : Combatant
         _recoveryLeft -= delta;
         if (_recoveryLeft <= 0.0f)
         {
-            if (_activeHit.ContainsKey("lunge"))
+            if (_activeHit.Lunge.HasValue)
                 SetVelX(0.0f);
             Enter(State.IDLE);
         }
@@ -1596,7 +1586,7 @@ public partial class Player : Combatant
         _comboPlaying = false;
         _bufferedSpecial = false;
         _activeHit = ResolveTuning(_currentSpecial, 0);
-        _activeHit["from_special"] = true;
+        _activeHit.FromSpecial = true;
         Enter(State.SPECIAL);
         if (_sprite != null && _currentSpecial != null && HasAnim(Anim(_currentSpecial)))
         {
@@ -1622,7 +1612,7 @@ public partial class Player : Combatant
                 }
                 else
                 {
-                    _activeHit = new GDict();
+                    _activeHit = new SegmentData();
                     Enter(State.IDLE);
                 }
             }
@@ -1643,7 +1633,7 @@ public partial class Player : Combatant
                     _surgeAsleep = true;
                     _sprite.SetFrameAndProgress(_surgeSleepFrame, 0.0f);
                     _sprite.Pause();
-                    _surgeLeft = _currentSurge.Get("surge").AsGodotObject().Get("duration").As<float>();
+                    _surgeLeft = _currentSurge.Surge.duration;
                 }
             }
             else
@@ -1691,7 +1681,7 @@ public partial class Player : Combatant
         _sfx.play("slam");
         float drop = GlobalPosition.Y - _slamStartY;
         float t = Mathf.Clamp((drop - _slamMinDrop) / Mathf.Max(_slamMaxDrop - _slamMinDrop, 1.0f), 0.0f, 1.0f);
-        _activeHit = new GDict { { "damage_scale", Mathf.Lerp(1.0f, _slamMaxDamageMult, t) * slam_damage_mult } };
+        _activeHit = new SegmentData { DamageScale = Mathf.Lerp(1.0f, _slamMaxDamageMult, t) * slam_damage_mult };
         foreach (var p in _passives)
             p.OnSlamLand(this, drop, Mathf.Max(Velocity.Y, _slamSpeed));
     }
@@ -1815,7 +1805,7 @@ public partial class Player : Combatant
                     p.OnDash(this);
                 if (_dashEffect != "")
                 {
-                    _activeHit = new GDict();
+                    _activeHit = new SegmentData();
                     FireEffect(_dashEffect);
                 }
                 var frames = _sprite.SpriteFrames;
@@ -1977,7 +1967,7 @@ public partial class Player : Combatant
         }
         if (_state == State.DASH || _state == State.SPECIAL || _state == State.LAND || _state == State.SLAM)
         {
-            _activeHit = new GDict();
+            _activeHit = new SegmentData();
             Enter(State.IDLE);
         }
         if (_state == State.SURGE)

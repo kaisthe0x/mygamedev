@@ -112,6 +112,6 @@ public partial class SleeperEnemy : Enemy
     private void SpawnRageAoe()
     {
         SpawnAttack(VfxScene("aoe"),
-            new GDict { { "damage", rage_damage }, { "knockback", rage_knockback } }, false, VfxPos("aoe"));
+            new SegmentData { Damage = rage_damage, Knockback = rage_knockback }, false, VfxPos("aoe"));
     }
 }

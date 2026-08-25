@@ -14,32 +14,29 @@ namespace MyGame;
 /// </summary>
 public sealed class Build
 {
-    // Mirror of Loadout.CATEGORIES (a GDScript const — hardcoded so C# needn't read it).
-    private static readonly string[] Categories = { "attack", "special", "surge", "run", "jump", "dash", "slam" };
-
-    public GDict Equipped = new();  // category -> equipped Action id
+    public GDict Equipped = new();  // category key -> equipped Action id (only the VALUES are queried)
     public GArr Rewards = new();     // reward ids taken this run
     public GDict Tags = new();       // tag -> true, unioned from every equipped Action's tags
 
-    // category -> Actions pool kind (as in build.gd: only attack/special pluralise; the rest pass through,
-    // so "surge" stays "surge" and its get_action returns null — a faithful quirk of the original).
-    private static string Kind(string category) => category switch
+    // category -> Actions pool kind. Only attack/special pluralise; the rest pass through, so surge stays "surge"
+    // and its get_action returns null — a faithful quirk of the original (surge tags stay OUT of the build union).
+    private static string Kind(LoadoutCategory category) => category switch
     {
-        "attack" => "attacks",
-        "special" => "specials",
-        _ => category,
+        LoadoutCategory.Attack => "attacks",
+        LoadoutCategory.Special => "specials",
+        _ => category.Key(),
     };
 
     public static Build Of(Player player)
     {
         var b = new Build();
-        foreach (string cat in Categories)
+        foreach (var cat in LoadoutCategories.All)
         {
             string id = player.loadout_id(cat);
-            b.Equipped[cat] = id;
+            b.Equipped[cat.Key()] = id;
             var a = Actions.GetAction(player.character, Kind(cat), id);
             if (a != null)
-                foreach (Variant t in a.tags)
+                foreach (string t in a.Tags)
                     b.Tags[t] = true;
         }
         b.Rewards = player.rewards_taken();

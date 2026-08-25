@@ -1,13 +1,12 @@
 using Godot;
-using GDict = Godot.Collections.Dictionary;
-using GArr = Godot.Collections.Array;
+using System.Collections.Generic;
 
 namespace MyGame;
 
 /// <summary>
-/// Khalid's ACTION catalog — PURE DATA (the <see cref="Actions"/> accessor turns these rows into typed
-/// <see cref="Action"/> objects). One table per category; each row is an <see cref="Action.Make"/> dict.
-/// C# port of <c>configs/actions_khalid.gd</c>. Presentation lives elsewhere, keyed by `animation`.
+/// Khalid's ACTION catalog — PURE DATA (the <see cref="Actions"/> accessor injects Id/Category into these rows).
+/// One table per category; each row is a typed <see cref="Action"/>. Presentation lives elsewhere, keyed by
+/// <see cref="Action.Animation"/>. Rows omit Id/Category (the accessor fills them from the pool key + kind).
 /// </summary>
 public static class ActionsKhalid
 {
@@ -17,157 +16,131 @@ public static class ActionsKhalid
     private const string SoftDot = "res://vfx/shared/textures/soft_dot.png";
     private const string Shield = "res://vfx/shared/impervious/shield.png";
 
-    public static readonly GDict ATTACKS = new()
+    public static readonly Dictionary<string, Action> ATTACKS = new()
     {
-        { "ora_ora", new GDict
-            {
-                { "name", "Ora Ora" }, { "icon", Ember }, { "style", "flurry" },
-                { "hit", new GDict { { "type", "melee" }, { "segments", new GDict { { "damage", 15 }, { "knockback", 0 }, { "stun", 0.1 }, { "extents", new Vector2(32, 22) } } } } },
-            }
+        [AttackIds.OraOra] = new Action
+        {
+            Name = "Ora Ora", Icon = Ember, Style = ActionStyle.Flurry,
+            Hit = new HitData(StrikeType.Melee, new SegmentData { Damage = 15, Knockback = 0, Stun = 0.1f, Extents = new Vector2(32, 22) }),
         },
-        { "spear", new GDict
-            {
-                { "name", "Spear" }, { "icon", Blast1 }, { "tier", "elite" },
-                { "hit", new GDict { { "type", "melee" }, { "segments", new GArr
-                    {
-                        new GDict { { "damage", 10 }, { "knockback", 40 } },
-                        new GDict { { "damage", 20 }, { "knockback", 60 } },
-                        new GDict { { "damage", 35 }, { "knockback", 140 } },
-                    } } } },
-            }
+        [AttackIds.Spear] = new Action
+        {
+            Name = "Spear", Icon = Blast1,
+            Hit = new HitData(StrikeType.Melee,
+                new SegmentData { Damage = 10, Knockback = 40 },
+                new SegmentData { Damage = 20, Knockback = 60 },
+                new SegmentData { Damage = 35, Knockback = 140 }),
         },
-        { "bakshen", new GDict
-            {
-                { "name", "Bakshen" }, { "icon", Bolt }, { "tier", "elite" }, { "style", "cooldown" }, { "cooldown", 3.0 },
-                { "hit", new GDict { { "type", "melee" }, { "segments", new GDict { { "damage", 65 }, { "knockback", 0 }, { "stun", 0.0 } } } } },
-            }
+        [AttackIds.Bakshen] = new Action
+        {
+            Name = "Bakshen", Icon = Bolt, Style = ActionStyle.Cooldown, Cooldown = 3.0f,
+            Hit = new HitData(StrikeType.Melee, new SegmentData { Damage = 65, Knockback = 0, Stun = 0.0f }),
         },
-        { "zahluq", new GDict
+        [AttackIds.Zahluq] = new Action
+        {
+            Name = "Zahluq", Icon = Bolt, Style = ActionStyle.Cooldown, Cooldown = 3.0f, Tags = ["air"],
+            Hit = new HitData(StrikeType.Melee, new SegmentData
             {
-                { "name", "Zahluq" }, { "icon", Bolt }, { "tier", "elite" }, { "style", "cooldown" }, { "cooldown", 3.0 }, { "tags", new GArr { "air" } },
-                { "hit", new GDict { { "type", "melee" }, { "segments", new GDict
-                    {
-                        { "damage", 45 }, { "knockback", 90 }, { "stun", 0.2 },
-                        { "lunge", 1100.0 }, { "hold", 0.4 }, { "super_armor", 0.4 }, { "extents", new Vector2(40, 28) },
-                    } } } },
-            }
+                Damage = 45, Knockback = 90, Stun = 0.2f,
+                Lunge = 1100.0f, Hold = 0.4f, SuperArmor = 0.4f, Extents = new Vector2(40, 28),
+            }),
         },
-        { "cherry_shots", new GDict
-            {
-                { "name", "Cherry Shots" }, { "icon", SoftDot }, { "tier", "elite" },
-                { "hit", new GDict { { "type", "projectile" }, { "segments", new GArr
-                    {
-                        new GDict { { "damage", 4 }, { "knockback", 0 } },
-                        new GDict { { "damage", 7 }, { "knockback", 0 } },
-                    } } } },
-            }
+        [AttackIds.CherryShots] = new Action
+        {
+            Name = "Cherry Shots", Icon = SoftDot,
+            Hit = new HitData(StrikeType.Projectile,
+                new SegmentData { Damage = 4, Knockback = 0 },
+                new SegmentData { Damage = 7, Knockback = 0 }),
         },
-        { "twin_reaper", new GDict
-            {
-                { "name", "Twin Reaper" }, { "icon", Blast1 }, { "tier", "elite" }, { "style", "flurry" }, { "tags", new GArr { "reaper" } },
-                { "hit", new GDict { { "type", "melee" }, { "segments", new GDict { { "damage", 12 }, { "knockback", 0 }, { "reap", 0.12 }, { "reap_time", 5.0 } } } } },
-            }
+        [AttackIds.TwinReaper] = new Action
+        {
+            Name = "Twin Reaper", Icon = Blast1, Style = ActionStyle.Flurry, Tags = ["reaper"],
+            Hit = new HitData(StrikeType.Melee, new SegmentData { Damage = 12, Knockback = 0, Reap = 0.12f, ReapTime = 5.0f }),
         },
-        { "dual_executioner", new GDict
-            {
-                { "name", "Dual Executioner" }, { "icon", Blast1 }, { "tier", "broken" }, { "style", "flurry" }, { "tags", new GArr { "reaper" } },
-                { "hit", new GDict { { "type", "melee" }, { "segments", new GDict { { "damage", 22 }, { "knockback", 0 }, { "stun", 0.3 } } } } },
-            }
+        [AttackIds.DualExecutioner] = new Action
+        {
+            Name = "Dual Executioner", Icon = Blast1, Style = ActionStyle.Flurry, Tags = ["reaper"],
+            Hit = new HitData(StrikeType.Melee, new SegmentData { Damage = 22, Knockback = 0, Stun = 0.3f }),
         },
     };
 
-    public static readonly GDict SPECIALS = new()
+    public static readonly Dictionary<string, Action> SPECIALS = new()
     {
-        { "ground_breaker", new GDict
+        [SpecialIds.GroundBreaker] = new Action
+        {
+            Name = "Ground Breaker", Icon = Blast1,
+            Hit = new HitData(StrikeType.Aoe, new SegmentData
             {
-                { "name", "Ground Breaker" }, { "icon", Blast1 },
-                { "hit", new GDict { { "type", "aoe" }, { "segments", new GDict
-                    {
-                        { "damage", 40 }, { "knockback", 160 }, { "stun", 1.0 },
-                        { "victim_effect", "res://vfx/character/khalid/status/ground_breaker_stun.tscn" },
-                    } } } },
-            }
+                Damage = 40, Knockback = 160, Stun = 1.0f,
+                VictimEffect = "res://vfx/character/khalid/status/ground_breaker_stun.tscn",
+            }),
         },
-        { "frenemy", new GDict
+        [SpecialIds.Frenemy] = new Action
+        {
+            Name = "Frenemy", Icon = Ember, Tags = ["charm"],
+            Hit = new HitData(StrikeType.Blast, new SegmentData
             {
-                { "name", "Frenemy" }, { "icon", Ember }, { "tier", "elite" }, { "tags", new GArr { "charm" } },
-                { "hit", new GDict { { "type", "blast" }, { "segments", new GDict
-                    {
-                        { "damage", 4 }, { "knockback", 0 }, { "frenemy", 8.0 },
-                        { "victim_effect", "res://vfx/character/khalid/status/frenemy_stun.tscn" }, { "victim_time", 8.0 },
-                    } } } },
-            }
+                Damage = 4, Knockback = 0, Frenemy = 8.0f,
+                VictimEffect = "res://vfx/character/khalid/status/frenemy_stun.tscn", VictimTime = 8.0f,
+            }),
         },
-        { "come_closer", new GDict
-            {
-                { "name", "Come Closer" }, { "icon", Ember }, { "tags", new GArr { "control" } }, { "cooldown", 1.0 },
-            }
-        },
-        { "redere_shield", new GDict
-            {
-                { "name", "Redere Shield" }, { "icon", Shield }, { "tier", "elite" }, { "tags", new GArr { "shield", "held" } },
-            }
-        },
-        { "redere_frisbee", new GDict
-            {
-                { "name", "Redere Frisbee" }, { "icon", Blast1 }, { "tier", "broken" }, { "tags", new GArr { "shield" } },
-                { "hit", new GDict { { "type", "projectile" }, { "segments", new GDict { { "damage", 15 }, { "knockback", 120 } } } } },
-            }
+        [SpecialIds.ComeCloser] = new Action { Name = "Come Closer", Icon = Ember, Tags = ["control"], Cooldown = 1.0f },
+        [SpecialIds.RedereShield] = new Action { Name = "Redere Shield", Icon = Shield, Tags = ["shield", "held"] },
+        [SpecialIds.RedereFrisbee] = new Action
+        {
+            Name = "Redere Frisbee", Icon = Blast1, Tags = ["shield"],
+            Hit = new HitData(StrikeType.Projectile, new SegmentData { Damage = 15, Knockback = 120 }),
         },
     };
 
-    public static readonly GDict SURGES = new()
+    public static readonly Dictionary<string, Action> SURGES = new()
     {
-        { "aegis", new GDict
-            {
-                { "name", "Aegis" }, { "icon", Shield }, { "tier", "typical" },
-                { "surge", new GDict { { "duration", 5.0 }, { "invuln", true }, { "cost", 100.0 }, { "aura", "res://vfx/character/khalid/surge/aegis/surge_aegis.tscn" } } },
-            }
+        [SurgeIds.Aegis] = new Action
+        {
+            Name = "Aegis", Icon = Shield,
+            Surge = new SurgeSpec { duration = 5.0f, invuln = true, cost = 100.0f, aura = "res://vfx/character/khalid/surge/aegis/surge_aegis.tscn" },
         },
-        { "jnoon", new GDict
-            {
-                { "name", "Jnoon" }, { "icon", Shield }, { "tier", "typical" },
-                { "surge", new GDict { { "duration", 5.0 }, { "damage_mult", 2.0 }, { "damage_taken_mult", 0.5 }, { "cost", 100.0 }, { "aura", "res://vfx/character/khalid/surge/jnoon/surge_jnoon.tscn" } } },
-            }
+        [SurgeIds.Jnoon] = new Action
+        {
+            Name = "Jnoon", Icon = Shield,
+            Surge = new SurgeSpec { duration = 5.0f, damage_mult = 2.0f, damage_taken_mult = 0.5f, cost = 100.0f, aura = "res://vfx/character/khalid/surge/jnoon/surge_jnoon.tscn" },
         },
-        { "asra", new GDict
-            {
-                { "name", "Asra" }, { "icon", Shield }, { "tier", "typical" },
-                { "surge", new GDict { { "duration", 5.0 }, { "speed_mult", 2.0 }, { "cost", 100.0 }, { "aura", "res://vfx/character/khalid/surge/asra/surge_asra.tscn" } } },
-            }
+        [SurgeIds.Asra] = new Action
+        {
+            Name = "Asra", Icon = Shield,
+            Surge = new SurgeSpec { duration = 5.0f, speed_mult = 2.0f, cost = 100.0f, aura = "res://vfx/character/khalid/surge/asra/surge_asra.tscn" },
         },
-        { "nem", new GDict
-            {
-                { "name", "Nem" }, { "icon", Shield }, { "tier", "typical" },
-                { "surge", new GDict { { "duration", 5.0 }, { "channel", true }, { "heal_frac", 0.5 }, { "cost", 200.0 }, { "aura", "res://vfx/character/khalid/surge/nem/surge_nem.tscn" } } },
-            }
+        [SurgeIds.Nem] = new Action
+        {
+            Name = "Nem", Icon = Shield,
+            Surge = new SurgeSpec { duration = 5.0f, channel = true, heal_frac = 0.5f, cost = 200.0f, aura = "res://vfx/character/khalid/surge/nem/surge_nem.tscn" },
         },
-        { "wara", new GDict
+        [SurgeIds.Wara] = new Action
+        {
+            Name = "Wara", Icon = Shield,
+            Surge = new SurgeSpec
             {
-                { "name", "Wara" }, { "icon", Shield }, { "tier", "typical" },
-                { "surge", new GDict
-                    {
-                        { "trigger", "hit" }, { "stun_radius", 150.0 }, { "stun_time", 2.0 }, { "cost", 100.0 },
-                        { "aura", "res://vfx/character/khalid/surge/wara/surge_wara.tscn" },
-                        { "burst", "res://vfx/character/khalid/surge/wara/surge_wara_burst.tscn" },
-                    } },
-            }
+                trigger = "hit", stun_radius = 150.0f, stun_time = 2.0f, cost = 100.0f,
+                aura = "res://vfx/character/khalid/surge/wara/surge_wara.tscn",
+                burst = "res://vfx/character/khalid/surge/wara/surge_wara_burst.tscn",
+            },
         },
     };
 
-    public static readonly GDict MOVEMENTS = new()
+    public static readonly Dictionary<string, Dictionary<string, Action>> MOVEMENTS = new()
     {
-        { "run", new GDict { { "standard_stride", new GDict { { "name", "Standard Stride" }, { "icon", Ember }, { "move", new GDict { { "run_speed", 230.0 } } } } } } },
-        { "jump", new GDict { { "standard_leap", new GDict { { "name", "Standard Leap" }, { "icon", SoftDot }, { "move", new GDict { { "air_jumps", 1 } } } } } } },
-        { "dash", new GDict { { "blink_dash", new GDict { { "name", "Blink Dash" }, { "icon", Bolt }, { "move", new GDict { { "blink", true } } } } } } },
-        { "slam", new GDict { { "standard_slam", new GDict { { "name", "Standard Slam" }, { "icon", Blast1 }, { "move", new GDict() } } } } },
+        [MovementIds.Run] = new() { [MovementIds.StandardStride] = new Action { Name = "Standard Stride", Icon = Ember, Move = new Locomotion { run_speed = 230.0f } } },
+        [MovementIds.Jump] = new() { [MovementIds.StandardLeap] = new Action { Name = "Standard Leap", Icon = SoftDot, Move = new Locomotion { air_jumps = 1 } } },
+        [MovementIds.Dash] = new() { [MovementIds.BlinkDash] = new Action { Name = "Blink Dash", Icon = Bolt, Move = new Locomotion { blink = true } } },
+        [MovementIds.Slam] = new() { [MovementIds.StandardSlam] = new Action { Name = "Standard Slam", Icon = Blast1, Move = new Locomotion() } },
     };
 
-    public const string DEFAULT_ATTACK = "bakshen";
-    public const string DEFAULT_SPECIAL = "redere_frisbee";
-    public const string DEFAULT_SURGE = "wara";
-    public static readonly GDict DEFAULT_MOVEMENTS = new()
+    public const string DEFAULT_ATTACK = AttackIds.Bakshen;
+    public const string DEFAULT_SPECIAL = SpecialIds.RedereFrisbee;
+    public const string DEFAULT_SURGE = SurgeIds.Wara;
+    public static readonly Dictionary<string, string> DEFAULT_MOVEMENTS = new()
     {
-        { "run", "standard_stride" }, { "jump", "standard_leap" }, { "dash", "blink_dash" }, { "slam", "standard_slam" },
+        [MovementIds.Run] = MovementIds.StandardStride, [MovementIds.Jump] = MovementIds.StandardLeap,
+        [MovementIds.Dash] = MovementIds.BlinkDash, [MovementIds.Slam] = MovementIds.StandardSlam,
     };
 }

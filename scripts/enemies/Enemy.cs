@@ -703,7 +703,7 @@ public partial class Enemy : Combatant
     }
 
     /// <summary>Spawn a self-contained attack SCENE (Strike or Projectile), mirror by facing, inject tuning, arm it.</summary>
-    protected Node2D? SpawnAttack(PackedScene? scene, GDict tuning, bool toWorld = false, Vector2 at = default)
+    protected Node2D? SpawnAttack(PackedScene? scene, SegmentData tuning, bool toWorld = false, Vector2 at = default)
     {
         if (scene == null)
             return null;
@@ -718,8 +718,8 @@ public partial class Enemy : Combatant
             GetParent().AddChild(node);
         else
             AddChild(node);
-        if (node.HasMethod("apply_tuning"))
-            node.Call("apply_tuning", tuning, this);
+        if (node is ITunable tn)
+            tn.apply_tuning(tuning, this);
         foreach (var a in node.FindChildren("*", "Area2D", true, false))
             if (a is Hitbox hb)
             {
@@ -747,9 +747,9 @@ public partial class Enemy : Combatant
         var scene = VfxScene(key);
         if (scene != null)
         {
-            SpawnAttack(scene, new GDict
+            SpawnAttack(scene, new SegmentData
             {
-                { "damage", melee_damage }, { "knockback", melee_knockback }, { "stun", melee_stun },
+                Damage = melee_damage, Knockback = melee_knockback, Stun = melee_stun,
             }, false, VfxPos(key));
             return;
         }
@@ -845,9 +845,9 @@ public partial class Enemy : Combatant
 
         GetParent().AddChild(proj);
         PlaceAt(proj, muzzle);
-        proj.apply_tuning(new GDict
+        proj.apply_tuning(new SegmentData
         {
-            { "damage", ranged_damage }, { "knockback", ranged_knockback }, { "stun", ranged_stun },
+            Damage = ranged_damage, Knockback = ranged_knockback, Stun = ranged_stun,
         }, this);
     }
 
@@ -956,8 +956,8 @@ public partial class Enemy : Combatant
         Hurt.SetDeferred(Area2D.PropertyName.Monitorable, false);
         SetDeferred(CollisionObject2D.PropertyName.CollisionLayer, 0);
         Bar.Visible = false;
-        _statusIcons.SetActive(new GArray());
-        _overhead.SetActive(new GArray());
+        _statusIcons.SetActive(new System.Collections.Generic.List<StatusType>());
+        _overhead.SetActive(new System.Collections.Generic.List<StatusType>());
         _status.Clear();
         if (HasDeath)
             Play("death");
@@ -1014,10 +1014,10 @@ public partial class Enemy : Combatant
 
     private void RefreshStatusIcons()
     {
-        var ids = new GArray();
-        if (_dotLeft > 0.0f) ids.Add("reap");
-        if (State == EState.Stun || StunLeft > 0.0f) ids.Add("stun");
-        if (_frenemyLeft > 0.0f) ids.Add("charm");
+        var ids = new System.Collections.Generic.List<StatusType>();
+        if (_dotLeft > 0.0f) ids.Add(StatusType.Reap);
+        if (State == EState.Stun || StunLeft > 0.0f) ids.Add(StatusType.Stun);
+        if (_frenemyLeft > 0.0f) ids.Add(StatusType.Charm);
         string key = string.Join(",", ids);
         if (key == _shownStatus)
             return;

@@ -14,7 +14,7 @@ namespace MyGame;
 /// <c>source</c>/<c>velocity</c>/<c>apply_tuning</c>) through the migration; internals are idiomatic.
 /// </summary>
 [GlobalClass]
-public partial class Projectile : Node2D
+public partial class Projectile : Node2D, ITunable
 {
     [Export] public bool hostile { get; set; }
     [Export] public bool friendly_fire { get; set; }
@@ -155,28 +155,26 @@ public partial class Projectile : Node2D
     /// Configure this shot's hitbox from a resolved tuning dict. Called by the spawner after add_child. Absent
     /// fields keep the hitbox's authored values (the cherry_shots case, where two shots carry their own damage).
     /// </summary>
-    public void apply_tuning(GDict t, Node? striker)
+    public void apply_tuning(SegmentData t, Node? striker)
     {
         if (striker != null)
             source = striker;
         var hb = FindHitbox();
-        if (hb == null || t.Count == 0)
+        if (hb == null)
             return;
-        if (t.ContainsKey("damage")) hb.damage = t["damage"].AsSingle();
-        if (t.ContainsKey("knockback")) hb.knockback = t["knockback"].AsSingle();
-        if (t.ContainsKey("stun")) hb.stun = t["stun"].AsSingle();
-        if (t.ContainsKey("color"))
+        if (t.Damage.HasValue) hb.damage = t.Damage.Value;
+        if (t.Knockback.HasValue) hb.knockback = t.Knockback.Value;
+        if (t.Stun.HasValue) hb.stun = t.Stun.Value;
+        if (t.Color.HasValue)
         {
-            hb.status_color = t["color"].AsColor();
-            hb.status_time = t.TryGetValue("color_time", out var ct) ? ct.AsSingle()
-                : (t.TryGetValue("stun", out var st) ? st.AsSingle() : 0.0f);
+            hb.status_color = t.Color.Value;
+            hb.status_time = t.ColorTime ?? t.Stun ?? 0.0f;
         }
-        if (t.ContainsKey("source")) hb.source = t["source"].As<Node>();
-        if (t.ContainsKey("from_special")) hb.from_special = t["from_special"].AsBool();
-        if (t.ContainsKey("reap"))
+        if (t.FromSpecial.HasValue) hb.from_special = t.FromSpecial.Value;
+        if (t.Reap.HasValue)
         {
-            hb.dot_percent = t["reap"].AsSingle();
-            hb.dot_time = t.TryGetValue("reap_time", out var rt) ? rt.AsSingle() : 0.0f;
+            hb.dot_percent = t.Reap.Value;
+            hb.dot_time = t.ReapTime ?? 0.0f;
         }
     }
 

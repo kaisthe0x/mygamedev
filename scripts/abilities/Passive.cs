@@ -36,15 +36,15 @@ public partial class Passive : RefCounted
     public virtual void OnSpecialStrike(Player player) { }
 
     /// <summary>The instant a special is CAST (before the wind-up), with the special Action — a cast-triggered effect.</summary>
-    public virtual void OnSpecialCast(Player player, GodotObject action) { }
+    public virtual void OnSpecialCast(Player player, Action action) { }
 
     /// <summary>On a PERFECT PARRY with the Redere Shield (the reflect branch), with the parried hit — a parry payoff.</summary>
     public virtual void OnParry(Player player, Hit hit) { }
 
     /// <summary>THE OUTGOING-TUNING HOOK. Called for every attack/special swing so a buff can alter this move's
     /// per-hit numbers. <paramref name="tuning"/> is a private copy — mutate + return it. <paramref name="action"/>
-    /// is the move (a GDScript Action), <paramref name="seg"/> its combo segment, so a per-move buff can gate on it.</summary>
-    public virtual GDict ModifyTuning(Player player, GodotObject action, int seg, GDict tuning) => tuning;
+    /// is the move, <paramref name="seg"/> its combo segment, so a per-move buff can gate on it.</summary>
+    public virtual SegmentData ModifyTuning(Player player, Action action, int seg, SegmentData tuning) => tuning;
 
     /// <summary>When the player takes a combat hit (as it lands) — retaliation, a defensive reaction, etc.</summary>
     public virtual void OnHurt(Player player, Hit hit) { }

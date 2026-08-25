@@ -1,5 +1,5 @@
 using Godot;
-using GArr = Godot.Collections.Array;
+using System.Collections.Generic;
 
 namespace MyGame;
 
@@ -14,10 +14,10 @@ public partial class StatusIcons : Node2D
     private const float Icon = 7.0f;
     private const float Gap = 1.0f;
 
-    private GArr _ids = new();
+    private List<StatusType> _ids = new();
 
-    /// <summary>Replace the shown set. `ids` is a list of status id Strings (already ordered by the caller).</summary>
-    public void SetActive(GArr ids)
+    /// <summary>Replace the shown set (already ordered by the caller).</summary>
+    public void SetActive(List<StatusType> ids)
     {
         _ids = ids;
         QueueRedraw();
@@ -26,10 +26,9 @@ public partial class StatusIcons : Node2D
     public override void _Draw()
     {
         float x = 0.0f;
-        foreach (Variant idV in _ids)
+        foreach (StatusType id in _ids)
         {
-            string id = idV.AsString();
-            var tex = Icons.Texture($"status:{id}");
+            var tex = Icons.Status(id);
             if (tex != null)
                 DrawTextureRect(tex, new Rect2(x, -Icon / 2.0f, Icon, Icon), false, StatusTypes.ColorOf(id));
             x += Icon + Gap;

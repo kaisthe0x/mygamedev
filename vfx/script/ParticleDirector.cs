@@ -233,32 +233,29 @@ public partial class ParticleDirector : Node2D
 
     private void InjectTuning(Node2D node, List<Hitbox> hitboxes)
     {
-        var atk = Attacker();
-        if (atk == null || !atk.HasMethod("active_hit"))
+        // The director is a child of the player, so the attacker IS the player (its resolved tuning feeds the hits).
+        if (Attacker() is not Player atk)
             return;
-        var hit = atk.Call("active_hit").As<GDict>();
-        if (hit.Count == 0)
+        SegmentData hit = atk.active_hit();
+        if (hit == null)
             return;
-        if (node.HasMethod("apply_tuning"))
+        if (node is ITunable tn)
         {
-            node.Call("apply_tuning", hit, atk);
+            tn.apply_tuning(hit, atk);
             return;
         }
         foreach (var hb in hitboxes)
         {
-            if (hit.ContainsKey("damage"))
-                hb.damage = hit["damage"].As<float>();
-            if (hit.ContainsKey("damage_scale"))
-                hb.damage *= hit["damage_scale"].As<float>();
-            if (hit.ContainsKey("knockback"))
-                hb.knockback = hit["knockback"].As<float>();
-            if (hit.ContainsKey("stun"))
-                hb.stun = hit["stun"].As<float>();
-            if (hit.ContainsKey("color"))
+            if (hit.Damage.HasValue) hb.damage = hit.Damage.Value;
+            // Multiplier applied OVER the hitbox's own baked damage (the slam scales BOTH its boxes by plunge
+            // height this way). Runs after `damage` so an explicit value can still be set first.
+            if (hit.DamageScale.HasValue) hb.damage *= hit.DamageScale.Value;
+            if (hit.Knockback.HasValue) hb.knockback = hit.Knockback.Value;
+            if (hit.Stun.HasValue) hb.stun = hit.Stun.Value;
+            if (hit.Color.HasValue)
             {
-                hb.status_color = hit["color"].As<Color>();
-                hb.status_time = hit.ContainsKey("color_time") ? hit["color_time"].As<float>()
-                    : (hit.ContainsKey("stun") ? hit["stun"].As<float>() : 0.0f);
+                hb.status_color = hit.Color.Value;
+                hb.status_time = hit.ColorTime ?? hit.Stun ?? 0.0f;
             }
         }
     }
@@ -450,15 +447,11 @@ public partial class ParticleDirector : Node2D
     {
         var atk = Attacker();
         lob.source = atk;
-        if (atk != null && atk.HasMethod("active_hit"))
+        if (atk is Player p && p.active_hit() is SegmentData hit)
         {
-            var hit = atk.Call("active_hit").As<GDict>();
-            if (hit.ContainsKey("damage"))
-                lob.explosion_damage = hit["damage"].As<float>();
-            if (hit.ContainsKey("knockback"))
-                lob.explosion_knockback = hit["knockback"].As<float>();
-            if (hit.ContainsKey("stun"))
-                lob.explosion_stun = hit["stun"].As<float>();
+            if (hit.Damage.HasValue) lob.explosion_damage = hit.Damage.Value;
+            if (hit.Knockback.HasValue) lob.explosion_knockback = hit.Knockback.Value;
+            if (hit.Stun.HasValue) lob.explosion_stun = hit.Stun.Value;
         }
         Vector2 muzzle = GlobalPosition + new Vector2(b.pos.X * m, b.pos.Y);
         lob.target = NearestEnemyPos(muzzle, m);

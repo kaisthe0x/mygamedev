@@ -338,3 +338,77 @@ harnesses (GDScript, per the carve-out).
     No C# `GD.Load<GDScript>` config/logic bridges remain (only the Sfx/Music/HUD **autoload** `GetNode` lookups, which
     are typed C#→C# now). Optional follow-up: a final snake→PascalCase polish of the public surfaces that were kept
     snake_case only for the migration (now every caller is C#).
+
+## Post-migration — strong-typing the data layer (kill the stringly-typed GDicts)
+
+The migration left a lot of config as `Godot.Collections.Dictionary` with hardcoded string keys (a scaffold so
+GDScript consumers' `.Get("x")` kept working). With no GDScript consumers left, that's pure debt. Initiative:
+replace it with **enums** (closed taxonomies), **records/classes** (data shapes), and globally-importable
+**`const string` ids** — organised into dedicated top-level folders with domain subfolders (flat `namespace MyGame`):
+`enums/<domain>/`, `records/<domain>/`, `ids/`. (Data TABLES stay in `configs/`; node scripts stay in `scripts/`.)
+
+Naming: **enum members are PascalCase** (`ActionStyle.Flurry`, not `FLURRY` — the .NET convention; called out and
+agreed). **IDs are `const string`, not enums** — the id doubles as the runtime loadout string AND the config key
+(animation `attack_<id>`, Emitters/Sfx tables), and a single generic `Action` type can't hold a category-specific
+enum id, so an enum would force `enum↔snake` conversion maps at every boundary while `const string` IS the key.
+
+- [x] **Stage 1 — the Action / attack / tuning / buff cluster.** New: `enums/actions/{ActionCategory,ActionStyle}.cs`,
+  `enums/combat/StrikeType.cs` (+ `StrikeTypes.Key()`/`.From()` for the enemy emitter/sfx key boundary),
+  `ids/{AttackIds,SpecialIds,SurgeIds,MovementIds}.cs`, `records/actions/Action.cs` (record; `Animation` derived from
+  Category+Id; `with`-injected Id/Category by the accessor), `records/combat/{HitData,SegmentData}.cs` +
+  `records/combat/ITunable.cs`. `SegmentData` is the typed tuning (nullable fields = the old "key present?" semantics;
+  `Clone()` for the resolve seam; mutated by buffs). Rewrote `ActionsKhalid` (typed catalog: `new Action { … Hit =
+  new HitData(StrikeType.Melee, new SegmentData { Damage = 15, … }) }`) + `Actions` accessor. Threaded `Action`/
+  `SegmentData` through the WHOLE tuning seam: `Player` (`_currentAttack`/`_activeHit`/`ResolveTuning`/`active_hit`
+  typed, wrappers thinned, movement/surge read typed fields), `Passive.ModifyTuning`/`OnSpecialCast` + `Buff.AppliesTo`
+  (→ `List<string>`)/`ReaperEdge`/`ParryMend`, `Strike`/`Projectile` (`apply_tuning(SegmentData)` + `ITunable`; dropped
+  the dead GDict `GetF`/`source`-key paths), `LobProjectile`, `Enemy`+subclasses (`SpawnAttack(SegmentData)`, typed
+  `apply_tuning` via ITunable), `ParticleDirector` (`InjectTuning`/lob via typed `Player.active_hit()`), and the UI
+  (`HUD`/`AttackSelect`/`Build`/`Loadout`/`Rewards`). Deleted `configs/Action.cs` + `configs/StrikeSpec.cs`.
+  **Removed `tier` from attacks** (attacks have no tier — only buffs/rewards do): dropped it from `Action`, the swap
+  cards (`Loadout.Options`/`Rewards`), and the attack-select + move-line badges. Catalog/buff rewards that declare
+  their own string tier keep it (`RewardsCatalog`/`Reward`/`RewardUI`/`Loadout.TierColor` untouched). Verified: build
+  0 errors + clean boot (picker + `level.tscn`) + runtime QA (6 enemies via kits, `apply_hit` kills an enemy, player
+  `take_damage`→death path all clean). Player-attack damage numbers pending a playtest (headless can't drive attack input).
+- [x] **Stage 2 — UI presentation config (statuses + floating text).** `enums/combat/StatusType.cs`
+  (Reap/Stun/Slow/Charm) + `records/ui/{StatusDef,OverheadHalo}.cs`; rewrote `StatusTypes` (DEFS/OVERHEAD →
+  `Dictionary<StatusType,…>`, ORDER → `StatusType[]`, `ColorOf(StatusType)`, `Key(this StatusType)` for the
+  `Icons` <c>status:</c> key). `enums/ui/FloatingTextType.cs` (Damage/DamageSpecial/PlayerDamage) +
+  `records/ui/FloatingTextStyle.cs` (fixed-or-ramp size/colour with defaults); rewrote `FloatingTextTypes` →
+  `Dictionary<FloatingTextType,FloatingTextStyle>`. Threaded through consumers: `Enemy.RefreshStatusIcons` builds a
+  `List<StatusType>`; `StatusIcons`/`OverheadStatus` take it typed; `FloatingText.Emit` takes `FloatingTextType` +
+  a typed `Color? colorOverride` (killed the per-call `GDict overrides` merge — only the player's hair colour used it);
+  callers in `Player`/`RunManager`. Verified: build 0 errors + clean `level.tscn` boot + runtime QA (non-lethal stun
+  → StatusType pip/halo, lethal hit → death-clear, player `take_damage` → floating text — all clean).
+- [x] **Stage 3 — the enemy roster.** `ids/EnemyIds.cs` (const strings: the id IS the runtime `enemy_id` + the
+  Emitters/Sfx/EnemyMarkers table key) + `enums/enemies/EnemyTier.cs` (Chip/Mid/Strong; advisory — RunManager skips
+  it). Rewrote `EnemyKits` to author ids via `EnemyIds`, tier via `EnemyTier`, and `attack_type` via
+  `StrikeType.<X>.Key()` — kept the kit as a by-name override BAG (its keys mirror Enemy's `[Export]` names, applied
+  via `enemy.Set`; a fixed record would fight that). `EnemyMarkers` keyed by `EnemyIds`. Verified: build 0 errors +
+  clean `level.tscn` boot (kit values unchanged — pure authoring change). NOTE: the EmittersEnemies/SfxEnemies table
+  KEYS are still string literals (they mirror the same ids); switching them to `EnemyIds` is optional low-value churn.
+- [x] **Stage 4 — door types + Icons accessors.** `enums/rewards/DoorType.cs` (Health/Athletic/Attack/Special) +
+  `DoorTypes.All`/`.Key()`. Threaded through the reward flow: `RunManager._doorType`, `ExitGate.door_type`/`Setup`/
+  `Info` (dropped the `Known()` validator — the enum is always valid), `Rewards.offer_for(DoorType)`,
+  `RewardsCatalog.POOLS` → `Dictionary<DoorType,GArr>`, `Reward.Make(DoorType)`/`.Door`, `RewardUI.Open(DoorType)`.
+  Added typed `Icons.Door(DoorType)` + `Icons.Status(StatusType)` (StatusIcons uses the latter). Also swapped the
+  reward catalog's cross-domain move refs to consts (`AttackIds.TwinReaper`/`.DualExecutioner`, `SpecialIds.RedereShield`).
+  **Already-typed (no work):** `Combat.Layer` enum + helpers; `RewardTypes` `Tier`/`Trigger` enums. Verified: build
+  0 errors + reward-flow QA (clear → gate `touched` → `offer_for(DoorType)` → `POOLS[DoorType]` → RewardUI shown, clean).
+- [x] **Stage 5 — reward + passive ID consts.** `ids/PassiveIds.cs` (ties a passive's ctor `Id`, the
+  `Rewards.MakePassive` dispatch, and the catalog `passive` field) + `ids/RewardIds.cs` (the catalog reward keys).
+  Threaded through the passive ctors, `MakePassive` (const-pattern switch), and `RewardsCatalog`. Pure const-value
+  swaps — build 0 errors + clean boot, no behaviour change.
+- [x] **Stage 6 — reward-tier unification + LoadoutCategory.** (a) **Retired the string reward-tier**
+  (typical/elite/broken) — unified onto the `RewardTypes.Tier` enum (Common…Epic): `Reward.RewardTier` is now `Tier?`,
+  the catalog's one tiered reward (`dual_executioner`) is `(int)Tier.Epic`, `RewardUI` badges via `Tiers.ColorOf`/
+  `Label`, and `Loadout.TierColor`/`TierLabel` + their dicts are deleted (dead). (b) **`enums/actions/LoadoutCategory.cs`**
+  (Attack/Special/Surge/Run/Jump/Dash/Slam) + `LoadoutCategories.All`/`.Movement`/`.Key()`/`.Kind()`/`.Parse()`.
+  Threaded through Player (`_loadout` → `Dictionary<LoadoutCategory,string>`, `equip`/`loadout_id`/`LoadoutGet`/
+  `ApplyLoadout`/`ApplyMovement` all typed), `Loadout` (Options/DefaultId/SwapChoices), `Build`
+  (preserved the surge-not-pluralised quirk), `Rewards` (swap-card `Parse` at the `swap:<cat>:<id>` seam + the Equip
+  dict), `RunManager`. Verified: build 0 errors + QA (`equip(LoadoutCategory.Attack,"spear")` from GDScript marshals,
+  reward flow with the enum shows the UI, zero errors).
+- **Data-typing initiative: COMPLETE across all shipped domains.** Only truly cosmetic tidy-ups remain and are
+  optional: moving `Locomotion`/`SurgeSpec` into `records/` (they work as typed classes), and the
+  EmittersEnemies/SfxEnemies **table keys** → `EnemyIds` (they already mirror the same ids).

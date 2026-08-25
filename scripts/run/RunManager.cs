@@ -45,8 +45,6 @@ public partial class RunManager : Node2D
     private const int PlantZ = -4;
     private const int TreeZ = -15;
 
-    private static readonly string[] DoorTypes = { "health", "athletic", "attack", "special" };
-
     [Export] public NodePath player_path = "Player";
 
     private Player _player;
@@ -57,7 +55,7 @@ public partial class RunManager : Node2D
     private int _waveIndex = 0;
     private int _alive = 0;
     private bool _cleared = false;
-    private string _doorType = "health";
+    private DoorType _doorType = DoorType.Health;
     private bool _transitioning = false;
     private Node2D _content;
     private ExitGate _gate;
@@ -170,7 +168,7 @@ public partial class RunManager : Node2D
                 _content.AddChild(orb);
             }
 
-        _doorType = DoorTypes[(int)(GD.Randi() % (uint)DoorTypes.Length)];
+        _doorType = DoorTypes.All[GD.Randi() % (uint)DoorTypes.All.Length];
         _gate = new ExitGate();
         _gate.Setup(_doorType);
         _gate.Position = lv["exit_pos"].As<Vector2>();
@@ -402,7 +400,7 @@ public partial class RunManager : Node2D
             _player.notify_hit_dealt(amount, enemy);
             if (amount > 0.0f && !enemy.last_hit_from_special && _player.gain_ruh_on_hit())
                 SpawnRuhOrb(enemy.GlobalPosition, true);
-            string kind = enemy.last_hit_from_special ? "damage_special" : "damage";
+            FloatingTextType kind = enemy.last_hit_from_special ? FloatingTextType.DamageSpecial : FloatingTextType.Damage;
             FloatingText.Emit(kind, enemy, DamageNumberOffset, Mathf.RoundToInt(amount).ToString(), amount);
         }
     }
@@ -472,7 +470,7 @@ public partial class RunManager : Node2D
         ui.Open(_player.character);
     }
 
-    private void OnAttackChosen(string id) => _player.equip("attack", id);
+    private void OnAttackChosen(string id) => _player.equip(LoadoutCategory.Attack, id);
 
     // --- death / spawn / camera flair -----------------------------------------
 
