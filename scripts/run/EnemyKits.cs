@@ -44,7 +44,7 @@ public static class EnemyKits
 
     public static readonly GDict EIN = new()
     {
-        { "scene", "res://scenes/diver_enemy.tscn" }, { "id", EnemyIds.Ein }, { "display_name", "Ein" }, { "max_health", 28.0 },
+        { "scene", "res://scenes/diver_enemy.tscn" }, { "id", EnemyIds.Ein }, { "display_name", "Ein" }, { "max_health", 28.0 }, { "air", true },
         { "body_size", new Vector2(22, 22) }, { "hurtbox_size", new Vector2(26, 26) }, { "move_speed", 34.0 },
         { "patrol_distance", 70.0 }, { "tier", (int)EnemyTier.Mid },
     };

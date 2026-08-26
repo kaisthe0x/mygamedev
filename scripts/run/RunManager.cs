@@ -60,6 +60,9 @@ public partial class RunManager : Node2D
     private Node2D _content;
     private ExitGate _gate;
     private ColorRect _bg;
+    private LevelLayout _layout;
+
+    private const string StageDir = "res://scenes/levels/stage1/";
     private Vector2 _playerSpawn = Vector2.Zero;
     private bool _deadPrev = false;
     private float _deathHold = 0.0f;
@@ -135,6 +138,28 @@ public partial class RunManager : Node2D
     private GDict Level(int i) => Levels.GetLevel(i);
     private int LevelCount() => Levels.Count();
 
+    /// <summary>Every hand-painted layout variant for the stage (<c>level_v*.tscn</c>). Auto-uses whatever exists —
+    /// add a variant to the folder and it joins the random pool with no code change.</summary>
+    private static string[] StageLayoutPaths()
+    {
+        var list = new System.Collections.Generic.List<string>();
+        using var da = DirAccess.Open(StageDir);
+        if (da != null)
+        {
+            da.ListDirBegin();
+            for (string f = da.GetNext(); f != ""; f = da.GetNext())
+            {
+                if (da.CurrentIsDir())
+                    continue;
+                string name = f.TrimSuffix(".remap"); // exported builds serve .tscn.remap
+                if (name.StartsWith("level_v") && name.EndsWith(".tscn"))
+                    list.Add(StageDir + name);
+            }
+            da.ListDirEnd();
+        }
+        return list.ToArray();
+    }
+
     private void BuildLevel(int index)
     {
         _music.play("level");
@@ -153,25 +178,32 @@ public partial class RunManager : Node2D
         if (Terrain.BackgroundTexture() != null)
             tint.A = Terrain.BackgroundTintAlpha;
         _bg.Color = tint;
-        _playerSpawn = lv["player_spawn"].As<Vector2>();
-
-        PlaceTrees();
-        foreach (Variant pv in lv["platforms"].As<GArr>())
+        // Load one of the stage's hand-painted layouts at RANDOM (terrain + collision + spawn markers).
+        _layout = null;
+        var layoutPaths = StageLayoutPaths();
+        if (layoutPaths.Length > 0)
         {
-            var p = pv.As<GArr>();
-            BuildPlatform(p[0].As<float>(), p[1].As<float>(), p[2].As<float>(), 14.0f);
-        }
-        if (lv.ContainsKey("orbs"))
-            foreach (Variant posV in lv["orbs"].As<GArr>())
+            var scene = GD.Load<PackedScene>(layoutPaths[GD.Randi() % (uint)layoutPaths.Length]);
+            _layout = scene?.Instantiate() as LevelLayout;
+            if (_layout != null)
             {
-                var orb = new LaunchOrb { Position = posV.As<Vector2>() };
-                _content.AddChild(orb);
+                _layout.Position = Vector2.Zero; // ignore any authored root offset — sit the layout at origin
+                _content.AddChild(_layout);
             }
+        }
+        else
+        {
+            GD.PushWarning("RunManager: no level_v*.tscn layouts under scenes/levels/stage1/ — level will be empty.");
+        }
+        _playerSpawn = _layout != null ? _layout.PlayerSpawn() : lv["player_spawn"].As<Vector2>();
+
+        foreach (var op in _layout?.Orbs() ?? new System.Collections.Generic.List<Vector2>())
+            _content.AddChild(new LaunchOrb { Position = op });
 
         _doorType = DoorTypes.All[GD.Randi() % (uint)DoorTypes.All.Length];
         _gate = new ExitGate();
         _gate.Setup(_doorType);
-        _gate.Position = lv["exit_pos"].As<Vector2>();
+        _gate.Position = _layout != null ? _layout.ExitPoint() : lv["exit_pos"].As<Vector2>();
         _gate.touched += OnGateTouched;
         _content.AddChild(_gate);
 
@@ -287,21 +319,84 @@ public partial class RunManager : Node2D
                 Position = new Vector2(spots[i] - tex.GetWidth() / 2.0f, -tex.GetHeight()),
                 ZIndex = TreeZ,
             };
+            AddLeafFall(spr, tex.GetWidth(), tex.GetHeight());
             _content.AddChild(spr);
         }
+    }
+
+    /// <summary>
+    /// Attach a gently-falling "leaves" particle emitter to a tree. The tree sprite is Centered=false, so its LOCAL
+    /// space runs (0,0) top-left → (w,h) bottom-right; leaves spawn across the CANOPY band up top and drift down.
+    /// This is a plain <c>CpuParticles2D</c> — every knob below is a dial you can tune (or copy for other props).
+    /// </summary>
+    private static void AddLeafFall(Node2D tree, float w, float h)
+    {
+        var leafTex = GD.Load<Texture2D>("res://vfx/shared/textures/soft_dot.png"); // swap for a real leaf sprite later
+        var leaves = new CpuParticles2D
+        {
+            Emitting = true,          // run continuously
+            LocalCoords = false,      // leaves keep falling in WORLD space (don't snap to the tree)
+            ZIndex = TreeZ + 1,       // in front of the trunk
+            Texture = leafTex,
+
+            // WHERE they're born: a rectangle across the top of the canopy.
+            EmissionShape = CpuParticles2D.EmissionShapeEnum.Rectangle,
+            EmissionRectExtents = new Vector2(w * 0.42f, h * 0.18f), // half-size of the spawn band
+            Position = new Vector2(w * 0.5f, h * 0.26f),             // centred over the canopy (tree-local)
+
+            // HOW MANY / HOW LONG: sparse + slow = calm, not a blizzard.
+            Amount = 10,              // leaves alive at once — raise for denser fall
+            Lifetime = 5.0,          // seconds each leaf lives (how long it falls)
+            Explosiveness = 0.0f,    // 0 = steady trickle; 1 = all at once (bursts)
+            Preprocess = 3.0,        // start mid-fall so leaves are already drifting when a level loads
+
+            // MOTION: a floaty downward fall with sway + tumble.
+            Direction = new Vector2(0, 1), // down
+            Spread = 30.0f,                // ± degrees of fan-out
+            Gravity = new Vector2(0, 24),  // gentle pull (low = leaf-light; raise = heavier fall)
+            InitialVelocityMin = 6.0f,
+            InitialVelocityMax = 18.0f,
+            DampingMin = 6.0f,             // air resistance — slows them so they *drift*, not plummet
+            DampingMax = 12.0f,
+            AngularVelocityMin = -70.0f,   // tumble/spin (deg/s)
+            AngularVelocityMax = 70.0f,
+
+            // SIZE: small motes.
+            ScaleAmountMin = 0.15f,
+            ScaleAmountMax = 0.35f,
+        };
+        // LOOK over life: born a soft violet, fade to transparent electric-blue as they settle (Arcane-Void palette).
+        var ramp = new Gradient();
+        ramp.SetColor(0, new Color(0.72f, 0.45f, 1.0f, 0.9f));
+        ramp.SetColor(1, new Color(0.45f, 0.55f, 1.0f, 0.0f));
+        leaves.ColorRamp = ramp;
+        tree.AddChild(leaves);
     }
 
     // --- spawning + waves -----------------------------------------------------
 
     private void SpawnGroup(GArr specs, bool withFx)
     {
+        // Positions come from the LAYOUT's spawn markers (ground for walkers, air for flyers), assigned round-robin.
+        // The roster (WHICH enemies) is the shared per-level data; each spec's own `pos` is only a fallback.
+        var ground = _layout?.GroundSpawns() ?? new System.Collections.Generic.List<Vector2>();
+        var air = _layout?.AirSpawns() ?? new System.Collections.Generic.List<Vector2>();
+        int gi = 0, ai = 0;
         foreach (Variant specV in specs)
         {
             var spec = specV.As<GDict>();
-            Vector2 pos = spec["pos"].As<Vector2>();
+            var kit = spec["kit"].As<GDict>();
+            bool isAir = kit.ContainsKey("air") && kit["air"].AsBool();
+            Vector2 pos;
+            if (isAir && air.Count > 0)
+                pos = air[ai++ % air.Count];
+            else if (ground.Count > 0)
+                pos = ground[gi++ % ground.Count];
+            else
+                pos = spec["pos"].As<Vector2>(); // no markers → fall back to the authored position
             if (withFx)
                 SpawnFx(pos);
-            var enemy = SpawnEnemy(spec["kit"].As<GDict>(), pos);
+            var enemy = SpawnEnemy(kit, pos);
             if (enemy != null)
             {
                 var e = enemy; // stable per-iteration capture for the bound handlers
@@ -320,7 +415,7 @@ public partial class RunManager : Node2D
         foreach (var key in kit.Keys)
         {
             string k = key.AsString();
-            if (k is "scene" or "tier" or "pos")
+            if (k is "scene" or "tier" or "pos" or "air")
                 continue;
             if (k == "id")
                 enemy.Set("enemy_id", kit[key]);
@@ -621,19 +716,15 @@ public partial class RunManager : Node2D
 
     private void BuildFloor()
     {
+        // Legacy arena floor — the painted layout is the terrain now, so switch the old floor OFF entirely.
         var floorBody = GetNodeOrNull<StaticBody2D>("Floor");
         if (floorBody == null)
             return;
-        var shape = floorBody.GetNodeOrNull<CollisionShape2D>("CollisionShape2D");
-        if (shape == null || shape.Shape is not RectangleShape2D rect)
-            return;
-        Vector2 size = rect.Size;
-        Vector2 topLeft = shape.Position - size / 2.0f;
+        floorBody.CollisionLayer = 0; // no collision: the layout's painted solid tiles are the ground
+        floorBody.Visible = false;
         var old = floorBody.GetNodeOrNull<ColorRect>("ColorRect");
         if (old != null)
             old.Visible = false;
-        PaintSurface(floorBody, topLeft, size.X, 2);
-        ScatterPlants(floorBody, topLeft, size.X, 0.4f);
     }
 
     private void AddGlow()

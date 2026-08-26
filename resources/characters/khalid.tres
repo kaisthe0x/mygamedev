@@ -1483,12 +1483,12 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("surge_wara_4")
 }, {
-"duration": 3.0,
+"duration": 1.0,
 "texture": SubResource("surge_wara_5")
 }],
 "loop": false,
 "name": &"surge_wara",
-"speed": 8.0
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,

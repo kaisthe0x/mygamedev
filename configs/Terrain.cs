@@ -20,12 +20,22 @@ public static class Terrain
         "res://assets/terrain/stage1/neon-tree2.png",
     };
 
-    // Atlas cells (col,row) by role. TOP = walkable surface; FILL = body below.
-    public static readonly Vector2I[] TOP_CELLS = { new(0, 0), new(1, 0), new(2, 0), new(3, 0) };
+    // Atlas cells (col,row) by role, from stage1_tileset1 (10x8 @32px). TOP = walkable lip; FILL = body below.
+    // Only fully-opaque cells are pooled (a transparent cell would punch holes in a platform); the sheet's
+    // sparse/partial cells (rows 6-7, a few gaps) are intentionally left out. Placement picks randomly per tile.
+    public static readonly Vector2I[] TOP_CELLS =
+    {
+        new(0, 0), new(1, 0), new(2, 0), new(3, 0), new(4, 0), new(5, 0), new(6, 0), new(7, 0), new(8, 0),
+        new(1, 3), new(2, 3),
+    };
     public static readonly Vector2I[] FILL_CELLS =
     {
-        new(0, 1), new(1, 1), new(2, 1), new(3, 1),
-        new(0, 2), new(1, 2), new(2, 2), new(3, 2),
+        new(0, 1), new(1, 1), new(2, 1), new(3, 1), new(5, 1), new(6, 1), new(7, 1), new(8, 1),
+        new(0, 2), new(1, 2), new(2, 2), new(3, 2), new(5, 2), new(7, 2), new(8, 2),
+        new(5, 3), new(6, 3), new(7, 3), new(8, 3),
+        new(3, 4), new(4, 4), new(5, 4), new(6, 4), new(7, 4), new(8, 4),
+        new(7, 5), new(8, 5),
+        new(7, 6),
     };
     public static readonly Vector2I[] PLANT_CELLS = { new(0, 0), new(1, 0) };
     public static readonly Vector2I MUSHROOM_CELL = new(0, 1);
