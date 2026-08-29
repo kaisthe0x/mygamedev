@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpsufst2ljoqg"
-path="res://.godot/imported/breski_patrol_frames.png-28266c72e6e40264f76fc2e0a0363371.ctex"
+uid="uid://bnu7jo6q7b4vy"
+path="res://.godot/imported/baghel_walk_frames.png-b4d34992e06b21e78b9f1999cb0cac9c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/breski/breski_patrol_frames.png"
-dest_files=["res://.godot/imported/breski_patrol_frames.png-28266c72e6e40264f76fc2e0a0363371.ctex"]
+source_file="res://sprites/enemies/baghel/baghel_walk_frames.png"
+dest_files=["res://.godot/imported/baghel_walk_frames.png-b4d34992e06b21e78b9f1999cb0cac9c.ctex"]
 
 [params]
 

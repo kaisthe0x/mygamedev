@@ -50,7 +50,7 @@ CHARACTER_ANIMS = {
 }
 ENEMY_ANIMS = {
     "idle": (6.0, True),
-    "patrol": (8.0, True),  # walk cycle used while patrolling (was "stroll")
+    "walk": (8.0, True),  # walk cycle used while walking/patrolling (was "patrol"/"stroll")
     "attack": (12.0, False),  # a strike/melee (ground AoE, launch, front hit)
     "attack_projectile": (10.0, False),  # launches a projectile (Kebus bolt, Baghel wave)
     "death": (6.0, False),  # slow + graceful -- plays once on death, then the corpse fades
@@ -158,12 +158,12 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     # Nasen (enemy): a deliberate rage yell. `loop_from` = sheet frame 2 (= emitted 1, the
     # first yell frame) so his re-played rage loops the yell and the wake-up (emitted 0)
     # plays only once. Enemy.gd honours loop_from for a re-played attack (see _replay_from).
-    ("nasen", "attack"): {"fps": 8.0, "loop_from": 2},
+    ("nasen", "attack_aoe"): {"fps": 8.0, "loop_from": 2},
     # Mazab (enemy): let the throw's release pose land before he retracts, so the lob reads.
-    ("mazab", "attack_projectile"): {"hold_last": 1.5},
+    ("mazab", "attack_delayed_projectile"): {"hold_last": 1.5},
     # Ein (enemy): the stab loops for the whole charge (which lasts a variable dive time, not
     # one anim cycle) -- ein.gd ends it by exploding on arrival, not on anim_finished.
-    ("ein", "attack"): {"loop": True},
+    ("ein", "attack_kamikaze"): {"loop": True},
 }
 
 # Attack hit frames (sheet-relative). An attack combo plays one segment per
@@ -189,17 +189,19 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
         3,
         7,
     ],  # two laser shots -- small on frame 3, big on frame 7
-    ("kebus", "attack"): [3],
+    ("kebus", "attack_melee"): [3],
     ("baghel", "attack_projectile"): [6],
-    ("nasen", "attack"): [2],  # the rage AoE erupts on this frame
-    ("mazab", "attack_projectile"): [5],  # release frame -- the lobbed bomb leaves his hand here
-    ("matat", "attack"): [
+    ("nasen", "attack_aoe"): [2],  # the rage AoE erupts on this frame
+    ("mazab", "attack_delayed_projectile"): [
+        5
+    ],  # release frame -- the lobbed bomb leaves his hand here
+    ("matat", "attack_aoe"): [
         4
     ],  # the AoE erupts as his arms sweep round (its hitbox+VFX span frames 4-8)
-    ("tarri", "attack"): [
+    ("tarri", "attack_blast"): [
         3
     ],  # the stationary forward blast erupts on the LAST frame (he holds+vibrates there)
-    ("breski", "attack"): [
+    ("breski", "attack_melee"): [
         4,
         9,
     ],

@@ -1,9 +1,14 @@
 # mygamedev
 
-> **⚙️ C# migration in progress** (branch `feature/csharp-migration`). The game is being ported from
-> GDScript to C# (typed attack hierarchy + reward system + compile-time strictness). This README still
-> describes the GDScript architecture; sections are updated as each subsystem flips. Run/verify with
-> **`godot-mono`**, not `godot`. Plan, interop rules, and phase status: [`docs/csharp-migration.md`](docs/csharp-migration.md).
+> **✅ C# migration complete.** The game is fully C# (only build/QA `.gd` tools remain), with a typed-data pass
+> (enums/records/ids). Run/verify with **`godot-mono`**, not `godot`. History + interop rules:
+> [`docs/csharp-migration.md`](docs/csharp-migration.md).
+>
+> **🔭 Run-loop pivot (design-frozen, NOT yet built).** The game is moving to a new **Fissure / Seal / Warden**
+> arena loop (three Wardens that charge until you seal their Fissures, then hunt you — **no main boss, no
+> greed**) that supersedes the reward-door / 5-level loop this README describes. Source of truth:
+> [`docs/game-loop.md`](docs/game-loop.md) + [`docs/buff-catalog.md`](docs/buff-catalog.md). Until it's
+> implemented, the sections below describe the **current (old-loop) code**.
 
 A 2D pixel-art action platformer in **Godot 4.7**. A character-agnostic player controller
 drives the playable character. This repo ships **Khalid only** — four other characters were
@@ -13,7 +18,8 @@ stays fully character-agnostic, so bringing one back is just its assets + data r
 
 Main scene: `scenes/level.tscn`. Press F5 to run.
 
-**Game premise & the run loop:** see [`docs/game-design.md`](docs/game-design.md) — a roguelite
+**Game premise & the run loop:** *(current/old loop — being replaced, see the pivot banner above +
+[`docs/game-loop.md`](docs/game-loop.md))* see [`docs/game-design.md`](docs/game-design.md) — a roguelite
 arena crawler: clear each level's enemy batches, cast **specials** (now **free and unlimited**), and
 spend **Ruh** on your **Aegis** surge for an on-demand burst of invincibility (each use costs one
 **Ruh** charge — you start a run with 3, and refill Ruh by **landing hits**; Ruh is the only gate, no
@@ -335,12 +341,12 @@ with wind-up / in-between frames between the hits:
 | khalid | `attack_cherry_shots` | `[3, 7]` — two laser Projectiles: small bolt, then a bigger one |
 | khalid | `special_ground_breaker` | `[6]` — the overhead ground crack |
 | khalid | `special_stay` | `[3]` — a short stun blast (little dmg, 5s stun) |
-| kebus (enemy) | `attack` | `[3]` |
+| kebus (enemy) | `attack_melee` | `[3]` |
 | baghel (enemy) | `attack_projectile` | `[6]` |
-| nasen (enemy) | `attack` | `[2]` — the rage AoE erupts here |
-| mazab (enemy) | `attack_projectile` | `[5]` — the lobbed bomb leaves his hand here |
-| tarri (enemy) | `attack` | `[3]` — the stationary blast erupts on the last frame |
-| breski (enemy) | `attack` | `[4, 9]` — a 2-hit melee combo: jab, then a heavier follow-up |
+| nasen (enemy) | `attack_aoe` | `[2]` — the rage AoE erupts here |
+| mazab (enemy) | `attack_delayed_projectile` | `[5]` — the lobbed bomb leaves his hand here |
+| tarri (enemy) | `attack_blast` | `[3]` — the stationary blast erupts on the last frame |
+| breski (enemy) | `attack_melee` | `[4, 9]` — a 2-hit melee combo: jab, then a heavier follow-up |
 
 Specials list a strike frame the same way (keyed by the special's animation);
 without one the special lands on its middle frame.
@@ -1050,7 +1056,8 @@ exists. Same "drop a file, add one line" workflow as `Sfx`.
     particle bursts). This is symmetric to VFX — the **Emitters config stays particles-only**.
 - **Enemy sound keys** follow conventions the code composes: `enemy_death` / `enemy_spawn` (shared,
   positional — death on `_die`, spawn with the puff in `RunManager._spawn_fx`), `<id>.<type>`
-  (attack start, `type` = the enemy's `attack_type`, else melee/projectile from the anim),
+  (attack start, `type` = the enemy's `close_type` / `far_type` — the StrikeType of its close-range /
+  far-range attack, picked by which attack fired),
   `<id>.delayed_projectile_burst` (a lob's delayed explosion), and per-frame
   hits in `SfxEnemies.FRAMES` — all in `SfxEnemies`, keyed by `enemy_id`.
 - **Unregistered key = silent** (an `<id>.<type>` with no cue just plays nothing); a **registered
@@ -1075,7 +1082,7 @@ exists. Same "drop a file, add one line" workflow as `Sfx`.
 ### Enemy sprites
 
 Enemies use the **same pipeline** as characters, just a different group and
-animation set (`idle`, `patrol`, `attack`, `attack_projectile`, `death`). Source sheets
+animation set (`idle`, `walk`, `attack_<type>` derived per the enemy's close/far attack, `death`). Source sheets
 live in `sprites/enemies/<id>/`; `gen_spriteframes.py` processes both groups (see
 `GROUPS` at the top) and writes `resources/enemies/<id>.tres`. Enemies share their
 own normalised canvas, independent of the character canvas. Same 128x80 + frame-0
@@ -1098,10 +1105,11 @@ can be dropped into a level and tuned in the inspector; the enemy's **body** (sp
 hurtbox, contact box, health bar) is built in code, but its **attacks** are
 self-contained SCENES (see below), so the scene has nothing fragile to hand-wire. Key traits:
 
-- **Capabilities are inferred from the art.** An `attack` sheet (a strike/melee) enables
-  the melee box; an `attack_projectile` sheet enables the ranged shot. An enemy with only
-  one — or, like a stationary sleeper, **no `patrol`** — just works; missing animations
-  are never used (a patrol-less enemy stands instead of patrolling).
+- **Capabilities come from `close_type` / `far_type`.** Each names the StrikeType of the enemy's
+  close-range / far-range attack; the animation is **DERIVED** as `attack_<type>` (e.g. `attack_aoe`,
+  `attack_projectile`) and that attack is enabled when its sheet exists. An enemy with only one —
+  or, like a stationary sleeper, **no `walk`** — just works; missing animations are never used (a
+  walk-less enemy stands instead of patrolling).
 - **Attacks are self-contained scenes (the PLAYER pattern).** Every enemy attack — a melee `Strike`,
   a `Projectile`, or the lob's `Strike` explosion — is authored AS a scene: the component script on the
   root + its **own `Hitbox`** (shape authored) + the visual. `Enemy._spawn_attack` (shared by the melee
@@ -1109,25 +1117,25 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   it, **mirrors the whole thing by facing** (so a directional strike/beam comes out the way the enemy
   faces — this is what fixed Tarri's blast), and **injects** the numbers (`damage`/`knockback`/`stun`)
   into the scene's hitbox via `apply_tuning`, exactly like the `ParticleDirector` does for the player. The
-  hitbox SHAPE + lifetime + emit window live in the scene now — so the old `melee_hitbox_extents`/`_x` /
-  `melee_strike_lifetime` / `ranged_hitbox_extents` exports are **superseded by the authored scene** (the
+  hitbox SHAPE + lifetime + emit window live in the scene now — so the old `close_hitbox_extents`/`_x` /
+  `close_strike_lifetime` / `far_hitbox_extents` exports are **superseded by the authored scene** (the
   scene wins). This replaced the earlier code-built-hitbox approach so enemies and the player are consistent.
-  **Fallback:** an enemy with an `attack` (melee) anim but **no melee scene** — a ranged enemy like Kebus
-  doing a point-blank jab — instead builds a bare **code hitbox** from `melee_hitbox_x` + `melee_hitbox_extents`
-  (half-size) + `melee_strike_lifetime` (`Enemy.SpawnCodeMeleeStrike`), so the swing still connects. (Without
+  **Fallback:** an enemy with a close-attack anim but **no close-attack scene** — a far-attack enemy like Kebus
+  doing a point-blank jab — instead builds a bare **code hitbox** from `close_hitbox_x` + `close_hitbox_extents`
+  (half-size) + `close_strike_lifetime` (`Enemy.SpawnCodeMeleeStrike`), so the swing still connects. (Without
   it those enemies' melee dealt no damage — a long-standing gap, fixed 2026-08.)
   Two knobs ride on this: the `EmittersEnemies` **`pos`** anchors the whole attack (mirrored by facing —
   move it to reposition a strike's beam/box together), and the enemy **engages at its REAL reach** — on
-  `_ready` `melee_range` is derived from the attack scene's hitbox far-edge (+ `pos.x`) via `_melee_reach()`,
-  and a `"forward"` shot's `ranged_range` is clamped to `ranged_travel`. So an enemy closes exactly as far
+  `_ready` `close_range` is derived from the attack scene's hitbox far-edge (+ `pos.x`) via `_melee_reach()`,
+  and a `"forward"` shot's `far_range` is clamped to `far_travel`. So an enemy closes exactly as far
   as it can hit, and shrinking a hitbox brings it *closer* — no separate range to keep in sync with the box.
   **Authoring the particles:** the `Strike` leaves emission to the scene, so a `CPUParticles2D` at its default
   `one_shot = false` **loops for the strike's whole life** (reads as "it keeps emitting"). For a single hit
   flash set **`one_shot = true`** (+ high `explosiveness` for a crisp pop). And since `pos` moves the whole
   strike, the clean workflow is: **author each emitter dead-centre `(0,0)` and position it with `pos`** — no
   hand-nudging nodes in the editor. (`pos` carries the hitbox too, so the burst and the box stay together.)
-- **Melee jab vs. AoE.** The `attack` hit frame(s) fire the strike scene (`EmittersEnemies` `<id> -> aoe`
-  / `attack_type`); its **Hitbox is authored in that scene** — a jab is a small box in front, an **AoE swing**
+- **Close jab vs. AoE.** The close attack's hit frame(s) fire the strike scene (`EmittersEnemies` `<id> -> aoe`
+  / `close_type`); its **Hitbox is authored in that scene** — a jab is a small box in front, an **AoE swing**
   a wide box centred on the body with a long lifetime (it still hits once — `Hitbox` dedups). **Matat** is the worked example: a
   chasing bruiser who sweeps his arms for a wide orange shockwave (kit `EnemyKits.MATAT`; VFX
   `vfx/enemy/matat/attack/matat_aoe.tscn`; the AoE erupts on attack frame 4). His `attack_loops = true`
@@ -1137,16 +1145,16 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
 - **Channelled stationary blast.** **Tarri** is a Bakshen-style caster with more reach: a lit-yellow mob who,
   on his **last attack frame**, **holds + vibrates** (the freeze-on-fire-frame hit-stop + `attack_shake`)
   while he ERUPTS a **wide stationary forward blast in front — a melee `Strike`, NOT a travelling shot**.
-  He's pure-melee (anim `attack`), so he walks into `melee_range` (his blast reach) and swings;
+  He's close-only (anim `attack_blast`), so he walks into `close_range` (his blast reach) and swings;
   `tarri_blast.tscn` (a `Strike` scene) authors the forward hitbox + a **beam that emits from his body and
   mirrors with facing** (fixed via `_spawn_attack`). **The hold length is the blast's own `emit_duration`,
   not `attack_hitstop`:** when a fire frame spawns a channeled Strike, `_on_frame_changed` feeds that Strike's
   `emit_duration` to `_begin_hitstop`, so the fire-frame freeze ends **exactly** when the emission does — he
   snaps back to idle the instant the blast is gone, never stranded on the attack frame (tweak `emit_duration`
   in `tarri_blast.tscn` to retime the whole thing). Non-channel melees (Matat's instant `aoe`) still use the
-  plain `attack_hitstop`. His `attack_type = "blast"` keys both the SFX (`tarri.blast`
+  plain `attack_hitstop`. His `close_type = "blast"` keys both the SFX (`tarri.blast`
   at the start, `tarri.blast.3` on the fire frame) **and** the strike VFX — `_spawn_melee_strike` looks up
-  the effect under the enemy's `attack_type` (falling back to `aoe`), so a typed strike (Matat's `aoe`, Tarri's `blast`) finds its scene
+  the effect under the enemy's `close_type` (falling back to `aoe`), so a typed strike (Matat's `aoe`, Tarri's `blast`) finds its scene
   under that key. Kit `EnemyKits.TARRI`; VFX `vfx/enemy/tarri/attack/tarri_blast.tscn`.
   **Getting hit mid-channel cancels it — visuals AND audio.** A channeled Strike (`emit_duration > 0`) is
   remembered as `Enemy._active_channel` when it spawns; if a hit **staggers or stuns** us before the window
@@ -1163,39 +1171,39 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   holds his ground **and facing** (early-returns before the face/pursue logic), so a player who dashes
   behind him can't yank him around to chase while his blast is still firing the other way. `_active_channel`
   goes invalid the instant the Strike frees, releasing him exactly when the blast is gone.
-- **Multi-hit melee combo (per-hit VFX + SFX).** A melee `attack` with **several `HIT_FRAMES`** fires one
+- **Multi-hit melee combo (per-hit VFX + SFX).** A close attack (e.g. `attack_melee`) with **several `HIT_FRAMES`** fires one
   strike **per hit frame** — each an independent self-contained Strike scene, so a combo's swings can look
-  and sound different. **Breski** is the worked example: a blood-red bruiser whose `attack` hits on frames
-  **4 (a jab)** and **9 (a heavier follow-up)** (kit `EnemyKits.BRESKI`; `attack_type = "melee"`). The
+  and sound different. **Breski** is the worked example: a blood-red bruiser whose `attack_melee` hits on frames
+  **4 (a jab)** and **9 (a heavier follow-up)** (kit `EnemyKits.BRESKI`; `close_type = "melee"`). The
   per-hit scene is keyed by the **frame it fires on** — `_melee_vfx_key(_sprite.frame)` names the
   `EmittersEnemies` row `<type>_<sheet-frame>`: **`melee_4`** (the jab) and **`melee_9`** (the heavy),
   matching `HIT_FRAMES` and the SFX cue numbers so a hit's scene, sound, and frame all read the same number.
   (`_sprite` reports emitted frames, so `AnimMeta.sheet_start` is added back to name the row; a single-hit
-  attack has no framed row and falls back to the bare `attack_type`, so Matat's `aoe` / Tarri's `blast`
+  attack has no framed row and falls back to the bare close/far type, so Matat's `aoe` / Tarri's `blast`
   still work.) SFX follow the standard per-frame path (`SfxEnemies.FRAMES` → `breski.melee.4` /
   `breski.melee.9`) plus the shared start cue (`breski.melee`). Each hit also gets **its own hit-stop** —
   `_end_hitstop` re-arms `_impacted`, so the 2nd swing freezes/shakes too instead of only the 1st. VFX:
   `vfx/enemy/breski/attack/breski_melee_4.tscn` (jab) + `breski_melee_9.tscn` (heavy).
-- **Passive patrol trail.** An enemy with a `patrol_trail` row in `EmittersEnemies` wears a particle trail
+- **Passive walk trail.** An enemy with a `walk_trail` row in `EmittersEnemies` wears a particle trail
   while it walks: `Enemy._build_patrol_trail` attaches the scene once and `_physics_process` toggles its
   emitters by whether it's actually moving (author the emitters `local_coords = false` so the particles
-  linger in the world). Tarri uses one (`vfx/enemy/tarri/patrol/tarri_patrol_trail.tscn`).
+  linger in the world). Tarri uses one (`vfx/enemy/tarri/walk/tarri_walk_trail.tscn`).
 - **Emitter naming (`EmittersEnemies`).** An enemy's particle rows are keyed by the attack's **strike
-  type** (`configs/StrikeSpec.cs`: `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`, `blast`,
-  …), never an ad-hoc name. A component of an attack appends a role: `<type>_burst` (a projectile's
-  explosion, e.g. `mazab → delayed_projectile + delayed_projectile_burst`), `<type>_trail` (the motion
-  trail into it, e.g. `ein → delayed_aoe + delayed_aoe_trail`). A passive movement trail is
-  `<state>_trail` (`patrol_trail`, worn by Tarri). So `nasen`/`matat → aoe`, `kebus`/`baghel → projectile`,
+  type** (`enums/combat/StrikeType.cs`: `melee`, `projectile`, `delayed_projectile`, `aoe`, `delayed_aoe`,
+  `kamikaze`, `blast`, `tackle`, `trap`), never an ad-hoc name. A component of an attack appends a role:
+  `<type>_burst` (a projectile's explosion, e.g. `mazab → delayed_projectile + delayed_projectile_burst`),
+  `<type>_trail` (the motion trail into it, e.g. `ein → kamikaze + kamikaze_trail`). A passive movement trail is
+  `<state>_trail` (`walk_trail`, worn by Tarri). So `nasen`/`matat → aoe`, `kebus`/`baghel → projectile`,
   `tarri → blast`. **The SFX
   side (`SfxEnemies`) uses the same type keys** — `<id>.<type>` where `type` is the enemy's
-  `attack_type` (`@export`, set per kit; empty falls back to melee/projectile from the anim) — and the
+  `close_type` / `far_type` (`@export`, set per kit; picked by which attack fired) — and the
   scene/wav **filenames** follow suit (`nasen_aoe.tscn`, `mazab_delayed_projectile.tscn`, `aoe.wav`, …).
 - **Behaviour:** patrols between its spawn point and `spawn + patrol_distance`,
   pausing `idle_time_min..max` seconds at each end. If the player enters its line (aligned + within
-  `ranged_range`) it engages — **melee** (the `attack` strike) within `melee_range`, else **ranged**
-  (the `attack_projectile` shot). A **pure-melee** enemy (has `attack`, no `attack_projectile`) then
-  **walks in** to close the gap even without `aggro` — otherwise a melee mob would just stand and wait;
-  a ranged one holds its ground and fires. While engaged it plays a **live idle loop** (a breathing
+  `far_range`) it engages — its **close attack** (the `attack_<close_type>` strike) within `close_range`,
+  else its **far attack** (the `attack_<far_type>` shot). A **close-only** enemy (a close attack, no far) then
+  **walks in** to close the gap even without `aggro` — otherwise a close-range mob would just stand and wait;
+  a far-attack one holds its ground and fires. While engaged it plays a **live idle loop** (a breathing
   ready-stance), not a frozen frame.
 - **Height-aware engagement (`attack_align_y`, default 40px):** both boxes are
   horizontal, so an enemy only *engages* — attacks, holds, or (with `aggro`) chases —
@@ -1208,9 +1216,9 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   So enemies can patrol on platforms safely.
 - **`aggro`** (default **on** — enemies are hunters): it *chases* the player up to
   `aggro_range` (the **give-up leash**: get farther and it drops back to patrol), instead of only
-  fighting whoever wanders into its line. It chases to its **attack reach** — a *ranged* mob closes
-  only to **firing range** (`ranged_range`) and holds (it won't run its bow into your face), a
-  *pure-melee* mob closes to `melee_range` and swings. It's a per-instance export, so set it **false**
+  fighting whoever wanders into its line. It chases to its **attack reach** — a *far-attack* mob closes
+  only to **firing range** (`far_range`) and holds (it won't run its bow into your face), a
+  *close-only* mob closes to `close_range` and swings. It's a per-instance export, so set it **false**
   per-kit for a mob that should just guard a spot.
 - **`alert_duration`** (default **5s**): getting hit **alerts** the enemy — it then
   detects and *pursues* the attacker for that long **regardless of its normal range**
@@ -1223,15 +1231,15 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   one mob for chaos, not the roster. The seam for enemies fighting each other.
 - **`contact_damage`** (default **0 = off**): when set, touching the player
   deals it on `contact_interval`. Also per-instance.
-- **Ranged** fires from the **muzzle** (the `Emitters` config `<id> → projectile → pos`) on the
-  animation's hit frame (`hit_frames` metadata). Three `ranged_mode`s:
+- **The far attack** fires from the **muzzle** (the `Emitters` config `<id> → projectile → pos`) on the
+  animation's hit frame (`hit_frames` metadata). Three `far_mode`s:
   - `"aimed"` — a `scripts/combat/Projectile.cs` that points at the player's torso **the moment it fires**
     (Kebus' staff bolt). The shot doesn't steer after that (`homing = 0` for enemies), but
     that fire-time aim is what reads as "homing." **To stop enemies tracking you, set
-    `ranged_mode = "forward"`** (per instance / roster entry). Separately, `aggro`
+    `far_mode = "forward"`** (per instance / roster entry). Separately, `aggro`
     (default off) is what makes an enemy *chase* — leave it off to have them guard.
   - `"forward"` — a `scripts/combat/Projectile.cs` that surges straight ahead in the enemy's facing for
-    `ranged_travel` px then fizzles, hitting whatever it passes — ignores where you are
+    `far_travel` px then fizzles, hitting whatever it passes — ignores where you are
     (Baghel's red energy). The look comes from the Emitters `projectile` scene.
   - `"lob"` — a **`LobProjectile`** (`scripts/combat/LobProjectile.cs`), a *thrown bomb*
     (Mazab). It arcs out of the muzzle **aimed** at a spot next to the player (`lob_land_offset`,
@@ -1241,7 +1249,7 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
     *dodgeable*: clear the landing spot before the timer ends. Three phases — **ARC** → **DWELL**
     → **EXPLODE** (spawns a hostile `Strike`, the same AoE component nasen's aoe / the
     ground-breaker use, sized by `lob_explosion_extents` and using
-    `ranged_damage`/`ranged_knockback`/`ranged_stun`). Two things keep it honest:
+    `far_damage`/`far_knockback`/`far_stun`). Two things keep it honest:
     - **`lob_arc_time`** only *solves the launch velocity* to aim the toss (arc height/angle);
       it does **not** decide where it stops. The bomb keeps falling until it actually crosses an
       **`L_WORLD`** surface **while descending** (a per-step ray, so it can't tunnel through a
@@ -1258,7 +1266,7 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
     (`<id> → projectile → scene`, e.g. Baghel's `attack_ground_wave.tscn`, Kebus' `attack_bolt.tscn`),
     which the projectile instances as its visual — you edit/preview it in the editor like any scene
     (they're built `emitting = true`). Empty = a simple orb trail built in code (the
-    `scripts/combat/Projectile.cs` fallback). `ranged_hitbox_extents` / `ranged_hitbox_offset` size the collider
+    `scripts/combat/Projectile.cs` fallback). `far_hitbox_extents` / `far_hitbox_offset` size the collider
     (a small box for a bolt, a tall slab rising from the ground for a wave).
     Baghel's wave is a **crest**: chunks kick up-and-forward out of a
     ground-hugging emission strip and arc back down under gravity while the
@@ -1291,10 +1299,10 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
     (frisbee/cherry red, kebus green, baghel red-orange); a player shot's `Impact` is a child of its scene
     root, an enemy shot's lives inside its **visual** scene (`kebus_projectile.tscn` etc.). `impact_sfx` is
     the audio twin (played positionally at the same spot). Lobs explode via `LobProjectile`, separate from this.
-- **Melee** enables a hitbox in front on the animation's hit frame (from the
+- **The close attack** enables a hitbox in front on the animation's hit frame (from the
   `hit_frames` metadata — Kebus: sheet frame 3).
-- **`attack_loops`** (default **off**): when on, the melee `attack` **loops** while the
-  player stays in melee reach (a channel/flurry) instead of one swing per cooldown. Each
+- **`attack_loops`** (default **off**): when on, the close attack **loops** while the
+  player stays in close reach (a channel/flurry) instead of one swing per cooldown. Each
   cycle re-plays from the anim's `loop_from` (`gen_spriteframes`), so a wind-up lead-in
   plays once and only the strike cycle repeats; when the player leaves reach it ends with
   the normal cooldown → idle. (Built on the same `_loop_from`/`_replay_from` helpers Nasen's
@@ -1383,9 +1391,9 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
 
 A worked example of a **custom enemy that subclasses `Enemy`**: it reuses all the
 infrastructure (sprite / hurtbox / health-bar / hit-flash / death / hit-stop) and only
-overrides the AI (`_act`) and the attack/hurt hooks. He has **idle + attack + death, no
-patrol**, so he never patrols — he **sleeps in place**. When the player comes within
-`rage_zone` (and on his level) he wakes and **RAGES** (a new `Enemy.State`): the `attack`
+overrides the AI (`_act`) and the attack/hurt hooks. He has **idle + attack_aoe + death, no
+walk**, so he never patrols — he **sleeps in place**. When the player comes within
+`rage_zone` (and on his level) he wakes and **RAGES** (a new `Enemy.State`): the `attack_aoe`
 loops and, on its hit frame, a **ground AoE erupts around him** — a hostile `Strike` built
 in code with a wide centred hitbox plus a particle-only look
 (`vfx/enemy/nasen/attack/nasen_rage.tscn`, rising floor flames). Leave the zone and he
@@ -1395,7 +1403,7 @@ keeps raging for `rage_linger` (2s) before dozing off.
   strike (`ranged = false`) halts his rage for `rage_stun_time` (~1.5s), then he wakes and
   starts over; a projectile (`ranged = true`) only chips his health. So **shooting him
   from range is the safe way in** — melee is riskier but interrupts him.
-- **Wake once, then loop the yell.** His `attack` sheet is `[wake, yell, yell, yell]`. He
+- **Wake once, then loop the yell.** His `attack_aoe` sheet is `[wake, yell, yell, yell]`. He
   re-plays it each rage cycle, but on every cycle after the first it restarts at the anim's
   **`loop_from`** (set in `gen_spriteframes`) — so the wake plays once and only the yell
   repeats. That looping is a **reusable `Enemy` capability**, not nasen-specific:
@@ -1414,11 +1422,11 @@ edge patrol** (he sets `collision_mask = 0` and moves by `global_position`, not
 loop:
 
 - **Patrol** — drifts between his patrol points with a gentle vertical **bob**, wearing the
-  `patrol_trail` effect *if* one is configured (it's optional — see below).
+  `walk_trail` effect *if* one is configured (it's optional — see below).
 - **Detect → lock → charge** — when the player enters `detect_range` (a radius), he **locks the
   player's position at that instant** as a fixed target, swaps to the aggressive `attack_trail`,
-  and flies straight at that point in the **`CHARGE`** state (a new `Enemy.State`), the `attack`
-  (stab) anim **looping** the whole dive (`OVERRIDES` `("ein","attack"): loop`). He does **not**
+  and flies straight at that point in the **`CHARGE`** state (a new `Enemy.State`), the `attack_kamikaze`
+  (stab) anim **looping** the whole dive (`OVERRIDES` `("ein","attack_kamikaze"): loop`). He does **not**
   re-track — dodging out of the way makes him miss.
 - **Erupt on arrival** — reaching the locked point (hit or miss) he **explodes**: a hostile
   `Strike` (box hitbox from `explosion_*`, centred on the orb via `explosion_offset`, `ranged`)
@@ -1438,9 +1446,9 @@ loop:
   its airborne wisps **dissipate** rather than vanishing with him (a child emitter would otherwise
   be freed along with its owner).
 - **Which** scene each effect emits, **where**, and **whether it exists** are all config, not
-  code: **the `Emitters` config** (`ein → patrol_trail / attack_trail / explosion →
+  code: **the `Emitters` config** (`ein → walk_trail / kamikaze_trail / kamikaze →
   {scene, pos}`), read via `Enemy._vfx_scene` / `_vfx_pos` / `_make_vfx`. It's **authoritative** —
-  delete a row and that emitter is gone (so Ein ships with **no** `patrol_trail` row = no patrol
+  delete a row and that emitter is gone (so Ein ships with **no** `walk_trail` row = no walk
   trail). One file controls every enemy's emitters; see `vfx/README.md`.
 
 ### Combat model (`scripts/combat/`)
@@ -1491,8 +1499,8 @@ a new effect field here and nothing else's signature changes. **`ranged`** marks
 coming from a projectile (`Projectile` sets it on its box; melee `Strike`s leave it false),
 so a victim can react by attack type — e.g. nasen is stunned by melee but not projectiles.
 
-- **Enemy attacks** set their fields via exports: `melee_knockback/stun`,
-  `ranged_knockback/stun`.
+- **Enemy attacks** set their fields via exports: `close_knockback/stun`,
+  `far_knockback/stun`.
 - A knockback always carries a short stagger, or the AI/input would overwrite the
   shove velocity the next frame and nothing would move.
 - **Freeze:** while stunned an enemy **pauses on whatever frame it was on** (it does not

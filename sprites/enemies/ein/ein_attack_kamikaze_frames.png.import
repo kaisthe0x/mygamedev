@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hpvnufek8gce"
-path="res://.godot/imported/mazab_attack_projectile_frames.png-d87b1e8658da05a604cad3f1034c9e83.ctex"
+uid="uid://cxbuywki2r477"
+path="res://.godot/imported/ein_attack_kamikaze_frames.png-fc4785f96934f462617a5846d5029c52.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/mazab/mazab_attack_projectile_frames.png"
-dest_files=["res://.godot/imported/mazab_attack_projectile_frames.png-d87b1e8658da05a604cad3f1034c9e83.ctex"]
+source_file="res://sprites/enemies/ein/ein_attack_kamikaze_frames.png"
+dest_files=["res://.godot/imported/ein_attack_kamikaze_frames.png-fc4785f96934f462617a5846d5029c52.ctex"]
 
 [params]
 

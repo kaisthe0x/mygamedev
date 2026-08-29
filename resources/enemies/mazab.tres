@@ -1,9 +1,9 @@
 [gd_resource type="SpriteFrames" load_steps=27 format=3]
 
 [ext_resource type="Texture2D" uid="uid://cdqmd2f1mvyca" path="res://sprites/enemies/mazab/mazab_idle_frames.png" id="1_idle"]
-[ext_resource type="Texture2D" uid="uid://cjjdlksg1esd5" path="res://sprites/enemies/mazab/mazab_patrol_frames.png" id="2_patrol"]
-[ext_resource type="Texture2D" uid="uid://hpvnufek8gce" path="res://sprites/enemies/mazab/mazab_attack_projectile_frames.png" id="3_attack_projectile"]
-[ext_resource type="Texture2D" uid="uid://bugdlot0ovyi4" path="res://sprites/enemies/mazab/mazab_death_frames.png" id="4_death"]
+[ext_resource type="Texture2D" uid="uid://cjjdlksg1esd5" path="res://sprites/enemies/mazab/mazab_walk_frames.png" id="2_walk"]
+[ext_resource type="Texture2D" uid="uid://bugdlot0ovyi4" path="res://sprites/enemies/mazab/mazab_death_frames.png" id="3_death"]
+[ext_resource type="Texture2D" uid="uid://hpvnufek8gce" path="res://sprites/enemies/mazab/mazab_attack_delayed_projectile_frames.png" id="4_attack_delayed_projectile"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -30,94 +30,94 @@ atlas = ExtResource("1_idle")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_1"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_1"]
+atlas = ExtResource("2_walk")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_2"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_2"]
+atlas = ExtResource("2_walk")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_3"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_3"]
+atlas = ExtResource("2_walk")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_4"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_4"]
+atlas = ExtResource("2_walk")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_5"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_5"]
+atlas = ExtResource("2_walk")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_6"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_6"]
+atlas = ExtResource("2_walk")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="attack_projectile_1"]
-atlas = ExtResource("3_attack_projectile")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_projectile_2"]
-atlas = ExtResource("3_attack_projectile")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_projectile_3"]
-atlas = ExtResource("3_attack_projectile")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_projectile_4"]
-atlas = ExtResource("3_attack_projectile")
-region = Rect2(512, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_projectile_5"]
-atlas = ExtResource("3_attack_projectile")
-region = Rect2(640, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
 [sub_resource type="AtlasTexture" id="death_1"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_2"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_3"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_4"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_5"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_6"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(768, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
+[sub_resource type="AtlasTexture" id="attack_delayed_projectile_1"]
+atlas = ExtResource("4_attack_delayed_projectile")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_delayed_projectile_2"]
+atlas = ExtResource("4_attack_delayed_projectile")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_delayed_projectile_3"]
+atlas = ExtResource("4_attack_delayed_projectile")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_delayed_projectile_4"]
+atlas = ExtResource("4_attack_delayed_projectile")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_delayed_projectile_5"]
+atlas = ExtResource("4_attack_delayed_projectile")
+region = Rect2(640, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
 [resource]
-metadata/hit_frames = {"attack_projectile": [4]}
-metadata/sheet_start = {"idle": 0, "patrol": 1, "attack_projectile": 1, "death": 1}
+metadata/hit_frames = {"attack_delayed_projectile": [4]}
+metadata/sheet_start = {"idle": 0, "walk": 1, "death": 1, "attack_delayed_projectile": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -141,46 +141,26 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("patrol_1")
+"texture": SubResource("walk_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_2")
+"texture": SubResource("walk_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_3")
+"texture": SubResource("walk_3")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_4")
+"texture": SubResource("walk_4")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_5")
+"texture": SubResource("walk_5")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_6")
+"texture": SubResource("walk_6")
 }],
 "loop": true,
-"name": &"patrol",
+"name": &"walk",
 "speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("attack_projectile_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_projectile_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_projectile_3")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_projectile_4")
-}, {
-"duration": 1.5,
-"texture": SubResource("attack_projectile_5")
-}],
-"loop": false,
-"name": &"attack_projectile",
-"speed": 10.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -204,4 +184,24 @@ animations = [{
 "loop": false,
 "name": &"death",
 "speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("attack_delayed_projectile_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_delayed_projectile_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_delayed_projectile_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_delayed_projectile_4")
+}, {
+"duration": 1.5,
+"texture": SubResource("attack_delayed_projectile_5")
+}],
+"loop": false,
+"name": &"attack_delayed_projectile",
+"speed": 12.0
 }]

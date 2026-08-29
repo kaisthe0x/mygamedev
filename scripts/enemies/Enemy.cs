@@ -31,7 +31,8 @@ public partial class Enemy : Combatant
     [Export] public string enemy_id { get; set; } = "kebus";
     [Export] public string display_name { get; set; } = "Kebus";
     [Export] public bool optional { get; set; }
-    [Export] public string attack_type { get; set; } = "";
+    [Export] public string close_type { get; set; } = "";
+    [Export] public string far_type { get; set; } = "";
 
     [ExportGroup("Stats")]
     [Export] public float max_health { get; set; } = 60.0f;
@@ -49,27 +50,27 @@ public partial class Enemy : Combatant
     [Export] public int idle_loop_to { get; set; }
 
     [ExportGroup("Combat ranges")]
-    [Export] public float melee_range { get; set; } = 30.0f;
-    [Export] public float ranged_range { get; set; } = 300.0f;
+    [Export] public float close_range { get; set; } = 30.0f;
+    [Export] public float far_range { get; set; } = 300.0f;
     [Export] public float attack_align_y { get; set; } = 40.0f;
     [Export] public float attack_cooldown { get; set; } = 1.1f;
     [Export] public bool attack_loops { get; set; }
-    [Export] public float melee_damage { get; set; } = 12.0f;
-    [Export] public float ranged_damage { get; set; } = 8.0f;
-    [Export] public float melee_knockback { get; set; } = 90.0f;
-    [Export] public float melee_stun { get; set; }
-    [Export] public float ranged_knockback { get; set; }
-    [Export] public float ranged_stun { get; set; }
-    [Export] public float melee_hitbox_x { get; set; } = 20.0f;
-    [Export] public Vector2 melee_hitbox_extents { get; set; } = new(16, 16);
-    [Export] public float melee_strike_lifetime { get; set; } = 0.15f;
+    [Export] public float close_damage { get; set; } = 12.0f;
+    [Export] public float far_damage { get; set; } = 8.0f;
+    [Export] public float close_knockback { get; set; } = 90.0f;
+    [Export] public float close_stun { get; set; }
+    [Export] public float far_knockback { get; set; }
+    [Export] public float far_stun { get; set; }
+    [Export] public float close_hitbox_x { get; set; } = 20.0f;
+    [Export] public Vector2 close_hitbox_extents { get; set; } = new(16, 16);
+    [Export] public float close_strike_lifetime { get; set; } = 0.15f;
     [Export] public float projectile_speed { get; set; } = 260.0f;
-    [Export(PropertyHint.Enum, "aimed,forward,lob")] public string ranged_mode { get; set; } = "aimed";
-    [Export] public float ranged_travel { get; set; } = 100.0f;
-    [Export] public Vector2 ranged_hitbox_extents { get; set; } = new(5, 5);
-    [Export] public Vector2 ranged_hitbox_offset { get; set; } = Vector2.Zero;
+    [Export(PropertyHint.Enum, "aimed,forward,lob")] public string far_mode { get; set; } = "aimed";
+    [Export] public float far_travel { get; set; } = 100.0f;
+    [Export] public Vector2 far_hitbox_extents { get; set; } = new(5, 5);
+    [Export] public Vector2 far_hitbox_offset { get; set; } = Vector2.Zero;
 
-    [ExportSubgroup("Lob (ranged_mode = lob)")]
+    [ExportSubgroup("Lob (far_mode = lob)")]
     [Export] public float lob_arc_time { get; set; } = 0.9f;
     [Export] public float lob_gravity { get; set; } = 900.0f;
     [Export] public float lob_dwell { get; set; } = 1.0f;
@@ -90,12 +91,13 @@ public partial class Enemy : Combatant
     [Export] public float attack_hitstop { get; set; } = 0.18f;
     [Export] public float attack_shake { get; set; } = 2.5f;
 
-    protected enum EState { Idle, Patrol, Melee, Range, Stun, Dead, Rage, Charge }
+    protected enum EState { Idle, Patrol, Close, Far, Stun, Dead, Rage, Charge }
 
     protected float Health;
     protected EState State = EState.Idle;
     protected int Facing = -1;
-    protected bool HasMelee, HasRanged, HasDeath, HasPatrol;
+    protected bool HasClose, HasFar, HasDeath, HasWalk;
+    protected string CloseAnim = "", FarAnim = "";
     private readonly List<Node> _patrolTrailEmitters = new();
     private GDict _frameSfx = new();
     protected float AttackCd;
@@ -159,20 +161,22 @@ public partial class Enemy : Combatant
         AddChild(_overhead);
         _overhead.Setup(HeadY);
 
-        HasMelee = Sprite.SpriteFrames.HasAnimation("attack");
-        HasRanged = Sprite.SpriteFrames.HasAnimation("attack_projectile");
+        CloseAnim = close_type != "" ? "attack_" + close_type : "";
+        FarAnim = far_type != "" ? "attack_" + far_type : "";
+        HasClose = CloseAnim != "" && Sprite.SpriteFrames.HasAnimation(CloseAnim);
+        HasFar = FarAnim != "" && Sprite.SpriteFrames.HasAnimation(FarAnim);
         HasDeath = Sprite.SpriteFrames.HasAnimation("death");
-        HasPatrol = Sprite.SpriteFrames.HasAnimation("patrol");
+        HasWalk = Sprite.SpriteFrames.HasAnimation("walk");
         BuildFrameSfx();
         BuildPatrolTrail();
-        if (HasMelee)
+        if (HasClose)
         {
             float reach = MeleeReach();
             if (reach > 0.0f)
-                melee_range = reach;
+                close_range = reach;
         }
-        if (HasRanged && ranged_mode == "forward")
-            ranged_range = Mathf.Min(ranged_range, ranged_travel);
+        if (HasFar && far_mode == "forward")
+            far_range = Mathf.Min(far_range, far_travel);
 
         Health = max_health;
         Bar.SetRatio(1.0f);
@@ -184,7 +188,7 @@ public partial class Enemy : Combatant
         Sprite.FrameChanged += OnFrameChanged;
         Sprite.AnimationFinished += OnAnimFinished;
         Face(Facing);
-        Play(HasPatrol ? "patrol" : "idle");
+        Play(HasWalk ? "walk" : "idle");
     }
 
     // --- construction -------------------------------------------------------
@@ -342,7 +346,7 @@ public partial class Enemy : Combatant
             if (StunLeft <= 0.0f)
                 SetState(EState.Idle);
         }
-        else if (State == EState.Melee || State == EState.Range)
+        else if (State == EState.Close || State == EState.Far)
         {
             Velocity = new Vector2(Mathf.MoveToward(Velocity.X, 0.0f, 600.0f * d), Velocity.Y);
         }
@@ -420,22 +424,22 @@ public partial class Enemy : Combatant
             bool aligned = Mathf.Abs(player.GlobalPosition.Y - GlobalPosition.Y) <= attack_align_y;
             if (aligned && AttackCd <= 0.0f)
             {
-                if (HasMelee && dist <= melee_range)
+                if (HasClose && dist <= close_range)
                 {
-                    StartAttack(EState.Melee, "attack", player);
+                    StartAttack(EState.Close, CloseAnim, player);
                     return;
                 }
-                if (HasRanged && dist <= ranged_range)
+                if (HasFar && dist <= far_range)
                 {
-                    StartAttack(EState.Range, "attack_projectile", player);
+                    StartAttack(EState.Far, FarAnim, player);
                     return;
                 }
             }
             int dir = Mathf.Sign(toPlayer);
             bool pursue = _alertLeft > 0.0f || (aggro && dist <= aggro_range);
-            bool hold = aligned && dist <= ranged_range;
-            bool closeIn = pursue || (hold && HasMelee && !HasRanged);
-            float reach = (HasRanged ? ranged_range : melee_range) - 4.0f;
+            bool hold = aligned && dist <= far_range;
+            bool closeIn = pursue || (hold && HasClose && !HasFar);
+            float reach = (HasFar ? far_range : close_range) - 4.0f;
             if (pursue || hold)
             {
                 Engaged = true;
@@ -520,7 +524,7 @@ public partial class Enemy : Combatant
 
     protected void PlayAttackStartSfx(StringName anim)
     {
-        string kind = attack_type != "" ? attack_type : (anim == "attack" ? "melee" : "projectile");
+        string kind = (FarAnim != "" && anim == FarAnim) ? far_type : close_type;
         StopAttackSfx();
         PlayAttackSfx($"{enemy_id}.{kind}");
     }
@@ -572,13 +576,13 @@ public partial class Enemy : Combatant
     protected virtual void OnFrameChanged()
     {
         PlayFrameSfx();
-        if (State == EState.Melee && HitFramesOf("attack").Contains(Sprite.Frame))
+        if (State == EState.Close && HitFramesOf(CloseAnim).Contains(Sprite.Frame))
         {
             SpawnMeleeStrike(MeleeVfxKey(Sprite.Frame));
             float hold = IsInstanceValid(_activeChannel) ? _activeChannel!.emit_duration : attack_hitstop;
             BeginHitstop(hold);
         }
-        else if (State == EState.Range && !AttackFired && Sprite.Frame >= FireFrame())
+        else if (State == EState.Far && !AttackFired && Sprite.Frame >= FireFrame())
         {
             AttackFired = true;
             FireProjectile();
@@ -607,7 +611,7 @@ public partial class Enemy : Combatant
         _hitstopLeft = 0.0f;
         Impacted = false;
         Sprite.Position = Vector2.Zero;
-        if (State == EState.Melee || State == EState.Range || State == EState.Rage)
+        if (State == EState.Close || State == EState.Far || State == EState.Rage)
             Sprite.Play();
     }
 
@@ -629,14 +633,14 @@ public partial class Enemy : Combatant
             QueueFree();
             return;
         }
-        if (State == EState.Melee && attack_loops && InMeleeReach())
+        if (State == EState.Close && attack_loops && InCloseReach())
         {
             AttackFired = false;
             Impacted = false;
-            ReplayFrom("attack", LoopFrom("attack"));
+            ReplayFrom(CloseAnim, LoopFrom(CloseAnim));
             return;
         }
-        if (State == EState.Melee || State == EState.Range)
+        if (State == EState.Close || State == EState.Far)
         {
             AttackCd = attack_cooldown;
             SetState(EState.Idle);
@@ -654,13 +658,13 @@ public partial class Enemy : Combatant
 
     private void BuildPatrolTrail()
     {
-        var scene = VfxScene("patrol_trail");
+        var scene = VfxScene("walk_trail");
         if (scene == null)
             return;
         var trail = scene.Instantiate();
         AddChild(trail);
         if (trail is Node2D n)
-            n.Position = VfxPos("patrol_trail");
+            n.Position = VfxPos("walk_trail");
         if (trail is CpuParticles2D || trail is GpuParticles2D)
             _patrolTrailEmitters.Add(trail);
         foreach (var e in trail.FindChildren("*", "CpuParticles2D", true, false))
@@ -693,13 +697,13 @@ public partial class Enemy : Combatant
         Sprite.Play();
     }
 
-    private bool InMeleeReach()
+    private bool InCloseReach()
     {
         var t = Target();
         if (t == null)
             return false;
         Vector2 to = t.GlobalPosition - GlobalPosition;
-        return Mathf.Abs(to.Y) <= attack_align_y && Mathf.Abs(to.X) <= melee_range;
+        return Mathf.Abs(to.Y) <= attack_align_y && Mathf.Abs(to.X) <= close_range;
     }
 
     /// <summary>Spawn a self-contained attack SCENE (Strike or Projectile), mirror by facing, inject tuning, arm it.</summary>
@@ -743,25 +747,25 @@ public partial class Enemy : Combatant
 
     protected void SpawnMeleeStrike(string vfxKey = "")
     {
-        string key = vfxKey != "" ? vfxKey : (attack_type != "" ? attack_type : "aoe");
+        string key = vfxKey != "" ? vfxKey : (close_type != "" ? close_type : "aoe");
         var scene = VfxScene(key);
         if (scene != null)
         {
             SpawnAttack(scene, new SegmentData
             {
-                Damage = melee_damage, Knockback = melee_knockback, Stun = melee_stun,
+                Damage = close_damage, Knockback = close_knockback, Stun = close_stun,
             }, false, VfxPos(key));
             return;
         }
-        // No authored melee SCENE (e.g. Kebus's point-blank jab -- a ranged enemy with an "attack" anim but
-        // no melee VFX): build a bare CODE hitbox from melee_hitbox_x/extents so the swing still connects.
+        // No authored close-attack SCENE (e.g. Kebus's point-blank jab -- a far-attack enemy with a close
+        // anim but no close VFX): build a bare CODE hitbox from close_hitbox_x/extents so the swing still connects.
         // These exports were dead before, so a scene-less enemy's melee dealt no damage at all.
         SpawnCodeMeleeStrike();
     }
 
     /// <summary>A visual-less melee hitbox for an enemy with no authored melee scene — sized/placed from
-    /// <see cref="melee_hitbox_x"/> + <see cref="melee_hitbox_extents"/> (half-size), armed with our melee
-    /// tuning, and freed after <see cref="melee_strike_lifetime"/>. Built like the contact hitbox.</summary>
+    /// <see cref="close_hitbox_x"/> + <see cref="close_hitbox_extents"/> (half-size), armed with our melee
+    /// tuning, and freed after <see cref="close_strike_lifetime"/>. Built like the contact hitbox.</summary>
     private void SpawnCodeMeleeStrike()
     {
         bool hostile = !is_frenemy();
@@ -769,29 +773,29 @@ public partial class Enemy : Combatant
         {
             CollisionLayer = Combat.HitLayer(hostile),
             CollisionMask = Combat.HurtMask(hostile, friendly_fire),
-            damage = melee_damage,
-            knockback = melee_knockback,
-            stun = melee_stun,
+            damage = close_damage,
+            knockback = close_knockback,
+            stun = close_stun,
             source = this,
         };
-        hb.AddChild(MakeBox(melee_hitbox_extents * 2.0f, new Vector2(melee_hitbox_x * Facing, -hurtbox_size.Y / 2.0f)));
+        hb.AddChild(MakeBox(close_hitbox_extents * 2.0f, new Vector2(close_hitbox_x * Facing, -hurtbox_size.Y / 2.0f)));
         AddChild(hb);
         hb.activate();
-        GetTree().CreateTimer(melee_strike_lifetime).Timeout += hb.QueueFree;
+        GetTree().CreateTimer(close_strike_lifetime).Timeout += hb.QueueFree;
     }
 
     private string MeleeVfxKey(int emittedFrame)
     {
-        string @base = attack_type != "" ? attack_type : "aoe";
-        int sheetFrame = emittedFrame + SheetStart("attack");
+        string @base = close_type != "" ? close_type : "aoe";
+        int sheetFrame = emittedFrame + SheetStart(CloseAnim);
         string framed = $"{@base}_{sheetFrame}";
         return VfxScene(framed) != null ? framed : @base;
     }
 
     private float MeleeReach()
     {
-        string key = attack_type != "" ? attack_type : "aoe";
-        var hits = HitFramesOf("attack");
+        string key = close_type != "" ? close_type : "aoe";
+        var hits = HitFramesOf(CloseAnim);
         if (hits.Count > 0)
             key = MeleeVfxKey(hits[0].AsInt32());
         var scene = VfxScene(key);
@@ -812,13 +816,13 @@ public partial class Enemy : Combatant
 
     private void FireProjectile()
     {
-        if (ranged_mode == "lob")
+        if (far_mode == "lob")
         {
             FireLob();
             return;
         }
         Vector2 muzzle = GlobalPosition + VfxPos("projectile", DefaultMuzzle);
-        var scene = VfxScene(attack_type != "" ? attack_type : "projectile");
+        var scene = VfxScene(far_type != "" ? far_type : "projectile");
         if (scene == null)
             return;
         if (scene.Instantiate() is not Projectile proj)
@@ -829,10 +833,10 @@ public partial class Enemy : Combatant
         proj.rotate_to_heading = false;
         proj.source = this;
 
-        if (ranged_mode == "forward")
+        if (far_mode == "forward")
         {
             proj.velocity = new Vector2(projectile_speed * Facing, 0.0f);
-            proj.max_range = ranged_travel;
+            proj.max_range = far_travel;
             proj.ground_trail = true;
         }
         else
@@ -847,7 +851,7 @@ public partial class Enemy : Combatant
         PlaceAt(proj, muzzle);
         proj.apply_tuning(new SegmentData
         {
-            Damage = ranged_damage, Knockback = ranged_knockback, Stun = ranged_stun,
+            Damage = far_damage, Knockback = far_knockback, Stun = far_stun,
         }, this);
     }
 
@@ -864,9 +868,9 @@ public partial class Enemy : Combatant
             dwell_time = lob_dwell,
             max_life = lob_max_life,
             explosion_extents = lob_explosion_extents,
-            explosion_damage = ranged_damage,
-            explosion_knockback = ranged_knockback,
-            explosion_stun = ranged_stun,
+            explosion_damage = far_damage,
+            explosion_knockback = far_knockback,
+            explosion_stun = far_stun,
             explosion_effect = VfxScene("delayed_projectile_burst"),
             explosion_sfx = $"{enemy_id}.delayed_projectile_burst",
         };
@@ -891,14 +895,16 @@ public partial class Enemy : Combatant
 
     private int FireFrame()
     {
-        var hits = HitFramesOf("attack_projectile");
+        var hits = HitFramesOf(FarAnim);
         if (hits.Count > 0)
             return hits[0].AsInt32();
-        return Mathf.Max(1, Sprite.SpriteFrames.GetFrameCount("attack_projectile") / 2);
+        return Mathf.Max(1, Sprite.SpriteFrames.GetFrameCount(FarAnim) / 2);
     }
 
     protected GArray HitFramesOf(StringName anim) =>
         AnimMeta.HitFrames(Sprite.SpriteFrames, anim);
+
+    protected string CurrentAttackType() => State == EState.Far ? far_type : close_type;
 
     // --- damage / death -----------------------------------------------------
 
@@ -1105,7 +1111,7 @@ public partial class Enemy : Combatant
                 Sprite.Pause();
                 break;
             case EState.Patrol:
-                Play(HasPatrol ? "patrol" : "idle");
+                Play(HasWalk ? "walk" : "idle");
                 break;
         }
     }

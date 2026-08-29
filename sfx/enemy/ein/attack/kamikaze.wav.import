@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://bjux7rgq6qtx7"
-path="res://.godot/imported/delayed_aoe.wav-5891a5567851278e8f248c4f25eff3cb.sample"
+path="res://.godot/imported/kamikaze.wav-29a856a6c9ecb86193c23c23bc2359be.sample"
 
 [deps]
 
-source_file="res://sfx/enemy/ein/attack/delayed_aoe.wav"
-dest_files=["res://.godot/imported/delayed_aoe.wav-5891a5567851278e8f248c4f25eff3cb.sample"]
+source_file="res://sfx/enemy/ein/attack/kamikaze.wav"
+dest_files=["res://.godot/imported/kamikaze.wav-29a856a6c9ecb86193c23c23bc2359be.sample"]
 
 [params]
 

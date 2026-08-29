@@ -25,7 +25,7 @@ public static class SfxEnemies
         ["matat.aoe"] = "res://sfx/enemy/matat/attack/aoe.wav",  // PLACEHOLDER — AoE wind-up/roar
         ["tarri.blast"] = "res://sfx/enemy/tarri/attack/blast.wav",  // PLACEHOLDER — blast channel wind-up
         ["breski.melee"] = "res://sfx/enemy/breski/attack/melee.wav",  // PLACEHOLDER — combo wind-up
-        ["ein.delayed_aoe"] = "res://sfx/enemy/ein/attack/delayed_aoe.wav",  // ein's arrival blast
+        ["ein.kamikaze"] = "res://sfx/enemy/ein/attack/kamikaze.wav",  // ein's arrival blast (self-destruct)
         // --- delayed_projectile bursts (<id>.delayed_projectile_burst) ---
         ["mazab.delayed_projectile_burst"] = "res://sfx/enemy/mazab/attack/delayed_projectile_burst.wav",
         // --- per-frame hit cues (referenced from FRAMES) ---
@@ -42,11 +42,11 @@ public static class SfxEnemies
     {
         ["baghel"] = new GDict { ["attack_projectile"] = new GDict { [4] = "baghel.projectile.4" } },
         ["kebus"] = new GDict { ["attack_projectile"] = new GDict { [3] = "kebus.projectile.3" } },
-        ["nasen"] = new GDict { ["attack"] = new GDict { [2] = "nasen.aoe.2" } },  // rage AoE erupts on this frame
-        ["matat"] = new GDict { ["attack"] = new GDict { [4] = "matat.aoe.4" } },  // AoE erupts (sheet-relative)
-        ["tarri"] = new GDict { ["attack"] = new GDict { [3] = "tarri.blast.3" } },  // blast erupts on last frame
-        ["breski"] = new GDict { ["attack"] = new GDict { [4] = "breski.melee.4", [9] = "breski.melee.9" } },  // 2-hit combo
-        // (ein's arrival blast is a CODE event, not a sprite frame — played from ein.gd via "ein.delayed_aoe".)
+        ["nasen"] = new GDict { ["attack_aoe"] = new GDict { [2] = "nasen.aoe.2" } },  // rage AoE erupts on this frame
+        ["matat"] = new GDict { ["attack_aoe"] = new GDict { [4] = "matat.aoe.4" } },  // AoE erupts (sheet-relative)
+        ["tarri"] = new GDict { ["attack_blast"] = new GDict { [3] = "tarri.blast.3" } },  // blast erupts on last frame
+        ["breski"] = new GDict { ["attack_melee"] = new GDict { [4] = "breski.melee.4", [9] = "breski.melee.9" } },  // 2-hit combo
+        // (ein's arrival blast is a CODE event, not a sprite frame — played from DiverEnemy via "ein.kamikaze".)
     };
 
     /// <summary>The per-frame cue map for one enemy (empty if none) — anim → { sheet_frame: cue_key }.</summary>

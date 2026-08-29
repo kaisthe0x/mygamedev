@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b323ebd0lhgmo"
-path="res://.godot/imported/tarri_attack_frames.png-05bf5b37206230a973f78e6af49e22ff.ctex"
+uid="uid://5yn5o7cxdhxc"
+path="res://.godot/imported/kebus_attack_melee_frames.png-a1418aed2bf7d706ec15e0c5eebced1d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/tarri/tarri_attack_frames.png"
-dest_files=["res://.godot/imported/tarri_attack_frames.png-05bf5b37206230a973f78e6af49e22ff.ctex"]
+source_file="res://sprites/enemies/kebus/kebus_attack_melee_frames.png"
+dest_files=["res://.godot/imported/kebus_attack_melee_frames.png-a1418aed2bf7d706ec15e0c5eebced1d.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c17emb0y3n70n"
-path="res://.godot/imported/nasen_attack_frames.png-13d01c53a785f388227635e53d1afe5c.ctex"
+path="res://.godot/imported/nasen_attack_aoe_frames.png-f1cfebf083c4e61ff621ae427866e60f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/nasen/nasen_attack_frames.png"
-dest_files=["res://.godot/imported/nasen_attack_frames.png-13d01c53a785f388227635e53d1afe5c.ctex"]
+source_file="res://sprites/enemies/nasen/nasen_attack_aoe_frames.png"
+dest_files=["res://.godot/imported/nasen_attack_aoe_frames.png-f1cfebf083c4e61ff621ae427866e60f.ctex"]
 
 [params]
 

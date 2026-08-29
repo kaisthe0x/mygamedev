@@ -40,7 +40,7 @@ public partial class DiverEnemy : Enemy
         CollisionMask = 0; // float freely -- ignore terrain (we move by global_position, not slide)
         _homeY = GlobalPosition.Y;
         BuildContactDetector();
-        SetTrail("patrol_trail");
+        SetTrail("walk_trail");
         SetState(EState.Patrol);
     }
 
@@ -94,9 +94,9 @@ public partial class DiverEnemy : Enemy
     private void BeginCharge(Vector2 target)
     {
         _chargeTarget = target;
-        SetTrail("delayed_aoe_trail");
+        SetTrail("kamikaze_trail");
         SetState(EState.Charge);
-        Play("attack");
+        Play(CloseAnim);
         Face(Mathf.Sign(target.X - GlobalPosition.X));
     }
 
@@ -142,11 +142,11 @@ public partial class DiverEnemy : Enemy
         base.Die();
     }
 
-    /// <summary>Build the arrival blast: the `delayed_aoe` Strike scene into the LEVEL (outlives our death).</summary>
+    /// <summary>Build the arrival blast: the `kamikaze` Strike scene into the LEVEL (outlives our death).</summary>
     private void SpawnExplosion()
     {
-        SfxPlayAt("ein.delayed_aoe", GlobalPosition);
-        var strike = SpawnAttack(VfxScene("delayed_aoe"),
+        SfxPlayAt("ein.kamikaze", GlobalPosition);
+        var strike = SpawnAttack(VfxScene("kamikaze"),
             new SegmentData { Damage = explosion_damage, Knockback = explosion_knockback, Stun = explosion_stun },
             true);
         if (strike != null)

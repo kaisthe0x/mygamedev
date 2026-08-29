@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cxbuywki2r477"
-path="res://.godot/imported/ein_attack_frames.png-4dda6cd7739bc27afeceb529fd5976b1.ctex"
+uid="uid://dkg5fvafe4kxq"
+path="res://.godot/imported/ein_walk_frames.png-c1172e4d4a0103fe0973bd3c6424d8e9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/ein/ein_attack_frames.png"
-dest_files=["res://.godot/imported/ein_attack_frames.png-4dda6cd7739bc27afeceb529fd5976b1.ctex"]
+source_file="res://sprites/enemies/ein/ein_walk_frames.png"
+dest_files=["res://.godot/imported/ein_walk_frames.png-c1172e4d4a0103fe0973bd3c6424d8e9.ctex"]
 
 [params]
 
