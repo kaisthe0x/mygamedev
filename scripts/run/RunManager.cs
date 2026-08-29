@@ -415,7 +415,7 @@ public partial class RunManager : Node2D
         foreach (var key in kit.Keys)
         {
             string k = key.AsString();
-            if (k is "scene" or "tier" or "pos" or "air")
+            if (k is "scene" or "tier" or "pos" or "air" or "movement")  // advisory kit metadata, not Enemy properties
                 continue;
             if (k == "id")
                 enemy.Set("enemy_id", kit[key]);

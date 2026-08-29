@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cjjdlksg1esd5"
-path="res://.godot/imported/mazab_patrol_frames.png-f9e7608763e0307d47e290b9939658ba.ctex"
+uid="uid://cb0py6cmrvn4g"
+path="res://.godot/imported/breski_attack_melee_frames.png-91fa6e03db13d9ca56545c6b2c308bf6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/mazab/mazab_patrol_frames.png"
-dest_files=["res://.godot/imported/mazab_patrol_frames.png-f9e7608763e0307d47e290b9939658ba.ctex"]
+source_file="res://sprites/enemies/breski/breski_attack_melee_frames.png"
+dest_files=["res://.godot/imported/breski_attack_melee_frames.png-91fa6e03db13d9ca56545c6b2c308bf6.ctex"]
 
 [params]
 

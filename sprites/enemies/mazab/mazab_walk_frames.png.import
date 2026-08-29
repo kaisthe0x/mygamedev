@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dkg5fvafe4kxq"
-path="res://.godot/imported/ein_patrol_frames.png-60229524941c656e484a5b5c9c83aeef.ctex"
+uid="uid://cjjdlksg1esd5"
+path="res://.godot/imported/mazab_walk_frames.png-f76d1a7d09aabd05987deb92e10c04a0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/ein/ein_patrol_frames.png"
-dest_files=["res://.godot/imported/ein_patrol_frames.png-60229524941c656e484a5b5c9c83aeef.ctex"]
+source_file="res://sprites/enemies/mazab/mazab_walk_frames.png"
+dest_files=["res://.godot/imported/mazab_walk_frames.png-f76d1a7d09aabd05987deb92e10c04a0.ctex"]
 
 [params]
 

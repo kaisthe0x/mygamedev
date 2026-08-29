@@ -304,8 +304,8 @@ not the director index. Which scene each enemy emits — and where — comes fro
 players use — team via the `hostile` flag) with that scene as its visual + a `Hitbox` built from
 the enemy's ranged tuning; a `lob` reads `delayed_projectile` (the thrown object) and
 `delayed_projectile_burst` (the blast). Enemy **melee** is a hostile **`Strike`** spawned the same
-way. **Keys are the attack's STRIKE TYPE** (`configs/strike_spec.gd`: `projectile`,
-`delayed_projectile`, `aoe`, `delayed_aoe`, …), a component appends `_burst` / `_trail`, and a
+way. **Keys are the attack's STRIKE TYPE** (`enums/combat/StrikeType.cs`: `projectile`,
+`delayed_projectile`, `aoe`, `delayed_aoe`, `kamikaze`, `blast`, `tackle`, …), a component appends `_burst` / `_trail`, and a
 passive movement trail is `<state>_trail`. Two ranged examples:
 
 (Every scene named below is wired through the `Emitters` config, not a script/roster field.)
@@ -314,15 +314,15 @@ passive movement trail is `<state>_trail`. Two ranged examples:
   (the `forward` ranged mode, with a scorched `ground_trail`).
 - **Kebus** `projectile` = `attack/kebus_projectile.tscn` — an aimed staff bolt: an ember-trail
   `CPUParticles2D` + a soft glow `Core`. (An enemy with no `projectile` scene gets the built-in orb.)
-- **Mazab** (`ranged_mode = "lob"`) uses **two** config entries for its thrown bomb: `delayed_projectile`
+- **Mazab** (`far_mode = "lob"`) uses **two** config entries for its thrown bomb: `delayed_projectile`
   = `attack/mazab_delayed_projectile.tscn` (a steel-blue glowing `Core` + short dust trail — a `LobProjectile`
   spins it as it arcs) and `delayed_projectile_burst` = `attack/mazab_delayed_projectile_burst.tscn` (a one-shot radial shard
   burst + ground dust, instanced inside the explosion `Strike`, not on the projectile). A lob has
   **no in-flight hitbox**; only the explosion `Strike` deals damage.
-- **Ein** (the floating kamikaze, `scenes/ein.tscn`) has config entries `delayed_aoe_trail` =
-  `attack/ein_delayed_aoe_trail.tscn` (a hard cyan→red charge streak) and `delayed_aoe` =
-  `attack/ein_delayed_aoe.tscn` (the arrival burst, inside the explosion `Strike`). A
-  `patrol_trail` entry (a gentle drift trail under `other/`) is optional — omit it and he
+- **Ein** (the floating kamikaze, `scenes/diver_enemy.tscn`) has config entries `kamikaze_trail` =
+  `attack/ein_kamikaze_trail.tscn` (a hard cyan→red charge streak) and `kamikaze` =
+  `attack/ein_kamikaze.tscn` (the arrival burst, inside the explosion `Strike`). A
+  `walk_trail` entry (a gentle drift trail under `other/`) is optional — omit it and he
   patrols with no trail.
   The trails are `local_coords = false` so they rake out behind the orb as it moves.
 
@@ -336,7 +336,7 @@ not fired on animation frames, so there's **no frame scheduling** — only *whic
 
 - **`scene`** — the preloaded scene to emit. The table is **authoritative for presence**: delete a
   row (or clear its `scene`) and the enemy **stops emitting it entirely** — no code change. (That's
-  why removing `ein → patrol_trail` actually removes the patrol trail.) An absent visual doesn't
+  why removing `ein → walk_trail` actually removes the walk trail.) An absent visual doesn't
   stop combat — an AoE's hitbox or a projectile still fires, just with no particle look (a shot
   with no scene falls back to the built-in orb).
 - **`pos`** — offset from the sprite origin at the feet, facing right; **auto-mirrored** on x by
@@ -348,7 +348,7 @@ fallback)` / `_make_vfx(effect)` (instantiate + position, or null if no scene) �
 rage`, `kebus/baghel → projectile`, `mazab → projectile / explosion`. Add an enemy or effect row
 to give it a look/position with **no code change**. (This owns the *visual*;
 an AoE's *hitbox* size/offset stays a combat `@export` like `explosion_offset` / `rage_extents` /
-`lob_explosion_extents`, and combat behavior like `ranged_mode` stays in the roster.)
+`lob_explosion_extents`, and combat behavior like `far_mode` stays in the roster.)
 
 ## Build tools
 

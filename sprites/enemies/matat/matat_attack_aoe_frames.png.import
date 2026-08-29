@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://crwo4pifyvqoo"
-path="res://.godot/imported/kebus_patrol_frames.png-8774e6bce8c8f46180a9d8b7eb118f23.ctex"
+uid="uid://ndorkwdjlnij"
+path="res://.godot/imported/matat_attack_aoe_frames.png-cfa4b9bee5131e77776f8704b0d76652.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/kebus/kebus_patrol_frames.png"
-dest_files=["res://.godot/imported/kebus_patrol_frames.png-8774e6bce8c8f46180a9d8b7eb118f23.ctex"]
+source_file="res://sprites/enemies/matat/matat_attack_aoe_frames.png"
+dest_files=["res://.godot/imported/matat_attack_aoe_frames.png-cfa4b9bee5131e77776f8704b0d76652.ctex"]
 
 [params]
 

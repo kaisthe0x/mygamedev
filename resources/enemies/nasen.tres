@@ -1,8 +1,8 @@
 [gd_resource type="SpriteFrames" load_steps=17 format=3 uid="uid://dvt88h1dw8kwh"]
 
 [ext_resource type="Texture2D" uid="uid://cp6igh5oumuuu" path="res://sprites/enemies/nasen/nasen_idle_frames.png" id="1_idle"]
-[ext_resource type="Texture2D" uid="uid://c17emb0y3n70n" path="res://sprites/enemies/nasen/nasen_attack_frames.png" id="2_attack"]
-[ext_resource type="Texture2D" uid="uid://blp8tnkq75jpw" path="res://sprites/enemies/nasen/nasen_death_frames.png" id="3_death"]
+[ext_resource type="Texture2D" uid="uid://blp8tnkq75jpw" path="res://sprites/enemies/nasen/nasen_death_frames.png" id="2_death"]
+[ext_resource type="Texture2D" uid="uid://c17emb0y3n70n" path="res://sprites/enemies/nasen/nasen_attack_aoe_frames.png" id="3_attack_aoe"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -24,55 +24,55 @@ atlas = ExtResource("1_idle")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(0, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="attack_1"]
-atlas = ExtResource("2_attack")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(0, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_2"]
-atlas = ExtResource("2_attack")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(0, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_3"]
-atlas = ExtResource("2_attack")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(0, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_4"]
-atlas = ExtResource("2_attack")
-region = Rect2(512, 0, 128, 80)
-margin = Rect2(0, 0, 4, 0)
-
 [sub_resource type="AtlasTexture" id="death_1"]
-atlas = ExtResource("3_death")
+atlas = ExtResource("2_death")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(0, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_2"]
-atlas = ExtResource("3_death")
+atlas = ExtResource("2_death")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(0, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_3"]
-atlas = ExtResource("3_death")
+atlas = ExtResource("2_death")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(0, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_4"]
-atlas = ExtResource("3_death")
+atlas = ExtResource("2_death")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(0, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_5"]
-atlas = ExtResource("3_death")
+atlas = ExtResource("2_death")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(0, 0, 4, 0)
 
+[sub_resource type="AtlasTexture" id="attack_aoe_1"]
+atlas = ExtResource("3_attack_aoe")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_aoe_2"]
+atlas = ExtResource("3_attack_aoe")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_aoe_3"]
+atlas = ExtResource("3_attack_aoe")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_aoe_4"]
+atlas = ExtResource("3_attack_aoe")
+region = Rect2(512, 0, 128, 80)
+margin = Rect2(0, 0, 4, 0)
+
 [resource]
-metadata/loop_from = {"attack": 1}
-metadata/hit_frames = {"attack": [1]}
-metadata/sheet_start = {"idle": 0, "attack": 1, "death": 1}
+metadata/loop_from = {"attack_aoe": 1}
+metadata/hit_frames = {"attack_aoe": [1]}
+metadata/sheet_start = {"idle": 0, "death": 1, "attack_aoe": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -93,23 +93,6 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("attack_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_3")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_4")
-}],
-"loop": false,
-"name": &"attack",
-"speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
 "texture": SubResource("death_1")
 }, {
 "duration": 1.0,
@@ -127,4 +110,21 @@ animations = [{
 "loop": false,
 "name": &"death",
 "speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("attack_aoe_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_aoe_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_aoe_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_aoe_4")
+}],
+"loop": false,
+"name": &"attack_aoe",
+"speed": 8.0
 }]

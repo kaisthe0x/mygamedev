@@ -11,8 +11,10 @@ public enum StrikeType
     Projectile,
     DelayedProjectile,
     Aoe,
-    DelayedAoe,
+    DelayedAoe,   // stationary telegraphed area that erupts after a delay (enemy survives) — RESERVED, no user yet
+    Kamikaze,     // enemy lunges at you, self-destructs in an AoE on arrival, dies (Ein) — evocative (approach+hit)
     Blast,
+    Lunge,        // enemy lunges at you, body-checks on contact, SURVIVES — evocative (approach+hit); carries a Lunge impulse
     Trap,
 }
 
@@ -23,7 +25,8 @@ public static class StrikeTypes
     {
         { StrikeType.Melee, "melee" }, { StrikeType.Projectile, "projectile" },
         { StrikeType.DelayedProjectile, "delayed_projectile" }, { StrikeType.Aoe, "aoe" },
-        { StrikeType.DelayedAoe, "delayed_aoe" }, { StrikeType.Blast, "blast" }, { StrikeType.Trap, "trap" },
+        { StrikeType.DelayedAoe, "delayed_aoe" }, { StrikeType.Kamikaze, "kamikaze" },
+        { StrikeType.Blast, "blast" }, { StrikeType.Lunge, "lunge" }, { StrikeType.Trap, "trap" },
     };
 
     private static readonly System.Collections.Generic.Dictionary<string, StrikeType> ByKey = new();

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cb0py6cmrvn4g"
-path="res://.godot/imported/breski_attack_frames.png-9e83720691da55209e67e120b7e4dab4.ctex"
+uid="uid://crwo4pifyvqoo"
+path="res://.godot/imported/kebus_walk_frames.png-4dfa4f10f997f6f196fc2fa990eebdaa.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/breski/breski_attack_frames.png"
-dest_files=["res://.godot/imported/breski_attack_frames.png-9e83720691da55209e67e120b7e4dab4.ctex"]
+source_file="res://sprites/enemies/kebus/kebus_walk_frames.png"
+dest_files=["res://.godot/imported/kebus_walk_frames.png-4dfa4f10f997f6f196fc2fa990eebdaa.ctex"]
 
 [params]
 

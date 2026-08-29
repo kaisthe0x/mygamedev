@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ndorkwdjlnij"
-path="res://.godot/imported/matat_attack_frames.png-1378d1a7ce5e2e23f1ce8a6163f20b99.ctex"
+uid="uid://dpsufst2ljoqg"
+path="res://.godot/imported/breski_walk_frames.png-c9168b74cc42e38313cca755d20b631a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/enemies/matat/matat_attack_frames.png"
-dest_files=["res://.godot/imported/matat_attack_frames.png-1378d1a7ce5e2e23f1ce8a6163f20b99.ctex"]
+source_file="res://sprites/enemies/breski/breski_walk_frames.png"
+dest_files=["res://.godot/imported/breski_walk_frames.png-c9168b74cc42e38313cca755d20b631a.ctex"]
 
 [params]
 

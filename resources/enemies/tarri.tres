@@ -1,9 +1,9 @@
 [gd_resource type="SpriteFrames" load_steps=23 format=3]
 
 [ext_resource type="Texture2D" uid="uid://cjn2ivnsl5vrw" path="res://sprites/enemies/tarri/tarri_idle_frames.png" id="1_idle"]
-[ext_resource type="Texture2D" uid="uid://cpxtv0uny3oun" path="res://sprites/enemies/tarri/tarri_patrol_frames.png" id="2_patrol"]
-[ext_resource type="Texture2D" uid="uid://b323ebd0lhgmo" path="res://sprites/enemies/tarri/tarri_attack_frames.png" id="3_attack"]
-[ext_resource type="Texture2D" uid="uid://8sdf2ecwar2e" path="res://sprites/enemies/tarri/tarri_death_frames.png" id="4_death"]
+[ext_resource type="Texture2D" uid="uid://cpxtv0uny3oun" path="res://sprites/enemies/tarri/tarri_walk_frames.png" id="2_walk"]
+[ext_resource type="Texture2D" uid="uid://8sdf2ecwar2e" path="res://sprites/enemies/tarri/tarri_death_frames.png" id="3_death"]
+[ext_resource type="Texture2D" uid="uid://b323ebd0lhgmo" path="res://sprites/enemies/tarri/tarri_attack_blast_frames.png" id="4_attack_blast"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_idle")
@@ -35,69 +35,69 @@ atlas = ExtResource("1_idle")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_1"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_1"]
+atlas = ExtResource("2_walk")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_2"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_2"]
+atlas = ExtResource("2_walk")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_3"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_3"]
+atlas = ExtResource("2_walk")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_4"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_4"]
+atlas = ExtResource("2_walk")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="patrol_5"]
-atlas = ExtResource("2_patrol")
+[sub_resource type="AtlasTexture" id="walk_5"]
+atlas = ExtResource("2_walk")
 region = Rect2(640, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
-[sub_resource type="AtlasTexture" id="attack_1"]
-atlas = ExtResource("3_attack")
-region = Rect2(128, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_2"]
-atlas = ExtResource("3_attack")
-region = Rect2(256, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
-[sub_resource type="AtlasTexture" id="attack_3"]
-atlas = ExtResource("3_attack")
-region = Rect2(384, 0, 128, 80)
-margin = Rect2(2, 0, 4, 0)
-
 [sub_resource type="AtlasTexture" id="death_1"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(128, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_2"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(256, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_3"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(384, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
 [sub_resource type="AtlasTexture" id="death_4"]
-atlas = ExtResource("4_death")
+atlas = ExtResource("3_death")
 region = Rect2(512, 0, 128, 80)
 margin = Rect2(2, 0, 4, 0)
 
+[sub_resource type="AtlasTexture" id="attack_blast_1"]
+atlas = ExtResource("4_attack_blast")
+region = Rect2(128, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_blast_2"]
+atlas = ExtResource("4_attack_blast")
+region = Rect2(256, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
+[sub_resource type="AtlasTexture" id="attack_blast_3"]
+atlas = ExtResource("4_attack_blast")
+region = Rect2(384, 0, 128, 80)
+margin = Rect2(2, 0, 4, 0)
+
 [resource]
-metadata/hit_frames = {"attack": [2]}
-metadata/sheet_start = {"idle": 0, "patrol": 1, "attack": 1, "death": 1}
+metadata/hit_frames = {"attack_blast": [2]}
+metadata/sheet_start = {"idle": 0, "walk": 1, "death": 1, "attack_blast": 1}
 animations = [{
 "frames": [{
 "duration": 1.0,
@@ -124,37 +124,23 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("patrol_1")
+"texture": SubResource("walk_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_2")
+"texture": SubResource("walk_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_3")
+"texture": SubResource("walk_3")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_4")
+"texture": SubResource("walk_4")
 }, {
 "duration": 1.0,
-"texture": SubResource("patrol_5")
+"texture": SubResource("walk_5")
 }],
 "loop": true,
-"name": &"patrol",
+"name": &"walk",
 "speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("attack_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("attack_3")
-}],
-"loop": false,
-"name": &"attack",
-"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -172,4 +158,18 @@ animations = [{
 "loop": false,
 "name": &"death",
 "speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("attack_blast_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_blast_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack_blast_3")
+}],
+"loop": false,
+"name": &"attack_blast",
+"speed": 12.0
 }]

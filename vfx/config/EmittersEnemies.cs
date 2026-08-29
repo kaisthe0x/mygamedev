@@ -7,7 +7,7 @@ namespace MyGame;
 /// Per-ENEMY particle emitters. Same { scene, pos } schema as <see cref="EmittersCharacters"/>, but enemy
 /// effects are attached in code by state/event (not fired on animation frames), so rows carry no frames/mode.
 /// C# port of <c>vfx/config/emitters_enemies.gd</c>. A row's key is the attack's STRIKE TYPE (configs/strike_spec):
-/// melee/projectile/delayed_projectile/aoe/delayed_aoe/blast/trap; a component appends a role (<c>_burst</c>/<c>_trail</c>).
+/// melee/projectile/delayed_projectile/aoe/delayed_aoe/kamikaze/blast/tackle/trap; a component appends a role (<c>_burst</c>/<c>_trail</c>).
 /// AUTHORITATIVE for presence: no row = no emitter (combat still runs). Hand-edit freely — this IS the source of truth.
 /// </summary>
 public static class EmittersEnemies
@@ -28,17 +28,17 @@ public static class EmittersEnemies
         // --- aoe (a shockwave erupting in place) ---
         ["nasen"] = new GDict { ["aoe"] = new GDict { ["scene"] = S("res://vfx/enemy/nasen/attack/nasen_aoe.tscn"), ["pos"] = new Vector2(0, 0) } },
         ["matat"] = new GDict { ["aoe"] = new GDict { ["scene"] = S("res://vfx/enemy/matat/attack/matat_aoe.tscn"), ["pos"] = new Vector2(0, -10) } },
-        // --- delayed_aoe (a charge/dive that AoE-blasts on arrival) + its dive trail ---
+        // --- kamikaze (a charge/dive that AoE-blasts on arrival + self-destructs) + its dive trail ---
         ["ein"] = new GDict
         {
-            ["delayed_aoe"] = new GDict { ["scene"] = S("res://vfx/enemy/ein/attack/ein_delayed_aoe.tscn"), ["pos"] = new Vector2(0, -16) },
-            ["delayed_aoe_trail"] = new GDict { ["scene"] = S("res://vfx/enemy/ein/attack/ein_delayed_aoe_trail.tscn"), ["pos"] = new Vector2(0, -12) },
+            ["kamikaze"] = new GDict { ["scene"] = S("res://vfx/enemy/ein/attack/ein_kamikaze.tscn"), ["pos"] = new Vector2(0, -16) },
+            ["kamikaze_trail"] = new GDict { ["scene"] = S("res://vfx/enemy/ein/attack/ein_kamikaze_trail.tscn"), ["pos"] = new Vector2(0, -12) },
         },
-        // --- blast (a wide STATIONARY forward blast) + patrol trail. Blast rides the strike, so pos is a body-height nudge.
+        // --- blast (a wide STATIONARY forward blast) + walk trail. Blast rides the strike, so pos is a body-height nudge.
         ["tarri"] = new GDict
         {
             ["blast"] = new GDict { ["scene"] = S("res://vfx/enemy/tarri/attack/tarri_blast.tscn"), ["pos"] = new Vector2(15, -17) },
-            ["patrol_trail"] = new GDict { ["scene"] = S("res://vfx/enemy/tarri/patrol/tarri_patrol_trail.tscn"), ["pos"] = new Vector2(0, -6) },
+            ["walk_trail"] = new GDict { ["scene"] = S("res://vfx/enemy/tarri/walk/tarri_walk_trail.tscn"), ["pos"] = new Vector2(0, -6) },
         },
         // --- melee (a 2-hit COMBO — each hit its own Strike scene, keyed by the SHEET FRAME: melee_4 jab, melee_9 follow-up.
         ["breski"] = new GDict
