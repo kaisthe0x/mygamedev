@@ -21,7 +21,7 @@ namespace MyGame;
 [GlobalClass]
 public partial class Enemy : Combatant
 {
-    private const string FramesPath = "res://resources/enemies/{0}.tres";
+    protected virtual string FramesPath => "res://resources/enemies/{0}.tres";  // WardenEnemy overrides -> resources/wardens/
     private const string GlowMaterial = "res://resources/enemy_glow.tres";
     private static readonly Vector2 DefaultMuzzle = new(20, -46);
 
@@ -64,6 +64,7 @@ public partial class Enemy : Combatant
     [Export] public float close_hitbox_x { get; set; } = 20.0f;
     [Export] public Vector2 close_hitbox_extents { get; set; } = new(16, 16);
     [Export] public float close_strike_lifetime { get; set; } = 0.15f;
+    [Export] public float close_lunge { get; set; }  // forward impulse on the hit frame (0 = none); a lunge-type attack (Kroj) slides in
     [Export] public float projectile_speed { get; set; } = 260.0f;
     [Export(PropertyHint.Enum, "aimed,forward,lob")] public string far_mode { get; set; } = "aimed";
     [Export] public float far_travel { get; set; } = 100.0f;
@@ -579,8 +580,15 @@ public partial class Enemy : Combatant
         if (State == EState.Close && HitFramesOf(CloseAnim).Contains(Sprite.Frame))
         {
             SpawnMeleeStrike(MeleeVfxKey(Sprite.Frame));
-            float hold = IsInstanceValid(_activeChannel) ? _activeChannel!.emit_duration : attack_hitstop;
-            BeginHitstop(hold);
+            if (close_lunge > 0.0f)
+                // Lunge forward on the commit frame; slides to a stop via the Close-state deceleration.
+                // No hitstop — it would zero the velocity and freeze the slide (this IS the Zahluq pattern).
+                Velocity = new Vector2(close_lunge * Facing, Velocity.Y);
+            else
+            {
+                float hold = IsInstanceValid(_activeChannel) ? _activeChannel!.emit_duration : attack_hitstop;
+                BeginHitstop(hold);
+            }
         }
         else if (State == EState.Far && !AttackFired && Sprite.Frame >= FireFrame())
         {
@@ -951,12 +959,15 @@ public partial class Enemy : Combatant
         }
     }
 
+    /// <summary>Death SFX cue key — overridable so Wardens get their own (see WardenEnemy).</summary>
+    protected virtual string DeathSfxKey() => "enemy_death";
+
     protected virtual void Die()
     {
         SetState(EState.Dead);
         CancelChannel();
         StopAttackSfx();
-        SfxPlayAt("enemy_death", GlobalPosition);
+        SfxPlayAt(DeathSfxKey(), GlobalPosition);
         EmitSignal(SignalName.died);
         RemoveFromGroup("enemies");
         Hurt.SetDeferred(Area2D.PropertyName.Monitorable, false);

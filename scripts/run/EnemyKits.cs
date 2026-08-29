@@ -82,4 +82,20 @@ public static class EnemyKits
         { "close_damage", 10.0 }, { "close_knockback", 130.0 }, { "close_stun", 0.2 },
         { "attack_hitstop", 0.12 }, { "attack_shake", 1.0 },
     };
+
+    // --- Wardens (elite tier: WardenEnemy — teleporting lunger, cinematic spawn, persistent corpse) ---
+    public static readonly GDict KROJ = new()
+    {
+        { "scene", "res://scenes/warden.tscn" }, { "id", EnemyIds.Kroj }, { "display_name", "Kroj" },
+        { "movement", (int)EnemyMovement.Ground }, { "tier", (int)EnemyTier.Strong },
+        { "max_health", 300.0 }, { "body_size", new Vector2(28, 44) }, { "hurtbox_size", new Vector2(34, 52) },
+        { "move_speed", 55.0 }, { "aggro", true }, { "aggro_range", 640.0 },
+        // Attack = a LUNGE (close_type=lunge): he closes and body-checks; close_lunge is the forward impulse.
+        { "close_type", StrikeType.Lunge.Key() }, { "close_range", 130.0 }, { "close_lunge", 460.0 },
+        { "close_damage", 22.0 }, { "close_knockback", 190.0 }, { "close_stun", 0.3 },
+        { "close_hitbox_x", 30.0 }, { "close_hitbox_extents", new Vector2(40, 40) }, { "close_strike_lifetime", 0.3 },
+        { "attack_cooldown", 2.0 }, { "attack_align_y", 54.0 }, { "attack_hitstop", 0.0 },
+        // Teleport pursuit (WardenEnemy exports) — warp in when the player stays far, landing outside lunge range.
+        { "teleport_range", 360.0 }, { "teleport_delay", 1.6 }, { "teleport_land_offset", 96.0 },
+    };
 }

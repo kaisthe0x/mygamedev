@@ -15,4 +15,7 @@ public static class EnemyIds
     public const string Matat = "matat";
     public const string Tarri = "tarri";
     public const string Breski = "breski";
+
+    // Wardens (elite tier — WardenEnemy, resources/wardens/, docs/game-loop.md)
+    public const string Kroj = "kroj";
 }
