@@ -1675,7 +1675,10 @@ lunge/armor. A **null** `hit` (empty `segments`) means "the effect scene carries
   director world-parents them at the muzzle and reads facing from `scale.x` so they fly
   off. Khalid's **Cherry Shots** fires two — a small bolt on frame 3, a big one on frame 7,
   each its own per-frame file (`attack_cherry_shots_3/_7.tscn`), a red laser `Line2D` bolt
-  with its own damage from the tuning array.
+  with its own damage from the tuning array. Both **home on the closest enemy ahead**: the
+  emitter rows `set` `homing = 8` + `can_fly_up` (overriding the scenes' `homing = 0`), so each
+  shot acquires the nearest target via `Projectile.NearestTargetAhead` and steers into it,
+  including one a level up (`can_fly_up` skips the `vertical_reach` gate + allows upward steering).
 - A character with **no effect scene** for an attack deals no damage (Khalid, for now);
   a character with an **empty specials pool** (`Actions.get_action` returns null) simply can't
   special — the button no-ops.

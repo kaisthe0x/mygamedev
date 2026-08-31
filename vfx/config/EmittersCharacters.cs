@@ -57,8 +57,8 @@ public static class EmittersCharacters
 			// Cherry Shots: two laser Projectiles, each its own file (_3 small bolt on f3, _7 big on f7).
 			["attack_cherry_shots"] = new GArr
 			{
-				new GDict { ["scene"] = S("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots_3.tscn"), ["mode"] = "burst", ["frames"] = new GArr { 3 }, ["pos"] = new Vector2(16, -22) },
-				new GDict { ["scene"] = S("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots_7.tscn"), ["mode"] = "burst", ["frames"] = new GArr { 7 }, ["pos"] = new Vector2(16, -22) },
+				new GDict { ["scene"] = S("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots_3.tscn"), ["mode"] = "burst", ["frames"] = new GArr { 3 }, ["pos"] = new Vector2(16, -22), ["set"] = new GDict { ["homing"] = 8.0, ["can_fly_up"] = true } },
+				new GDict { ["scene"] = S("res://vfx/character/khalid/attack/cherry_shots/attack_cherry_shots_7.tscn"), ["mode"] = "burst", ["frames"] = new GArr { 7 }, ["pos"] = new Vector2(16, -22), ["set"] = new GDict { ["homing"] = 8.0, ["can_fly_up"] = true } },
 			},
 			// Spear: 3-hit combo — one file per hit (thrust, thrust, big finisher), named by frame.
 			["attack_spear"] = new GArr

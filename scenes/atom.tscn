@@ -8,12 +8,13 @@ friction = 0.5
 bounce = 0.35
 
 [sub_resource type="CircleShape2D" id="body_shape"]
-radius = 7.0
+radius = 3.0
 
 [sub_resource type="CircleShape2D" id="pickup_shape"]
 radius = 7.0
 
 [node name="Atom" type="RigidBody2D" unique_id=1729489798]
+z_index = -1
 collision_layer = 0
 mass = 0.2
 physics_material_override = SubResource("phys")
