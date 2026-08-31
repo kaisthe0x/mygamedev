@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b65gtjcvnibgj"
-path="res://.godot/imported/tileset1-Sheet.png-0fd3bd6dc792a3bfc473b08271728107.ctex"
+uid="uid://cbyfftkrd680q"
+path="res://.godot/imported/kroj_attack_lunge_frames.png-be565c064b9b5d4901e78b5a8e9b04e0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/terrain/stage1/tileset1-Sheet.png"
-dest_files=["res://.godot/imported/tileset1-Sheet.png-0fd3bd6dc792a3bfc473b08271728107.ctex"]
+source_file="res://sprites/wardens/kroj/kroj_attack_lunge_frames.png"
+dest_files=["res://.godot/imported/kroj_attack_lunge_frames.png-be565c064b9b5d4901e78b5a8e9b04e0.ctex"]
 
 [params]
 

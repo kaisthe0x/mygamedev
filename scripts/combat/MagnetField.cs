@@ -38,7 +38,9 @@ public partial class MagnetField : Node2D
                     inReach.Add((enemy, dx));
             }
             inReach.Sort((a, b) => a.Dist.CompareTo(b.Dist));
-            int n = Mathf.Min(max_targets, inReach.Count);
+            // Wider Pull buff bumps the grab count via a run-scoped bonus on the player.
+            int targets = max_targets + (khalid is Player pl ? pl.magnet_target_bonus : 0);
+            int n = Mathf.Min(targets, inReach.Count);
             for (int i = 0; i < n; i++)
                 inReach[i].Enemy.Call("magnetize", khalid, arrive_dist, pull_speed, stun_time);
         }

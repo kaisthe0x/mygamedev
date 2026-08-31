@@ -122,6 +122,8 @@ public partial class Player : Combatant
     public bool impervious_until_hit = false; // Last Stand (WIP)
     public float special_radius_mult = 1.0f;  // Wide Impact (WIP)
     public float special_invuln_bonus = 0.0f; // Fortitude: extends any surge window
+    public float jump_velocity_bonus = 1.0f;  // High Jump: multiplies applied jump velocity (all jumps)
+    public int magnet_target_bonus = 0;        // Wider Pull: extra Come Closer magnet targets
 
     private readonly List<string> _rewardsTaken = new();
     private const string StartingDashEffect = "dash_default";
@@ -182,6 +184,7 @@ public partial class Player : Combatant
     private float _fallPeak = 0.0f;
     private float _apexY = 0.0f;
     private int _airJumpsUsed = 0;
+    private float _slamSpringBonus = 1.0f;   // Slam Spring: one-shot next-ground-jump height mult (consumed on use)
     private bool _jumpLaunch = false;
     private bool _dead = false;
     private bool _deathFinished = false;
@@ -205,6 +208,7 @@ public partial class Player : Combatant
 
     // --- surge window ---
     private float _surgeLeft = 0.0f;
+    private float _iframesLeft = 0.0f;  // generic invulnerability window (grant_invuln) — the immunity buffs
     private bool _surgeInvuln = false;
     private float _surgeDmgMult = 1.0f;
     private float _surgeDmgTakenMult = 1.0f;
@@ -417,6 +421,7 @@ public partial class Player : Combatant
         foreach (var p in _passives)
             p.Teardown(this);
         _passives.Clear();
+        RefreshBuffHud();
         if (Engine.IsEditorHint())
             return;
         var ability = CharacterAbilityFor(character);
@@ -441,12 +446,31 @@ public partial class Player : Combatant
         }
         _passives.Add(p);
         p.Setup(this);
+        RefreshBuffHud();
     }
+
+    /// <summary>Push the current buff loadout to the HUD's active-buff list (autoload).</summary>
+    private void RefreshBuffHud() => GetNodeOrNull<HUD>("/root/HUD")?.RefreshBuffs(_passives);
 
     public void notify_hit_dealt(float amount, Node target)
     {
         foreach (var p in _passives)
             p.OnHitDealt(this, amount, target);
+    }
+
+    /// <summary>A player attack hitbox deactivated having hit nobody (a whiff). Called by <see cref="Hitbox"/> on a
+    /// zero-victim deactivation of a player-sourced attack box — dispatches OnMiss (Instant Reset, etc.).</summary>
+    public void notify_miss()
+    {
+        foreach (var p in _passives)
+            p.OnMiss(this);
+    }
+
+    /// <summary>An attack swing's animation finished + recovered to neutral (no chain/cancel) — dispatches OnAnimEnd (Follow-through).</summary>
+    private void NotifyAttackAnimEnd()
+    {
+        foreach (var p in _passives)
+            p.OnAnimEnd(this);
     }
 
     public void record_reward(string id) => _rewardsTaken.Add(id);
@@ -566,6 +590,82 @@ public partial class Player : Combatant
 
     public void heal(float amount) => health = Mathf.Min(health + amount, max_health);
 
+    /// <summary>Grant a generic invulnerability window (the immunity buffs: dash/jump/slam/on-hit). Refreshes to the longer.</summary>
+    public void grant_invuln(float seconds) => _iframesLeft = Mathf.Max(_iframesLeft, seconds);
+
+    /// <summary>Add air jumps for the run (ExtraAirJump buff) — bumps the bonus AND the live max. Undo with n &lt; 0.</summary>
+    public void add_air_jumps(int n) { air_jump_bonus += n; _maxAirJumps += n; }
+
+    /// <summary>Prime the NEXT ground jump with a height multiplier (Slam Spring) — one-shot, consumed on that jump.</summary>
+    public void set_jump_spring(float mult) => _slamSpringBonus = mult;
+
+    /// <summary>Lower the current attack cooldown (Bakshen Overcharge on-hit). Clamped to zero (a huge value = full reset).</summary>
+    public void reduce_attack_cooldown(float seconds) => _attackCd = Mathf.Max(_attackCd - seconds, 0.0f);
+
+    /// <summary>Zero the dash cooldown so the follow-up dash is free (Chain Dash on-dash).</summary>
+    public void reset_dash_cooldown() => _dashCd = 0.0f;
+
+    // --- DEBUG: playtest the buff catalog (triggered from RunManager's input; REMOVE before release) -------
+    private int _debugBuffIdx = 0;
+
+    /// <summary>DEBUG: grant the next wired catalog buff (at Hot), cycling through the whole set.</summary>
+    public void debug_grant_next_buff()
+    {
+        var ids = new List<string>(BuffCatalog.FACTORIES.Keys);
+        if (ids.Count == 0)
+            return;
+        string id = ids[_debugBuffIdx++ % ids.Count];
+        var buff = BuffCatalog.Make(id, Tier.Hot);
+        if (buff != null)
+        {
+            add_passive(buff);
+            GD.Print($"[DEBUG] granted buff: {id} (Hot)");
+        }
+    }
+
+    /// <summary>DEBUG: clear all granted buffs (keeps the character ability).</summary>
+    public void debug_clear_buffs()
+    {
+        foreach (var p in new List<Passive>(_passives))
+            if (p is Buff)
+            {
+                p.Teardown(this);
+                _passives.Remove(p);
+            }
+        RefreshBuffHud();
+        GD.Print("[DEBUG] cleared granted buffs");
+    }
+
+    /// <summary>Stun every enemy within `radius` for `seconds` (Slam Quake) — the surge's stun-sweep pattern.</summary>
+    public void stun_nearby(float radius, float seconds)
+    {
+        foreach (Node e in GetTree().GetNodesInGroup("enemies"))
+        {
+            if (e is not Node2D en || !en.HasMethod("apply_hit"))
+                continue;
+            if (GlobalPosition.DistanceTo(en.GlobalPosition) <= radius)
+                en.Call("apply_hit", new Hit
+                {
+                    Stun = seconds,
+                    Source = this,
+                    StatusColor = new Color(1.0f, 0.85f, 0.2f, 0.6f),
+                    StatusTime = seconds,
+                });
+        }
+    }
+
+    /// <summary>The jump velocity to apply, folding in High Jump (all jumps) and, for a GROUND jump, a one-shot Slam Spring (consumed here).</summary>
+    private float AppliedJumpVelocity(bool ground)
+    {
+        float v = _jumpVelocity * jump_velocity_bonus;
+        if (ground && !Mathf.IsEqualApprox(_slamSpringBonus, 1.0f))
+        {
+            v *= _slamSpringBonus;
+            _slamSpringBonus = 1.0f;
+        }
+        return v;
+    }
+
     public bool gain_ruh_on_hit()
     {
         float before = ruh;
@@ -675,6 +775,8 @@ public partial class Player : Combatant
 
     private void OnHurt(Hit hit)
     {
+        if (_iframesLeft > 0.0f)
+            return;  // generic i-frames (immunity buffs) — ignore the hit entirely
         if (IsShielding())
         {
             bool fromBehind = hit.Source is Node2D src2
@@ -1022,6 +1124,10 @@ public partial class Player : Combatant
         special_radius_mult = 1.0f;
         _dashEffect = StartingDashEffect;
         special_invuln_bonus = 0.0f;
+        _iframesLeft = 0.0f;
+        jump_velocity_bonus = 1.0f;
+        _slamSpringBonus = 1.0f;
+        magnet_target_bonus = 0;
         ruh_cap = BaseRuhCap;
         air_jump_bonus = 0;
         _rewardsTaken.Clear();
@@ -1052,6 +1158,7 @@ public partial class Player : Combatant
         UpdateCooldownBar();
         _ruhFlashCd = Mathf.Max(_ruhFlashCd - delta, 0.0f);
         _armorLeft = Mathf.Max(_armorLeft - delta, 0.0f);
+        _iframesLeft = Mathf.Max(_iframesLeft - delta, 0.0f);
         if (_holdLeft > 0.0f)
         {
             _holdLeft = Mathf.Max(_holdLeft - delta, 0.0f);
@@ -1254,7 +1361,7 @@ public partial class Player : Combatant
         {
             if (IsOnFloor())
             {
-                SetVelY(_jumpVelocity);
+                SetVelY(AppliedJumpVelocity(true));
                 _jumpLaunch = true;
                 _sfx.play("jump");
                 foreach (var p in _passives)
@@ -1391,7 +1498,7 @@ public partial class Player : Combatant
 
     private void AirJump()
     {
-        SetVelY(_jumpVelocity);
+        SetVelY(AppliedJumpVelocity(false));
         _airJumpsUsed += 1;
         _sfx.play("jump");
         _apexY = GlobalPosition.Y;
@@ -1469,7 +1576,7 @@ public partial class Player : Combatant
         }
         if (Input.IsActionJustPressed("jump"))
         {
-            SetVelY(_jumpVelocity);
+            SetVelY(AppliedJumpVelocity(true));
             _jumpLaunch = true;
             _state = State.JUMP;
             return;
@@ -1531,6 +1638,7 @@ public partial class Player : Combatant
             else if (!Input.IsActionPressed("attack"))
             {
                 _flurry = false;
+                NotifyAttackAnimEnd();
                 Enter(State.IDLE);
             }
             return;
@@ -1567,6 +1675,7 @@ public partial class Player : Combatant
         {
             if (_activeHit.Lunge.HasValue)
                 SetVelX(0.0f);
+            NotifyAttackAnimEnd();
             Enter(State.IDLE);
         }
     }

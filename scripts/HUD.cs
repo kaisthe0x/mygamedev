@@ -43,6 +43,7 @@ public partial class HUD : CanvasLayer
     private Label _ruhLabel;
     private Label _levelsLabel;
     private Label _controls;
+    private VBoxContainer _buffPanel;
     private PanelContainer _stats;
     private Label _statsLabel;
 
@@ -114,6 +115,45 @@ public partial class HUD : CanvasLayer
 
         _controls = MkLabel(new Vector2(16, 140), 12, new Color(0.62f, 0.62f, 0.68f));
         _controls.Text = "A/D move   Space jump   Shift dash   LMB attack   RMB special/slam   Z hurt   X +ruh   0 rebuild";
+
+        // Active-buff list. _root uses the TopLeft preset (zero-sized), so anchors don't resolve here — position it
+        // ABSOLUTELY (top-right) in RefreshBuffs from the live viewport width, like every other HUD element.
+        _buffPanel = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
+        _root.AddChild(_buffPanel);
+    }
+
+    /// <summary>Rebuild the top-right active-buff list from the player's passives (call on grant / clear).</summary>
+    public void RefreshBuffs(System.Collections.Generic.List<Passive> passives)
+    {
+        if (_buffPanel == null)
+            return;
+        _buffPanel.Position = new Vector2(GetViewport().GetVisibleRect().Size.X - 272.0f, 14.0f);  // top-right, live width
+        foreach (Node child in _buffPanel.GetChildren())
+            child.QueueFree();
+        bool any = false;
+        foreach (Passive p in passives)
+        {
+            if (p is not Buff b)
+                continue;
+            any = true;
+            var name = new Label { Text = b.Name != "" ? $"{b.Name}   [{Tiers.Label(b.Tier)}]" : b.Id };
+            name.AddThemeFontSizeOverride("font_size", 13);
+            name.AddThemeColorOverride("font_color", Tiers.ColorOf(b.Tier));
+            name.AddThemeColorOverride("font_outline_color", Colors.Black);
+            name.AddThemeConstantOverride("outline_size", 4);
+            _buffPanel.AddChild(name);
+
+            var desc = new Label { Text = b.Description, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            desc.CustomMinimumSize = new Vector2(258, 0);
+            desc.AddThemeFontSizeOverride("font_size", 10);
+            desc.AddThemeColorOverride("font_color", new Color(0.76f, 0.76f, 0.82f));
+            desc.AddThemeColorOverride("font_outline_color", Colors.Black);
+            desc.AddThemeConstantOverride("outline_size", 3);
+            _buffPanel.AddChild(desc);
+
+            _buffPanel.AddChild(new Control { CustomMinimumSize = new Vector2(0, 5) }); // row spacer
+        }
+        _buffPanel.Visible = any;
     }
 
     private void BuildLowHealth()

@@ -202,7 +202,7 @@ the catalog against. Full tiered list: **`buff-catalog.md`**.
 - **Reward doors** — `DoorType`, `ExitGate`, `RewardUI` (door flavour), the Health/Athletic/Attack/Special
   door offer. Replaced by grunt drops + Warden-kill rewards + the Chest.
 - **5-levels-as-data** (`Levels.cs`) + the painted-level loader's **5-level / exit-gate** assumptions
-  (`RunManager.BuildLevel`, `StageLayoutPaths` over `level_v*`). Replaced by one stage arena.
+  (`RunManager.BuildLevel`, `StageLayoutPaths` over `stage1_v*`). Replaced by one stage arena.
 - **Scattered ground/air wave spawns** — grunts now proximity-spawn around the player.
 
 **Repurposed / kept:**

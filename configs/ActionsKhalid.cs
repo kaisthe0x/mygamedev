@@ -136,8 +136,8 @@ public static class ActionsKhalid
     };
 
     public const string DEFAULT_ATTACK = AttackIds.Bakshen;
-    public const string DEFAULT_SPECIAL = SpecialIds.RedereFrisbee;
-    public const string DEFAULT_SURGE = SurgeIds.Wara;
+    public const string DEFAULT_SPECIAL = SpecialIds.ComeCloser;
+    public const string DEFAULT_SURGE = SurgeIds.Nem;
     public static readonly Dictionary<string, string> DEFAULT_MOVEMENTS = new()
     {
         [MovementIds.Run] = MovementIds.StandardStride, [MovementIds.Jump] = MovementIds.StandardLeap,

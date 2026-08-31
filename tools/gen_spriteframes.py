@@ -55,9 +55,24 @@ ENEMY_ANIMS = {
     "attack_projectile": (10.0, False),  # launches a projectile (Kebus bolt, Baghel wave)
     "death": (6.0, False),  # slow + graceful -- plays once on death, then the corpse fades
 }
+WARDEN_ANIMS = {
+    "idle": (6.0, True),
+    "walk": (8.0, True),
+    "spawn": (
+        9.0,
+        False,
+    ),  # cinematic entrance -- plays once when a Fissure is sealed, then hands to idle/chase
+    "attack": (10.0, False),  # timing template for attack_* variants (prefix inheritance)
+    "attack_lunge": (10.0, False),  # lunge in + body-check; the last frame holds (see OVERRIDES)
+    "death": (
+        5.0,
+        False,
+    ),  # plays once; the corpse then PERSISTS (WardenEnemy keeps the last frame in-world)
+}
 GROUPS = {
     "characters": CHARACTER_ANIMS,
     "enemies": ENEMY_ANIMS,
+    "wardens": WARDEN_ANIMS,
 }
 
 
@@ -161,6 +176,9 @@ OVERRIDES: dict[tuple[str, str], dict[str, float | int | bool]] = {
     ("nasen", "attack_aoe"): {"fps": 8.0, "loop_from": 2},
     # Mazab (enemy): let the throw's release pose land before he retracts, so the lob reads.
     ("mazab", "attack_delayed_projectile"): {"hold_last": 1.5},
+    # Kroj (warden): the lunge -- last frame HOLDS while he slides forward
+    # (Zahluq-style follow-through).
+    ("kroj", "attack_lunge"): {"hold_last": 2.5},
     # Ein (enemy): the stab loops for the whole charge (which lasts a variable dive time, not
     # one anim cycle) -- ein.gd ends it by exploding on arrival, not on anim_finished.
     ("ein", "attack_kamikaze"): {"loop": True},
@@ -192,6 +210,9 @@ HIT_FRAMES: dict[tuple[str, str], list[int]] = {
     ("kebus", "attack_melee"): [3],
     ("baghel", "attack_projectile"): [6],
     ("nasen", "attack_aoe"): [2],  # the rage AoE erupts on this frame
+    ("kroj", "attack_lunge"): [
+        2
+    ],  # warden lunge: the forward impulse + body-check fire as he commits
     ("mazab", "attack_delayed_projectile"): [
         5
     ],  # release frame -- the lobbed bomb leaves his hand here

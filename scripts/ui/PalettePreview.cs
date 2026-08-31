@@ -17,7 +17,7 @@ public partial class PalettePreview : Control
 {
     private const string FRAMES_PATH = "res://resources/characters/khalid.tres";
     private const string PORTRAIT_PATH = "res://assets/portraits/Khalid.png";
-    private const string RUN_SCENE = "res://scenes/level.tscn";
+    private const string RUN_SCENE = "res://scenes/arena.tscn";
     private const float SPRITE_SCALE = 5.0f;
     private const string SAMPLE_FX = "res://vfx/character/khalid/run/default/run_default.tscn";
 

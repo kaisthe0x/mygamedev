@@ -4,7 +4,7 @@ Everything that makes the game a *run* lives here: the level flow, the wave spaw
 economy plumbing, the exit toll, and the reward pick. One folder, driven by data you can tune in
 one place each. The premise it implements is in [`docs/game-design.md`](../../docs/game-design.md).
 
-`scenes/level.tscn`'s root **is** `RunManager` — press F5 and you're in a run.
+`scenes/arena.tscn`'s root **is** `RunManager` — open it and press F6 to drop straight into a run (F5 starts at the `palette_preview` colour pickers, which then load `arena.tscn`).
 
 ## The pieces
 
@@ -23,9 +23,20 @@ tileset as positioned sprites over the (unchanged) colliders — `_paint_surface
 row + optional fill rows, `_scatter_plants` sprinkles ground plants, `_place_trees` drops tree
 props behind. Art + cell roles live in [`configs/terrain.gd`](../../configs/terrain.gd) (`Terrain`),
 files in `assets/terrain/`. Missing sheet → flat-colour fallback. This is the **visual-only** first
-pass (collision/feel identical); grid-aligned hand-painted level scenes are the natural next phase.
-To hand-paint tiles yourself there's a real TileSet (`resources/terrain/stage1_terrain.tres`) + a
-sandbox scene (`scenes/tile_paint.tscn`) — see [`docs/painting-levels.md`](../../docs/painting-levels.md).
+pass (collision/feel identical).
+
+**Hand-painted stage layouts** are the active approach: `RunManager` loads a random
+`scenes/levels/stage1/stage1_v*.tscn` (a `LevelLayout`, discovered by the `stage1_v` glob in
+`StageLayoutPaths`) and reads its `PlayerSpawn` / `Exit` / `spawn_ground` / `spawn_air` markers. Terrain
+is a **`TileMapLayer` with per-tile collision**: `tools/gen_terrain_tileset.gd` reads the terrain sheet
+(`assets/terrain/stage1/tileset1.png`) and builds `terrain_tileset.tres` — every non-empty 32px cell
+becomes a paintable tile, and every **≥85%-opaque (solid) cell gets a full-box collider** on the World
+physics layer; decor cells (5–85% opaque) are paintable but pass-through. So paint = collision. This
+requires a **genuinely modular sheet** (distinct reusable tiles: surface / fill / edges / corners /
+platforms / decor) — a single mural does *not* work (its cells aren't reusable and its opaque interior
+would all turn solid). Re-run the generator after editing the sheet, then paint the level in-editor.
+Slopes / one-way platforms: paint the tiles, then hand-tweak those colliders in the TileSet editor (the
+generator only bakes full boxes). See [`docs/painting-levels.md`](../../docs/painting-levels.md).
 
 Related, but not in this folder:
 - **Player HP + Ruh** live on the `Player` (`scripts/Player.cs`) as **two independent pools**:

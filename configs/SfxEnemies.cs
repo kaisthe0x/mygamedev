@@ -26,6 +26,11 @@ public static class SfxEnemies
         ["tarri.blast"] = "res://sfx/enemy/tarri/attack/blast.wav",  // PLACEHOLDER — blast channel wind-up
         ["breski.melee"] = "res://sfx/enemy/breski/attack/melee.wav",  // PLACEHOLDER — combo wind-up
         ["ein.kamikaze"] = "res://sfx/enemy/ein/attack/kamikaze.wav",  // ein's arrival blast (self-destruct)
+        // --- KROJ (warden). PLACEHOLDER cues (existing wavs) -- swap for bespoke warden sfx. Death is DISTINCT from grunts.
+        ["kroj.lunge"] = "res://sfx/enemy/breski/attack/melee.wav",   // PLACEHOLDER -- lunge/body-check
+        ["kroj.spawn"] = "res://sfx/enemy/enemy_spawn.wav",           // PLACEHOLDER -- cinematic entrance
+        ["kroj.warp"] = "res://sfx/enemy/matat/attack/aoe.wav",       // PLACEHOLDER -- teleport telegraph + arrival
+        ["kroj.death"] = "res://sfx/enemy/tarri/attack/blast.wav",    // PLACEHOLDER -- warden death (louder than enemy_death)
         // --- delayed_projectile bursts (<id>.delayed_projectile_burst) ---
         ["mazab.delayed_projectile_burst"] = "res://sfx/enemy/mazab/attack/delayed_projectile_burst.wav",
         // --- per-frame hit cues (referenced from FRAMES) ---

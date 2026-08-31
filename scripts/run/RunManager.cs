@@ -5,7 +5,7 @@ using GArr = Godot.Collections.Array;
 namespace MyGame;
 
 /// <summary>
-/// The roguelite run driver + the <c>level.tscn</c> root. Builds each arena from Levels data, drops in start
+/// The roguelite run driver + the <c>arena.tscn</c> root. Builds each arena from Levels data, drops in start
 /// enemies, refills finite BATCHES as the arena clears, banks Ruh on hits, opens the exit once every batch is
 /// dead, runs the reward pick, advances levels, and restarts the run on death. Owns the player spawn, camera
 /// follow, and death/spawn flair. C# port of <c>scripts/run/run_manager.gd</c> (Phase 5b).
@@ -60,6 +60,9 @@ public partial class RunManager : Node2D
     private Node2D _content;
     private ExitGate _gate;
     private ColorRect _bg;
+    private Sprite2D _bgSky;
+    private Vector2 _bgImgSize;
+    private AnimatedSprite2D _bgAnim;
     private LevelLayout _layout;
 
     private const string StageDir = "res://scenes/levels/stage1/";
@@ -138,7 +141,7 @@ public partial class RunManager : Node2D
     private GDict Level(int i) => Levels.GetLevel(i);
     private int LevelCount() => Levels.Count();
 
-    /// <summary>Every hand-painted layout variant for the stage (<c>level_v*.tscn</c>). Auto-uses whatever exists —
+    /// <summary>Every hand-painted layout variant for the stage (<c>stage1_v*.tscn</c>). Auto-uses whatever exists —
     /// add a variant to the folder and it joins the random pool with no code change.</summary>
     private static string[] StageLayoutPaths()
     {
@@ -152,7 +155,7 @@ public partial class RunManager : Node2D
                 if (da.CurrentIsDir())
                     continue;
                 string name = f.TrimSuffix(".remap"); // exported builds serve .tscn.remap
-                if (name.StartsWith("level_v") && name.EndsWith(".tscn"))
+                if (name.StartsWith("stage1_v") && name.EndsWith(".tscn"))
                     list.Add(StageDir + name);
             }
             da.ListDirEnd();
@@ -193,7 +196,7 @@ public partial class RunManager : Node2D
         }
         else
         {
-            GD.PushWarning("RunManager: no level_v*.tscn layouts under scenes/levels/stage1/ — level will be empty.");
+            GD.PushWarning("RunManager: no stage1_v*.tscn layouts under scenes/levels/stage1/ — level will be empty.");
         }
         _playerSpawn = _layout != null ? _layout.PlayerSpawn() : lv["player_spawn"].As<Vector2>();
 
@@ -698,20 +701,62 @@ public partial class RunManager : Node2D
         var bgTex = Terrain.BackgroundTexture();
         if (bgTex != null)
         {
-            var img = new TextureRect
+            _bgImgSize = bgTex.GetSize();
+            // Dark backing in the image's OWN edge tone, so zooming the single (non-tiled) image out never shows a
+            // hard cut or the void — the starfield just sits in a bit more of its own space.
+            Color fill = new(0.05f, 0.05f, 0.06f);
+            Image im = bgTex.GetImage();
+            if (im != null)
             {
-                Texture = bgTex,
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.Scale,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-            };
-            img.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            layer.AddChild(img);
+                if (im.IsCompressed())
+                    im.Decompress();
+                fill = im.GetPixel(0, 0);
+            }
+            var back = new ColorRect { Color = fill, MouseFilter = Control.MouseFilterEnum.Ignore };
+            back.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            layer.AddChild(back);
+            // The SINGLE starfield (no tiling), centred + scaled by BackgroundZoom in LayoutBg (1.0 = fills).
+            _bgSky = new Sprite2D { Texture = bgTex, TextureFilter = CanvasItem.TextureFilterEnum.Nearest };
+            layer.AddChild(_bgSky);
         }
+        // Animated background element (orbiting planet) — over the sky, scaled with the same zoom.
+        var animFrames = Terrain.BackgroundAnimFrames();
+        if (animFrames != null)
+        {
+            _bgAnim = new AnimatedSprite2D
+            {
+                SpriteFrames = animFrames,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            };
+            layer.AddChild(_bgAnim);
+            _bgAnim.Play("orbit");
+        }
+        LayoutBg();
+        GetViewport().SizeChanged += LayoutBg;
         _bg = new ColorRect { MouseFilter = Control.MouseFilterEnum.Ignore };
         _bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         layer.AddChild(_bg);
+    }
+
+    /// <summary>Centre + scale the single bg image (BackgroundZoom of the viewport) and place the animated element
+    /// inside its rect, for the current resolution. Re-run on viewport resize.</summary>
+    private void LayoutBg()
+    {
+        Vector2 vp = GetViewport().GetVisibleRect().Size;
+        float zoom = Terrain.BackgroundZoom;
+        Vector2 skySize = vp * zoom;        // the image's on-screen rect (zoom 1.0 = fills)
+        Vector2 origin = (vp - skySize) / 2; // centred
+        if (_bgSky != null && IsInstanceValid(_bgSky) && _bgImgSize.X > 0)
+        {
+            _bgSky.Position = vp / 2;
+            _bgSky.Scale = skySize / _bgImgSize;
+        }
+        if (_bgAnim != null && IsInstanceValid(_bgAnim))
+        {
+            _bgAnim.Position = origin + Terrain.BackgroundAnimRatio * skySize;
+            float px = _bgImgSize.X > 0 ? skySize.X / _bgImgSize.X : zoom;
+            _bgAnim.Scale = new Vector2(px, px) * Terrain.BackgroundAnimScale;
+        }
     }
 
     private void BuildFloor()
@@ -754,6 +799,10 @@ public partial class RunManager : Node2D
             _player.take_damage(12.0f);
         else if (@event.IsActionPressed("debug_heal"))
             _player.ruh += _player.RUH_PER_BLOCK;
+        else if (@event is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.B)
+            _player.debug_grant_next_buff();   // DEBUG: cycle-grant catalog buffs
+        else if (@event is InputEventKey k2 && k2.Pressed && !k2.Echo && k2.Keycode == Key.N)
+            _player.debug_clear_buffs();
     }
 
     // --- small helpers --------------------------------------------------------

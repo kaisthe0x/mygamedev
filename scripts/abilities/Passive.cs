@@ -73,4 +73,12 @@ public partial class Passive : RefCounted
 
     /// <summary>A slam's impact lands, with the plunge distance/speed (doc: "On Slam Land").</summary>
     public virtual void OnSlamLand(Player player, float fallDistance, float fallSpeed) { }
+
+    /// <summary>An attack SWING's animation finished and recovered back to neutral (doc: "On Attack Animation End").
+    /// Fires once when a melee attack concludes without chaining/cancelling — the Follow-through immunity window.</summary>
+    public virtual void OnAnimEnd(Player player) { }
+
+    /// <summary>A player attack hitbox deactivated having struck NOBODY — a WHIFF (doc: "On Miss"). Fires per
+    /// attack hitbox; single-box attacks (e.g. Zahluq) get exactly one per swing.</summary>
+    public virtual void OnMiss(Player player) { }
 }

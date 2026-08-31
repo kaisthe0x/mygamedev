@@ -45,6 +45,12 @@ public partial class Buff : Passive
     /// <summary>The primary event hook this buff binds to (data/display; see <see cref="MyGame.Trigger"/>).</summary>
     public Trigger Trigger = Trigger.None;
 
+    /// <summary>Player-facing display name (HUD + offers). Set by <see cref="BuffCatalog.Make"/>.</summary>
+    public string Name = "";
+
+    /// <summary>One-line explanation shown to the player (HUD + offers). Set by <see cref="BuffCatalog.Make"/>.</summary>
+    public string Description = "";
+
     /// <summary>
     /// True if this buff should act on <paramref name="action"/> — by id, by category keyword ("attack"/"special"),
     /// by a tag, or unconditionally ("*"/empty). Gate <see cref="Passive.ModifyTuning"/> (and move-specific work) with it.

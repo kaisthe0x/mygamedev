@@ -46,5 +46,15 @@ public static class EmittersEnemies
             ["melee_4"] = new GDict { ["scene"] = S("res://vfx/enemy/breski/attack/breski_melee_4.tscn"), ["pos"] = new Vector2(26, -18) },
             ["melee_9"] = new GDict { ["scene"] = S("res://vfx/enemy/breski/attack/breski_melee_9.tscn"), ["pos"] = new Vector2(32, -20) },
         },
+        // --- KROJ (warden). PLACEHOLDER effects (pointed at existing enemy scenes) — swap for bespoke warden vfx.
+        // Keys used in code: "lunge" (base close-attack vfx), "spawn"/"warp"/"death_burst" (WardenEnemy), "walk_trail" (base).
+        ["kroj"] = new GDict
+        {
+            ["lunge"] = new GDict { ["scene"] = S("res://vfx/enemy/matat/attack/matat_aoe.tscn"), ["pos"] = new Vector2(34, -22) },
+            ["spawn"] = new GDict { ["scene"] = S("res://vfx/enemy/nasen/attack/nasen_aoe.tscn"), ["pos"] = new Vector2(0, -24) },
+            ["warp"] = new GDict { ["scene"] = S("res://vfx/enemy/ein/attack/ein_kamikaze.tscn"), ["pos"] = new Vector2(0, -24) },
+            ["death_burst"] = new GDict { ["scene"] = S("res://vfx/enemy/tarri/attack/tarri_blast.tscn"), ["pos"] = new Vector2(0, -24) },
+            ["walk_trail"] = new GDict { ["scene"] = S("res://vfx/enemy/tarri/walk/tarri_walk_trail.tscn"), ["pos"] = new Vector2(0, -8) },
+        },
     };
 }
