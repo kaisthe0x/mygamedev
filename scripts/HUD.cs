@@ -42,6 +42,8 @@ public partial class HUD : CanvasLayer
     private float _ruhCellW = 0.0f;
     private Label _ruhLabel;
     private Label _levelsLabel;
+    private TextureRect _atomIcon;
+    private Label _atomLabel;
     private Label _controls;
     private VBoxContainer _buffPanel;
     private PanelContainer _stats;
@@ -113,6 +115,22 @@ public partial class HUD : CanvasLayer
 
         _levelsLabel = MkLabel(new Vector2(infoX, 100), 15, new Color(0.85f, 0.72f, 0.18f));
 
+        // Atom counter — icon + count, to the right of the Ruh meter row.
+        float atomX = infoX + RuhMeterSize.X + 8.0f;
+        _atomIcon = new TextureRect
+        {
+            Position = new Vector2(atomX, 98),
+            Size = new Vector2(22, 22),
+            Texture = GD.Load<Texture2D>("res://assets/things/atom.png"),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _root.AddChild(_atomIcon);
+        _atomLabel = MkLabel(new Vector2(atomX + 26, 100), 16, new Color(0.72f, 0.86f, 1.0f));
+        _atomLabel.Text = "0";
+
         _controls = MkLabel(new Vector2(16, 140), 12, new Color(0.62f, 0.62f, 0.68f));
         _controls.Text = "A/D move   Space jump   Shift dash   LMB attack   RMB special/slam   Z hurt   X +ruh   0 rebuild";
 
@@ -167,6 +185,13 @@ public partial class HUD : CanvasLayer
         _lowHpMat.SetShaderParameter("intensity", 0.0);
         rect.Material = _lowHpMat;
         _lowHpLayer.AddChild(rect);
+    }
+
+    /// <summary>Set the collected-atoms count shown next to the Ruh meter (pushed by <c>Player.collect_atom</c>).</summary>
+    public void SetAtoms(int count)
+    {
+        if (_atomLabel != null)
+            _atomLabel.Text = count.ToString();
     }
 
     private Label MkLabel(Vector2 pos, int fontSize, Color col)

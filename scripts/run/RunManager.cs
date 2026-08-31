@@ -77,7 +77,7 @@ public partial class RunManager : Node2D
     // --- bridges (cached in _Ready) ---
     private Music _music;
     private Sfx _sfx;
-    private PackedScene _enemyScene, _spawnFx, _ruhOrb;
+    private PackedScene _enemyScene, _spawnFx, _ruhOrb, _atomScene;
 
     public override void _Ready()
     {
@@ -88,6 +88,7 @@ public partial class RunManager : Node2D
         _enemyScene = GD.Load<PackedScene>("res://scenes/enemy.tscn");
         _spawnFx = GD.Load<PackedScene>("res://vfx/spawn/enemy_spawn.tscn");
         _ruhOrb = GD.Load<PackedScene>("res://vfx/character/khalid/ruh_orb/ruh_orb.tscn");
+        _atomScene = GD.Load<PackedScene>("res://scenes/atom.tscn");
 
         Engine.TimeScale = 1.0;
         AddGlow();
@@ -425,10 +426,22 @@ public partial class RunManager : Node2D
             else
                 enemy.Set(k, kit[key]);
         }
+        // Atom drop count defaults from the advisory tier unless the kit set atom_drop explicitly (Wardens do).
+        if (!kit.ContainsKey("atom_drop") && kit.ContainsKey("tier"))
+            enemy.atom_drop = AtomsForTier((EnemyTier)kit["tier"].AsInt32());
         enemy.Position = pos;
         _content.AddChild(enemy);
         return enemy;
     }
+
+    /// <summary>Default atoms dropped by an enemy of a given advisory tier (Wardens override via their kit).</summary>
+    private static int AtomsForTier(EnemyTier tier) => tier switch
+    {
+        EnemyTier.Chip => 1,
+        EnemyTier.Mid => 2,
+        EnemyTier.Strong => 3,
+        _ => 1,
+    };
 
     private void SpawnFx(Vector2 pos)
     {
@@ -445,11 +458,29 @@ public partial class RunManager : Node2D
 
     private void OnEnemyDied(Enemy enemy)
     {
+        // Death fires INSIDE a physics query flush (Hitbox callback), where adding a RigidBody is illegal
+        // ("Can't change this state while flushing queries"). Capture the values (the enemy frees) + defer the drop.
+        Vector2 at = enemy.GlobalPosition;
+        int drop = enemy.atom_drop;
+        Callable.From(() => SpawnAtoms(at, drop)).CallDeferred(); // every enemy drops (optional ones too, if killed)
         if (enemy.optional)
             return;
         _alive -= 1;
         if (_alive <= 0 && !_transitioning && !_cleared)
             Callable.From(AdvanceBatch).CallDeferred();
+    }
+
+    /// <summary>Scatter <paramref name="count"/> collectible atoms out of a corpse (they bounce, roll, and settle).</summary>
+    private void SpawnAtoms(Vector2 at, int count)
+    {
+        if (_atomScene == null)
+            return;
+        for (int i = 0; i < count; i++)
+        {
+            var atom = _atomScene.Instantiate<Node2D>();
+            _content.AddChild(atom);
+            PlaceAt(atom, at + new Vector2((float)GD.RandRange(-10, 10), -12));
+        }
     }
 
     private void SpawnRuhOrb(Vector2 at, bool completedCharge)

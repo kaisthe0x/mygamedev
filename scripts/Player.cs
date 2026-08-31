@@ -452,6 +452,16 @@ public partial class Player : Combatant
     /// <summary>Push the current buff loadout to the HUD's active-buff list (autoload).</summary>
     private void RefreshBuffHud() => GetNodeOrNull<HUD>("/root/HUD")?.RefreshBuffs(_passives);
 
+    /// <summary>Atoms banked this run — the Chest currency. Reset by <see cref="begin_run"/>.</summary>
+    public int atoms { get; private set; } = 0;
+
+    /// <summary>Collect <paramref name="n"/> atom(s) (an Atom touched the player) — bank them + update the HUD.</summary>
+    public void collect_atom(int n = 1)
+    {
+        atoms += n;
+        GetNodeOrNull<HUD>("/root/HUD")?.SetAtoms(atoms);
+    }
+
     public void notify_hit_dealt(float amount, Node target)
     {
         foreach (var p in _passives)
@@ -1109,6 +1119,8 @@ public partial class Player : Combatant
     {
         _dead = false;
         _deathFinished = false;
+        atoms = 0;
+        GetNodeOrNull<HUD>("/root/HUD")?.SetAtoms(0);
         EndSurge();
         _shakeLeft = 0.0f;
         if (_sprite != null)
