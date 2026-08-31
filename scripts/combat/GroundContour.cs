@@ -27,6 +27,57 @@ public sealed class GroundContour
     /// <summary>Fewer than 2 samples can't form a band — nothing to conform to.</summary>
     public bool IsEmpty => _samples.Count < 2;
 
+    // Sampling defaults: step across the footprint this finely, searching this far up/down for the surface.
+    private const float DefaultStep = 8.0f;
+    private const float DefaultReach = 48.0f;
+
+    /// <summary>
+    /// Reshape a whole ground AoE — its Rectangle particle emitters + box hitboxes — to hug the terrain, so it
+    /// curves with slopes instead of firing flat. One contour is sampled at the widest footprint and applied to
+    /// every part. The single entrypoint both spawn paths use (Khalid's <see cref="ParticleDirector"/> bursts and
+    /// an enemy's <c>SpawnAttack</c>). Returns false when there's no ground under the impact — the caller then
+    /// discards the effect (an AoE over a pit shouldn't emit or hit). A null space (can't sample) leaves it as authored.
+    /// </summary>
+    public static bool Conform(Node2D node, PhysicsDirectSpaceState2D space)
+    {
+        if (node == null || space == null)
+            return true;
+        var emitters = Gather<CpuParticles2D>(node, "CpuParticles2D");
+        var hitboxes = Gather<Hitbox>(node, "Area2D");
+
+        float halfWidth = 0.0f;
+        foreach (var cp in emitters)
+            if (cp.EmissionShape == CpuParticles2D.EmissionShapeEnum.Rectangle)
+                halfWidth = Mathf.Max(halfWidth, cp.EmissionRectExtents.X * Mathf.Abs(cp.GlobalScale.X));
+        foreach (var hb in hitboxes)
+            foreach (var csN in hb.FindChildren("*", "CollisionShape2D", true, false))
+                if (csN is CollisionShape2D cs && cs.Shape is RectangleShape2D rect)
+                    halfWidth = Mathf.Max(halfWidth, rect.Size.X * 0.5f * Mathf.Abs(cs.GlobalScale.X));
+        if (halfWidth <= 0.0f)
+            return true; // nothing rectangular to conform (e.g. a point burst) — fire as-is
+
+        var contour = Build(space, node.GlobalPosition, halfWidth, DefaultStep, DefaultReach);
+        if (contour == null || contour.IsEmpty)
+            return false;
+        foreach (var cp in emitters)
+            contour.ConformEmitter(cp);
+        foreach (var hb in hitboxes)
+            contour.ConformHitbox(hb);
+        return true;
+    }
+
+    /// <summary>Root-inclusive gather of nodes of type <typeparamref name="T"/> (matched by its Godot base class).</summary>
+    private static List<T> Gather<T>(Node root, string godotClass) where T : Node
+    {
+        var found = new List<T>();
+        if (root is T self)
+            found.Add(self);
+        foreach (var n in root.FindChildren("*", godotClass, true, false))
+            if (n is T t)
+                found.Add(t);
+        return found;
+    }
+
     /// <summary>
     /// Walk the surface across <c>[center.X ± halfWidth]</c> at <paramref name="step"/> px spacing, outward from the
     /// impact column, stopping at the first gap each side. Each ray searches ±<paramref name="reach"/> around the
@@ -66,16 +117,13 @@ public sealed class GroundContour
 
     private static bool Probe(PhysicsDirectSpaceState2D space, float x, float aroundY, float reach, out Sample sample)
     {
-        var q = PhysicsRayQueryParameters2D.Create(
-            new Vector2(x, aroundY - reach), new Vector2(x, aroundY + reach), (uint)Combat.Layer.World);
-        var hit = space.IntersectRay(q);
-        if (hit.Count == 0)
+        if (GroundProbe.TryAt(space, x, aroundY, reach, out Vector2 point, out Vector2 normal))
         {
-            sample = default;
-            return false;
+            sample = new Sample(point, normal);
+            return true;
         }
-        sample = new Sample(hit["position"].As<Vector2>(), hit["normal"].As<Vector2>());
-        return true;
+        sample = default;
+        return false;
     }
 
     /// <summary>Samples within <paramref name="halfWidth"/> of <paramref name="centerX"/> (world x).</summary>
