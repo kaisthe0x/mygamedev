@@ -42,7 +42,7 @@ public sealed class GroundContour
     {
         if (node == null || space == null)
             return true;
-        var emitters = Gather<CpuParticles2D>(node, "CpuParticles2D");
+        var emitters = Gather<CpuParticles2D>(node, "CPUParticles2D"); // engine class name is CPU-caps
         var hitboxes = Gather<Hitbox>(node, "Area2D");
 
         float halfWidth = 0.0f;

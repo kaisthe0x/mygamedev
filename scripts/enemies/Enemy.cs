@@ -68,8 +68,9 @@ public partial class Enemy : Combatant
 	[Export] public float close_strike_lifetime { get; set; } = 0.15f;
 	[Export] public float close_lunge { get; set; }  // forward impulse on the hit frame (0 = none); a lunge-type attack (Kroj) slides in
 	[Export] public float projectile_speed { get; set; } = 260.0f;
-	[Export(PropertyHint.Enum, "aimed,forward,lob")] public string far_mode { get; set; } = "aimed";
+	[Export(PropertyHint.Enum, "aimed,forward,ground_wave,lob")] public string far_mode { get; set; } = "aimed";
 	[Export] public float far_travel { get; set; } = 100.0f;
+	[Export] public float far_aim_cap { get; set; } = 0.0f; // aimed mode: cap the shot's tilt to ±this° off horizontal (0 = no cap); keeps it off vertical
 	[Export] public Vector2 far_hitbox_extents { get; set; } = new(5, 5);
 	[Export] public Vector2 far_hitbox_offset { get; set; } = Vector2.Zero;
 
@@ -184,7 +185,7 @@ public partial class Enemy : Combatant
 			if (reach > 0.0f)
 				close_range = reach;
 		}
-		if (HasFar && far_mode == "forward")
+		if (HasFar && (far_mode == "forward" || far_mode == "ground_wave"))
 			far_range = Mathf.Min(far_range, far_travel);
 
 		Health = max_health;
@@ -858,19 +859,38 @@ public partial class Enemy : Combatant
 		proj.rotate_to_heading = false;
 		proj.source = this;
 
-		if (far_mode == "forward")
+		if (far_mode == "ground_wave")
 		{
+			// Baghel's floor surge: rolls forward horizontally and hugs the terrain surface as it goes.
 			proj.velocity = new Vector2(projectile_speed * Facing, 0.0f);
 			proj.max_range = far_travel;
 			proj.ground_trail = true;
-			proj.ground_follow = true; // a forward ground-wave hugs the terrain surface as it rolls
+			proj.ground_follow = true;
+		}
+		else if (far_mode == "forward")
+		{
+			// A straight, non-tracking bolt: flies forward in the facing direction for far_travel px.
+			proj.velocity = new Vector2(projectile_speed * Facing, 0.0f);
+			proj.max_range = far_travel;
 		}
 		else
 		{
+			// Aimed (default): fire at the player's BODY and track their elevation, but cap the tilt at
+			// ±far_aim_cap off horizontal so a player far above/below never makes the shot near-vertical.
 			var aim = Target();
 			Vector2 target = aim != null ? aim.GlobalPosition + new Vector2(0, -15) : muzzle + new Vector2(Facing, 0);
-			proj.velocity = (target - muzzle).Normalized() * projectile_speed;
+			Vector2 to = target - muzzle;
+			if (far_aim_cap > 0.0f && to.LengthSquared() > 0.0001f)
+			{
+				float cap = Mathf.DegToRad(far_aim_cap);
+				float ang = Mathf.Clamp(Mathf.Atan2(to.Y, Mathf.Abs(to.X)), -cap, cap); // tilt off horizontal
+				float sign = Mathf.Abs(to.X) < 0.001f ? Facing : Mathf.Sign(to.X);
+				to = new Vector2(sign * Mathf.Cos(ang), Mathf.Sin(ang));
+			}
+			proj.velocity = to.Normalized() * projectile_speed;
 			proj.max_life = 3.0f;
+			proj.can_fly_up = true;        // aim up/down at an elevated player instead of being flattened to the floor
+			proj.rotate_to_heading = true; // point the bolt along its flight
 		}
 
 		GetParent().AddChild(proj);

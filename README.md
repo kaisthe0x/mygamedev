@@ -608,7 +608,7 @@ first gap each side so an effect doesn't leap a pit). Used three ways:
 - **Enemy static AoEs (`conform_ground` kit flag)** — Matat / Nasen set it; `Enemy.SpawnMeleeStrike`
   runs the *same* `GroundContour.Conform` on the spawned `AoeStrike`. (Enemies bypass `ParticleDirector`,
   hence a kit flag rather than an emitter-row flag — but one conform path.)
-- **Traveling wave (`Projectile.ground_follow`)** — Baghel's forward `far_mode` sets it; each
+- **Traveling wave (`Projectile.ground_follow`)** — Baghel's `ground_wave` `far_mode` sets it; each
   `_PhysicsProcess` the projectile `GroundProbe.TryAt`s under itself, snaps its Y to the surface
   (`ground_follow_offset` above it) and tilts to the normal, so the wave ripples up/down slopes as it
   rolls; it runs off a ledge → `Expire`. Facing stays on `Scale.X`, tilt on `Rotation`.
@@ -1310,15 +1310,18 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
 - **`contact_damage`** (default **0 = off**): when set, touching the player
   deals it on `contact_interval`. Also per-instance.
 - **The far attack** fires from the **muzzle** (the `Emitters` config `<id> → projectile → pos`) on the
-  animation's hit frame (`hit_frames` metadata). Three `far_mode`s:
-  - `"aimed"` — a `scripts/combat/Projectile.cs` that points at the player's torso **the moment it fires**
-    (Kebus' staff bolt). The shot doesn't steer after that (`homing = 0` for enemies), but
-    that fire-time aim is what reads as "homing." **To stop enemies tracking you, set
-    `far_mode = "forward"`** (per instance / roster entry). Separately, `aggro`
-    (default off) is what makes an enemy *chase* — leave it off to have them guard.
-  - `"forward"` — a `scripts/combat/Projectile.cs` that surges straight ahead in the enemy's facing for
-    `far_travel` px then fizzles, hitting whatever it passes — ignores where you are
-    (Baghel's red energy). The look comes from the Emitters `projectile` scene.
+  animation's hit frame (`hit_frames` metadata). Four `far_mode`s:
+  - `"aimed"` (the default) — a `scripts/combat/Projectile.cs` that fires at the player's **body** and
+    **tracks their elevation** at fire time (`can_fly_up` + `rotate_to_heading`, so it can angle up/down at a
+    player a level away and points along its flight). **`far_aim_cap`** clamps the tilt to ±that° off horizontal
+    (Kebus = 45), so a player far above/below never makes the shot near-vertical — it just fires at the cap.
+    Pair with a wide **`attack_align_y`** (Kebus = 120) so he'll *engage* across levels, not only when level with you.
+    The shot doesn't steer after firing (`homing = 0`). Kebus' staff bolt.
+  - `"forward"` — a straight, **non-tracking** bolt: flies dead ahead in the enemy's facing for `far_travel`
+    px then fizzles, ignoring where you are. (Use it for a dumb straight shooter; `aggro` still governs chasing.)
+  - `"ground_wave"` — a `Projectile` that rolls forward along the ground and **hugs the terrain surface**
+    (`ground_follow`, + a scorch `ground_trail`), rippling up/down slopes; fizzles at `far_travel` or when
+    it runs off a ledge — Baghel's red energy surge.
   - `"lob"` — a **`LobProjectile`** (`scripts/combat/LobProjectile.cs`), a *thrown bomb*
     (Mazab). It arcs out of the muzzle **aimed** at a spot next to the player (`lob_land_offset`,
     biased toward the thrower), then **flies ballistically** until it lands on a real surface,

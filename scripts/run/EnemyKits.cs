@@ -18,14 +18,16 @@ public static class EnemyKits
 	{
 		{ "id", EnemyIds.Kebus }, { "tier", (int)EnemyTier.Strong }, { "movement", (int)EnemyMovement.Ground },
 		{ "close_type", StrikeType.Melee.Key() }, { "far_type", StrikeType.Projectile.Key() },
-		{ "far_mode", "forward" }, { "far_hitbox_extents", new Vector2(7, 10) },
-		{ "far_travel", 180.0 }, { "projectile_speed", 200.0 },
+		// far_mode defaults to "aimed": tracks the player + aims at the body, tilt capped to ±45° (never vertical);
+		// attack_align_y is wide so he'll engage you a level up/down.
+		{ "far_aim_cap", 45.0 }, { "attack_align_y", 120.0 }, { "far_hitbox_extents", new Vector2(7, 10) },
+		{ "projectile_speed", 200.0 },
 	};
 
 	public static readonly GDict BAGHEL = new()
 	{
 		{ "id", EnemyIds.Baghel }, { "tier", (int)EnemyTier.Chip }, { "movement", (int)EnemyMovement.Ground }, { "far_type", StrikeType.Projectile.Key() },
-		{ "far_mode", "forward" }, { "far_range", 130.0 }, { "far_travel", 100.0 }, { "projectile_speed", 200.0 },
+		{ "far_mode", "ground_wave" }, { "far_range", 130.0 }, { "far_travel", 100.0 }, { "projectile_speed", 200.0 },
 		{ "far_hitbox_extents", new Vector2(4, 15) }, { "far_hitbox_offset", new Vector2(0, -9) }, { "far_damage", 7.0 },
 		{ "idle_time_min", 5.0 }, { "idle_time_max", 7.0 },
 	};
