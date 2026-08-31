@@ -39,6 +39,10 @@ public partial class Hitbox : Area2D
 
     private readonly List<Hurtbox> _alreadyHit = new();
 
+    // Cumulative "did this activation connect with anyone" — reset on activate(), set on a hit, and (unlike
+    // _alreadyHit) NOT cleared by pulse(), so a multi-pulse DoT still reads true. Read on deactivate() for a WHIFF.
+    private bool _connectedSinceActivate;
+
     public override void _Ready()
     {
         AreaEntered += OnAreaEntered;
@@ -54,6 +58,7 @@ public partial class Hitbox : Area2D
     public void activate()
     {
         _alreadyHit.Clear();
+        _connectedSinceActivate = false;
         Monitoring = true;
     }
 
@@ -65,8 +70,16 @@ public partial class Hitbox : Area2D
             GetTree().CreateTimer(duration).Timeout += deactivate;
     }
 
-    /// <summary>Turn the box off — the end of a swing's active frames, or a projectile expiring.</summary>
-    public void deactivate() => Monitoring = false;
+    /// <summary>Turn the box off — the end of a swing's active frames, or a projectile expiring. A PLAYER attack box
+    /// (source is the Player) that struck nobody this activation is a WHIFF → notify the player (OnMiss buffs).
+    /// Gated to non-special boxes so surges/specials don't feed attack-miss procs.</summary>
+    public void deactivate()
+    {
+        bool whiffed = Monitoring && !_connectedSinceActivate && !from_special;
+        Monitoring = false;
+        if (whiffed && GodotObject.IsInstanceValid(source) && source is Player p)
+            p.notify_miss();
+    }
 
     /// <summary>
     /// Re-deal to every Hurtbox CURRENTLY inside the box — one pulse of a ticking/DoT field. <c>AreaEntered</c>
@@ -96,6 +109,7 @@ public partial class Hitbox : Area2D
         if (GodotObject.IsInstanceValid(source) && box.GetParent() == source)
             return;
         _alreadyHit.Add(box);
+        _connectedSinceActivate = true;
         var hit = new Hit
         {
             Amount = damage,

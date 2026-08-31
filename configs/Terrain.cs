@@ -43,15 +43,47 @@ public static class Terrain
     public static readonly Color PLATFORM_FALLBACK = new(0.22f, 0.23f, 0.30f);
     public static readonly Color FLOOR_FALLBACK = new(0.16f, 0.17f, 0.22f);
 
-    // Optional full-screen background image behind the per-level colour tint.
-    public const string BackgroundTexturePath = "res://assets/terrain/background.png";
+    // Full-screen background image behind the per-level colour tint. RunManager shows the SINGLE image (no tiling)
+    // scaled to BackgroundZoom of the viewport, centred, over a dark backing sampled from the image's own edge.
+    // 1.0 = fills the screen (the original look); LOWER = zoomed out a little (the starfield sits in a bit more
+    // space). Raising above 1.0 zooms in (the edges crop).
+    public const string BackgroundTexturePath = "res://assets/terrain/stage1/bg1.png";
+    public const float BackgroundZoom = 1.0f;  // bg1 is 640x360 → fills at 1.0 (no border) while still reading zoomed-out
     public const float BackgroundTintAlpha = 0.4f;
+
+    // Optional ANIMATED background element (an orbiting planet), drawn over the bg, scaled with the bg's zoom.
+    public const string BackgroundAnimPath = "res://assets/terrain/stage1/planet_moon.png";
+    public const int BackgroundAnimFrameSize = 48;   // square frame side (sheet is a horizontal strip)
+    public const int BackgroundAnimFrameCount = 10;  // 480 / 48
+    public const float BackgroundAnimFps = 8.0f;
+    public static readonly Vector2 BackgroundAnimRatio = new(0.72f, 0.26f);  // its centre as a fraction of the viewport
+    public const float BackgroundAnimScale = 1.0f;   // extra multiplier on top of BackgroundZoom
 
     private static Texture2D Load(string path) => ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
 
     public static Texture2D Sheet() => Load(SheetPath);
     public static Texture2D PlantsSheet() => Load(PlantsSheetPath);
     public static Texture2D BackgroundTexture() => Load(BackgroundTexturePath);
+
+    /// <summary>SpriteFrames for the animated background element (one looping "orbit" clip), or null if absent.</summary>
+    public static SpriteFrames BackgroundAnimFrames()
+    {
+        var tex = Load(BackgroundAnimPath);
+        if (tex == null)
+            return null;
+        var sf = new SpriteFrames();
+        sf.RemoveAnimation("default");
+        sf.AddAnimation("orbit");
+        sf.SetAnimationLoop("orbit", true);
+        sf.SetAnimationSpeed("orbit", BackgroundAnimFps);
+        for (int i = 0; i < BackgroundAnimFrameCount; i++)
+            sf.AddFrame("orbit", new AtlasTexture
+            {
+                Atlas = tex,
+                Region = new Rect2(i * BackgroundAnimFrameSize, 0, BackgroundAnimFrameSize, BackgroundAnimFrameSize),
+            });
+        return sf;
+    }
 
     /// <summary>An AtlasTexture for one 32px cell of `tex`.</summary>
     public static AtlasTexture CellTexture(Texture2D tex, Vector2I cell) =>

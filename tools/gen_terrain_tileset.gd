@@ -8,7 +8,7 @@ extends SceneTree
 ## collider on physics layer 0 (collision_layer = World). Solid by default — flip ONE_WAY below for
 ## jump-through platforms. Partial/decor cells are paintable but pass-through (no collision).
 
-const SHEET := "res://assets/terrain/stage1/tileset1-Sheet.png"
+const SHEET := "res://assets/terrain/stage1/tileset1.png"
 const OUT := "res://assets/terrain/stage1/terrain_tileset.tres"
 const TILE := 32
 const WORLD_LAYER := 1        # Combat.Layer.World = 1 << 0

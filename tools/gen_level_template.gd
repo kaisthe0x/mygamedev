@@ -2,7 +2,7 @@ extends SceneTree
 ## Dev tool: build a LEVEL LAYOUT template scene (structure only — you paint the Terrain + move markers).
 ##   godot-mono --headless --script tools/gen_level_template.gd
 const TILESET := "res://assets/terrain/stage1/terrain_tileset.tres"
-const OUT := "res://scenes/levels/stage1/level_v1.tscn"
+const OUT := "res://scenes/levels/stage1/stage1_v1.tscn"
 func _init() -> void:
 	var root := Node2D.new()
 	root.name = "LevelLayout"

@@ -16,7 +16,7 @@ parked in the gitignored `playground/` directory (for a future separate repo); t
 stays fully character-agnostic, so bringing one back is just its assets + data rows.
 
 
-Main scene: `scenes/level.tscn`. Press F5 to run.
+Main scene: `scenes/palette_preview.tscn` (the pre-game colour pickers) — press F5; picking a look loads the run scene `scenes/arena.tscn` (root `RunManager`). To jump straight into a run, open `scenes/arena.tscn` and press F6.
 
 **Game premise & the run loop:** *(current/old loop — being replaced, see the pivot banner above +
 [`docs/game-loop.md`](docs/game-loop.md))* see [`docs/game-design.md`](docs/game-design.md) — a roguelite
@@ -131,11 +131,18 @@ independent — they **upgrade by layering buffs**, not by turning into a differ
 weight its odds by `synergy`, or grant a **behavioural passive / buff** (Leech) — see the
 *Passives, abilities & buffs* section + [`configs/RewardsCatalog.cs`](configs/RewardsCatalog.cs). Take 0
 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pools, the attack
-picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `level.tscn`'s root;
+picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `arena.tscn`'s root;
 `Levels` / `EnemyKits` / `Rewards` / `RewardsCatalog` / `Build` / `Icons` are the data + logic). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset
 skin ([`configs/Terrain.cs`](configs/Terrain.cs)) stamped as sprites over the colliders — tiled
 neon terrain, ground plants, tree props — art in `assets/terrain/`, gameplay unchanged.
+The **background** (`RunManager.BuildBg`/`LayoutBg`, on a `-100` CanvasLayer) is a **single** star image
+(`assets/terrain/stage1/bg1.png`, no tiling) centred and scaled to `Terrain.BackgroundZoom` of the viewport
+(**1.0 = fills**, lower = zoomed out a little, over a dark backing sampled from the image's own edge so the
+gap never reads as a cut). Over it sits an optional **animated element** — an orbiting planet
+(`stage1/planet_moon.png`, a 10-frame 48px strip) placed by `BackgroundAnimRatio` *within the image's rect*
+and scaled to match it. Both live in `Terrain.cs`, re-layout on viewport resize, under the per-level colour
+tint (`BackgroundTintAlpha`).
 
 ---
 
@@ -795,9 +802,11 @@ ACTION"; add new event hooks to `Passive.cs` + fire them from the player as more
 
 **The reward doc's trigger set is landing here** (`docs/rewards-design.md`). Beyond the hooks above, `Passive`
 now also fires the movement/attack moments the doc organises buffs by — `OnDash` / `OnGroundJump` /
-`OnAirJump` / `OnSlamTrigger` / `OnSlamLand` — and a `Trigger` enum names the whole growing vocabulary; the
-harder ones (`OnMiss`, `OnPerfectDodge`, a level timer) are reserved there until the player learns to emit
-them.
+`OnAirJump` / `OnSlamTrigger` / `OnSlamLand`, plus **`OnAnimEnd`** (a melee swing recovers to neutral —
+`Player.NotifyAttackAnimEnd`) and **`OnMiss`** (a player attack hitbox deactivates having struck nobody —
+`Hitbox.deactivate` → `Player.notify_miss`, gated to `source is Player && !from_special`) — and a `Trigger`
+enum names the whole growing vocabulary. Still reserved (no clean emit site yet): `OnPerfectDodge` (dash
+i-frames disable the hurtbox, so an avoided hit fires no event) and a level/stage timer.
 
 ### Current passives
 
@@ -835,6 +844,40 @@ Two ways a buff acts (either/both): **numbers** — override `ModifyTuning` to c
 - **Reaper's Edge** (`ReaperEdge.cs`, `["twin_reaper"]`) — +25% Twin Reaper damage via `ModifyTuning`.
   The worked example of the numbers path (a single move, unlike the global "+12% attack damage" reward).
 - **Guardian's Mend** (`ParryMend.cs`, `["redere_shield"]`) — a perfect parry also heals, via `OnParry`.
+
+#### The tiered buff catalog (`configs/BuffCatalog.cs`)
+
+The **pivot's** buff system (`docs/buff-catalog.md`) is a data registry: `BuffCatalog.FACTORIES` maps a
+`BuffIds.*` id → a `Func<Tier, Buff>` that builds the buff at a granted tier (per-tier magnitudes live in the
+factory's arrays; `Family` gives replace-in-place so a higher tier supersedes a lower). Most entries reuse a
+**generic buff class** rather than a bespoke one:
+
+- **`StatBuff`** — scales one `SegmentData` stat (Damage/Reach/Knockback/Stun) by a per-tier mult via
+  `ModifyTuning` (Long Reach).
+- **`LifestealBuff`** — heals a per-tier fraction of damage dealt, via `OnHitDealt` (Bloodrush, Skim).
+- **`InvulnBuff`** — grants an i-frame window on its bound `Trigger` (Dash/Jump/Slam/Hit immunity, plus
+  **Follow-through** on `OnAnimEnd`), via `Player.grant_invuln`.
+- **`ExtraAirJumpBuff`** — Setup adds air jumps (`Player.add_air_jumps`), Teardown restores.
+- **`RunStatBuff`** — Setup/Teardown scales a run-scoped Player mult-field: **High Jump** (`jump_velocity_bonus`,
+  folded into the applied jump velocity) and **Slam Force** (`slam_damage_mult`, read in `SlamRelease`).
+- **`SlamSpringBuff`** — `OnSlamLand` primes the next ground jump's height (`Player.set_jump_spring`, one-shot).
+- **`SlamQuakeBuff`** — `OnSlamLand` stuns nearby enemies (`Player.stun_nearby`, the surge stun-sweep pattern).
+- **`SlamWrathBuff`** — `OnSlamLand` opens a timed attack-damage window; self-contained (ticks in `Physics`,
+  boosts via `ModifyTuning` gated to `"attack"`).
+- **`ChainDashBuff`** — `OnDash` zeroes the dash cooldown (`Player.reset_dash_cooldown`); minimal (tier riders TODO).
+- **`OverchargeBuff`** — Bakshen `OnHitDealt` cuts the attack cooldown (`Player.reduce_attack_cooldown`; Epic = full).
+- **`InstantResetBuff`** — Zahluq `OnMiss` fully resets the attack cooldown (`reduce_attack_cooldown`, huge value);
+  Zahluq fires one hitbox per swing so a whiff = one reset.
+- **`WiderPullBuff`** — Setup bumps `Player.magnet_target_bonus` (read by `MagnetField` on spawn) for Come Closer.
+- **`MomentumBuff`** — a consecutive-hit damage ramp: `OnHitDealt` stacks a per-tier multiplier (capped at
+  `MaxStacks`, applied via `ModifyTuning`), and `OnAnimEnd` resets it when a full swing/combo recovered having
+  connected nothing (per-swing whiff, sidestepping the per-hitbox `OnMiss`). `MaxStacks` is a placeholder — tune at playtest.
+
+**Deferred** (left out of `FACTORIES`, with a `// TODO(id)` in `BuffCatalog.cs`): *Slam Feast* (the slam damage
+Strike spawns AFTER `OnSlamLand`, so no kill-count is available at the hook), *Backstab* (damage is baked into the
+`Hitbox` at activate time and applied before the victim is known — no on-contact tuning seam), and *Perfect-Dodge
+Haste/Fury/Aegis* (dash i-frames disable the hurtbox, so a dash-avoided hit fires no event to hang
+`OnPerfectDodge` on). Trap/dash-hitbox/Seal-category buffs await their new mechanics.
 
 ---
 
@@ -1213,7 +1256,12 @@ self-contained SCENES (see below), so the scene has nothing fragile to hand-wire
   band under the platform spacing.
 - **Edge-aware:** a downward probe `edge_check_x` ahead of each foot stops it
   walking off ledges — it turns around on patrol and won't chase off a platform.
-  So enemies can patrol on platforms safely.
+  So enemies can patrol on platforms safely. The probe spans a **tall vertical range**
+  (feet −14px up to +28px down, `HitFromInside`) so a **slope** reads as continuous floor, not a
+  cliff — it reaches up for a rising floor and down ~a tile for a descending one, so enemies chase
+  *down* slopes too; a real drop deeper than ~a tile still stops it. Enemies also run with
+  `FloorSnapLength=16` + `FloorConstantSpeed` so they glide up/down slopes without
+  floating off descents or crawling up climbs.
 - **`aggro`** (default **on** — enemies are hunters): it *chases* the player up to
   `aggro_range` (the **give-up leash**: get farther and it drops back to patrol), instead of only
   fighting whoever wanders into its line. It chases to its **attack reach** — a *far-attack* mob closes

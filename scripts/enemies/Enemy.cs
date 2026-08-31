@@ -141,6 +141,12 @@ public partial class Enemy : Combatant
         CollisionLayer = (uint)Combat.Layer.EnemyBody;
         CollisionMask = (uint)Combat.Layer.World;
 
+        // Slope-friendly floor handling: snap keeps them glued to the ground going DOWN a slope (no float/bounce);
+        // constant speed stops them slowing to a crawl going UP one. Default snap (1px) detaches on any descent.
+        UpDirection = Vector2.Up;
+        FloorSnapLength = 16.0f;
+        FloorConstantSpeed = true;
+
         BuildSprite();
         BuildBody();
         BuildHurtbox();
@@ -244,10 +250,15 @@ public partial class Enemy : Combatant
 
     private RayCast2D MakeEdgeRay(float x)
     {
+        // Tall vertical span so a SLOPE isn't mistaken for a cliff. Reaches UP 14px (an upslope's rising floor;
+        // HitFromInside also catches steep climbs where the origin embeds in terrain) and DOWN ~a tile (28px) so a
+        // DESCENDING floor is still "ahead" and the enemy keeps chasing down instead of stopping at the lip. A true
+        // drop deeper than ~a tile still reads as a cliff and halts it (no diving off high platforms).
         var ray = new RayCast2D
         {
-            Position = new Vector2(x, -4),
-            TargetPosition = new Vector2(0, 16),
+            Position = new Vector2(x, -14),
+            TargetPosition = new Vector2(0, 42),
+            HitFromInside = true,
             CollisionMask = (uint)Combat.Layer.World,
         };
         AddChild(ray);
