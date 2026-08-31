@@ -77,7 +77,7 @@ public partial class RunManager : Node2D
     // --- bridges (cached in _Ready) ---
     private Music _music;
     private Sfx _sfx;
-    private PackedScene _enemyScene, _spawnFx, _ruhOrb, _atomScene;
+    private PackedScene _enemyScene, _spawnFx, _ruhOrb, _fadaFigScene;
 
     public override void _Ready()
     {
@@ -88,7 +88,7 @@ public partial class RunManager : Node2D
         _enemyScene = GD.Load<PackedScene>("res://scenes/enemy.tscn");
         _spawnFx = GD.Load<PackedScene>("res://vfx/spawn/enemy_spawn.tscn");
         _ruhOrb = GD.Load<PackedScene>("res://vfx/character/khalid/ruh_orb/ruh_orb.tscn");
-        _atomScene = GD.Load<PackedScene>("res://scenes/atom.tscn");
+        _fadaFigScene = GD.Load<PackedScene>("res://scenes/fada_fig.tscn");
 
         Engine.TimeScale = 1.0;
         AddGlow();
@@ -426,16 +426,16 @@ public partial class RunManager : Node2D
             else
                 enemy.Set(k, kit[key]);
         }
-        // Atom drop count defaults from the advisory tier unless the kit set atom_drop explicitly (Wardens do).
-        if (!kit.ContainsKey("atom_drop") && kit.ContainsKey("tier"))
-            enemy.atom_drop = AtomsForTier((EnemyTier)kit["tier"].AsInt32());
+        // FadaFig drop count defaults from the advisory tier unless the kit set fada_fig_drop explicitly (Wardens do).
+        if (!kit.ContainsKey("fada_fig_drop") && kit.ContainsKey("tier"))
+            enemy.fada_fig_drop = FadaFigsForTier((EnemyTier)kit["tier"].AsInt32());
         enemy.Position = pos;
         _content.AddChild(enemy);
         return enemy;
     }
 
-    /// <summary>Default atoms dropped by an enemy of a given advisory tier (Wardens override via their kit).</summary>
-    private static int AtomsForTier(EnemyTier tier) => tier switch
+    /// <summary>Default fada_figs dropped by an enemy of a given advisory tier (Wardens override via their kit).</summary>
+    private static int FadaFigsForTier(EnemyTier tier) => tier switch
     {
         EnemyTier.Chip => 1,
         EnemyTier.Mid => 2,
@@ -461,8 +461,8 @@ public partial class RunManager : Node2D
         // Death fires INSIDE a physics query flush (Hitbox callback), where adding a RigidBody is illegal
         // ("Can't change this state while flushing queries"). Capture the values (the enemy frees) + defer the drop.
         Vector2 at = enemy.GlobalPosition;
-        int drop = enemy.atom_drop;
-        Callable.From(() => SpawnAtoms(at, drop)).CallDeferred(); // every enemy drops (optional ones too, if killed)
+        int drop = enemy.fada_fig_drop;
+        Callable.From(() => SpawnFadaFigs(at, drop)).CallDeferred(); // every enemy drops (optional ones too, if killed)
         if (enemy.optional)
             return;
         _alive -= 1;
@@ -470,16 +470,16 @@ public partial class RunManager : Node2D
             Callable.From(AdvanceBatch).CallDeferred();
     }
 
-    /// <summary>Scatter <paramref name="count"/> collectible atoms out of a corpse (they bounce, roll, and settle).</summary>
-    private void SpawnAtoms(Vector2 at, int count)
+    /// <summary>Scatter <paramref name="count"/> collectible fada_figs out of a corpse (they bounce, roll, and settle).</summary>
+    private void SpawnFadaFigs(Vector2 at, int count)
     {
-        if (_atomScene == null)
+        if (_fadaFigScene == null)
             return;
         for (int i = 0; i < count; i++)
         {
-            var atom = _atomScene.Instantiate<Node2D>();
-            _content.AddChild(atom);
-            PlaceAt(atom, at + new Vector2((float)GD.RandRange(-10, 10), -12));
+            var fada_fig = _fadaFigScene.Instantiate<Node2D>();
+            _content.AddChild(fada_fig);
+            PlaceAt(fada_fig, at + new Vector2((float)GD.RandRange(-10, 10), -12));
         }
     }
 

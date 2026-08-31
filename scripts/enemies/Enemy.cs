@@ -43,7 +43,7 @@ public partial class Enemy : Combatant
 
 	[ExportGroup("Patrol")]
 	[Export] public float move_speed { get; set; } = 40.0f;
-	[Export] public int atom_drop { get; set; } = 1;   // atoms dropped on death (RunManager defaults it by tier)
+	[Export] public int fada_fig_drop { get; set; } = 1;   // fada_figs dropped on death (RunManager defaults it by tier)
 	[Export] public float patrol_distance { get; set; } = 90.0f;
 	[Export] public float idle_time_min { get; set; } = 2.0f;
 	[Export] public float idle_time_max { get; set; } = 3.0f;

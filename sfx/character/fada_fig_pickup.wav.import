@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://3m5ra3g1sp55"
-path="res://.godot/imported/atom_pickup.wav-4961e7008edc1f27941918c9fc9ac0da.sample"
+path="res://.godot/imported/fada_fig_pickup.wav-3b9fb683edb6d55a4038fbc2334e13f1.sample"
 
 [deps]
 
-source_file="res://sfx/character/atom_pickup.wav"
-dest_files=["res://.godot/imported/atom_pickup.wav-4961e7008edc1f27941918c9fc9ac0da.sample"]
+source_file="res://sfx/character/fada_fig_pickup.wav"
+dest_files=["res://.godot/imported/fada_fig_pickup.wav-3b9fb683edb6d55a4038fbc2334e13f1.sample"]
 
 [params]
 

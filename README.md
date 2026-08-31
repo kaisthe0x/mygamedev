@@ -144,15 +144,17 @@ gap never reads as a cut). Over it sits an optional **animated element** — an 
 and scaled to match it. Both live in `Terrain.cs`, re-layout on viewport resize, under the per-level colour
 tint (`BackgroundTintAlpha`).
 
-**Atoms** — the collectible run currency (the Chest spends these; the old "Lira" idea is retired). Every enemy
-drops some on death: `RunManager.OnEnemyDied` → `SpawnAtoms` scatters `Enemy.atom_drop` copies of
-[`scenes/atom.tscn`](scenes/atom.tscn) ([`scripts/collectibles/Atom.cs`](scripts/collectibles/Atom.cs), a
+**Fada Figs** — the collectible run currency (the Chest spends these; the old "Lira" idea is retired). Every enemy
+drops some on death: `RunManager.OnEnemyDied` → `SpawnFadaFigs` scatters `Enemy.fada_fig_drop` copies of
+[`scenes/fada_fig.tscn`](scenes/fada_fig.tscn) ([`scripts/collectibles/FadaFig.cs`](scripts/collectibles/FadaFig.cs), a
 `RigidBody2D`) which pop out, bounce/tumble, and settle on the terrain. The player collects one by **physically
-touching** it — the atom's child `Pickup` Area detects the `PlayerBody`, calls `Player.collect_atom`, plays
-`atom_collect` (placeholder sfx), and frees. `Atom.magnetize(target)` is a ready hook for a FUTURE reward that
-makes loose atoms fly to the player like a Ruh soul (not wired yet). Drop counts default by advisory
-`EnemyTier` (`RunManager.AtomsForTier`: Chip 1 / Mid 2 / Strong 3), overridable per kit — **Wardens drop 12**
-(`KROJ` kit). The banked total shows on the HUD next to the Ruh meter (`HUD.SetAtoms`); `Player.begin_run` zeroes it.
+touching** it — the Fada Fig's child `Pickup` Area detects the `PlayerBody`, calls `Player.collect_fada_fig`, plays
+`fada_fig_collect` (placeholder sfx), and frees. `FadaFig.magnetize(target)` is a ready hook for a FUTURE reward that
+makes loose Fada Figs fly to the player like a Ruh soul (not wired yet). Drop counts default by advisory
+`EnemyTier` (`RunManager.FadaFigsForTier`: Chip 1 / Mid 2 / Strong 3), overridable per kit — **Wardens drop 12**
+(`KROJ` kit). The banked total shows on the HUD next to the Ruh meter (`HUD.SetFadaFigs`); `Player.begin_run` zeroes it.
+The sprite wears a shared **`vfx/shaders/world/pulse_glow.gdshader`** material (assigned in `FadaFig._Ready`, one
+instance for all Fada Figs) that breathes its brightness above 1.0 so it **blooms** — reads as an energy mote and pops.
 
 ---
 

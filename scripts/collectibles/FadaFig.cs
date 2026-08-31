@@ -3,13 +3,13 @@ using Godot;
 namespace MyGame;
 
 /// <summary>
-/// A collectible ATOM dropped by a dying enemy — the run currency (spent later at the Chest). It pops out of the
+/// A collectible Fada Fig dropped by a dying enemy — the run currency (spent later at the Chest). It pops out of the
 /// corpse with a little bounce + tumble (RigidBody physics) and settles on the ground; the player collects it by
 /// physically touching it — the child <c>Pickup</c> Area detects the player's body. There is intentionally no
-/// wide magnet: a FUTURE reward calls <see cref="magnetize"/> to make loose atoms fly to the player like a Ruh soul.
-/// RunManager spawns this scene on enemy death (count = <c>Enemy.atom_drop</c>).
+/// wide magnet: a FUTURE reward calls <see cref="magnetize"/> to make loose Fada Figs fly to the player like a Ruh soul.
+/// RunManager spawns this scene on enemy death (count = <c>Enemy.fada_fig_drop</c>).
 /// </summary>
-public partial class Atom : RigidBody2D
+public partial class FadaFig : RigidBody2D
 {
     [Export] public float pop_up_min { get; set; } = 120.0f;
     [Export] public float pop_up_max { get; set; } = 200.0f;
@@ -20,6 +20,9 @@ public partial class Atom : RigidBody2D
     private Node2D _magnetTarget;
     private bool _collected;
 
+    // One shared pulse-glow material for every Fada Fig (a scene-wide resource, not per-instance).
+    private static ShaderMaterial _glowMaterial;
+
     public override void _Ready()
     {
         // Scatter pop: up + a little sideways, with a spin so it tumbles/rolls before settling.
@@ -28,13 +31,16 @@ public partial class Atom : RigidBody2D
             -(float)GD.RandRange(pop_up_min, pop_up_max));
         AngularVelocity = (float)GD.RandRange(-8.0, 8.0);
 
+        _glowMaterial ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://vfx/shaders/world/pulse_glow.gdshader") };
+        GetNode<Sprite2D>("Sprite2D").Material = _glowMaterial;
+
         GetNode<Area2D>("Pickup").BodyEntered += OnBodyEntered;
 
         if (life_seconds > 0.0f)
             GetTree().CreateTimer(life_seconds).Timeout += () => { if (!_collected) QueueFree(); };
     }
 
-    /// <summary>FUTURE magnet-reward hook: pull this atom toward <paramref name="target"/> (the player) instead of
+    /// <summary>FUTURE magnet-reward hook: pull this Fada Fig toward <paramref name="target"/> (the player) instead of
     /// resting on the ground — it then flies in and is collected on contact, exactly like a Ruh soul.</summary>
     public void magnetize(Node2D target)
     {
@@ -53,8 +59,8 @@ public partial class Atom : RigidBody2D
         if (_collected || body is not Player p)
             return;
         _collected = true;
-        p.collect_atom(1);
-        GetNodeOrNull<Sfx>("/root/Sfx")?.play_at("atom_collect", GlobalPosition);
+        p.collect_fada_fig(1);
+        GetNodeOrNull<Sfx>("/root/Sfx")?.play_at("fada_fig_collect", GlobalPosition);
         QueueFree();
     }
 }
