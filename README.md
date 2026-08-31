@@ -593,6 +593,18 @@ animation: a `sustained` wind-streak trail on the descent frames (`0–2`) and a
 on the impact frames (`3–4`). Keep those frame ranges consistent so `slam_hold_frame`
 (the last descent frame) lines up.
 
+**Ground AoEs hug the terrain (`conform_to_ground`).** An emitter row flagged
+`conform_to_ground: true` (the slam burst + Ground Breaker) is reshaped at spawn to follow the
+surface instead of firing flat: [`GroundContour`](scripts/combat/GroundContour.cs) walks downward
+`World` rays across the effect's footprint (`ParticleDirector.ConformToGround` → `GroundContour.Build`),
+building one contiguous contour centred on the impact (it stops at the first gap each side, so a
+shockwave doesn't leap a pit). Each Rectangle **emitter** is switched to `DirectedPoints` with the
+contour as `emission_points` + `emission_normals`, so dust erupts perpendicular to the slope all along
+it; each box **hitbox** has its rect swapped for a `CollisionPolygon2D` band that follows the contour
+(as tall as the rect), so the hit fairly covers bodies standing on the slope. No ground under the
+impact → the burst is discarded. (This replaced the old horizontal-only `clip_to_ground`, which was a
+no-op on the TileMapLayer terrain.)
+
 **Slam needs room below (`slam_min_clearance`, 50px).** The air press only slams when
 the nearest platform *straight down* is at least `slam_min_clearance` away — a ray from
 the feet down that distance (against the body's own `collision_mask`, so it catches

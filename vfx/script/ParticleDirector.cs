@@ -24,7 +24,7 @@ public partial class ParticleDirector : Node2D
     private sealed class Burst
     {
         public string anim; public List<int> frames; public Vector2 pos; public PackedScene scene;
-        public string node; public GDict set; public GDict boost; public bool clip_to_ground; public bool follow;
+        public string node; public GDict set; public GDict boost; public bool conform_to_ground; public bool follow;
     }
 
     private AnimatedSprite2D _sprite;
@@ -100,7 +100,7 @@ public partial class ParticleDirector : Node2D
                         node = row.ContainsKey("node") ? row["node"].AsString() : "",
                         set = row.ContainsKey("set") ? row["set"].As<GDict>() : new GDict(),
                         boost = boost,
-                        clip_to_ground = row.ContainsKey("clip_to_ground") && row["clip_to_ground"].AsBool(),
+                        conform_to_ground = row.ContainsKey("conform_to_ground") && row["conform_to_ground"].AsBool(),
                         follow = row.ContainsKey("follow") && row["follow"].AsBool(),
                     });
                 }
@@ -417,8 +417,11 @@ public partial class ParticleDirector : Node2D
             world.AddChild(node);
         PlaceAt(node, target);
         var hitboxes = HitboxesOf(node);
-        if (b.clip_to_ground)
-            ClipToGround(node, emitters, hitboxes);
+        if (b.conform_to_ground && !ConformToGround(node, emitters, hitboxes))
+        {
+            node.QueueFree(); // AoE landed over a pit / no ground — don't emit or hit
+            return;
+        }
         foreach (var em in emitters)
         {
             SetOneShot(em, emitDur <= 0.0f);
@@ -480,62 +483,42 @@ public partial class ParticleDirector : Node2D
         return float.IsFinite(best.X) ? best : from + new Vector2(120.0f * m, 20.0f);
     }
 
-    private Vector2 GroundEdgesAt(Vector2 worldPos)
+    // Ground-conform sampling: step across the footprint this finely, searching this far up/down for the surface.
+    private const float ContourStep = 8.0f;
+    private const float ContourReach = 48.0f;
+
+    /// <summary>Reshape a ground AoE — its Rectangle emitters + box hitboxes — to hug the terrain surface, so it
+    /// curves with slopes instead of firing flat (see <see cref="GroundContour"/>). One contour is sampled at the
+    /// widest footprint and applied to every part. Returns false if there's no ground under the impact (the caller
+    /// then discards the burst — an AoE over a pit shouldn't emit or hit).</summary>
+    private bool ConformToGround(Node2D node, List<Node> emitters, List<Hitbox> hitboxes)
     {
         if (!IsInsideTree())
-            return new Vector2(float.NegativeInfinity, float.PositiveInfinity);
+            return true; // can't sample -> leave the effect as authored rather than dropping it
         var space = GetWorld2D().DirectSpaceState;
         if (space == null)
-            return new Vector2(float.NegativeInfinity, float.PositiveInfinity);
-        var q = PhysicsRayQueryParameters2D.Create(worldPos + new Vector2(0, -30), worldPos + new Vector2(0, 60), (uint)Combat.Layer.World);
-        var hit = space.IntersectRay(q);
-        if (hit.Count == 0 || hit["collider"].As<Node>() is not Node2D collider)
-            return new Vector2(float.NegativeInfinity, float.PositiveInfinity);
-        float left = float.PositiveInfinity, right = float.NegativeInfinity;
-        foreach (var csN in collider.FindChildren("*", "CollisionShape2D", true, false))
-            if (csN is CollisionShape2D cs && cs.Shape is RectangleShape2D rect)
-            {
-                float hw = rect.Size.X * 0.5f * Mathf.Abs(cs.GlobalScale.X);
-                left = Mathf.Min(left, cs.GlobalPosition.X - hw);
-                right = Mathf.Max(right, cs.GlobalPosition.X + hw);
-            }
-        return left <= right ? new Vector2(left, right) : new Vector2(float.NegativeInfinity, float.PositiveInfinity);
-    }
+            return true;
 
-    private void ClipToGround(Node2D node, List<Node> emitters, List<Hitbox> hitboxes)
-    {
-        Vector2 edges = GroundEdgesAt(node.GlobalPosition);
-        if (float.IsNegativeInfinity(edges.X))
-            return;
+        float halfWidth = 0.0f;
         foreach (var em in emitters)
             if (em is CpuParticles2D cp && cp.EmissionShape == CpuParticles2D.EmissionShapeEnum.Rectangle)
-            {
-                float sx = Mathf.Max(Mathf.Abs(cp.GlobalScale.X), 0.001f);
-                var r = ClipBand(cp.GlobalPosition.X, cp.EmissionRectExtents.X * sx, edges.X, edges.Y);
-                if (r == null)
-                {
-                    cp.Emitting = false;
-                    continue;
-                }
-                cp.GlobalPosition = new Vector2(r[0], cp.GlobalPosition.Y);
-                cp.EmissionRectExtents = new Vector2(r[1] / sx, cp.EmissionRectExtents.Y);
-            }
+                halfWidth = Mathf.Max(halfWidth, cp.EmissionRectExtents.X * Mathf.Abs(cp.GlobalScale.X));
         foreach (var hb in hitboxes)
             foreach (var csN in hb.FindChildren("*", "CollisionShape2D", true, false))
-                if (csN is CollisionShape2D cs && cs.Shape is RectangleShape2D)
-                {
-                    var rect = (RectangleShape2D)cs.Shape.Duplicate();
-                    cs.Shape = rect;
-                    float sx = Mathf.Max(Mathf.Abs(cs.GlobalScale.X), 0.001f);
-                    var r = ClipBand(cs.GlobalPosition.X, rect.Size.X * 0.5f * sx, edges.X, edges.Y);
-                    if (r == null)
-                    {
-                        hb.deactivate();
-                        continue;
-                    }
-                    cs.GlobalPosition = new Vector2(r[0], cs.GlobalPosition.Y);
-                    rect.Size = new Vector2(r[1] * 2.0f / sx, rect.Size.Y);
-                }
+                if (csN is CollisionShape2D cs && cs.Shape is RectangleShape2D rect)
+                    halfWidth = Mathf.Max(halfWidth, rect.Size.X * 0.5f * Mathf.Abs(cs.GlobalScale.X));
+        if (halfWidth <= 0.0f)
+            return true; // nothing rectangular to conform (e.g. a point burst) — let it fire as-is
+
+        var contour = GroundContour.Build(space, node.GlobalPosition, halfWidth, ContourStep, ContourReach);
+        if (contour == null || contour.IsEmpty)
+            return false; // no ground under the impact
+        foreach (var em in emitters)
+            if (em is CpuParticles2D cp)
+                contour.ConformEmitter(cp);
+        foreach (var hb in hitboxes)
+            contour.ConformHitbox(hb);
+        return true;
     }
 
     private void FreeWhenDone(Node root, List<Node> emitters)
@@ -579,14 +562,6 @@ public partial class ParticleDirector : Node2D
     {
         node.GlobalPosition = pos;
         node.ResetPhysicsInterpolation();
-    }
-
-    /// <summary>Intersect a horizontal band (center ± half) with [left, right]. [new_center, new_half] or null.</summary>
-    private static float[] ClipBand(float center, float half, float left, float right)
-    {
-        float lo = Mathf.Max(center - half, left);
-        float hi = Mathf.Min(center + half, right);
-        return lo >= hi ? null : new[] { (lo + hi) * 0.5f, (hi - lo) * 0.5f };
     }
 
     private static void ScaleMinMaxPair(Node2D obj, string minProp, string maxProp, float f)
