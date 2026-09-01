@@ -41,9 +41,6 @@ public partial class RunManager : Node2D
     private const float ClearSlowmoScale = 0.3f;
     private const float ClearSlowmoHold = 0.7f;
     private const float ClearSlowmoRamp = 0.55f;
-    private const int TerrainZ = -5;
-    private const int PlantZ = -4;
-    private const int TreeZ = -15;
 
     [Export] public NodePath player_path = "Player";
 
@@ -217,164 +214,6 @@ public partial class RunManager : Node2D
 
         if (_player != null)
             PlaceAt(_player, _playerSpawn);
-    }
-
-    private void BuildPlatform(float centerX, float topY, float width, float height)
-    {
-        var body = new StaticBody2D
-        {
-            CollisionLayer = (uint)Combat.Layer.World,
-            CollisionMask = 0,
-            Position = new Vector2(centerX, topY),
-        };
-        body.AddToGroup("oneway_platform");
-        var col = MakeBox(new Vector2(width, height), new Vector2(0, height / 2.0f));
-        col.OneWayCollision = true;
-        body.AddChild(col);
-        PaintSurface(body, new Vector2(-width / 2.0f, 0), width, 0);
-        ScatterPlants(body, new Vector2(-width / 2.0f, 0), width, 0.35f);
-        _content.AddChild(body);
-    }
-
-    // --- terrain painting (visual skin over the colliders) --------------------
-
-    private void PaintSurface(Node parent, Vector2 origin, float width, int fillRows)
-    {
-        var sheet = Terrain.Sheet();
-        if (sheet == null)
-        {
-            var r = new ColorRect
-            {
-                Color = Terrain.PLATFORM_FALLBACK,
-                Position = origin,
-                Size = new Vector2(width, Mathf.Max(Terrain.TILE, (fillRows + 1) * Terrain.TILE)),
-                ZIndex = TerrainZ,
-            };
-            parent.AddChild(r);
-            return;
-        }
-        float t = Terrain.TILE;
-        int full = (int)(width / t);
-        float rem = width - full * t;
-        int cols = full + (rem > 2.0f ? 1 : 0);
-        for (int row = 0; row < fillRows + 1; row++)
-        {
-            var cells = row == 0 ? Terrain.TOP_CELLS : Terrain.FILL_CELLS;
-            for (int c = 0; c < cols; c++)
-            {
-                var cell = cells[(c + row) % cells.Length];
-                float w = c < full ? t : rem;
-                var at = Terrain.CellTexture(sheet, cell);
-                if (w < t)
-                    at.Region = new Rect2(at.Region.Position, new Vector2(w, t));
-                var spr = new Sprite2D
-                {
-                    Texture = at,
-                    Centered = false,
-                    TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-                    Position = origin + new Vector2(c * t, row * t),
-                    ZIndex = TerrainZ,
-                };
-                parent.AddChild(spr);
-            }
-        }
-    }
-
-    private void ScatterPlants(Node parent, Vector2 origin, float width, float density)
-    {
-        var ps = Terrain.PlantsSheet();
-        if (ps == null)
-            return;
-        int slots = (int)(width / Terrain.TILE);
-        for (int i = 0; i < slots; i++)
-        {
-            if (GD.Randf() > density)
-                continue;
-            Vector2I cell = GD.Randf() < 0.2f
-                ? Terrain.MUSHROOM_CELL
-                : Terrain.PLANT_CELLS[(int)(GD.Randi() % (uint)Terrain.PLANT_CELLS.Length)];
-            var spr = new Sprite2D
-            {
-                Texture = Terrain.CellTexture(ps, cell),
-                Centered = false,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-                Position = origin + new Vector2(i * Terrain.TILE + GD.Randf() * 6.0f, -Terrain.TILE),
-                ZIndex = PlantZ,
-            };
-            parent.AddChild(spr);
-        }
-    }
-
-    private void PlaceTrees()
-    {
-        if (Terrain.TreeTexture(0) == null)
-            return;
-        float[] spots = { -360.0f, 240.0f, -80.0f };
-        for (int i = 0; i < Mathf.Min(2, spots.Length); i++)
-        {
-            var tex = Terrain.TreeTexture(_levelIndex + i);
-            if (tex == null)
-                continue;
-            var spr = new Sprite2D
-            {
-                Texture = tex,
-                Centered = false,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-                Position = new Vector2(spots[i] - tex.GetWidth() / 2.0f, -tex.GetHeight()),
-                ZIndex = TreeZ,
-            };
-            AddLeafFall(spr, tex.GetWidth(), tex.GetHeight());
-            _content.AddChild(spr);
-        }
-    }
-
-    /// <summary>
-    /// Attach a gently-falling "leaves" particle emitter to a tree. The tree sprite is Centered=false, so its LOCAL
-    /// space runs (0,0) top-left → (w,h) bottom-right; leaves spawn across the CANOPY band up top and drift down.
-    /// This is a plain <c>CpuParticles2D</c> — every knob below is a dial you can tune (or copy for other props).
-    /// </summary>
-    private static void AddLeafFall(Node2D tree, float w, float h)
-    {
-        var leafTex = GD.Load<Texture2D>("res://vfx/shared/textures/soft_dot.png"); // swap for a real leaf sprite later
-        var leaves = new CpuParticles2D
-        {
-            Emitting = true,          // run continuously
-            LocalCoords = false,      // leaves keep falling in WORLD space (don't snap to the tree)
-            ZIndex = TreeZ + 1,       // in front of the trunk
-            Texture = leafTex,
-
-            // WHERE they're born: a rectangle across the top of the canopy.
-            EmissionShape = CpuParticles2D.EmissionShapeEnum.Rectangle,
-            EmissionRectExtents = new Vector2(w * 0.42f, h * 0.18f), // half-size of the spawn band
-            Position = new Vector2(w * 0.5f, h * 0.26f),             // centred over the canopy (tree-local)
-
-            // HOW MANY / HOW LONG: sparse + slow = calm, not a blizzard.
-            Amount = 10,              // leaves alive at once — raise for denser fall
-            Lifetime = 5.0,          // seconds each leaf lives (how long it falls)
-            Explosiveness = 0.0f,    // 0 = steady trickle; 1 = all at once (bursts)
-            Preprocess = 3.0,        // start mid-fall so leaves are already drifting when a level loads
-
-            // MOTION: a floaty downward fall with sway + tumble.
-            Direction = new Vector2(0, 1), // down
-            Spread = 30.0f,                // ± degrees of fan-out
-            Gravity = new Vector2(0, 24),  // gentle pull (low = leaf-light; raise = heavier fall)
-            InitialVelocityMin = 6.0f,
-            InitialVelocityMax = 18.0f,
-            DampingMin = 6.0f,             // air resistance — slows them so they *drift*, not plummet
-            DampingMax = 12.0f,
-            AngularVelocityMin = -70.0f,   // tumble/spin (deg/s)
-            AngularVelocityMax = 70.0f,
-
-            // SIZE: small motes.
-            ScaleAmountMin = 0.15f,
-            ScaleAmountMax = 0.35f,
-        };
-        // LOOK over life: born a soft violet, fade to transparent electric-blue as they settle (Arcane-Void palette).
-        var ramp = new Gradient();
-        ramp.SetColor(0, new Color(0.72f, 0.45f, 1.0f, 0.9f));
-        ramp.SetColor(1, new Color(0.45f, 0.55f, 1.0f, 0.0f));
-        leaves.ColorRamp = ramp;
-        tree.AddChild(leaves);
     }
 
     // --- spawning + waves -----------------------------------------------------
@@ -843,7 +682,4 @@ public partial class RunManager : Node2D
         node.GlobalPosition = pos;
         node.ResetPhysicsInterpolation();
     }
-
-    private static CollisionShape2D MakeBox(Vector2 size, Vector2 offset) =>
-        new() { Shape = new RectangleShape2D { Size = size }, Position = offset };
 }

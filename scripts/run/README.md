@@ -18,13 +18,6 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 | `ExitGate.cs` (`ExitGate`) | The exit door (an `Area2D`): detects the player, shows/greens/reds by affordability, reports `touched`. RunManager owns the decision. |
 | `RewardUI.cs` (`RewardUI`) | The pick-a-reward popup (pauses the game, emits `chosen(id)`). |
 
-**Terrain look** (the tiled art skin): `RunManager` paints the floor + platforms with the 32px
-tileset as positioned sprites over the (unchanged) colliders — `_paint_surface` stamps a surface
-row + optional fill rows, `_scatter_plants` sprinkles ground plants, `_place_trees` drops tree
-props behind. Art + cell roles live in [`configs/terrain.gd`](../../configs/terrain.gd) (`Terrain`),
-files in `assets/terrain/`. Missing sheet → flat-colour fallback. This is the **visual-only** first
-pass (collision/feel identical).
-
 **Hand-painted stage layouts** are the active approach: `RunManager` loads a random
 `scenes/levels/stage1/stage1_v*.tscn` (a `LevelLayout`, discovered by the `stage1_v` glob in
 `StageLayoutPaths`) and reads its `PlayerSpawn` / `Exit` / `spawn_ground` / `spawn_air` markers. Terrain

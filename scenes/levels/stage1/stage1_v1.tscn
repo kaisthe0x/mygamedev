@@ -2,6 +2,9 @@
 
 [ext_resource type="Script" uid="uid://dyd3ld37u8258" path="res://scripts/run/LevelLayout.cs" id="1_7gigr"]
 [ext_resource type="Texture2D" uid="uid://dlfbes2s6wcy" path="res://assets/terrain/stage1/tileset1.png" id="2_gt0dq"]
+[ext_resource type="Texture2D" uid="uid://uwdg5vhd1klx" path="res://assets/terrain/stage1/man_choking_statue.png" id="3_whpx4"]
+[ext_resource type="Texture2D" uid="uid://bfoye17x53vnm" path="res://assets/terrain/stage1/giant_mushroom.png" id="4_3na6q"]
+[ext_resource type="Texture2D" uid="uid://cglqfybbu8ntd" path="res://assets/terrain/stage1/tree1.png" id="5_1t4uw"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gt0dq"]
 texture = ExtResource("2_gt0dq")
@@ -152,3 +155,27 @@ shape = SubResource("RectangleShape2D_gt0dq")
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Walls/StaticBody2D2" unique_id=1441416658]
 position = Vector2(692, 152)
 shape = SubResource("RectangleShape2D_gt0dq")
+
+[node name="Aesthetic" type="Node2D" parent="." unique_id=1907430855]
+
+[node name="Statue" type="Sprite2D" parent="Aesthetic" unique_id=1659359735]
+z_index = -1
+position = Vector2(576, -118)
+texture = ExtResource("3_whpx4")
+
+[node name="GiantMushroom" type="Sprite2D" parent="Aesthetic" unique_id=1442978109]
+z_index = -1
+position = Vector2(177, -84)
+texture = ExtResource("4_3na6q")
+
+[node name="Plants" type="Node2D" parent="Aesthetic" unique_id=939802920]
+
+[node name="Tree" type="Sprite2D" parent="Aesthetic/Plants" unique_id=830546330]
+z_index = -1
+position = Vector2(0, -24)
+texture = ExtResource("5_1t4uw")
+
+[node name="Tree2" type="Sprite2D" parent="Aesthetic/Plants" unique_id=1961784393]
+z_index = -1
+position = Vector2(-816, 48)
+texture = ExtResource("5_1t4uw")

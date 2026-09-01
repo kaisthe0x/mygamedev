@@ -26,7 +26,6 @@ public partial class Player : Combatant
     // --- path templates (mirror CharacterConfig; hardcoded so C# needn't read GDScript consts) ---
     private const string FramesPathTmpl = "res://resources/characters/{0}.tres";
     private const string PortraitPathTmpl = "res://assets/portraits/{0}.png";
-    private static readonly string[] CharacterIds = { "khalid" };
 
     // --- bridged GDScript statics/singletons (cached in _Ready) ---
     private Sfx _sfx = null!;

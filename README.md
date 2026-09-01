@@ -133,9 +133,9 @@ weight its odds by `synergy`, or grant a **behavioural passive / buff** (Leech) 
 HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pools, the attack
 picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `arena.tscn`'s root;
 `Levels` / `EnemyKits` / `Rewards` / `RewardsCatalog` / `Build` / `Icons` are the data + logic). The `.tscn` stays minimal because the editor
-clobbers it, so the level content is built in code from that data. The **look** is a 32px tileset
-skin ([`configs/Terrain.cs`](configs/Terrain.cs)) stamped as sprites over the colliders — tiled
-neon terrain, ground plants, tree props — art in `assets/terrain/`, gameplay unchanged.
+clobbers it, so the level content is built in code from that data. The **look** of the terrain itself is the
+hand-painted `TileMapLayer` in each stage layout (see the run README); the old procedural tileset/plant/tree
+"skin" is **retired**, and `configs/Terrain.cs` now only holds the backdrop config.
 The **background** (`RunManager.BuildBg`/`LayoutBg`, on a `-100` CanvasLayer) is a **single** star image
 (`assets/terrain/stage1/bg1.png`, no tiling) centred and scaled to `Terrain.BackgroundZoom` of the viewport
 (**1.0 = fills**, lower = zoomed out a little, over a dark backing sampled from the image's own edge so the
@@ -607,9 +607,11 @@ first gap each side so an effect doesn't leap a pit). Used three ways:
   perpendicular to the slope); each box **hitbox** swaps its rect for a `CollisionPolygon2D` **band**
   following the contour (as tall as the rect). No ground → the burst is discarded. (Replaced the old
   horizontal-only `clip_to_ground`, a no-op on the TileMapLayer.)
-- **Enemy static AoEs (`conform_ground` kit flag)** — Matat / Nasen set it; `Enemy.SpawnMeleeStrike`
-  runs the *same* `GroundContour.Conform` on the spawned `AoeStrike`. (Enemies bypass `ParticleDirector`,
-  hence a kit flag rather than an emitter-row flag — but one conform path.)
+- **Enemy static AoEs (`conform_ground` kit flag)** — Matat sets it (`Enemy.SpawnMeleeStrike`) and Nasen
+  sets it (`SleeperEnemy.SpawnRageAoe` — the sleeper spawns its rage aoe on its own path, not the melee one);
+  each runs the *same* `GroundContour.Conform` on the spawned `AoeStrike`. (Enemies bypass `ParticleDirector`,
+  hence a kit flag rather than an emitter-row flag — but one conform path. Any new enemy attack spawned by a
+  bespoke method must call `GroundContour.Conform` itself to honour the flag.)
 - **Traveling wave (`Projectile.ground_follow`)** — Baghel's `ground_wave` `far_mode` sets it; each
   `_PhysicsProcess` the projectile `GroundProbe.TryAt`s under itself, snaps its Y to the surface
   (`ground_follow_offset` above it) and tilts to the normal, so the wave ripples up/down slopes as it
