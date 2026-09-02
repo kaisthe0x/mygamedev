@@ -18,13 +18,15 @@ stays fully character-agnostic, so bringing one back is just its assets + data r
 
 Main scene: `scenes/palette_preview.tscn` (the pre-game colour pickers) — press F5; picking a look loads the run scene `scenes/arena.tscn` (root `RunManager`). To jump straight into a run, open `scenes/arena.tscn` and press F6.
 
-**Game premise & the run loop:** *(current/old loop — being replaced, see the pivot banner above +
+**Game premise & the run loop:** *(mid-migration toward the pivot — see the banner above +
 [`docs/game-loop.md`](docs/game-loop.md))* see [`docs/game-design.md`](docs/game-design.md) — a roguelite
-arena crawler: clear each level's enemy batches, cast **specials** (now **free and unlimited**), and
+arena crawler. **Levels/exits are retired:** it's now ONE endless arena where enemies **trickle in at a
+steady rate** from a mixed roster and you survive. Cast **specials** (now **free and unlimited**), and
 spend **Ruh** on your **Aegis** surge for an on-demand burst of invincibility (each use costs one
 **Ruh** charge — you start a run with 3, and refill Ruh by **landing hits**; Ruh is the only gate, no
-cooldown), then pick a buff at one random **reward door** per level. Attack is chosen at run start and
-locked; die and the run restarts.
+cooldown). Killing enemies drops **Fada Figs** + (at a ramping chance) a random **buff** you grab off the
+ground. Attack is chosen at run start and locked; die and the run restarts. *(The old reward-door / next-level
+machinery is parked, not wired — see `scripts/run/README.md`.)*
 
 > Potential names for the game:
 > - Index32
@@ -43,7 +45,7 @@ resources/characters/ GENERATED SpriteFrames -- do not hand-edit
 resources/enemies/    GENERATED enemy SpriteFrames -- do not hand-edit
 scenes/               player, level, hud
 scripts/              player, hud
-scripts/run/          the roguelite run: levels, batches, Ruh, reward doors, attack picker (see scripts/run/README.md)
+scripts/run/          the roguelite run: continuous arena, steady spawner, Ruh, buff drops, attack picker (see scripts/run/README.md)
 scripts/abilities/    Passive/Buff base (C#) + reward passives (Leech/ParryMend/ReaperEdge.cs) + reward-tier/trigger types (RewardTypes.cs)
 scripts/combat/       Hurtbox, hitbox, Combatant base, health bar, floating text, status overlay — all C# now (constants -> configs/Combat.cs)
 scripts/enemies/      Enemy base + projectile
@@ -114,25 +116,22 @@ debug damage/heal, `0` rebuild-level) live in that same file.
 
 **The game is a roguelite run** (premise: [`docs/game-design.md`](docs/game-design.md)). At run start
 you **pick an attack** (locked for the run; scrollable picker built to scale to 12+). You drop into
-low, mostly-horizontal **arena levels** that spawn enemies in **escalating batches**. You **start each
+a low, mostly-horizontal **endless arena** that **trickles enemies in at a steady rate** (a mixed roster,
+proximity-spawned near you — capped so it never floods). You **start each
 run with 3 Ruh charges** — the surge meter, shown in charges (100 each), no decay — and refill it by
 **landing hits** (~5 hits = 1 charge; kills don't count, and a special's own hits don't self-pay).
 **Specials are now free and unlimited** (only a tiny anti-spam lag). Ruh instead fuels the **Aegis
 surge** (a passive on its own button): it grants ~5s of invincibility on demand without interrupting
 you, and **each use spends one Ruh charge** — Ruh is the only gate, no cooldown (see below). **HP is separate**: damage hits it only, heals
-*only* from rewards. Clear every batch → the **reward door** opens (one random type per level: **Health
-/ Athletic / Attack / Special**, each iconned) → **pick one buff** → next level. The instant the **last
-required** enemy falls and the exit unlocks, a brief **"you did it!" slow-motion** plays
-(`RunManager._celebrate_clear` drops `Engine.time_scale` and ramps it back via a real-time tween) —
-**optional** enemies (Nasen) never trigger it, since only required kills reach the clear. Moves are
-independent — they **upgrade by layering buffs**, not by turning into a different move (Dual Executioner
-& Redere Frisbee are now standalone swaps, not successors). Rewards are **build-aware** — a reward can
-`require` something equipped (a per-move buff like *Reaper's Edge* only shows once Twin Reaper is),
-weight its odds by `synergy`, or grant a **behavioural passive / buff** (Leech) — see the
-*Passives, abilities & buffs* section + [`configs/RewardsCatalog.cs`](configs/RewardsCatalog.cs). Take 0
-HP and the run restarts. All of this — the 5 levels, the enemy roster, the reward pools, the attack
-picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `arena.tscn`'s root;
-`Levels` / `EnemyKits` / `Rewards` / `RewardsCatalog` / `Build` / `Icons` are the data + logic). The `.tscn` stays minimal because the editor
+*only* from buffs. **Killing an enemy** always drops **Fada Figs** (the run currency) and, at a chance that
+**ramps from 40% up to a 70% cap** as the run wears on, a **`BuffDrop`** — a glowing orb you touch to gain a
+random generally-useful buff (tier weighted low; move-gated buffs stay out of the drop pool so a pickup is
+never wasted). Moves are independent — they **upgrade by layering buffs**, not by turning into a different move
+(Dual Executioner & Redere Frisbee are now standalone swaps, not successors). Take 0 HP and the run restarts
+(a fresh arena; buffs cleared, HP + Ruh refilled). All of this — the spawner, the enemy roster, the buff pool,
+the attack picker — lives in [`scripts/run/`](scripts/run/README.md) (`RunManager` is `arena.tscn`'s root;
+`EnemyKits` is the roster, `BuffDrop` + `BuffCatalog` the drops; the old `Levels` / `Rewards` / `RewardsCatalog`
+/ `Build` reward-door code is **parked, not wired**, kept for the pivot's reward phase). The `.tscn` stays minimal because the editor
 clobbers it, so the level content is built in code from that data. The **look** of the terrain itself is the
 hand-painted `TileMapLayer` in each stage layout (see the run README); the old procedural tileset/plant/tree
 "skin" is **retired**, and `configs/Terrain.cs` now only holds the backdrop config.
@@ -1114,11 +1113,11 @@ Background **music** has its own sibling autoload, **`Music`** (`scripts/audio/M
 player while the new one fades in on the other, **always started from the top** — so switching beds is
 smooth and re-entering a level restarts its music fresh. `Music.stop()` fades to silence;
 `Music.pause()`/`resume()` freeze/continue at position. `.mp3`/`.ogg`/`.wav` are all force-looped.
-Register tracks in `Music.TRACKS`. In the run: the `"level"` bed starts (from the top) on every level
-via `RunManager._build_level`; on a **level clear** it crossfades to the calm **`"base_rest"`** bed
-(with a `level_cleared` cue) while the exit/reward is open, and that **crossfades back out** as the next
-level builds. Plays on a `"Music"` bus if present (else Master), and is a silent no-op until the file
-exists. Same "drop a file, add one line" workflow as `Sfx`.
+Register tracks in `Music.TRACKS`. In the run: the `"level"` bed starts (from the top) when the arena
+builds via `RunManager.BuildArena` (and again on a death-restart). *(The old `"base_rest"` clear/exit
+crossfade is gone with levels; that track is registered but no longer triggered by the run.)* Plays on a
+`"Music"` bus if present (else Master), and is a silent no-op until the file exists. Same "drop a file,
+add one line" workflow as `Sfx`.
 
 - **The one place to check what sounds we use:** each config's **`CUES`** dict — a `key → path`
   master list per area. **Paths live only there**; nothing else hardcodes a `res://sfx/…` path.
@@ -1695,18 +1694,17 @@ through projectiles and attacks unharmed.
 
 ### Spawning & the run
 
-`scripts/run/RunManager.cs` (`RunManager`, the level-scene root) builds each level in code
-from the `Levels` data, to avoid clobbering `level.tscn` while the editor holds it open. See
-[`scripts/run/README.md`](scripts/run/README.md) for the full loop; the build basics:
+`scripts/run/RunManager.cs` (`RunManager`, the `arena.tscn` root) builds ONE continuous arena in code, then
+trickles enemies in at a steady rate. See [`scripts/run/README.md`](scripts/run/README.md) for the full loop;
+the build basics:
 
-- **Platforms** — per level `[center_x, top_y, width]`, one-way `StaticBody2D`s on the world
-  layer — a handful of **low** ledges (no staircase to climb). One-way means you jump up
-  *through* them and land on top.
-- **Enemies** — each level's `start` + escalating `waves` are `{kit, pos}` specs. A **kit**
-  (`EnemyKits.KEBUS`, …) is either an `id` (built from the generic `enemy.tscn` with that
-  `enemy_id`) or a `scene` (a custom enemy — `nasen.tscn` sleeper, `ein.tscn` kamikaze), plus
-  any Enemy `@export` overrides. `RunManager._spawn_enemy` applies them; the enemy's `died`
-  signal banks Ruh (unless the kill was by the special) and counts toward clearing the arena.
+- **Terrain** — a hand-painted `TileMapLayer` with per-tile collision, loaded from a random `stage1_v*.tscn`
+  layout (see the run README + `docs/painting-levels.md`). Its exposed ground tops feed proximity spawning.
+- **Enemies** — `SpawnWave()` fires every `SpawnInterval`, picking `EnemiesPerWave` **kits** at random from
+  `RunManager.SpawnPool` (up to a `MaxAlive` cap). A **kit** (`EnemyKits.KEBUS`, …) is either an `id` (built
+  from the generic `enemy.tscn` with that `enemy_id`) or a `scene` (a custom enemy — `sleeper_enemy.tscn`,
+  `diver_enemy.tscn`), plus any Enemy `@export` overrides. `RunManager.SpawnEnemy` applies them; the enemy's
+  `died` signal frees a cap slot and rolls the Fada-Fig + buff drops.
   On a Ruh-granting kill it also pops a **Ruh soul** (`vfx/shared/ruh_orb/`, `RuhOrb`): a glowing
   crimson orb that flies a **curved, parabolic path** to the player — a quadratic Bezier from the
   death spot to the player's live position, bowed by `arc_height` — always reaching him at the end
@@ -1808,8 +1806,8 @@ instead of a fixed fps that desyncs the moment speed changes. `run_anim_speed`
   back out** to normal the instant it ends. Because the spawn and death zooms match, a
   death → respawn → spawn stays smoothly zoomed the whole way and only reveals the level
   once you have control. Also in `RunManager` — tune/disable there.
-- **Dev key `0`** rebuilds the current level fresh (`RunManager._build_level`) — a quick way
-  to reset the arena while iterating.
+- **Dev key `0`** rebuilds the arena fresh (`RunManager.BuildArena`) — a quick way
+  to reset while iterating.
 
 ---
 
@@ -1849,13 +1847,12 @@ immune to the zoom. Tunables (`MARGIN`, `SIZE_*`, `FADE_*`, `ALPHA_*`) live at t
 
 ### Persistent record — `SaveData` (`scripts/SaveData.cs`)
 
-The best-ever *levels cleared in one run* survives between sessions. `SaveData` is
+The best-ever *waves survived in one run* survives between sessions (levels are retired). `SaveData` is
 an all-static helper backed by a `ConfigFile` at `user://save.cfg`:
-- `RunManager` counts a level cleared when its exit is paid (`_on_reward_chosen`),
-  writing `SaveData.current_cleared`; on run end (death **or** completion, both via
-  `_restart_run`) it calls `SaveData.report_run(cleared)`, which persists a new best.
-- The HUD reads `SaveData.current_cleared` / `SaveData.levels_record()` each frame
-  (in-memory after the first load — no per-frame disk I/O).
+- `RunManager.SpawnWave` writes `SaveData.SetCurrentWaves(_waveCount)` each tick; on death
+  (`RestartRun`) it calls `SaveData.ReportRun(_waveCount)`, which persists a new best (key `waves_record`).
+- The HUD reads `SaveData.GetCurrentWaves()` / `SaveData.WavesRecord()` each frame
+  (in-memory after the first load — no per-frame disk I/O), shown as `WAVES n · BEST m`.
 
 It's the first thing saved to disk; add future persisted stats as more keys in the
 same file.
