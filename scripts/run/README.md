@@ -20,7 +20,7 @@ one place each. The premise it implements is in [`docs/game-design.md`](../../do
 
 **Hand-painted stage layouts** are the active approach: `RunManager` loads a random
 `scenes/levels/stage1/stage1_v*.tscn` (a `LevelLayout`, discovered by the `stage1_v` glob in
-`StageLayoutPaths`) and reads its `PlayerSpawn` / `Exit` / `spawn_ground` / `spawn_air` markers. Terrain
+`StageLayoutPaths`) and reads its `PlayerSpawn` / `Exit` markers (+ optional `orb` group). Terrain
 is a **`TileMapLayer` with per-tile collision**: `tools/gen_terrain_tileset.gd` reads the terrain sheet
 (`assets/terrain/stage1/tileset1.png`) and builds `terrain_tileset.tres` — every non-empty 32px cell
 becomes a paintable tile, and every **≥85%-opaque (solid) cell gets a full-box collider** on the World
@@ -30,6 +30,15 @@ platforms / decor) — a single mural does *not* work (its cells aren't reusable
 would all turn solid). Re-run the generator after editing the sheet, then paint the level in-editor.
 Slopes / one-way platforms: paint the tiles, then hand-tweak those colliders in the TileSet editor (the
 generator only bakes full boxes). See [`docs/painting-levels.md`](../../docs/painting-levels.md).
+
+**Enemy spawning is PROXIMITY-based** (a step toward the pivot's "grunts spawn around the player"), no longer
+authored markers. `RunManager.SpawnGroup` → `SpawnPosition(kit)` places each enemy relative to the player at
+spawn time: **flyers** (`air`) overhead within `FlyerHeight*`/`FlyerXSpread` (headroom-checked so they don't
+spawn inside a ceiling); **stationary** (`movement == Stationary`, e.g. Nasen) far off on a ground tile
+(`StationarySpawn*`); **grunts** near on a ground tile but within a fair band (`GroundSpawnMin..Max`) — a **min
+distance so an enemy never spawns on top of the player**. Ground tiles come from `LevelLayout.GroundSurfaces()`
+(exposed tops of the Terrain tilemap — a solid cell with an empty cell above). The distance bands are tunable
+consts in `RunManager`. (The old `spawn_ground`/`spawn_air` layout markers are unused — delete them from layouts.)
 
 Related, but not in this folder:
 - **Player HP + Ruh** live on the `Player` (`scripts/Player.cs`) as **two independent pools**:

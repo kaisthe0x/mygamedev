@@ -220,23 +220,13 @@ public partial class RunManager : Node2D
 
     private void SpawnGroup(GArr specs, bool withFx)
     {
-        // Positions come from the LAYOUT's spawn markers (ground for walkers, air for flyers), assigned round-robin.
-        // The roster (WHICH enemies) is the shared per-level data; each spec's own `pos` is only a fallback.
-        var ground = _layout?.GroundSpawns() ?? new System.Collections.Generic.List<Vector2>();
-        var air = _layout?.AirSpawns() ?? new System.Collections.Generic.List<Vector2>();
-        int gi = 0, ai = 0;
+        // Enemies proximity-spawn around the player: ground/stationary onto the layout's exposed ground tiles at a
+        // FAIR distance (never on top of him), flyers overhead with reaction room. Each spec's `pos` is a last resort.
         foreach (Variant specV in specs)
         {
             var spec = specV.As<GDict>();
             var kit = spec["kit"].As<GDict>();
-            bool isAir = kit.ContainsKey("air") && kit["air"].AsBool();
-            Vector2 pos;
-            if (isAir && air.Count > 0)
-                pos = air[ai++ % air.Count];
-            else if (ground.Count > 0)
-                pos = ground[gi++ % ground.Count];
-            else
-                pos = spec["pos"].As<Vector2>(); // no markers → fall back to the authored position
+            Vector2 pos = SpawnPosition(kit, spec["pos"].As<Vector2>());
             if (withFx)
                 SpawnFx(pos);
             var enemy = SpawnEnemy(kit, pos);
@@ -249,6 +239,74 @@ public partial class RunManager : Node2D
                     _alive += 1;
             }
         }
+    }
+
+    // Proximity-spawn tuning (px). Ground grunts appear within a fair band — far enough that the player can react,
+    // never on top of him; stationary enemies (Nasen) much farther; flyers (Ein) overhead with dodge room.
+    private const float GroundSpawnMin = 170.0f;
+    private const float GroundSpawnMax = 440.0f;
+    private const float StationarySpawnMin = 500.0f;
+    private const float StationarySpawnMax = 920.0f;
+    private const float FlyerHeightMin = 130.0f;
+    private const float FlyerHeightMax = 210.0f;
+    private const float FlyerXSpread = 90.0f;
+
+    /// <summary>Where to drop this enemy relative to the player: flyers overhead (with headroom), stationary far on a
+    /// ground tile, grunts near on a ground tile — always at least the min band away. <paramref name="fallback"/> is
+    /// the authored spec position, used only if the layout has no usable ground tiles.</summary>
+    private Vector2 SpawnPosition(GDict kit, Vector2 fallback)
+    {
+        Vector2 player = _player?.GlobalPosition ?? Vector2.Zero;
+        if (kit.ContainsKey("air") && kit["air"].AsBool())
+        {
+            float x = player.X + (float)GD.RandRange(-FlyerXSpread, FlyerXSpread);
+            float up = (float)GD.RandRange(FlyerHeightMin, Mathf.Max(FlyerHeightMin, HeadroomAbove(player)));
+            return new Vector2(x, player.Y - up);
+        }
+        bool stationary = kit.ContainsKey("movement") && kit["movement"].AsInt32() == (int)EnemyMovement.Stationary;
+        float min = stationary ? StationarySpawnMin : GroundSpawnMin;
+        float max = stationary ? StationarySpawnMax : GroundSpawnMax;
+        return PickGroundSurface(player.X, min, max) ?? fallback;
+    }
+
+    /// <summary>Clear vertical space above <paramref name="from"/> up to <see cref="FlyerHeightMax"/> — so a flyer isn't
+    /// spawned inside a ceiling. Returns how high it can safely sit.</summary>
+    private float HeadroomAbove(Vector2 from)
+    {
+        var space = GetWorld2D()?.DirectSpaceState;
+        if (space == null)
+            return FlyerHeightMax;
+        var q = PhysicsRayQueryParameters2D.Create(from, from + new Vector2(0.0f, -(FlyerHeightMax + 16.0f)), (uint)Combat.Layer.World);
+        var hit = space.IntersectRay(q);
+        if (hit.Count == 0)
+            return FlyerHeightMax;
+        return Mathf.Clamp(from.Y - hit["position"].As<Vector2>().Y - 14.0f, FlyerHeightMin * 0.5f, FlyerHeightMax);
+    }
+
+    /// <summary>A random exposed ground-tile position whose horizontal distance from <paramref name="fromX"/> is in
+    /// [min,max]; if none fall in that band, the nearest tile that is still ≥ min away (so it's never adjacent to the
+    /// player); null only if the layout has no ground tiles at all.</summary>
+    private Vector2? PickGroundSurface(float fromX, float min, float max)
+    {
+        var surfaces = _layout?.GroundSurfaces();
+        if (surfaces == null || surfaces.Count == 0)
+            return null;
+        var band = new System.Collections.Generic.List<Vector2>();
+        Vector2? nearestFair = null;
+        float nearestFairScore = float.MaxValue;
+        Vector2 farthest = surfaces[0];
+        float farthestD = -1.0f;
+        foreach (Vector2 s in surfaces)
+        {
+            float d = Mathf.Abs(s.X - fromX);
+            if (d >= min && d <= max)
+                band.Add(s);
+            if (d >= min && d < nearestFairScore) { nearestFairScore = d; nearestFair = s; }
+            if (d > farthestD) { farthestD = d; farthest = s; }
+        }
+        if (band.Count > 0)
+            return band[(int)(GD.Randi() % (uint)band.Count)];
+        return nearestFair ?? farthest; // band empty → closest tile still ≥min; if even that fails, the farthest we have
     }
 
     private Enemy SpawnEnemy(GDict kit, Vector2 pos)

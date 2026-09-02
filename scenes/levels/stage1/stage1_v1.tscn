@@ -130,21 +130,6 @@ position = Vector2(-400, -40)
 [node name="Exit" type="Marker2D" parent="." unique_id=490401013]
 position = Vector2(400, -40)
 
-[node name="Ground1" type="Marker2D" parent="." unique_id=1502397410 groups=["spawn_ground"]]
-position = Vector2(-200, -20)
-
-[node name="Ground2" type="Marker2D" parent="." unique_id=1744714850 groups=["spawn_ground"]]
-position = Vector2(0, -20)
-
-[node name="Ground3" type="Marker2D" parent="." unique_id=1473163605 groups=["spawn_ground"]]
-position = Vector2(200, -20)
-
-[node name="Air1" type="Marker2D" parent="." unique_id=1273811921 groups=["spawn_air"]]
-position = Vector2(-427, -199)
-
-[node name="Air2" type="Marker2D" parent="." unique_id=1060966171 groups=["spawn_air"]]
-position = Vector2(413, -201)
-
 [node name="Walls" type="Node2D" parent="." unique_id=15303981]
 
 [node name="StaticBody2D" type="StaticBody2D" parent="Walls" unique_id=1517534922]
@@ -206,7 +191,7 @@ texture = ExtResource("7_8tbje")
 
 [node name="BigTree2" type="Sprite2D" parent="Aesthetic/Plants/Trees" unique_id=1156871038]
 z_index = -1
-position = Vector2(-823, -6)
+position = Vector2(-824, -6)
 texture = SubResource("CompressedTexture2D_tskwq")
 
 [node name="Bushes" type="Node2D" parent="Aesthetic/Plants" unique_id=506939204]
